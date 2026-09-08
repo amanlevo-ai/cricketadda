@@ -35,15 +35,15 @@ jobs:
       - name: ⚙️ Expo Prebuild
         run: npx expo prebuild --platform android --clean
 
-      - name: 🔨 Build Android APK
+      - name: 🔨 Build Standalone Release APK (Offline Bundle Embedded)
         working-directory: android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --max-workers=2
+          ./gradlew assembleRelease --no-daemon --max-workers=2
 
-      - name: 📤 Upload APK Artifact
+      - name: 📤 Upload Standalone APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: CricketAdda-APK
-          path: android/app/build/outputs/apk/debug/*.apk
+          name: CricketAdda-Standalone-APK
+          path: android/app/build/outputs/apk/release/*.apk
           retention-days: 30
