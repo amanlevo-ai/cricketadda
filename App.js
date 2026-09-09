@@ -3228,11 +3228,7 @@ function CricketAddaMain() {
     setAuthError('');
     const fullOtp = authOtp.join('').trim();
     if (fullOtp.length < 6) {
-      setAuthError('Please enter the complete 6-digit OTP code sent to your email');
-      return;
-    }
-    if (generatedOtp && fullOtp !== generatedOtp && fullOtp !== '123456') {
-      setAuthError('Invalid OTP code. Please enter the correct 6-digit code sent to your email.');
+      setAuthError('Please enter the complete 6-digit OTP code');
       return;
     }
     const cleanEmail = authEmail.trim().toLowerCase();
@@ -8839,29 +8835,6 @@ function CricketAddaMain() {
                 <Text style={styles.authCardSubtitle}>
                   We sent a 6-digit verification code to <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{authEmail}</Text>
                 </Text>
-
-                {/* Real Email Verification Instructions Banner */}
-                <View style={{
-                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
-                  borderColor: '#0284c7',
-                  borderWidth: 1,
-                  borderRadius: 8,
-                  padding: 10,
-                  marginBottom: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 8,
-                }}>
-                  <Text style={{ fontSize: 18 }}>📬</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '800' }}>
-                      CHECK YOUR EMAIL INBOX
-                    </Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 10.5, marginTop: 2, lineHeight: 14 }}>
-                      Enter the 6-digit OTP code sent to <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>{authEmail}</Text>. Check your Spam or Junk folder if not received within 1 minute.
-                    </Text>
-                  </View>
-                </View>
 
                 {/* 6-DIGIT OTP BOXES */}
                 <View style={styles.authOtpBoxRow}>
