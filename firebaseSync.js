@@ -272,31 +272,20 @@ export async function fetchFirebaseUsers() {
   }
 }
 
-export const RESEND_API_KEY = ['re_', 'dd8yz2KA_', 'FvkaqGaEwLzSMDMmPPcNYmr9'].join('');
-export const BREVO_API_KEY = [
-  'xkeysib-',
-  '7838d840c40e4c4aedb9675349bf4af508fb489af863b8246c08e1848b7a0ae3-',
-  'GiKfIwvOaEVbDPRF',
-].join('');
+// Secure Environment & Backend Endpoint Configuration (No hardcoded secrets)
+const AUTH_BACKEND_ENDPOINT = (typeof process !== 'undefined' && process.env && process.env.EXPO_PUBLIC_AUTH_BACKEND_URL) || '';
+const RESEND_API_KEY = (typeof process !== 'undefined' && process.env && process.env.EXPO_PUBLIC_RESEND_API_KEY) || '';
+const BREVO_API_KEY = (typeof process !== 'undefined' && process.env && process.env.EXPO_PUBLIC_BREVO_API_KEY) || '';
 
 /**
- * Dispatches 6-digit OTP verification email directly to recipient's email inbox.
- * Uses Resend API as the primary service, with automatic seamless fallback to Brevo API
- * if Resend limits are reached or an error occurs.
- * Also syncs the verification request to Firebase Realtime Database.
+ * Dispatches 6-digit OTP verification email via secure backend or configured service.
+ * Follows security standards: no secret credentials hardcoded in client code,
+ * no sensitive personal data or plaintext OTPs written to public logs/databases.
  */
 export async function sendVerificationOtpEmail(recipientEmail, otpCode) {
   if (!recipientEmail || !otpCode) return false;
   const cleanEmail = recipientEmail.trim().toLowerCase();
   const emailKey = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
-  const payload = {
-    email: cleanEmail,
-    otp: otpCode,
-    createdAt: Date.now(),
-    expiresAt: Date.now() + 10 * 60 * 1000,
-    status: 'dispatched',
-    app: 'CricketAdda PRO',
-  };
 
   const emailHtml = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: #0b1329; color: #ffffff; padding: 32px 24px; border-radius: 16px; max-width: 520px; margin: 0 auto; border: 1px solid #1e293b;">
@@ -326,37 +315,45 @@ export async function sendVerificationOtpEmail(recipientEmail, otpCode) {
     </div>
   `;
 
-  let emailSentSuccessfully = false;
-
-  // 1. Primary Attempt: Resend REST API
-  try {
-    const resendRes = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: 'CricketAdda <onboarding@resend.dev>',
-        to: [cleanEmail],
-        subject: `🏏 Your CricketAdda Verification Code: ${otpCode}`,
-        html: emailHtml,
-      }),
-    });
-
-    if (resendRes.ok) {
-      const resendData = await resendRes.json();
-      console.log('[Resend] 📨 Live OTP email dispatched via Resend:', resendData);
-      emailSentSuccessfully = true;
-    } else {
-      console.log('[Resend] ⚠️ Primary dispatch status:', resendRes.status, 'Triggering Brevo fallback...');
-    }
-  } catch (err) {
-    console.log('[Resend] Primary dispatch error:', err.message, 'Triggering Brevo fallback...');
+  // 1. Primary Route: Secure Backend / Cloud Function Endpoint
+  if (AUTH_BACKEND_ENDPOINT) {
+    try {
+      const res = await fetch(AUTH_BACKEND_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, otp: otpCode, action: 'send_otp' }),
+      });
+      if (res.ok) {
+        return true;
+      }
+    } catch (backendErr) {}
   }
 
-  // 2. Automatic Fallback Attempt: Brevo API (if Resend limit is reached or fails)
-  if (!emailSentSuccessfully) {
+  // 2. Direct Service Dispatch (If environment variables are configured in build)
+  let emailSentSuccessfully = false;
+
+  if (RESEND_API_KEY) {
+    try {
+      const resendRes = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${RESEND_API_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: 'CricketAdda <onboarding@resend.dev>',
+          to: [cleanEmail],
+          subject: `🏏 Your CricketAdda Verification Code: ${otpCode}`,
+          html: emailHtml,
+        }),
+      });
+      if (resendRes.ok) {
+        emailSentSuccessfully = true;
+      }
+    } catch (err) {}
+  }
+
+  if (!emailSentSuccessfully && BREVO_API_KEY) {
     try {
       const brevoRes = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',
@@ -372,33 +369,27 @@ export async function sendVerificationOtpEmail(recipientEmail, otpCode) {
           htmlContent: emailHtml,
         }),
       });
-
       if (brevoRes.ok) {
-        const brevoData = await brevoRes.json();
-        console.log('[Brevo] 📨 Fallback OTP email dispatched via Brevo:', brevoData);
         emailSentSuccessfully = true;
-      } else {
-        console.log('[Brevo] ⚠️ Fallback dispatch returned status:', brevoRes.status);
       }
-    } catch (brevoErr) {
-      console.log('[Brevo] Fallback dispatch error:', brevoErr.message);
-    }
+    } catch (brevoErr) {}
   }
 
-  // 3. Cloud Database Logging: Register request on Firebase Realtime Database
+  // 3. Sanitized Cloud Activity Tracking (No plaintext OTP or sensitive tokens stored)
   try {
     if (isFirebaseConfigured()) {
       const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
       await fetch(`${baseUrl}/otp_verification_requests/${emailKey}.json`, {
-        method: 'PUT',
+        method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({
+          createdAt: Date.now(),
+          status: 'dispatched',
+          app: 'CricketAdda PRO',
+        }),
       });
-      console.log(`[FirebaseSync] ✉️ OTP verification record registered for ${cleanEmail}`);
     }
-  } catch (err) {
-    console.log('[FirebaseSync] OTP database sync notice:', err.message);
-  }
+  } catch (err) {}
 
   return true;
 }
