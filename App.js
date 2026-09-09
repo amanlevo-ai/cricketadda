@@ -2937,7 +2937,10 @@ const STORAGE_KEYS = {
   USER_CAREER: '@cricketadda_pref_career',
   USERS_DB: '@cricketadda_users_db',
   MATCHES_DB: '@cricketadda_matches_db',
+  LAST_ACTIVE_TIME: '@cricketadda_last_active_time',
 };
+
+const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 days inactivity limit (2,592,000,000 ms)
 
 const EMPTY_MATCH_TEMPLATE = {
   id: 'match_new',
@@ -3250,6 +3253,7 @@ function CricketAddaMain() {
         AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(userTeams)).catch(() => {});
         AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(existing.profile)).catch(() => {});
         AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(existing.careerStats || EMPTY_USER_CAREER_DATA)).catch(() => {});
+        AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
         setIsAuthenticated(true);
         setAuthStep(1);
         setActiveTab('profile');
@@ -3393,6 +3397,7 @@ function CricketAddaMain() {
     // Save profile and career data to persistent storage
     AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(newProfile)).catch(() => {});
     AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(freshStats)).catch(() => {});
+    AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
     setMatchDraft(INITIAL_MATCH_DRAFT);
 
     setAuthLoading(true);
@@ -3450,6 +3455,7 @@ function CricketAddaMain() {
         STORAGE_KEYS.USER_CAREER,
         STORAGE_KEYS.USER_PROFILE,
         STORAGE_KEYS.MATCHES_DB,
+        STORAGE_KEYS.LAST_ACTIVE_TIME,
       ]);
     } catch (e) {}
 
@@ -3927,11 +3933,27 @@ function CricketAddaMain() {
           }
         }
         const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+        const storedLastActive = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
+
         if (storedProfile) {
           const parsedProfile = JSON.parse(storedProfile);
-          if (parsedProfile && parsedProfile.email) {
+          const lastActiveTime = storedLastActive ? Number(storedLastActive) : 0;
+          const isExpired = lastActiveTime > 0 && (Date.now() - lastActiveTime > THIRTY_DAYS_MS);
+
+          if (isExpired) {
+            // Auto logout after 30 days of inactivity
+            await AsyncStorage.multiRemove([
+              STORAGE_KEYS.USER_PROFILE,
+              STORAGE_KEYS.USER_CAREER,
+              STORAGE_KEYS.LAST_ACTIVE_TIME,
+            ]);
+            setIsAuthenticated(false);
+            showAppToast('Session expired after 30 days of inactivity. Please sign in again.', '⏳');
+          } else if (parsedProfile && parsedProfile.email) {
             setUserProfile(parsedProfile);
             setIsAuthenticated(true);
+            // Refresh activity timestamp on active app usage
+            AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
           }
         }
         const storedCareer = await AsyncStorage.getItem(STORAGE_KEYS.USER_CAREER);
@@ -3976,6 +3998,13 @@ function CricketAddaMain() {
     };
     loadUserPreferences();
   }, []);
+
+  // 30-Day Session Heartbeat: Keep last active timestamp refreshed on active app usage
+  useEffect(() => {
+    if (isAuthenticated) {
+      AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
+    }
+  }, [isAuthenticated, activeTab]);
 
   // Live Cloud Database Auto-Sync: Automatically sync teams to Cloud
   useEffect(() => {
