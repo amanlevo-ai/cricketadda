@@ -1,7 +1,9 @@
 // ============================================================================
-// BULLETPROOF NATIVE FIREBASE REALTIME DATABASE CLIENT (REST & SSE STREAMING)
-// Zero web-SDK dependencies -> 100% crash-free on Android, iOS, and Web!
+// CRICKETADDA BULLETPROOF CLOUD DATABASE CLIENT (FIREBASE REALTIME DATABASE)
+// Zero external native SDK dependencies -> 100% crash-free on Android, iOS, & Web
+// Multi-device real-time sync across any phones over 4G/5G/Wi-Fi worldwide
 // ============================================================================
+
 export const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "AIzaSyAisjW7FzpNvyzlR436lp6Gj2vPeLRYh3E",
   authDomain: "cricketadda-live.firebaseapp.com",
@@ -13,14 +15,16 @@ export const DEFAULT_FIREBASE_CONFIG = {
   measurementId: "G-RX7ZC53F98"
 };
 
-// Offline mode toggle for fast, 100% local testing without network calls
-export const ENABLE_CLOUD_SYNC = false;
+let activeFirebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
+
+// Cloud sync toggle (Enabled for real live database mode)
+export const ENABLE_CLOUD_SYNC = true;
 
 export function isFirebaseConfigured() {
   return (
     ENABLE_CLOUD_SYNC &&
-    activeFirebaseConfig.apiKey &&
-    activeFirebaseConfig.databaseURL &&
+    Boolean(activeFirebaseConfig.apiKey) &&
+    Boolean(activeFirebaseConfig.databaseURL) &&
     activeFirebaseConfig.databaseURL.includes('firebaseio.com')
   );
 }
@@ -29,7 +33,7 @@ export function initFirebase(customConfig = null) {
   if (customConfig) {
     activeFirebaseConfig = { ...activeFirebaseConfig, ...customConfig };
   }
-  console.log('[FirebaseSync] 🟢 Native Firebase Realtime Database Client Active!');
+  console.log('[FirebaseSync] 🟢 Live Firebase Cloud Database Active at', activeFirebaseConfig.databaseURL);
   return true;
 }
 
@@ -55,8 +59,27 @@ export async function syncMatchToFirebase(matchId, matchState) {
     });
     return res.ok;
   } catch (err) {
-    console.log('[FirebaseSync] Sync notice:', err.message);
+    console.log('[FirebaseSync] Match sync notice:', err.message);
     return false;
+  }
+}
+
+/**
+ * Fetches single match from Firebase
+ */
+export async function fetchFirebaseMatch(matchId) {
+  if (!isFirebaseConfigured()) return null;
+  try {
+    const id = matchId || 'match_final_2026';
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/matches/${id}.json`;
+    const res = await fetch(url);
+    if (res.ok) {
+      return await res.json();
+    }
+    return null;
+  } catch (e) {
+    return null;
   }
 }
 
@@ -83,14 +106,126 @@ export function subscribeToFirebaseMatch(matchId, onMatchUpdate) {
     } catch (e) {}
   };
 
-  // Initial fetch
   fetchLatest();
-
-  // Poll every 1 second for instant live spectator updates
-  const interval = setInterval(fetchLatest, 1000);
+  const interval = setInterval(fetchLatest, 1500);
 
   return () => {
     isActive = false;
     clearInterval(interval);
   };
+}
+
+/**
+ * Sync entire matches database to Cloud
+ */
+export async function syncMatchesDbToFirebase(matchesDb) {
+  if (!isFirebaseConfigured() || !matchesDb) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/matches_db.json`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(matchesDb),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Fetch matches database from Cloud
+ */
+export async function fetchFirebaseMatchesDb() {
+  if (!isFirebaseConfigured()) return null;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/matches_db.json`;
+    const res = await fetch(url);
+    if (res.ok) {
+      return await res.json();
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Sync registered teams to Cloud
+ */
+export async function syncTeamsToFirebase(teams) {
+  if (!isFirebaseConfigured() || !Array.isArray(teams)) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/teams.json`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(teams),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Fetch registered teams from Cloud
+ */
+export async function fetchFirebaseTeams() {
+  if (!isFirebaseConfigured()) return null;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/teams.json`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object') return Object.values(data);
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Sync registered users to Cloud
+ */
+export async function syncUsersToFirebase(users) {
+  if (!isFirebaseConfigured() || !Array.isArray(users)) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/users.json`;
+    const res = await fetch(url, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(users),
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Fetch registered users from Cloud
+ */
+export async function fetchFirebaseUsers() {
+  if (!isFirebaseConfigured()) return null;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/users.json`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object') return Object.values(data);
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
 }
