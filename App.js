@@ -18,6 +18,7 @@ import {
   Keyboard,
   KeyboardAvoidingView,
   ActivityIndicator,
+  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -3128,6 +3129,10 @@ function CricketAddaMain() {
 
   // Dynamic Career Stats & Match History State
   const [userCareerData, setUserCareerData] = useState(USER_CAREER_DATA);
+
+  // Interactive "About CricketAdda & Developer" Modal State
+  const [aboutModalVisible, setAboutModalVisible] = useState(false);
+  const [aboutActiveTab, setAboutActiveTab] = useState('developer'); // 'developer' | 'tech' | 'features'
 
   // AUTHENTICATION & SIGNUP / ONBOARDING STATE
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -12341,13 +12346,57 @@ function CricketAddaMain() {
             </TouchableOpacity>
           </View>
 
-          {/* 4. APP INFO FOOTER */}
+          {/* 4. ABOUT & DEVELOPER INFO */}
+          <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8 }}>
+            ℹ️ ABOUT & DEVELOPER INFO
+          </Text>
+
+          <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', marginBottom: 16 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(2, 132, 199, 0.15)', borderWidth: 1.5, borderColor: '#0284c7', alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 22 }}>🏏</Text>
+                </View>
+                <View>
+                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }}>
+                    CricketAdda <Text style={{ color: currentTheme.primary }}>PRO</Text>
+                  </Text>
+                  <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 1 }}>
+                    v2.4.0 • Built by Amandeep Singh
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11.5, lineHeight: 17, marginBottom: 12 }}>
+              Official match scoring, DLS calculation engine, real-time cloud streaming & 360° analytics for cricket clubs worldwide.
+            </Text>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: currentTheme.primary,
+                borderRadius: 8,
+                paddingVertical: 11,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 8,
+              }}
+              onPress={() => setAboutModalVisible(true)}
+            >
+              <Text style={{ fontSize: 15 }}>ℹ️</Text>
+              <Text style={{ color: currentTheme.primaryText || '#ffffff', fontSize: 13, fontWeight: '900' }}>
+                View App & Developer Info
+              </Text>
+            </TouchableOpacity>
+          </View>
+
           <View style={{ alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
-            <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 14, fontWeight: '900' }}>
+            <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 13, fontWeight: '900' }}>
               CricketAdda <Text style={{ color: currentTheme.primary }}>PRO</Text> v2.4.0
             </Text>
-            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#64748b', fontSize: 11, marginTop: 2 }}>
-              Official ICC & T20 Professional Live Match Engine
+            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 2 }}>
+              Crafted with ❤️ by Amandeep Singh (amanlevo@gmail.com)
             </Text>
           </View>
         </ScrollView>
@@ -18392,6 +18441,350 @@ function CricketAddaMain() {
               >
                 <Text style={[styles.confirmBtnText, { color: '#ffffff', fontWeight: '900' }]}>
                   🗑️ Delete Team
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* THEMED IN-APP MODAL: ABOUT CRICKETADDA & DEVELOPER INFO */}
+      {/* ========================================================================= */}
+      <Modal visible={aboutModalVisible} transparent animationType="slide" onRequestClose={() => setAboutModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={{
+            backgroundColor: currentTheme.isLight ? '#ffffff' : '#0a101d',
+            borderColor: currentTheme.primary,
+            borderWidth: 1.5,
+            borderRadius: 20,
+            padding: 18,
+            width: Math.min(width - 20, 420),
+            maxHeight: Math.min(height * 0.86, 640),
+            shadowColor: currentTheme.primary,
+            shadowRadius: 20,
+            shadowOpacity: 0.35,
+            elevation: 12,
+          }}>
+            {/* Modal Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                <View style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(2, 132, 199, 0.15)', borderWidth: 1.5, borderColor: currentTheme.primary, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ fontSize: 20 }}>🏏</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 16, fontWeight: '900' }}>
+                    About CricketAdda <Text style={{ color: currentTheme.primary, fontSize: 12 }}>PRO</Text>
+                  </Text>
+                  <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11 }}>
+                    v2.4.0 • Live Match Scoring Engine
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b', alignItems: 'center', justifyContent: 'center' }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={() => setAboutModalVisible(false)}
+              >
+                <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Segmented Sub-Tab Switcher */}
+            <View style={{ flexDirection: 'row', backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#131d2e', borderRadius: 10, padding: 3, marginBottom: 14 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                  backgroundColor: aboutActiveTab === 'developer' ? currentTheme.primary : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setAboutActiveTab('developer')}
+              >
+                <Text style={{
+                  color: aboutActiveTab === 'developer' ? (currentTheme.primaryText || '#ffffff') : (currentTheme.isLight ? '#475569' : '#94a3b8'),
+                  fontSize: 11.5,
+                  fontWeight: '900',
+                }}>
+                  👨‍💻 Developer
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                  backgroundColor: aboutActiveTab === 'tech' ? currentTheme.primary : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setAboutActiveTab('tech')}
+              >
+                <Text style={{
+                  color: aboutActiveTab === 'tech' ? (currentTheme.primaryText || '#ffffff') : (currentTheme.isLight ? '#475569' : '#94a3b8'),
+                  fontSize: 11.5,
+                  fontWeight: '900',
+                }}>
+                  ⚡ Engine & Tech
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                  backgroundColor: aboutActiveTab === 'features' ? currentTheme.primary : 'transparent',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setAboutActiveTab('features')}
+              >
+                <Text style={{
+                  color: aboutActiveTab === 'features' ? (currentTheme.primaryText || '#ffffff') : (currentTheme.isLight ? '#475569' : '#94a3b8'),
+                  fontSize: 11.5,
+                  fontWeight: '900',
+                }}>
+                  🌟 Features
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Sub-Tab Content ScrollView */}
+            <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 10 }}>
+              {/* TAB 1: DEVELOPER INFO */}
+              {aboutActiveTab === 'developer' && (
+                <View style={{ gap: 12 }}>
+                  {/* Developer Profile Card */}
+                  <View style={{
+                    backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827',
+                    borderRadius: 14,
+                    padding: 14,
+                    borderWidth: 1,
+                    borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                    alignItems: 'center',
+                  }}>
+                    <View style={{
+                      width: 60,
+                      height: 60,
+                      borderRadius: 30,
+                      backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                      borderWidth: 2,
+                      borderColor: '#0284c7',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginBottom: 8,
+                    }}>
+                      <Text style={{ fontSize: 32 }}>👨‍💻</Text>
+                    </View>
+
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 18, fontWeight: '900' }}>
+                      Amandeep Singh
+                    </Text>
+                    <View style={{ backgroundColor: '#10b98120', borderColor: '#10b981', borderWidth: 1, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, marginTop: 4, marginBottom: 8 }}>
+                      <Text style={{ color: '#10b981', fontSize: 10.5, fontWeight: '900' }}>
+                        👑 Creator & Lead Mobile Architect
+                      </Text>
+                    </View>
+
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11.5, textAlign: 'center', lineHeight: 17 }}>
+                      Architected and built CricketAdda to provide cricket clubs, tournament organizers, and passionate players with an ICC-standard scoring engine, instant DLS rain calculations, and real-time cloud streaming.
+                    </Text>
+                  </View>
+
+                  {/* Contact & Social Links */}
+                  <View style={{
+                    backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827',
+                    borderRadius: 12,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                    gap: 10,
+                  }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>
+                      📫 CONTACT & COMMUNITY
+                    </Text>
+
+                    {/* Email Row */}
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: currentTheme.isLight ? '#ffffff' : '#1e293b', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155' }}
+                      onPress={() => {
+                        Linking.openURL('mailto:amanlevo@gmail.com?subject=CricketAdda%20Feedback%20%26%20Inquiry').catch(() => {
+                          showAppToast('Email: amanlevo@gmail.com', '📧');
+                        });
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                        <Text style={{ fontSize: 16 }}>📧</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: 'bold' }}>Support & Inquiries</Text>
+                          <Text style={{ color: currentTheme.primary, fontSize: 11 }}>amanlevo@gmail.com</Text>
+                        </View>
+                      </View>
+                      <Text style={{ color: currentTheme.primary, fontSize: 11, fontWeight: 'bold' }}>Open ↗</Text>
+                    </TouchableOpacity>
+
+                    {/* GitHub Repo Row */}
+                    <TouchableOpacity
+                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: currentTheme.isLight ? '#ffffff' : '#1e293b', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155' }}
+                      onPress={() => {
+                        Linking.openURL('https://github.com/amanlevo-ai/cricketadda').catch(() => {
+                          showAppToast('GitHub: amanlevo-ai/cricketadda', '🌐');
+                        });
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                        <Text style={{ fontSize: 16 }}>🐙</Text>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: 'bold' }}>GitHub Repository</Text>
+                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5 }}>amanlevo-ai/cricketadda</Text>
+                        </View>
+                      </View>
+                      <Text style={{ color: currentTheme.primary, fontSize: 11, fontWeight: 'bold' }}>View ↗</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              )}
+
+              {/* TAB 2: ENGINE & TECH */}
+              {aboutActiveTab === 'tech' && (
+                <View style={{ gap: 10 }}>
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 15 }}>⚖️</Text>
+                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>ICC Standard Match Rules</Text>
+                    </View>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Full rulebook compliance for legal balls, extras (wides, no-balls, byes, leg-byes, penalties), all wicket dismissal modes, and powerplays.
+                    </Text>
+                  </View>
+
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 15 }}>🌧️</Text>
+                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>Duckworth-Lewis-Stern (DLS)</Text>
+                    </View>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Built-in mathematical DLS engine dynamically computes revised target scores and par scores during rain or weather delays.
+                    </Text>
+                  </View>
+
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 15 }}>🎯</Text>
+                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>360° Wagon Wheel & Analytics</Text>
+                    </View>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Interactive radial shot placement engine, field zone filters, worm rate curves, and batter vs bowler head-to-head match-ups.
+                    </Text>
+                  </View>
+
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 15 }}>🌐</Text>
+                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>Firebase Realtime Cloud Database</Text>
+                    </View>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Ultra-low latency cloud streaming synchronizes every ball, wicket, and match statistic across multiple devices worldwide.
+                    </Text>
+                  </View>
+
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <Text style={{ fontSize: 15 }}>🔐</Text>
+                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>Multi-Tier OTP & Session Security</Text>
+                    </View>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Dual-provider email verification (Resend + Brevo fallback) and automated 30-day inactivity logout security policy.
+                    </Text>
+                  </View>
+                </View>
+              )}
+
+              {/* TAB 3: FEATURES */}
+              {aboutActiveTab === 'features' && (
+                <View style={{ gap: 10 }}>
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900', marginBottom: 2 }}>⚡ Real-Time Ball-by-Ball Scoring</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Fast keyboard controls for boundaries, extras, dismissals, instant undo, and ball-by-ball commentary generation.
+                    </Text>
+                  </View>
+
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900', marginBottom: 2 }}>🪪 QR Digital Passports</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Generate and scan QR codes for teams and players to import full squad rosters directly into matches without typing.
+                    </Text>
+                  </View>
+
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900', marginBottom: 2 }}>👑 Official Scorer Transfer</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Handover live match scoring rights between scorers or umpires securely mid-match using digital QR scoring passes.
+                    </Text>
+                  </View>
+
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900', marginBottom: 2 }}>📊 Comprehensive Career & Stats</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Auto-tracks batting averages, strike rates, economy rates, fifties, centuries, 5-wicket hauls, and personal match records.
+                    </Text>
+                  </View>
+
+                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900', marginBottom: 2 }}>📡 Live Spectator Broadcast</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
+                      Enables fans, club supporters, and tournament organizers to watch scores, partnership cards, and wagon wheels live anywhere.
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </ScrollView>
+
+            {/* Bottom Actions */}
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: currentTheme.primary,
+                  borderRadius: 10,
+                  paddingVertical: 11,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 6,
+                }}
+                onPress={() => {
+                  Linking.openURL('mailto:amanlevo@gmail.com?subject=CricketAdda%20Inquiry').catch(() => {
+                    showAppToast('Email: amanlevo@gmail.com', '📧');
+                  });
+                }}
+              >
+                <Text style={{ fontSize: 14 }}>📧</Text>
+                <Text style={{ color: currentTheme.primaryText || '#ffffff', fontSize: 12.5, fontWeight: '900' }}>
+                  Contact Developer
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  paddingVertical: 11,
+                  paddingHorizontal: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setAboutModalVisible(false)}
+              >
+                <Text style={{ color: currentTheme.isLight ? '#475569' : '#e2e8f0', fontSize: 12.5, fontWeight: 'bold' }}>
+                  Close
                 </Text>
               </TouchableOpacity>
             </View>
