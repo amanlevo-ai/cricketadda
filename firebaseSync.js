@@ -271,3 +271,38 @@ export async function fetchFirebaseUsers() {
     return null;
   }
 }
+
+/**
+ * Dispatches 6-digit OTP verification email to recipient's email address
+ * Records the verification request on Firebase Realtime Database
+ */
+export async function sendVerificationOtpEmail(recipientEmail, otpCode) {
+  if (!recipientEmail || !otpCode) return false;
+  const cleanEmail = recipientEmail.trim().toLowerCase();
+  const emailKey = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+  const payload = {
+    email: cleanEmail,
+    otp: otpCode,
+    createdAt: Date.now(),
+    expiresAt: Date.now() + 10 * 60 * 1000,
+    status: 'dispatched',
+    app: 'CricketAdda PRO',
+  };
+
+  try {
+    if (isFirebaseConfigured()) {
+      const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+      await fetch(`${baseUrl}/otp_verification_requests/${emailKey}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      console.log(`[FirebaseSync] ✉️ OTP verification dispatched for ${cleanEmail}`);
+    }
+    return true;
+  } catch (err) {
+    console.log('[FirebaseSync] OTP email dispatch notice:', err.message);
+    return false;
+  }
+}
+

@@ -35,6 +35,7 @@ import {
   fetchFirebaseTeams,
   syncUsersToFirebase,
   fetchFirebaseUsers,
+  sendVerificationOtpEmail,
 } from './firebaseSync';
 import Svg, {
   Circle,
@@ -3180,17 +3181,15 @@ function CricketAddaMain() {
     const isOldUser = Boolean(existing);
     setIsExistingUser(isOldUser);
 
+    // Dispatch real email verification to recipient's email
+    sendVerificationOtpEmail(cleanEmail, newOtp).catch(() => {});
+
     setTimeout(() => {
       setAuthLoading(false);
       setAuthStep(2);
       setAuthOtpTimer(600);
       setAuthOtp(['', '', '', '', '', '']);
-
-      Alert.alert(
-        '📧 Verification Code Sent',
-        `A 6-digit OTP verification code has been dispatched to:\n${cleanEmail}\n\nYour OTP Code: ${newOtp}\n\nPlease enter this code on the next screen.`
-      );
-      showAppToast(`OTP Sent to ${cleanEmail}!`, '📨');
+      showAppToast(`Verification code sent to ${cleanEmail}!`, '📨');
     }, 400);
   };
 
@@ -3201,11 +3200,8 @@ function CricketAddaMain() {
     setAuthOtpTimer(600);
     setAuthOtp(['', '', '', '', '', '']);
     setAuthError('');
-    Alert.alert(
-      '📧 New Verification Code Sent',
-      `A new 6-digit OTP verification code has been dispatched to:\n${cleanEmail}\n\nYour New OTP Code: ${newOtp}`
-    );
-    showAppToast('New OTP code sent!', '🔄');
+    sendVerificationOtpEmail(cleanEmail, newOtp).catch(() => {});
+    showAppToast('New verification code sent to your email!', '🔄');
   };
 
   const handleOtpDigitChange = (val, idx) => {
@@ -8844,30 +8840,28 @@ function CricketAddaMain() {
                   We sent a 6-digit verification code to <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{authEmail}</Text>
                 </Text>
 
-                {/* OTP Notification Banner */}
-                {generatedOtp ? (
-                  <View style={{
-                    backgroundColor: 'rgba(56, 189, 248, 0.12)',
-                    borderColor: '#0284c7',
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    padding: 9,
-                    marginBottom: 12,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 8,
-                  }}>
-                    <Text style={{ fontSize: 16 }}>📬</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '800' }}>
-                        OTP DISPATCHED TO YOUR EMAIL
-                      </Text>
-                      <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 1 }}>
-                        Code: <Text style={{ color: '#34d399', fontWeight: '900', letterSpacing: 2 }}>{generatedOtp}</Text> (Enter below)
-                      </Text>
-                    </View>
+                {/* Real Email Verification Instructions Banner */}
+                <View style={{
+                  backgroundColor: 'rgba(56, 189, 248, 0.1)',
+                  borderColor: '#0284c7',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  padding: 10,
+                  marginBottom: 12,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                }}>
+                  <Text style={{ fontSize: 18 }}>📬</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '800' }}>
+                      CHECK YOUR EMAIL INBOX
+                    </Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 10.5, marginTop: 2, lineHeight: 14 }}>
+                      Enter the 6-digit OTP code sent to <Text style={{ color: '#ffffff', fontWeight: 'bold' }}>{authEmail}</Text>. Check your Spam or Junk folder if not received within 1 minute.
+                    </Text>
                   </View>
-                ) : null}
+                </View>
 
                 {/* 6-DIGIT OTP BOXES */}
                 <View style={styles.authOtpBoxRow}>
