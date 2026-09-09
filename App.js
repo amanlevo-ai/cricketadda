@@ -3132,7 +3132,7 @@ function CricketAddaMain() {
   const [authPhone, setAuthPhone] = useState('');
   const [authOtp, setAuthOtp] = useState(['', '', '', '', '', '']);
   const [generatedOtp, setGeneratedOtp] = useState('');
-  const [authOtpTimer, setAuthOtpTimer] = useState(30);
+  const [authOtpTimer, setAuthOtpTimer] = useState(600);
   const [authName, setAuthName] = useState('');
   const [authJersey, setAuthJersey] = useState('#18');
   const [authRole, setAuthRole] = useState('Top-Order Batter');
@@ -3183,7 +3183,7 @@ function CricketAddaMain() {
     setTimeout(() => {
       setAuthLoading(false);
       setAuthStep(2);
-      setAuthOtpTimer(30);
+      setAuthOtpTimer(600);
       setAuthOtp(['', '', '', '', '', '']);
 
       Alert.alert(
@@ -3198,7 +3198,7 @@ function CricketAddaMain() {
     const cleanEmail = authEmail.trim().toLowerCase();
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(newOtp);
-    setAuthOtpTimer(30);
+    setAuthOtpTimer(600);
     setAuthOtp(['', '', '', '', '', '']);
     setAuthError('');
     Alert.alert(
@@ -8893,7 +8893,10 @@ function CricketAddaMain() {
                 <View style={styles.authResendRow}>
                   {authOtpTimer > 0 ? (
                     <Text style={styles.authTimerText}>
-                      ⏳ Resend OTP code in <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{authOtpTimer}s</Text>
+                      ⏳ Resend OTP code in{' '}
+                      <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>
+                        {Math.floor(authOtpTimer / 60)}:{authOtpTimer % 60 < 10 ? '0' : ''}{authOtpTimer % 60}
+                      </Text>
                     </Text>
                   ) : (
                     <TouchableOpacity onPress={handleResendOtp}>
