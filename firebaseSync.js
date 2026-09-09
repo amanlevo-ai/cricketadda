@@ -38,6 +38,48 @@ export function initFirebase(customConfig = null) {
 }
 
 /**
+ * Completely wipes all cloud database records on Firebase RTDB for a 100% fresh start
+ */
+export async function wipeAllFirebaseData() {
+  if (!isFirebaseConfigured()) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    await Promise.all([
+      fetch(`${baseUrl}/matches.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      }),
+      fetch(`${baseUrl}/matches_db.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      }),
+      fetch(`${baseUrl}/teams.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([]),
+      }),
+      fetch(`${baseUrl}/users.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify([]),
+      }),
+      fetch(`${baseUrl}/ping.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetAt: Date.now(), status: 'clean_fresh_start' }),
+      }),
+    ]);
+    console.log('[FirebaseSync] 🧹 All cloud database records wiped successfully');
+    return true;
+  } catch (err) {
+    console.log('[FirebaseSync] Wipe error:', err.message);
+    return false;
+  }
+}
+
+/**
  * Pushes live match state update to Firebase Realtime Database via REST
  */
 export async function syncMatchToFirebase(matchId, matchState) {
