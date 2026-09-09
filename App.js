@@ -1161,10 +1161,7 @@ const MATCH_DATABASE = {};
 // USER'S COMPLETE PERSONAL MATCH HISTORY & CAREER STATS
 // ============================================================================
 const USER_CAREER_DATA = {
-  profile: {
-    name: 'Player',
-    jersey: '#1',
-    role: 'Top-Order Batter',
+  matchOverview: {
     matchesPlayed: 0,
     wins: 0,
     losses: 0,
@@ -3305,10 +3302,7 @@ function CricketAddaMain() {
 
     // 2. Fresh 0-Stat Career Data
     const freshStats = {
-      profile: {
-        name: cleanName,
-        jersey: authJersey.trim() || '#18',
-        role: `${authRole} (${authBattingStyle})`,
+      matchOverview: {
         matchesPlayed: 0,
         wins: 0,
         losses: 0,
@@ -11755,9 +11749,9 @@ function CricketAddaMain() {
 
               <Text style={[styles.profileRoleText, currentTheme.isLight && { color: '#0284c7' }]}>{userProfile.role}</Text>
               <Text style={[styles.profileSummaryText, currentTheme.isLight && { color: '#64748b' }]}>
-                {(userCareerData.profile?.matchesPlayed || 0) === 0
+                {(userCareerData.matchOverview?.matchesPlayed ?? userCareerData.profile?.matchesPlayed ?? 0) === 0
                   ? '0 Matches • 0 Wins (0%) • Fresh Player Profile 🌟'
-                  : `${userCareerData.profile.matchesPlayed} Matches • ${userCareerData.profile.wins} Wins (${userCareerData.profile.winRate}) • ${userCareerData.profile.potmCount}x POTM 🌟`}
+                  : `${userCareerData.matchOverview?.matchesPlayed ?? userCareerData.profile?.matchesPlayed} Matches • ${userCareerData.matchOverview?.wins ?? userCareerData.profile?.wins} Wins (${userCareerData.matchOverview?.winRate ?? userCareerData.profile?.winRate}) • ${userCareerData.matchOverview?.potmCount ?? userCareerData.profile?.potmCount}x POTM 🌟`}
               </Text>
             </View>
           </View>
@@ -11896,7 +11890,7 @@ function CricketAddaMain() {
                 {userCareerData.careerStats.batting.goldenDucks}x Golden Duck (0 off 1st ball)
               </Text>
               <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>
-                {userCareerData.careerStats.batting.silverDucks}x Silver Duck • {Math.max(0, (userCareerData.profile?.matchesPlayed || 0) - (userCareerData.careerStats.batting.ducks || 0))} Non-Duck Innings
+                {userCareerData.careerStats.batting.silverDucks}x Silver Duck • {Math.max(0, (userCareerData.matchOverview?.matchesPlayed ?? userCareerData.profile?.matchesPlayed ?? 0) - (userCareerData.careerStats.batting.ducks || 0))} Non-Duck Innings
               </Text>
             </View>
           </View>
