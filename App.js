@@ -12018,7 +12018,7 @@ function CricketAddaMain() {
             ))
           )}
 
-          {/* Quick Switch Player / Sign Out Banner on Profile */}
+          {/* Sign Out Button on Profile */}
           <TouchableOpacity
             style={{
               flexDirection: 'row',
@@ -12038,7 +12038,7 @@ function CricketAddaMain() {
           >
             <Text style={{ fontSize: 16 }}>🚪</Text>
             <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 13, fontWeight: 'bold' }}>
-              Sign Out / Switch Player
+              Sign Out
             </Text>
           </TouchableOpacity>
         </ScrollView>
@@ -12094,7 +12094,7 @@ function CricketAddaMain() {
               onPress={handleSignOutAndReset}
             >
               <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 13, fontWeight: 'bold' }}>
-                🚪 Sign Out / Switch Player
+                🚪 Sign Out
               </Text>
             </TouchableOpacity>
           </View>
