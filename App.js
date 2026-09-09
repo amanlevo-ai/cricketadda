@@ -12081,43 +12081,22 @@ function CricketAddaMain() {
               </View>
             </View>
 
-            <View style={{ flexDirection: 'row', gap: 8 }}>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                  borderWidth: 1,
-                  borderRadius: 8,
-                  paddingVertical: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onPress={handleSignOutAndReset}
-              >
-                <Text style={{ color: currentTheme.isLight ? '#475569' : '#cbd5e1', fontSize: 12, fontWeight: 'bold' }}>
-                  🚪 Switch Player
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  flex: 1.3,
-                  backgroundColor: currentTheme.isLight ? '#fee2e2' : '#7f1d1d',
-                  borderColor: '#ef4444',
-                  borderWidth: 1,
-                  borderRadius: 8,
-                  paddingVertical: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onPress={handleMasterResetAllData}
-              >
-                <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 12, fontWeight: 'bold' }}>
-                  🧹 Wipe All Test Data
-                </Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity
+              style={{
+                backgroundColor: currentTheme.isLight ? '#fee2e2' : 'rgba(127, 29, 29, 0.4)',
+                borderColor: '#ef4444',
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingVertical: 11,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={handleSignOutAndReset}
+            >
+              <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 13, fontWeight: 'bold' }}>
+                🚪 Sign Out / Switch Player
+              </Text>
+            </TouchableOpacity>
           </View>
 
           {/* CLOUD DATABASE & REALTIME SYNC STATUS */}
