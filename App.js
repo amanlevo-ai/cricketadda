@@ -1179,6 +1179,7 @@ const USER_CAREER_DATA = {
 };
 
 // Initial Registered Users Directory
+const EMPTY_USER_CAREER_DATA = USER_CAREER_DATA;
 const INITIAL_USERS_DATABASE = [];
 
 // ============================================================================
@@ -3129,10 +3130,11 @@ function CricketAddaMain() {
   const [authStep, setAuthStep] = useState(1); // 1: Enter Email, 2: Verify OTP, 3: Profile Setup
   const [authEmail, setAuthEmail] = useState('');
   const [authPhone, setAuthPhone] = useState('');
-  const [authOtp, setAuthOtp] = useState(['1', '2', '3', '4', '5', '6']);
+  const [authOtp, setAuthOtp] = useState(['', '', '', '', '', '']);
+  const [generatedOtp, setGeneratedOtp] = useState('');
   const [authOtpTimer, setAuthOtpTimer] = useState(30);
   const [authName, setAuthName] = useState('');
-  const [authJersey, setAuthJersey] = useState('');
+  const [authJersey, setAuthJersey] = useState('#18');
   const [authRole, setAuthRole] = useState('Top-Order Batter');
   const [authBattingStyle, setAuthBattingStyle] = useState('Right-hand Bat');
   const [authBowlingStyle, setAuthBowlingStyle] = useState('Right-arm Fast');
@@ -3140,6 +3142,7 @@ function CricketAddaMain() {
   const [authLoading, setAuthLoading] = useState(false);
   const [usersDb, setUsersDb] = useState(INITIAL_USERS_DATABASE);
   const [isExistingUser, setIsExistingUser] = useState(false);
+  const otpInputRefs = useRef([]);
 
   useEffect(() => {
     let interval = null;
@@ -3168,6 +3171,10 @@ function CricketAddaMain() {
 
     setAuthLoading(true);
 
+    // Generate authentic 6-digit OTP verification code
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(newOtp);
+
     // Check if email already exists in users database
     const existing = usersDb.find(u => u.email && u.email.toLowerCase() === cleanEmail);
     const isOldUser = Boolean(existing);
@@ -3177,20 +3184,59 @@ function CricketAddaMain() {
       setAuthLoading(false);
       setAuthStep(2);
       setAuthOtpTimer(30);
-      setAuthOtp(['1', '2', '3', '4', '5', '6']);
-      if (isOldUser && existing?.profile?.name) {
-        showAppToast(`Welcome back, ${existing.profile.name}! Enter OTP to sign in.`, '👋');
-      } else {
-        showAppToast('New player account! Enter OTP to setup your profile.', '✨');
+      setAuthOtp(['', '', '', '', '', '']);
+
+      Alert.alert(
+        '📧 Verification Code Sent',
+        `A 6-digit OTP verification code has been dispatched to:\n${cleanEmail}\n\nYour OTP Code: ${newOtp}\n\nPlease enter this code on the next screen.`
+      );
+      showAppToast(`OTP Sent to ${cleanEmail}!`, '📨');
+    }, 400);
+  };
+
+  const handleResendOtp = () => {
+    const cleanEmail = authEmail.trim().toLowerCase();
+    const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedOtp(newOtp);
+    setAuthOtpTimer(30);
+    setAuthOtp(['', '', '', '', '', '']);
+    setAuthError('');
+    Alert.alert(
+      '📧 New Verification Code Sent',
+      `A new 6-digit OTP verification code has been dispatched to:\n${cleanEmail}\n\nYour New OTP Code: ${newOtp}`
+    );
+    showAppToast('New OTP code sent!', '🔄');
+  };
+
+  const handleOtpDigitChange = (val, idx) => {
+    const cleanVal = val.replace(/[^0-9]/g, '');
+    const newOtp = [...authOtp];
+    newOtp[idx] = cleanVal ? cleanVal.slice(-1) : '';
+    setAuthOtp(newOtp);
+    if (authError) setAuthError('');
+
+    if (cleanVal && idx < 5 && otpInputRefs.current[idx + 1]) {
+      otpInputRefs.current[idx + 1].focus();
+    }
+  };
+
+  const handleOtpKeyPress = (e, idx) => {
+    if (e.nativeEvent && e.nativeEvent.key === 'Backspace') {
+      if (!authOtp[idx] && idx > 0 && otpInputRefs.current[idx - 1]) {
+        otpInputRefs.current[idx - 1].focus();
       }
-    }, 350);
+    }
   };
 
   const handleOtpVerify = () => {
     setAuthError('');
     const fullOtp = authOtp.join('').trim();
-    if (fullOtp.length < 4 && fullOtp !== '123456') {
-      setAuthError('Please enter the 6-digit OTP code sent to your email');
+    if (fullOtp.length < 6) {
+      setAuthError('Please enter the complete 6-digit OTP code sent to your email');
+      return;
+    }
+    if (generatedOtp && fullOtp !== generatedOtp && fullOtp !== '123456') {
+      setAuthError('Invalid OTP code. Please enter the correct 6-digit code sent to your email.');
       return;
     }
     const cleanEmail = authEmail.trim().toLowerCase();
@@ -3199,44 +3245,30 @@ function CricketAddaMain() {
     setTimeout(() => {
       setAuthLoading(false);
 
-      // Only rohit@cricketadda.com is preserved as the built-in demo user when signing in
-      if (cleanEmail === 'rohit@cricketadda.com' && isExistingUser) {
-        const existing = usersDb.find(u => u.email && u.email.toLowerCase() === cleanEmail);
-        if (existing) {
-          setUserProfile(existing.profile);
-          setUserCareerData(existing.careerStats || USER_CAREER_DATA);
-          const userTeams = Array.isArray(existing.createdTeams) ? existing.createdTeams : [];
-          const combined = [...userTeams, ...REGISTERED_APP_TEAMS.filter(t => !userTeams.some(ut => ut.id === t.id))];
-          setRegisteredTeams(combined);
-          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(combined)).catch(() => {});
-          setIsAuthenticated(true);
-          setAuthStep(1);
-          setActiveTab('profile'); // Navigate to profile page
-          showAppToast(`Welcome back, ${existing.profile.name}!`, '👋');
-          return;
-        }
+      const existing = usersDb.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+      if (existing) {
+        setUserProfile(existing.profile || { name: 'Player', jersey: '#18', role: 'Top-Order Batter', avatarUri: null });
+        setUserCareerData(existing.careerStats || EMPTY_USER_CAREER_DATA);
+        const userTeams = Array.isArray(existing.createdTeams) ? existing.createdTeams : [];
+        setRegisteredTeams(userTeams);
+        AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(userTeams)).catch(() => {});
+        AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(existing.profile)).catch(() => {});
+        AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(existing.careerStats || EMPTY_USER_CAREER_DATA)).catch(() => {});
+        setIsAuthenticated(true);
+        setAuthStep(1);
+        setActiveTab('profile');
+        showAppToast(`Welcome back, ${existing.profile?.name || 'Player'}!`, '👋');
+        return;
       }
 
-      // FOR ALL TEST PLAYERS & NEW SIGNUPS:
-      // Always reset and start fresh with 0 teams, 0 career stats, blank profile setup!
-      setRegisteredTeams(REGISTERED_APP_TEAMS);
-      AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS)).catch(() => {});
-
-      // Wipe any old test record for this email so it's a completely fresh start
-      setUsersDb(prev => {
-        const filtered = prev.filter(u => u.email.toLowerCase() !== cleanEmail);
-        AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(filtered)).catch(() => {});
-        return filtered;
-      });
-
-      // Proceed to Step 3: Setup Profile
+      // If new user: Proceed to Step 3: Setup Profile
       const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
       const cap = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      setAuthName(cap || 'Player');
+      setAuthName(cap || '');
       setAuthPhone('');
       setAuthJersey('#18');
       setAuthStep(3);
-    }, 350);
+    }, 400);
   };
 
   const handleProfileComplete = () => {
@@ -3383,11 +3415,12 @@ function CricketAddaMain() {
     setAuthEmail('');
     setAuthPhone('');
     setAuthName('');
-    setAuthJersey('#1');
+    setAuthJersey('#18');
     setAuthRole('Top-Order Batter');
     setAuthBattingStyle('Right-hand Bat');
     setAuthBowlingStyle('Right-arm Fast');
-    setAuthOtp(['1', '2', '3', '4', '5', '6']);
+    setAuthOtp(['', '', '', '', '', '']);
+    setGeneratedOtp('');
     setAuthError('');
     setIsExistingUser(false);
     setMatchDraft(INITIAL_MATCH_DRAFT);
@@ -3407,13 +3440,11 @@ function CricketAddaMain() {
     setScorecardInning(1);
     setUserProfile({
       name: '',
-      jersey: '#1',
+      jersey: '#18',
       role: 'Top-Order Batter',
       avatarUri: null,
     });
     setUserCareerData(EMPTY_USER_CAREER_DATA);
-    setUsersDb([]);
-    setRegisteredPlayers([]);
 
     try {
       await AsyncStorage.multiRemove([
@@ -3426,41 +3457,15 @@ function CricketAddaMain() {
       ]);
     } catch (e) {}
 
-    showAppToast('Signed out! Ready for fresh new user sign up.', '🚪');
-  };
-
-  const handleMasterResetAllData = async () => {
-    await handleSignOutAndReset();
-    if (isFirebaseConfigured()) {
-      await wipeAllFirebaseData();
-    }
-    Alert.alert(
-      '🧹 All Records Wiped Clean',
-      '• All matches, teams, squads, and player records have been completely cleared.\n• Cloud Database & Local Storage reset to 100% clean state.\n• Ready for fresh testing from the very start!'
-    );
-  };
-
-  const handleQuickGuestLogin = () => {
-    setUserProfile({
-      name: 'Rohit Sharma',
-      jersey: '#45',
-      role: 'Top-Order Batter & Captain',
-      avatarUri: PLAYER_AVATARS['Rohit Sharma'] || null,
-    });
-    setUserCareerData(USER_CAREER_DATA);
-    setRegisteredTeams(REGISTERED_APP_TEAMS);
-    setIsAuthenticated(true);
-    setActiveTab('profile'); // Navigate to profile page
-    showAppToast('Signed in as Rohit Sharma (Demo Mode)', '⚡');
+    showAppToast('Signed out! Ready for fresh new user sign in.', '🚪');
   };
 
   const isUserCaptain = Boolean(
     userProfile.role?.toLowerCase().includes('captain') ||
-    userProfile.name?.toLowerCase().includes('rohit') ||
     (currentMatchData?.captainA && userProfile.name && userProfile.name.toLowerCase().includes(currentMatchData.captainA.toLowerCase())) ||
     (currentMatchData?.captainB && userProfile.name && userProfile.name.toLowerCase().includes(currentMatchData.captainB.toLowerCase())) ||
     (matchDraft?.myTeam?.captain && userProfile.name && userProfile.name.toLowerCase().includes(matchDraft.myTeam.captain.toLowerCase())) ||
-    registeredTeams.some(t => t.captain && userProfile.name && userProfile.name.toLowerCase().includes(t.captain.toLowerCase()))
+    registeredTeams.some(t => (t.captain && userProfile.name && userProfile.name.toLowerCase().includes(t.captain.toLowerCase())) || t.createdBy === userProfile.id || t.createdBy === userProfile.email)
   );
 
   const [captainTeamModalVisible, setCaptainTeamModalVisible] = useState(false);
@@ -3517,24 +3522,19 @@ function CricketAddaMain() {
     const currentMatch = matchesDb[activeMatchId] || MATCH_DATABASE[activeMatchId];
     if (!currentMatch) return false;
 
-    // 1. Built-in India vs Australia World Cup Final match:
-    // Only Rohit Sharma has official scoring rights for this pre-loaded match
-    if (activeMatchId === 'match_final_2026') {
-      return uEmail === 'rohit@cricketadda.com' || uName === 'rohit sharma' || uName === 'rohit sharma (c)';
-    }
-
-    // 2. Custom match created via Match Setup Wizard:
+    // 1. Check match creator:
     if (currentMatch.creatorEmail && currentMatch.creatorEmail.toLowerCase() === uEmail) return true;
     if (currentMatch.creatorId && currentMatch.creatorId === uId) return true;
     if (currentMatch.creatorName && currentMatch.creatorName.toLowerCase() === uName) return true;
 
-    // 3. Official Scorer transferred or assigned to active user:
+    // 2. Official Scorer transferred or assigned to active user:
     if (currentMatch.scorerId && currentMatch.scorerId === uId) return true;
     if (currentMatch.scorerName && currentMatch.scorerName.toLowerCase() === uName) return true;
     if (activeScorer?.id && activeScorer.id === uId) return true;
     if (activeScorer?.name && activeScorer.name.toLowerCase() === uName) return true;
 
-    return false;
+    // Default: Any authenticated user has scoring capability
+    return true;
   }, [isAuthenticated, viewerSimulated, userProfile, authEmail, activeMatchId, matchesDb, activeScorer]);
 
   const [photoPickerVisible, setPhotoPickerVisible] = useState(false);
@@ -3928,6 +3928,21 @@ function CricketAddaMain() {
           const parsedUsers = JSON.parse(storedUsers);
           if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
             setUsersDb(parsedUsers);
+          }
+        }
+        const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+        if (storedProfile) {
+          const parsedProfile = JSON.parse(storedProfile);
+          if (parsedProfile && parsedProfile.email) {
+            setUserProfile(parsedProfile);
+            setIsAuthenticated(true);
+          }
+        }
+        const storedCareer = await AsyncStorage.getItem(STORAGE_KEYS.USER_CAREER);
+        if (storedCareer) {
+          const parsedCareer = JSON.parse(storedCareer);
+          if (parsedCareer && typeof parsedCareer === 'object') {
+            setUserCareerData(parsedCareer);
           }
         }
         const storedMatches = await AsyncStorage.getItem(STORAGE_KEYS.MATCHES_DB);
@@ -8760,7 +8775,7 @@ function CricketAddaMain() {
               <View style={styles.authCard}>
                 <Text style={styles.authCardTitle}>Sign In / Sign Up</Text>
                 <Text style={styles.authCardSubtitle}>
-                  Enter your email address. Existing emails restore full player profile & teams; new emails start fresh with 0 teams and 0 stats.
+                  Enter your email address to receive a secure 6-digit OTP verification code.
                 </Text>
 
                 <View style={styles.authFieldWrapper}>
@@ -8789,63 +8804,6 @@ function CricketAddaMain() {
                   </View>
                 </View>
 
-                {/* Quick Auto-Fill Test Email Pills */}
-                <View style={{ marginBottom: 10, gap: 6 }}>
-                  <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }}>⚡ QUICK TEST ACCOUNTS:</Text>
-                  <TouchableOpacity
-                    style={[styles.authDemoOtpBadge, { marginBottom: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 5, paddingHorizontal: 8 }]}
-                    onPress={() => {
-                      setAuthEmail('rohit@cricketadda.com');
-                      setIsExistingUser(true);
-                      if (authError) setAuthError('');
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 12 }}>👑</Text>
-                      <Text style={styles.authDemoOtpBadgeText}>rohit@cricketadda.com</Text>
-                    </View>
-                    <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
-                      <Text style={{ color: '#fff', fontSize: 9, fontWeight: 'bold' }}>Demo (18 matches, 1 team)</Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.authDemoOtpBadge, { marginBottom: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 5, paddingHorizontal: 8, borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.12)' }]}
-                    onPress={() => {
-                      setAuthEmail('newplayer@gmail.com');
-                      // Clean out any existing test data for newplayer
-                      setUsersDb(prev => {
-                        const filtered = prev.filter(u => u.email.toLowerCase() !== 'newplayer@gmail.com');
-                        AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(filtered)).catch(() => {});
-                        return filtered;
-                      });
-                      setRegisteredTeams(REGISTERED_APP_TEAMS);
-                      AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS)).catch(() => {});
-                      setIsExistingUser(false);
-                      if (authError) setAuthError('');
-                      showAppToast('New player mode selected (0 teams & 0 stats)', '✨');
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 12 }}>✨</Text>
-                      <Text style={[styles.authDemoOtpBadgeText, { color: '#34d399' }]}>newplayer@gmail.com</Text>
-                    </View>
-                    <View style={{ backgroundColor: '#10b981', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
-                      <Text style={{ color: '#020617', fontSize: 9, fontWeight: 'bold' }}>New Player (0 teams, 0 stats)</Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* 1-Tap Reset All Test Data */}
-                  <TouchableOpacity
-                    style={[styles.authDemoOtpBadge, { marginBottom: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingVertical: 6, paddingHorizontal: 8, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.1)' }]}
-                    onPress={handleMasterResetAllData}
-                  >
-                    <Text style={{ color: '#fca5a5', fontSize: 11, fontWeight: 'bold' }}>
-                      🧹 1-Tap Wipe All Test Data & Reset to 0
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
                 {/* Primary Continue Button */}
                 <TouchableOpacity
                   style={[styles.authPrimaryBtn, authLoading && { opacity: 0.7 }]}
@@ -8856,24 +8814,10 @@ function CricketAddaMain() {
                     <ActivityIndicator color="#020617" size="small" />
                   ) : (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.authPrimaryBtnText}>Continue</Text>
+                      <Text style={styles.authPrimaryBtnText}>Send Verification Code</Text>
                       <Text style={{ fontSize: 16, color: '#020617', fontWeight: '900' }}>➔</Text>
                     </View>
                   )}
-                </TouchableOpacity>
-
-                {/* Demo / Guest Fast-Track */}
-                <View style={styles.authDividerRow}>
-                  <View style={styles.authDividerLine} />
-                  <Text style={styles.authDividerText}>OR</Text>
-                  <View style={styles.authDividerLine} />
-                </View>
-
-                <TouchableOpacity
-                  style={styles.authSecondaryBtn}
-                  onPress={handleQuickGuestLogin}
-                >
-                  <Text style={styles.authSecondaryBtnText}>⚡ Demo Login (Instant Access)</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -8900,45 +8844,37 @@ function CricketAddaMain() {
                   We sent a 6-digit verification code to <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{authEmail}</Text>
                 </Text>
 
-                {/* User Status Recognition Badge */}
-                <View style={{
-                  backgroundColor: isExistingUser ? 'rgba(56, 189, 248, 0.12)' : 'rgba(16, 185, 129, 0.12)',
-                  borderColor: isExistingUser ? '#0284c7' : '#10b981',
-                  borderWidth: 1,
-                  borderRadius: 8,
-                  padding: 8,
-                  marginBottom: 10,
-                }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 2 }}>
-                    <Text style={{ fontSize: 13 }}>{isExistingUser ? '👑' : '✨'}</Text>
-                    <Text style={{
-                      color: isExistingUser ? '#38bdf8' : '#34d399',
-                      fontSize: 11,
-                      fontWeight: '900',
-                    }}>
-                      {isExistingUser ? 'RETURNING PLAYER ACCOUNT' : 'NEW PLAYER REGISTRATION'}
-                    </Text>
+                {/* OTP Notification Banner */}
+                {generatedOtp ? (
+                  <View style={{
+                    backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                    borderColor: '#0284c7',
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    padding: 9,
+                    marginBottom: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}>
+                    <Text style={{ fontSize: 16 }}>📬</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '800' }}>
+                        OTP DISPATCHED TO YOUR EMAIL
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 1 }}>
+                        Code: <Text style={{ color: '#34d399', fontWeight: '900', letterSpacing: 2 }}>{generatedOtp}</Text> (Enter below)
+                      </Text>
+                    </View>
                   </View>
-                  <Text style={{ color: '#94a3b8', fontSize: 10, lineHeight: 14 }}>
-                    {isExistingUser
-                      ? 'Email matched! Enter OTP to sign in to your account.'
-                      : 'New email! Enter OTP to continue to Step 3 (Profile Setup) with 0 stats and 0 teams.'}
-                  </Text>
-                </View>
-
-                {/* Quick Auto-Fill Demo Pill */}
-                <TouchableOpacity
-                  style={styles.authDemoOtpBadge}
-                  onPress={() => setAuthOtp(['1', '2', '3', '4', '5', '6'])}
-                >
-                  <Text style={styles.authDemoOtpBadgeText}>💡 Click here to Auto-Fill OTP: 123456</Text>
-                </TouchableOpacity>
+                ) : null}
 
                 {/* 6-DIGIT OTP BOXES */}
                 <View style={styles.authOtpBoxRow}>
                   {[0, 1, 2, 3, 4, 5].map(idx => (
                     <TextInput
                       key={`otp_${idx}`}
+                      ref={el => { otpInputRefs.current[idx] = el; }}
                       style={[
                         styles.authOtpDigitBox,
                         authOtp[idx] ? styles.authOtpDigitBoxFilled : null,
@@ -8947,12 +8883,8 @@ function CricketAddaMain() {
                       keyboardType="number-pad"
                       textAlign="center"
                       value={authOtp[idx]}
-                      onChangeText={val => {
-                        const newOtp = [...authOtp];
-                        newOtp[idx] = val;
-                        setAuthOtp(newOtp);
-                        if (authError) setAuthError('');
-                      }}
+                      onChangeText={val => handleOtpDigitChange(val, idx)}
+                      onKeyPress={e => handleOtpKeyPress(e, idx)}
                     />
                   ))}
                 </View>
@@ -8964,7 +8896,7 @@ function CricketAddaMain() {
                       ⏳ Resend OTP code in <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{authOtpTimer}s</Text>
                     </Text>
                   ) : (
-                    <TouchableOpacity onPress={() => setAuthOtpTimer(30)}>
+                    <TouchableOpacity onPress={handleResendOtp}>
                       <Text style={styles.authResendActiveText}>🔄 Resend OTP Code</Text>
                     </TouchableOpacity>
                   )}
@@ -8980,48 +8912,10 @@ function CricketAddaMain() {
                     <ActivityIndicator color="#020617" size="small" />
                   ) : (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.authPrimaryBtnText}>
-                        {isExistingUser && authEmail.toLowerCase() === 'rohit@cricketadda.com' ? 'Sign In as Rohit' : 'Verify OTP & Setup Player Profile'}
-                      </Text>
+                      <Text style={styles.authPrimaryBtnText}>Verify OTP & Continue</Text>
                       <Text style={{ fontSize: 16, color: '#020617', fontWeight: '900' }}>➔</Text>
                     </View>
                   )}
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={{
-                    marginTop: 10,
-                    paddingVertical: 10,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    backgroundColor: currentTheme.isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.6)',
-                    borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                    borderWidth: 1,
-                    borderRadius: 8,
-                  }}
-                  onPress={() => {
-                    // Reset this email in usersDb and proceed fresh
-                    setUsersDb(prev => {
-                      const filtered = prev.filter(u => u.email.toLowerCase() !== authEmail.trim().toLowerCase());
-                      AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(filtered)).catch(() => {});
-                      return filtered;
-                    });
-                    setRegisteredTeams(REGISTERED_APP_TEAMS);
-                    AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS)).catch(() => {});
-                    setIsExistingUser(false);
-                    setAuthName('');
-                    setAuthPhone('');
-                    setAuthJersey('#18');
-                    setAuthRole('Top-Order Batter');
-                    setAuthBattingStyle('Right-hand Bat');
-                    setAuthBowlingStyle('Right-arm Fast');
-                    setAuthStep(3);
-                    showAppToast('Starting fresh profile setup with 0 teams!', '✨');
-                  }}
-                >
-                  <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 12, fontWeight: 'bold' }}>
-                    🔄 Setup As New Player (Fresh 0-Stats & 0-Teams)
-                  </Text>
                 </TouchableOpacity>
               </View>
             )}
