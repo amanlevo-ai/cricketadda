@@ -3138,7 +3138,7 @@ function CricketAddaMain() {
   const [authPhone, setAuthPhone] = useState('');
   const [authOtp, setAuthOtp] = useState(['', '', '', '', '', '']);
   const [generatedOtp, setGeneratedOtp] = useState('');
-  const [authOtpTimer, setAuthOtpTimer] = useState(600);
+  const [authOtpTimer, setAuthOtpTimer] = useState(60);
   const [authName, setAuthName] = useState('');
   const [authJersey, setAuthJersey] = useState('#18');
   const [authRole, setAuthRole] = useState('Top-Order Batter');
@@ -3192,7 +3192,7 @@ function CricketAddaMain() {
     setTimeout(() => {
       setAuthLoading(false);
       setAuthStep(2);
-      setAuthOtpTimer(600);
+      setAuthOtpTimer(60);
       setAuthOtp(['', '', '', '', '', '']);
       showAppToast(`Verification code sent to ${cleanEmail}!`, '📨');
     }, 400);
@@ -3202,7 +3202,7 @@ function CricketAddaMain() {
     const cleanEmail = authEmail.trim().toLowerCase();
     const newOtp = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedOtp(newOtp);
-    setAuthOtpTimer(600);
+    setAuthOtpTimer(60);
     setAuthOtp(['', '', '', '', '', '']);
     setAuthError('');
     sendVerificationOtpEmail(cleanEmail, newOtp).catch(() => {});
@@ -8892,9 +8892,9 @@ function CricketAddaMain() {
                 <View style={styles.authResendRow}>
                   {authOtpTimer > 0 ? (
                     <Text style={styles.authTimerText}>
-                      ⏳ Resend OTP code in{' '}
+                      ⏳ Resend code in{' '}
                       <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>
-                        {Math.floor(authOtpTimer / 60)}:{authOtpTimer % 60 < 10 ? '0' : ''}{authOtpTimer % 60}
+                        {authOtpTimer}s
                       </Text>
                     </Text>
                   ) : (
