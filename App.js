@@ -14446,19 +14446,18 @@ function CricketAddaMain() {
                 padding: 12,
                 marginVertical: 6,
               }}>
-                {/* Visual Preview Row */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                {/* Top Row: Live Preview Avatar + Direct URL Text Input */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                   <View style={{
-                    width: 58,
-                    height: 58,
-                    borderRadius: 16,
+                    width: 48,
+                    height: 48,
+                    borderRadius: 12,
                     backgroundColor: currentTheme.isLight ? '#ffffff' : '#162235',
-                    borderWidth: 2,
+                    borderWidth: 1.5,
                     borderColor: currentTheme.primary,
                     justifyContent: 'center',
                     alignItems: 'center',
                     overflow: 'hidden',
-                    elevation: 3,
                   }}>
                     {(newTeamCustomLogoUrl || newTeamLogo) ? (
                       <Image
@@ -14468,166 +14467,86 @@ function CricketAddaMain() {
                         resizeMode="cover"
                       />
                     ) : (
-                      <Text style={{ fontSize: 32 }}>{newTeamFlag || '🦁'}</Text>
+                      <Text style={{ fontSize: 26 }}>{newTeamFlag || '🦁'}</Text>
                     )}
                   </View>
 
-                  <View style={{ flex: 1 }}>
-                    <Text style={{
-                      fontSize: 13,
-                      fontWeight: 'bold',
-                      color: currentTheme.isLight ? '#0f172a' : '#ffffff',
-                    }}>
-                      {(newTeamCustomLogoUrl || newTeamLogo) ? 'Custom Picture Active' : 'Mascot Flag Active'}
-                    </Text>
-                    <Text style={{
-                      fontSize: 11,
-                      color: currentTheme.isLight ? '#64748b' : '#94a3b8',
-                      marginTop: 2,
-                    }}>
-                      {(newTeamCustomLogoUrl || newTeamLogo)
-                        ? 'Your custom logo will appear across matches, scorecards & teams hub'
-                        : 'Upload a team photo or choose a mascot flag below'}
-                    </Text>
+                  <View style={{
+                    flex: 1,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+                    borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                    borderWidth: 1,
+                    borderRadius: 10,
+                    paddingHorizontal: 10,
+                    height: 44,
+                  }}>
+                    <Text style={{ fontSize: 13, marginRight: 6 }}>🔗</Text>
+                    <TextInput
+                      style={{
+                        flex: 1,
+                        fontSize: 12,
+                        color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                        paddingVertical: 0,
+                      }}
+                      value={newTeamCustomLogoUrl || (typeof newTeamLogo === 'string' && newTeamLogo.startsWith('http') ? newTeamLogo : '')}
+                      onChangeText={t => {
+                        setNewTeamCustomLogoUrl(t);
+                        setNewTeamLogo(t.trim() || null);
+                      }}
+                      placeholder="Paste image URL (https://...)"
+                      placeholderTextColor="#64748b"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
                   </View>
                 </View>
 
-                {/* Team Picture Action Buttons */}
-                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
+                {/* Action Buttons: Gallery & Camera */}
+                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                   <TouchableOpacity
                     style={{
                       flex: 1,
-                      minWidth: 95,
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 4,
+                      gap: 6,
                       backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0369a1',
                       paddingVertical: 8,
-                      paddingHorizontal: 8,
                       borderRadius: 8,
                     }}
                     onPress={pickTeamLogoFromGallery}
                   >
                     <Text style={{ fontSize: 13 }}>🖼️</Text>
-                    <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
-                      Gallery
+                    <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
+                      From Gallery
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     style={{
                       flex: 1,
-                      minWidth: 95,
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 4,
+                      gap: 6,
                       backgroundColor: currentTheme.isLight ? '#dcfce7' : '#059669',
                       paddingVertical: 8,
-                      paddingHorizontal: 8,
                       borderRadius: 8,
                     }}
                     onPress={takeTeamLogoWithCamera}
                   >
                     <Text style={{ fontSize: 13 }}>📸</Text>
-                    <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
-                      Camera
+                    <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
+                      From Camera
                     </Text>
                   </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      minWidth: 95,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 4,
-                      backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                      paddingVertical: 8,
-                      paddingHorizontal: 8,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                    }}
-                    onPress={() => setShowTeamLogoUrlInput(prev => !prev)}
-                  >
-                    <Text style={{ fontSize: 13 }}>🔗</Text>
-                    <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: 'bold' }}>
-                      Web URL
-                    </Text>
-                  </TouchableOpacity>
-
-                  {(newTeamCustomLogoUrl || newTeamLogo) ? (
-                    <TouchableOpacity
-                      style={{
-                        paddingVertical: 8,
-                        paddingHorizontal: 10,
-                        borderRadius: 8,
-                        backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                        borderWidth: 1,
-                        borderColor: '#ef4444',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                      }}
-                      onPress={removeTeamLogo}
-                    >
-                      <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: 'bold' }}>✕ Remove</Text>
-                    </TouchableOpacity>
-                  ) : null}
                 </View>
 
-                {/* Optional Web URL Input Box */}
-                {showTeamLogoUrlInput && (
-                  <View style={{
-                    flexDirection: 'row',
-                    gap: 6,
-                    alignItems: 'center',
-                    backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
-                    padding: 6,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: currentTheme.primary,
-                    marginBottom: 8,
-                  }}>
-                    <TextInput
-                      style={{
-                        flex: 1,
-                        fontSize: 11.5,
-                        color: currentTheme.isLight ? '#0f172a' : '#ffffff',
-                        paddingHorizontal: 6,
-                        paddingVertical: 4,
-                      }}
-                      value={newTeamCustomLogoUrl}
-                      onChangeText={setNewTeamCustomLogoUrl}
-                      placeholder="https://example.com/team_logo.png"
-                      placeholderTextColor="#64748b"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: currentTheme.primary,
-                        paddingHorizontal: 10,
-                        paddingVertical: 6,
-                        borderRadius: 6,
-                      }}
-                      onPress={() => {
-                        if (newTeamCustomLogoUrl.trim()) {
-                          setNewTeamLogo(newTeamCustomLogoUrl.trim());
-                          showAppToast('Team picture URL set! 🌐', '🎉', 'success');
-                        }
-                      }}
-                    >
-                      <Text style={{ color: currentTheme.primaryText, fontSize: 11, fontWeight: 'bold' }}>Apply</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-
                 {/* Team Mascot / Emoji Flag Selector */}
-                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginTop: 4, marginBottom: 4 }}>
-                  Or Choose Team Mascot Flag:
+                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginTop: 2, marginBottom: 4 }}>
+                  Or Choose Mascot Flag:
                 </Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   {['🦁', '⚡', '👑', '🌊', '🦅', '🏏', '🔥', '🛡️', '⚔️', '⭐', '🐯', '🐂', '🐺', '🏆'].map(flg => (
@@ -14639,12 +14558,9 @@ function CricketAddaMain() {
                       ]}
                       onPress={() => {
                         setNewTeamFlag(flg);
-                        if (!newTeamLogo && !newTeamCustomLogoUrl) {
-                          showAppToast(`Mascot ${flg} selected! 🦁`, '✅', 'info');
-                        }
                       }}
                     >
-                      <Text style={{ fontSize: 22 }}>{flg}</Text>
+                      <Text style={{ fontSize: 20 }}>{flg}</Text>
                     </TouchableOpacity>
                   ))}
                 </ScrollView>
