@@ -148,6 +148,10 @@ function PlayerAvatar({ name, customUri = null, size = 34, borderColor = '#10b98
   const cleanName = (name || '').replace(/\s*\([^)]*\)/g, '').trim();
   const avatarUrl = customUri || PLAYER_AVATARS[cleanName] || PLAYER_AVATARS[name];
 
+  useEffect(() => {
+    setImgError(false);
+  }, [avatarUrl, customUri]);
+
   const getInitials = n => {
     if (!n) return '🏏';
     const parts = n.split(' ');
@@ -197,6 +201,7 @@ function PlayerAvatar({ name, customUri = null, size = 34, borderColor = '#10b98
       ]}
     >
       <Image
+        key={avatarUrl || "avatar"}
         source={{ uri: avatarUrl }}
         style={{ width: size, height: size }}
         resizeMode="cover"
@@ -3028,6 +3033,9 @@ function CricketAddaMain() {
   const [newTeamSlot, setNewTeamSlot] = useState('teamA'); // 'teamA' | 'teamB'
   const [newTeamName, setNewTeamName] = useState('');
   const [newTeamFlag, setNewTeamFlag] = useState('🦁');
+  const [newTeamLogo, setNewTeamLogo] = useState(null);
+  const [newTeamCustomLogoUrl, setNewTeamCustomLogoUrl] = useState('');
+  const [showTeamLogoUrlInput, setShowTeamLogoUrlInput] = useState(false);
   const [newTeamCity, setNewTeamCity] = useState('');
   const [editingTeamId, setEditingTeamId] = useState(null); // ID of team being edited, or null if creating new
   const [newTeamSquad, setNewTeamSquad] = useState([]);
@@ -3595,6 +3603,8 @@ function CricketAddaMain() {
     setUserProfile(prev => {
       const updated = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
       AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(updated)).catch(() => {});
+
+      // 1. Sync to usersDb
       setUsersDb(prevUsers => {
         if (!Array.isArray(prevUsers)) return prevUsers;
         const currentEmail = (updated.email || authEmail || '').toLowerCase();
@@ -3614,6 +3624,24 @@ function CricketAddaMain() {
         syncUsersToFirebase(updatedList).catch(() => {});
         return updatedList;
       });
+
+      // 2. Sync to registeredPlayers so squad lists and player tags update immediately
+      setRegisteredPlayers(prevPlayers => {
+        if (!Array.isArray(prevPlayers)) return prevPlayers;
+        const currentName = (updated.name || '').trim().toLowerCase();
+        const currentPhone = (updated.phone || authPhone || '').replace(/[^0-9]/g, '');
+        const updatedList = prevPlayers.map(p => {
+          const pName = (p.name || '').trim().toLowerCase();
+          const pPhone = (p.phone || '').replace(/[^0-9]/g, '');
+          if ((currentPhone && pPhone === currentPhone) || (currentName && pName === currentName)) {
+            return { ...p, avatarUri: updated.avatarUri || p.avatarUri };
+          }
+          return p;
+        });
+        AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updatedList)).catch(() => {});
+        return updatedList;
+      });
+
       return updated;
     });
   };
@@ -3629,7 +3657,7 @@ function CricketAddaMain() {
       }
 
       if (!picker || !picker.launchImageLibraryAsync) {
-        Alert.alert('Photo Selection', 'Please choose from the Star Player presets below or enter an image URL!');
+        showAppToast('Choose from star presets below or paste an image URL', '🖼️', 'info');
         return;
       }
 
@@ -3637,7 +3665,7 @@ function CricketAddaMain() {
         try {
           const { status } = await picker.requestMediaLibraryPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert('Permission Needed', 'Please allow gallery access to select a photo.');
+            showAppToast('Please allow gallery access in device settings', '🔒', 'error');
             return;
           }
         } catch (permErr) {
@@ -3659,11 +3687,11 @@ function CricketAddaMain() {
           avatarUri: newAvatarUri,
         }));
         setPhotoPickerVisible(false);
-        Alert.alert('Photo Updated', 'Your profile picture has been updated successfully!');
+        showAppToast('Profile picture updated successfully! 🖼️', '🎉', 'success');
       }
     } catch (err) {
       console.log('Gallery Pick Error:', err);
-      Alert.alert('Photo Selection', 'You can pick any star avatar preset below or paste an image URL!');
+      showAppToast('Could not open gallery. Try pasting an image URL.', '⚠️', 'error');
     }
   };
 
@@ -3678,7 +3706,7 @@ function CricketAddaMain() {
       }
 
       if (!picker || !picker.launchCameraAsync) {
-        Alert.alert('Camera Capture', 'Please choose from the Star Player presets below or enter an image URL!');
+        showAppToast('Camera not available. Try gallery or presets.', '📸', 'info');
         return;
       }
 
@@ -3686,7 +3714,7 @@ function CricketAddaMain() {
         try {
           const { status } = await picker.requestCameraPermissionsAsync();
           if (status !== 'granted') {
-            Alert.alert('Permission Needed', 'Please allow camera access to take a photo.');
+            showAppToast('Please allow camera access in device settings', '🔒', 'error');
             return;
           }
         } catch (permErr) {
@@ -3707,11 +3735,11 @@ function CricketAddaMain() {
           avatarUri: newAvatarUri,
         }));
         setPhotoPickerVisible(false);
-        Alert.alert('Photo Updated', 'Your camera photo has been set as your profile avatar!');
+        showAppToast('Camera photo set as profile picture! 📸', '🎉', 'success');
       }
     } catch (err) {
       console.log('Camera Error:', err);
-      Alert.alert('Camera Capture', 'You can pick any star avatar preset below or paste an image URL!');
+      showAppToast('Could not open camera. Try presets or gallery.', '⚠️', 'error');
     }
   };
 
@@ -3736,12 +3764,13 @@ function CricketAddaMain() {
       setAuthRole(targetRole);
     }
     setPhotoPickerVisible(false);
+    showAppToast(`Star avatar "${p.name}" selected! 🌟`, '🎉', 'success');
   };
 
   // Apply Custom URL
   const applyCustomUrl = () => {
     if (!customUrlInput.trim()) {
-      Alert.alert('URL Required', 'Please enter a valid image URL.');
+      showAppToast('Please enter a valid image URL', '⚠️', 'error');
       return;
     }
     updateAndPersistUserProfile(prev => ({
@@ -3750,6 +3779,7 @@ function CricketAddaMain() {
     }));
     setCustomUrlInput('');
     setPhotoPickerVisible(false);
+    showAppToast('Custom avatar URL applied! 🌐', '🎉', 'success');
   };
 
   // Save Full Profile Edits
@@ -5994,27 +6024,30 @@ function CricketAddaMain() {
         picker = null;
       }
       if (!picker || !picker.launchImageLibraryAsync) {
-        Alert.alert('Upload Logo', 'Please select from preset flags below or paste an image URL!');
+        showAppToast('Please select from preset flags below or paste an image URL', '🖼️', 'info');
         return;
       }
       if (typeof picker.requestMediaLibraryPermissionsAsync === 'function') {
-        const { status } = await picker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission Denied', 'Please grant photo library permissions to select a team logo.');
-          return;
-        }
+        try {
+          const { status } = await picker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            showAppToast('Please grant photo library access in device settings', '🔒', 'error');
+            return;
+          }
+        } catch (e) {}
       }
       const result = await picker.launchImageLibraryAsync({
-        mediaTypes: picker.MediaTypeOptions.Images,
+        mediaTypes: picker.MediaTypeOptions ? picker.MediaTypeOptions.Images : 'Images',
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.8,
+        quality: 0.85,
       });
       if (!result.canceled && result.assets && result.assets.length > 0) {
         setCaptainEditTeamLogo(result.assets[0].uri);
+        showAppToast('Team picture updated! 🖼️', '🎉', 'success');
       }
     } catch (err) {
-      Alert.alert('Error', 'Could not select photo: ' + err.message);
+      showAppToast('Could not select photo. Try pasting an image URL.', '⚠️', 'error');
     }
   };
 
@@ -7367,6 +7400,87 @@ function CricketAddaMain() {
   // ============================================================================
   // CUSTOM TEAM CREATOR & 20-PLAYER SQUAD BUILDER
   // ============================================================================
+    // Pick Team Logo from Photo Gallery
+  const pickTeamLogoFromGallery = async () => {
+    try {
+      let picker = null;
+      try { picker = require('expo-image-picker'); } catch (e) { picker = null; }
+      if (!picker || !picker.launchImageLibraryAsync) {
+        showAppToast('Please enter an image URL below', '🖼️', 'info');
+        setShowTeamLogoUrlInput(true);
+        return;
+      }
+      if (typeof picker.requestMediaLibraryPermissionsAsync === 'function') {
+        try {
+          const { status } = await picker.requestMediaLibraryPermissionsAsync();
+          if (status !== 'granted') {
+            showAppToast('Please grant photo library access in device settings', '🔒', 'error');
+            return;
+          }
+        } catch (e) {}
+      }
+      const result = await picker.launchImageLibraryAsync({
+        mediaTypes: picker.MediaTypeOptions ? picker.MediaTypeOptions.Images : 'Images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const logoUri = result.assets[0].uri;
+        setNewTeamLogo(logoUri);
+        setNewTeamCustomLogoUrl('');
+        showAppToast('Custom team picture selected! 🖼️', '🎉', 'success');
+      }
+    } catch (err) {
+      console.log('Team Logo Gallery Pick Error:', err);
+      showAppToast('Could not open gallery. Try pasting an image URL.', '⚠️', 'error');
+      setShowTeamLogoUrlInput(true);
+    }
+  };
+
+  // Take Team Logo with Camera
+  const takeTeamLogoWithCamera = async () => {
+    try {
+      let picker = null;
+      try { picker = require('expo-image-picker'); } catch (e) { picker = null; }
+      if (!picker || !picker.launchCameraAsync) {
+        showAppToast('Camera not available. Try picking from gallery.', '📸', 'info');
+        return;
+      }
+      if (typeof picker.requestCameraPermissionsAsync === 'function') {
+        try {
+          const { status } = await picker.requestCameraPermissionsAsync();
+          if (status !== 'granted') {
+            showAppToast('Please grant camera permissions in device settings', '🔒', 'error');
+            return;
+          }
+        } catch (e) {}
+      }
+      const result = await picker.launchCameraAsync({
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.85,
+      });
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const logoUri = result.assets[0].uri;
+        setNewTeamLogo(logoUri);
+        setNewTeamCustomLogoUrl('');
+        showAppToast('Team photo captured! 📸', '🎉', 'success');
+      }
+    } catch (err) {
+      console.log('Team Logo Camera Error:', err);
+      showAppToast('Could not open camera', '⚠️', 'error');
+    }
+  };
+
+  // Remove Team Logo
+  const removeTeamLogo = () => {
+    setNewTeamLogo(null);
+    setNewTeamCustomLogoUrl('');
+    setShowTeamLogoUrlInput(false);
+    showAppToast('Custom picture removed, using mascot flag', '🦁', 'info');
+  };
+
   const openNewTeamModal = (slot = 'teamA', initialName = '', teamToEdit = null) => {
     setNewTeamSlot(slot);
     setNewPlayerNameInput('');
@@ -7380,6 +7494,9 @@ function CricketAddaMain() {
       setEditingTeamId(teamToEdit.id || null);
       setNewTeamName(teamToEdit.name || '');
       setNewTeamFlag(teamToEdit.flag || '🦁');
+      setNewTeamLogo(teamToEdit.logo || teamToEdit.logoUri || null);
+      setNewTeamCustomLogoUrl('');
+      setShowTeamLogoUrlInput(false);
       setNewTeamCity(teamToEdit.city || teamToEdit.homeGround || '');
 
       const formattedSquad = Array.isArray(teamToEdit.squad) && teamToEdit.squad.length > 0
@@ -7873,6 +7990,7 @@ function CricketAddaMain() {
       return;
     }
     const cleanName = newTeamName.trim();
+    const finalTeamLogo = (newTeamCustomLogoUrl && newTeamCustomLogoUrl.trim()) ? newTeamCustomLogoUrl.trim() : (newTeamLogo || null);
 
     // Check for duplicate team name across all registered teams (case-insensitive, ignoring self if editing)
     const isDuplicate = registeredTeams.some(
@@ -7918,6 +8036,8 @@ function CricketAddaMain() {
               name: cleanName,
               shortName: cleanName.slice(0, 3).toUpperCase(),
               flag: newTeamFlag || t.flag || '🦁',
+              logo: finalTeamLogo,
+              logoUri: finalTeamLogo,
               city: newTeamCity.trim() || t.city || 'Local City',
               captain: captainPlayer?.name || t.captain || userProfile?.name || `${cleanName} Captain`,
               wicketkeeper: wkPlayer?.name || t.wicketkeeper || 'Wicketkeeper',
@@ -7937,7 +8057,7 @@ function CricketAddaMain() {
         const updated = prev.map(u => {
           if (u.email && u.email.toLowerCase() === uEmail) {
             const existingTeams = Array.isArray(u.createdTeams) ? u.createdTeams : [];
-            const newCreated = existingTeams.map(t => (t.id === targetTeamId ? { ...t, name: cleanName, shortName: cleanName.slice(0, 3).toUpperCase(), flag: newTeamFlag || t.flag, city: newTeamCity.trim() || t.city, squad: finalSquad, captain: captainPlayer?.name || t.captain, wicketkeeper: wkPlayer?.name || t.wicketkeeper } : t));
+            const newCreated = existingTeams.map(t => (t.id === targetTeamId ? { ...t, name: cleanName, shortName: cleanName.slice(0, 3).toUpperCase(), flag: newTeamFlag || t.flag, logo: finalTeamLogo, logoUri: finalTeamLogo, city: newTeamCity.trim() || t.city, squad: finalSquad, captain: captainPlayer?.name || t.captain, wicketkeeper: wkPlayer?.name || t.wicketkeeper } : t));
             return { ...u, createdTeams: newCreated };
           }
           return u;
@@ -7949,10 +8069,12 @@ function CricketAddaMain() {
       // Update live match teams if currently active
       if (battingTeamName === cleanName || (updatedTeamObj && battingTeamName === updatedTeamObj.name)) {
         setBattingTeamFlag(newTeamFlag || '🦁');
+        setBattingTeamLogo(finalTeamLogo);
         setBattingTeamSquad(finalSquad);
       }
       if (bowlingTeamName === cleanName || (updatedTeamObj && bowlingTeamName === updatedTeamObj.name)) {
         setBowlingTeamFlag(newTeamFlag || '🦁');
+        setBowlingTeamLogo(finalTeamLogo);
         setBowlingTeamSquad(finalSquad);
       }
 
@@ -7972,6 +8094,8 @@ function CricketAddaMain() {
       name: cleanName,
       shortName: cleanName.slice(0, 3).toUpperCase(),
       flag: newTeamFlag || '🦁',
+      logo: finalTeamLogo,
+      logoUri: finalTeamLogo,
       club: '',
       city: newTeamCity.trim() || 'Local Ground',
       homeGround: 'Home Stadium',
@@ -9833,9 +9957,19 @@ function CricketAddaMain() {
                           borderColor: currentTheme.isLight ? '#e2e8f0' : '#23354d',
                           justifyContent: 'center',
                           alignItems: 'center',
+                          overflow: 'hidden',
                         }}
                       >
-                        <Text style={{ fontSize: 24 }}>{t.flag || '🦁'}</Text>
+                        {(t.logo || t.logoUri) ? (
+                          <Image
+                            key={t.logo || t.logoUri}
+                            source={{ uri: t.logo || t.logoUri }}
+                            style={{ width: 44, height: 44 }}
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <Text style={{ fontSize: 24 }}>{t.flag || '🦁'}</Text>
+                        )}
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -14302,22 +14436,219 @@ function CricketAddaMain() {
                 />
               </View>
 
-              {/* Team Flag Selector */}
-              <Text style={[styles.inputFieldLabel, { marginTop: 6 }]}>Select Team Mascot / Flag:</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 6 }}>
-                {['🦁', '⚡', '👑', '🌊', '🦅', '🏏', '🔥', '🛡️', '⚔️', '⭐', '🐯', '🐂', '🐺', '🏆'].map(flg => (
+              {/* CUSTOM TEAM PICTURE / LOGO & MASCOT */}
+              <Text style={[styles.inputFieldLabel, { marginTop: 8 }]}>Team Picture & Mascot:</Text>
+              <View style={{
+                backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a101d',
+                borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                borderWidth: 1,
+                borderRadius: 14,
+                padding: 12,
+                marginVertical: 6,
+              }}>
+                {/* Visual Preview Row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 }}>
+                  <View style={{
+                    width: 58,
+                    height: 58,
+                    borderRadius: 16,
+                    backgroundColor: currentTheme.isLight ? '#ffffff' : '#162235',
+                    borderWidth: 2,
+                    borderColor: currentTheme.primary,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    overflow: 'hidden',
+                    elevation: 3,
+                  }}>
+                    {(newTeamCustomLogoUrl || newTeamLogo) ? (
+                      <Image
+                        key={newTeamCustomLogoUrl || newTeamLogo}
+                        source={{ uri: newTeamCustomLogoUrl || newTeamLogo }}
+                        style={{ width: '100%', height: '100%' }}
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <Text style={{ fontSize: 32 }}>{newTeamFlag || '🦁'}</Text>
+                    )}
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <Text style={{
+                      fontSize: 13,
+                      fontWeight: 'bold',
+                      color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                    }}>
+                      {(newTeamCustomLogoUrl || newTeamLogo) ? 'Custom Picture Active' : 'Mascot Flag Active'}
+                    </Text>
+                    <Text style={{
+                      fontSize: 11,
+                      color: currentTheme.isLight ? '#64748b' : '#94a3b8',
+                      marginTop: 2,
+                    }}>
+                      {(newTeamCustomLogoUrl || newTeamLogo)
+                        ? 'Your custom logo will appear across matches, scorecards & teams hub'
+                        : 'Upload a team photo or choose a mascot flag below'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Team Picture Action Buttons */}
+                <View style={{ flexDirection: 'row', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
                   <TouchableOpacity
-                    key={flg}
-                    style={[
-                      styles.teamFlagSelectChip,
-                      newTeamFlag === flg && styles.teamFlagSelectChipActive,
-                    ]}
-                    onPress={() => setNewTeamFlag(flg)}
+                    style={{
+                      flex: 1,
+                      minWidth: 95,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0369a1',
+                      paddingVertical: 8,
+                      paddingHorizontal: 8,
+                      borderRadius: 8,
+                    }}
+                    onPress={pickTeamLogoFromGallery}
                   >
-                    <Text style={{ fontSize: 22 }}>{flg}</Text>
+                    <Text style={{ fontSize: 13 }}>🖼️</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
+                      Gallery
+                    </Text>
                   </TouchableOpacity>
-                ))}
-              </ScrollView>
+
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      minWidth: 95,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      backgroundColor: currentTheme.isLight ? '#dcfce7' : '#059669',
+                      paddingVertical: 8,
+                      paddingHorizontal: 8,
+                      borderRadius: 8,
+                    }}
+                    onPress={takeTeamLogoWithCamera}
+                  >
+                    <Text style={{ fontSize: 13 }}>📸</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
+                      Camera
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={{
+                      flex: 1,
+                      minWidth: 95,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                      backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                      paddingVertical: 8,
+                      paddingHorizontal: 8,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                    }}
+                    onPress={() => setShowTeamLogoUrlInput(prev => !prev)}
+                  >
+                    <Text style={{ fontSize: 13 }}>🔗</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: 'bold' }}>
+                      Web URL
+                    </Text>
+                  </TouchableOpacity>
+
+                  {(newTeamCustomLogoUrl || newTeamLogo) ? (
+                    <TouchableOpacity
+                      style={{
+                        paddingVertical: 8,
+                        paddingHorizontal: 10,
+                        borderRadius: 8,
+                        backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                        borderWidth: 1,
+                        borderColor: '#ef4444',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                      onPress={removeTeamLogo}
+                    >
+                      <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: 'bold' }}>✕ Remove</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </View>
+
+                {/* Optional Web URL Input Box */}
+                {showTeamLogoUrlInput && (
+                  <View style={{
+                    flexDirection: 'row',
+                    gap: 6,
+                    alignItems: 'center',
+                    backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+                    padding: 6,
+                    borderRadius: 8,
+                    borderWidth: 1,
+                    borderColor: currentTheme.primary,
+                    marginBottom: 8,
+                  }}>
+                    <TextInput
+                      style={{
+                        flex: 1,
+                        fontSize: 11.5,
+                        color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                        paddingHorizontal: 6,
+                        paddingVertical: 4,
+                      }}
+                      value={newTeamCustomLogoUrl}
+                      onChangeText={setNewTeamCustomLogoUrl}
+                      placeholder="https://example.com/team_logo.png"
+                      placeholderTextColor="#64748b"
+                      autoCapitalize="none"
+                      autoCorrect={false}
+                    />
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: currentTheme.primary,
+                        paddingHorizontal: 10,
+                        paddingVertical: 6,
+                        borderRadius: 6,
+                      }}
+                      onPress={() => {
+                        if (newTeamCustomLogoUrl.trim()) {
+                          setNewTeamLogo(newTeamCustomLogoUrl.trim());
+                          showAppToast('Team picture URL set! 🌐', '🎉', 'success');
+                        }
+                      }}
+                    >
+                      <Text style={{ color: currentTheme.primaryText, fontSize: 11, fontWeight: 'bold' }}>Apply</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* Team Mascot / Emoji Flag Selector */}
+                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginTop: 4, marginBottom: 4 }}>
+                  Or Choose Team Mascot Flag:
+                </Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                  {['🦁', '⚡', '👑', '🌊', '🦅', '🏏', '🔥', '🛡️', '⚔️', '⭐', '🐯', '🐂', '🐺', '🏆'].map(flg => (
+                    <TouchableOpacity
+                      key={flg}
+                      style={[
+                        styles.teamFlagSelectChip,
+                        newTeamFlag === flg && styles.teamFlagSelectChipActive,
+                      ]}
+                      onPress={() => {
+                        setNewTeamFlag(flg);
+                        if (!newTeamLogo && !newTeamCustomLogoUrl) {
+                          showAppToast(`Mascot ${flg} selected! 🦁`, '✅', 'info');
+                        }
+                      }}
+                    >
+                      <Text style={{ fontSize: 22 }}>{flg}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
               {/* 2. ADD PLAYERS TO SQUAD (MAX 20) */}
               <View style={styles.squadBuilderHeaderRow}>
@@ -16062,7 +16393,11 @@ function CricketAddaMain() {
                     }}
                   >
                     {matchDraft.myTeam ? (
-                      <Text style={{ fontSize: 32 }}>{matchDraft.myTeam.flag}</Text>
+                      (matchDraft.myTeam.logo || matchDraft.myTeam.logoUri) ? (
+                        <Image key={matchDraft.myTeam.logo || matchDraft.myTeam.logoUri} source={{ uri: matchDraft.myTeam.logo || matchDraft.myTeam.logoUri }} style={{ width: 44, height: 44, borderRadius: 22 }} resizeMode="cover" />
+                      ) : (
+                        <Text style={{ fontSize: 32 }}>{matchDraft.myTeam.flag}</Text>
+                      )
                     ) : (
                       <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
                     )}
@@ -16224,7 +16559,11 @@ function CricketAddaMain() {
                     }}
                   >
                     {matchDraft.opponentTeam ? (
-                      <Text style={{ fontSize: 32 }}>{matchDraft.opponentTeam.flag}</Text>
+                      (matchDraft.opponentTeam.logo || matchDraft.opponentTeam.logoUri) ? (
+                        <Image key={matchDraft.opponentTeam.logo || matchDraft.opponentTeam.logoUri} source={{ uri: matchDraft.opponentTeam.logo || matchDraft.opponentTeam.logoUri }} style={{ width: 44, height: 44, borderRadius: 22 }} resizeMode="cover" />
+                      ) : (
+                        <Text style={{ fontSize: 32 }}>{matchDraft.opponentTeam.flag}</Text>
+                      )
                     ) : (
                       <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
                     )}
@@ -17158,8 +17497,12 @@ function CricketAddaMain() {
                     ]}
                     onPress={() => selectTeamForSlot(targetTeamSlot, t)}
                   >
-                    <View style={styles.teamCardFlagBox}>
-                      <Text style={{ fontSize: 28 }}>{t.flag}</Text>
+                    <View style={[styles.teamCardFlagBox, { overflow: 'hidden' }]}>
+                      {(t.logo || t.logoUri) ? (
+                        <Image key={t.logo || t.logoUri} source={{ uri: t.logo || t.logoUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                      ) : (
+                        <Text style={{ fontSize: 28 }}>{t.flag || '🦁'}</Text>
+                      )}
                     </View>
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
