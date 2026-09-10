@@ -36,6 +36,7 @@ import {
   fetchFirebaseTeams,
   syncUsersToFirebase,
   fetchFirebaseUsers,
+  searchCloudPlayerByPhone,
   sendVerificationOtpEmail,
 } from './firebaseSync';
 import Svg, {
@@ -3589,6 +3590,33 @@ function CricketAddaMain() {
   const scorerBadgeW = Math.round(scorerWheelSize * 0.165);
   const scorerBadgeH = Math.round(scorerWheelSize * 0.115);
 
+  const updateAndPersistUserProfile = (updater) => {
+    setUserProfile(prev => {
+      const updated = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(updated)).catch(() => {});
+      setUsersDb(prevUsers => {
+        if (!Array.isArray(prevUsers)) return prevUsers;
+        const currentEmail = (updated.email || authEmail || '').toLowerCase();
+        const currentPhone = (updated.phone || authPhone || '').replace(/[^0-9]/g, '');
+        const updatedList = prevUsers.map(u => {
+          const uEmail = (u.email || (u.profile && u.profile.email) || '').toLowerCase();
+          const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+          if ((currentEmail && uEmail === currentEmail) || (currentPhone && uPhone === currentPhone)) {
+            return {
+              ...u,
+              profile: { ...(u.profile || {}), ...updated },
+            };
+          }
+          return u;
+        });
+        AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updatedList)).catch(() => {});
+        syncUsersToFirebase(updatedList).catch(() => {});
+        return updatedList;
+      });
+      return updated;
+    });
+  };
+
   // Pick Image from Phone's Photo Gallery
   const pickImageFromGallery = async () => {
     try {
@@ -3624,9 +3652,10 @@ function CricketAddaMain() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setUserProfile(prev => ({
+        const newAvatarUri = result.assets[0].uri;
+        updateAndPersistUserProfile(prev => ({
           ...prev,
-          avatarUri: result.assets[0].uri,
+          avatarUri: newAvatarUri,
         }));
         setPhotoPickerVisible(false);
         Alert.alert('Photo Updated', 'Your profile picture has been updated successfully!');
@@ -3671,9 +3700,10 @@ function CricketAddaMain() {
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        setUserProfile(prev => ({
+        const newAvatarUri = result.assets[0].uri;
+        updateAndPersistUserProfile(prev => ({
           ...prev,
-          avatarUri: result.assets[0].uri,
+          avatarUri: newAvatarUri,
         }));
         setPhotoPickerVisible(false);
         Alert.alert('Photo Updated', 'Your camera photo has been set as your profile avatar!');
@@ -3689,7 +3719,7 @@ function CricketAddaMain() {
     const targetName = isAuthenticated ? p.name : (authName.trim() || editNameInput.trim() || p.name);
     const targetJersey = isAuthenticated ? p.jersey : (authJersey.trim() || editJerseyInput.trim() || p.jersey);
     const targetRole = isAuthenticated ? p.role : (authRole.trim() || editRoleInput.trim() || p.role);
-    setUserProfile(prev => ({
+    updateAndPersistUserProfile(prev => ({
       ...prev,
       name: targetName,
       jersey: targetJersey,
@@ -3713,7 +3743,7 @@ function CricketAddaMain() {
       Alert.alert('URL Required', 'Please enter a valid image URL.');
       return;
     }
-    setUserProfile(prev => ({
+    updateAndPersistUserProfile(prev => ({
       ...prev,
       avatarUri: customUrlInput.trim(),
     }));
@@ -3735,7 +3765,7 @@ function CricketAddaMain() {
       setAuthBattingStyle(cleanBat);
       setAuthBowlingStyle(cleanBowl);
     }
-    setUserProfile(prev => ({
+    updateAndPersistUserProfile(prev => ({
       ...prev,
       name: cleanName,
       jersey: cleanJersey,
@@ -3948,9 +3978,11 @@ function CricketAddaMain() {
             ]);
             setIsAuthenticated(false);
             showAppToast('Session expired after 30 days of inactivity. Please sign in again.', '⏳');
-          } else if (parsedProfile && parsedProfile.email) {
+          } else if (parsedProfile && (parsedProfile.email || parsedProfile.name)) {
             setUserProfile(parsedProfile);
-            setIsAuthenticated(true);
+            if (parsedProfile.email) {
+              setIsAuthenticated(true);
+            }
             // Refresh activity timestamp on active app usage
             AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
           }
@@ -3997,6 +4029,13 @@ function CricketAddaMain() {
     };
     loadUserPreferences();
   }, []);
+
+  // Active Profile Persistence: Save active profile changes to AsyncStorage
+  useEffect(() => {
+    if (userProfile && (userProfile.name || userProfile.email || userProfile.avatarUri)) {
+      AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(userProfile)).catch(() => {});
+    }
+  }, [userProfile]);
 
   // 30-Day Session Heartbeat: Keep last active timestamp refreshed on active app usage
   useEffect(() => {
@@ -5673,6 +5712,7 @@ function CricketAddaMain() {
     const playerRole = typeof player === 'string' ? 'Player' : (player.role || 'Player');
     const playerPhone = typeof player === 'object' ? (player.phone || '') : '';
     const playerJersey = typeof player === 'object' ? (player.jersey || '') : '';
+    const playerAvatar = typeof player === 'object' ? (player.avatarUri || null) : null;
     const payload = JSON.stringify({
       type: 'player_pass',
       id: `p_${playerName.replace(/\s+/g, '_').toLowerCase()}`,
@@ -5680,6 +5720,7 @@ function CricketAddaMain() {
       phone: playerPhone,
       role: playerRole,
       jersey: playerJersey,
+      avatarUri: playerAvatar,
       team: teamName,
       flag: teamFlag,
     });
@@ -5690,7 +5731,7 @@ function CricketAddaMain() {
       payload,
       emoji: '👤',
       teamFlag,
-      meta: { name: playerName, phone: playerPhone, role: playerRole, team: teamName, flag: teamFlag, jersey: playerJersey },
+      meta: { name: playerName, phone: playerPhone, role: playerRole, team: teamName, flag: teamFlag, jersey: playerJersey, avatarUri: playerAvatar },
     });
     setQrDisplayModalVisible(true);
   };
@@ -5744,7 +5785,17 @@ function CricketAddaMain() {
         const pPhone = (data.phone || data.mobile || '').replace(/[^0-9]/g, '');
         const pRole = (data.role && (data.role.includes('BOWL') ? 'BOWL' : data.role.includes('WK') ? 'WK' : data.role.includes('ALL') ? 'ALL' : 'BAT')) || 'BAT';
         
-        const existing = registeredPlayers.find(p => p.name.toLowerCase() === pName.toLowerCase() || (pPhone && (p.phone || '').replace(/[^0-9]/g, '') === pPhone));
+        let existing = registeredPlayers.find(p => p.name.toLowerCase() === pName.toLowerCase() || (pPhone && (p.phone || '').replace(/[^0-9]/g, '') === pPhone));
+        if (!existing && Array.isArray(usersDb)) {
+          const userMatch = usersDb.find(u => {
+            const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+            const uName = (u.name || (u.profile && u.profile.name) || '').toLowerCase();
+            return (pPhone && uPhone === pPhone) || (pName && uName === pName.toLowerCase());
+          });
+          if (userMatch) {
+            existing = userMatch.profile || userMatch;
+          }
+        }
 
         const scannedProfile = {
           id: data.id || (existing ? existing.id : `p_scan_${Date.now()}`),
@@ -5754,7 +5805,7 @@ function CricketAddaMain() {
           battingStyle: data.battingStyle || (existing ? existing.battingStyle : 'Right Hand Bat'),
           bowlingStyle: data.bowlingStyle || (existing ? existing.bowlingStyle : (pRole === 'BOWL' ? 'Right Arm Fast' : 'Right Arm Medium')),
           jersey: data.jersey || (existing ? existing.jersey : ''),
-          avatarUri: (existing && existing.avatarUri) || PLAYER_AVATARS[pName] || null,
+          avatarUri: data.avatarUri || (existing && existing.avatarUri) || PLAYER_AVATARS[pName] || null,
           matches: (existing && existing.matches) || data.matches || 28,
           runs: (existing && existing.runs) || data.runs || 840,
           wickets: (existing && existing.wickets) || data.wickets || 24,
@@ -7033,6 +7084,18 @@ function CricketAddaMain() {
   };
 
   const isLiveMatchActive = currentMatchData?.status === 'live';
+  const hasValidScorecard = Boolean(
+    (Object.keys(matchesDb).length > 0 && currentMatchData && currentMatchData.id && currentMatchData.id !== 'match_new') ||
+    isLiveMatchActive ||
+    (currentMatchData && (
+      (currentMatchData.innings1?.batting && currentMatchData.innings1.batting.length > 0) ||
+      (currentMatchData.innings1?.runs > 0) ||
+      (currentMatchData.innings2?.runs > 0) ||
+      currentMatchData.status === 'live' ||
+      currentMatchData.status === 'finished' ||
+      Boolean(currentMatchData.result)
+    ))
+  );
   const baseInning = scorecardInning === 1 ? currentMatchData.innings1 : currentMatchData.innings2;
   const activeInningData = isLiveMatchActive && scorecardInning === currentInnings
     ? {
@@ -7412,7 +7475,34 @@ function CricketAddaMain() {
     const cleanDigits = text.replace(/[^0-9]/g, '').slice(0, 10);
     setPlayerPhoneInput(cleanDigits);
     if (cleanDigits.length >= 10) {
-      const found = registeredPlayers.find(p => (p.phone || '').replace(/[^0-9]/g, '') === cleanDigits);
+      // 1. Check local registeredPlayers
+      let found = registeredPlayers.find(p => (p.phone || '').replace(/[^0-9]/g, '') === cleanDigits);
+
+      // 2. Check local usersDb
+      if (!found && Array.isArray(usersDb)) {
+        const userMatch = usersDb.find(u => {
+          const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+          return uPhone === cleanDigits;
+        });
+        if (userMatch) {
+          const prof = userMatch.profile || userMatch;
+          found = {
+            id: prof.id || `usr_${cleanDigits}`,
+            name: prof.name,
+            phone: cleanDigits,
+            role: (prof.role && prof.role.includes('Bowler')) ? 'BOWL' : (prof.role && prof.role.includes('Keeper')) ? 'WK' : (prof.role && prof.role.includes('All')) ? 'ALL' : 'BAT',
+            jersey: prof.jersey ? String(prof.jersey).replace('#', '') : '',
+            avatarUri: prof.avatarUri || null,
+            matches: 1,
+            runs: 0,
+            wickets: 0,
+            strikeRate: '0.0',
+            economy: '0.0',
+            rating: '8.5',
+          };
+        }
+      }
+
       if (found) {
         setPlayerPhoneSearchResult(found);
         setNewPlayerNameInput(found.name);
@@ -7440,7 +7530,7 @@ function CricketAddaMain() {
     }
   };
 
-  const handleSearchPlayerByPhone = () => {
+  const handleSearchPlayerByPhone = async () => {
     const cleanDigits = (playerPhoneInput || '').replace(/[^0-9]/g, '');
     if (!cleanDigits) {
       showAppToast('Please enter a 10-digit mobile number', '⚠️', 'error');
@@ -7450,12 +7540,65 @@ function CricketAddaMain() {
       showAppToast('Please enter a valid 10-digit phone number', '⚠️', 'error');
       return;
     }
-    const found = registeredPlayers.find(p => (p.phone || '').replace(/[^0-9]/g, '') === cleanDigits);
+
+    // 1. Search local registeredPlayers
+    let found = registeredPlayers.find(p => (p.phone || '').replace(/[^0-9]/g, '') === cleanDigits);
+
+    // 2. Search local usersDb
+    if (!found && Array.isArray(usersDb)) {
+      const userMatch = usersDb.find(u => {
+        const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+        return uPhone === cleanDigits;
+      });
+      if (userMatch) {
+        const prof = userMatch.profile || userMatch;
+        found = {
+          id: prof.id || `usr_${cleanDigits}`,
+          name: prof.name,
+          phone: cleanDigits,
+          role: (prof.role && prof.role.includes('Bowler')) ? 'BOWL' : (prof.role && prof.role.includes('Keeper')) ? 'WK' : (prof.role && prof.role.includes('All')) ? 'ALL' : 'BAT',
+          jersey: prof.jersey ? String(prof.jersey).replace('#', '') : '',
+          avatarUri: prof.avatarUri || null,
+          matches: 1,
+          runs: 0,
+          wickets: 0,
+          strikeRate: '0.0',
+          economy: '0.0',
+          rating: '8.5',
+        };
+      }
+    }
+
+    // 3. Search Firebase in Real Time (Cross-Device Lookup)
+    if (!found && isFirebaseConfigured()) {
+      try {
+        const cloudProfile = await searchCloudPlayerByPhone(cleanDigits);
+        if (cloudProfile && cloudProfile.name) {
+          found = {
+            id: cloudProfile.id || `usr_${cleanDigits}`,
+            name: cloudProfile.name,
+            phone: cleanDigits,
+            role: (cloudProfile.role && cloudProfile.role.includes('Bowler')) ? 'BOWL' : (cloudProfile.role && cloudProfile.role.includes('Keeper')) ? 'WK' : (cloudProfile.role && cloudProfile.role.includes('All')) ? 'ALL' : 'BAT',
+            jersey: cloudProfile.jersey ? String(cloudProfile.jersey).replace('#', '') : '',
+            avatarUri: cloudProfile.avatarUri || null,
+            matches: 1,
+            runs: 0,
+            wickets: 0,
+            strikeRate: '0.0',
+            economy: '0.0',
+            rating: '8.5',
+          };
+        }
+      } catch (e) {
+        console.log('Cloud phone search error:', e);
+      }
+    }
+
     if (found) {
       setPlayerPhoneSearchResult(found);
       setNewPlayerNameInput(found.name);
       setNewPlayerRoleInput(found.role || 'BAT');
-      showAppToast(`Found player profile: ${found.name}`, '👤');
+      showAppToast(`Found player: ${found.name}`, '👤');
     } else {
       setPlayerPhoneSearchResult({
         id: `p_ph_${Date.now()}`,
@@ -9107,7 +9250,7 @@ function CricketAddaMain() {
                 <Text style={[styles.brandTitle, currentTheme.isLight && { color: '#0f172a' }]}>
                   CricketAdda <Text style={[styles.proBadge, { backgroundColor: currentTheme.primary, color: currentTheme.primaryText }]}>PRO</Text>
                 </Text>
-                <Text style={[styles.brandSub, currentTheme.isLight && { color: '#64748b' }]}>Official Tournament Hub</Text>
+                <Text style={[styles.brandSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Official Tournament Hub</Text>
               </View>
             </TouchableOpacity>
 
@@ -11505,16 +11648,60 @@ function CricketAddaMain() {
       {/* 2.4 SCORECARD TAB WITH PLAYER PHOTOS IN TABLES */}
       {/* ========================================================================= */}
       {activeTab === 'scorecard' && (
-        <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
-          <TouchableOpacity
-            style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={goBack}
-          >
-            <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
-          </TouchableOpacity>
+        !hasValidScorecard ? (
+          <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80, flexGrow: 1, justifyContent: 'center' }}>
+            <TouchableOpacity
+              style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              onPress={goBack}
+            >
+              <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
+            </TouchableOpacity>
 
-          {/* Quick Match Carousel Switcher */}
+            <View style={[styles.emptyScorecardContainer, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0' }]}>
+              <View style={[styles.emptyScorecardIconCircle, currentTheme.isLight && { backgroundColor: '#f1f5f9' }]}>
+                <Text style={{ fontSize: 44 }}>📊</Text>
+              </View>
+              <Text style={[styles.emptyScorecardTitle, currentTheme.isLight && { color: '#0f172a' }]}>
+                No Live Match Yet
+              </Text>
+              <Text style={[styles.emptyScorecardSubtitle, currentTheme.isLight && { color: '#64748b' }]}>
+                There are no active matches or live scorecards right now. Start a new match to score ball-by-ball and view full live scorecards!
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.emptyScorecardActionBtn, { backgroundColor: currentTheme.primary }]}
+                onPress={() => {
+                  setWzPhase(1);
+                  setWizardVisible(true);
+                }}
+              >
+                <Text style={[styles.emptyScorecardActionBtnText, { color: currentTheme.primaryText }]}>
+                  ➕ Start New Match
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.emptyScorecardSecondaryBtn, currentTheme.isLight && { borderColor: '#cbd5e1', backgroundColor: '#f8fafc' }]}
+                onPress={() => navigateTo('matches')}
+              >
+                <Text style={[styles.emptyScorecardSecondaryBtnText, currentTheme.isLight && { color: '#475569' }]}>
+                  🏏 View Matches Hub
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+        ) : (
+          <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
+            <TouchableOpacity
+              style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              onPress={goBack}
+            >
+              <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
+            </TouchableOpacity>
+
+            {/* Quick Match Carousel Switcher */}
           <Text style={[styles.switcherHeaderTitle, currentTheme.isLight && { color: '#64748b' }]}>🏏 SWITCH MATCH SCORECARD:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.matchSwitcherScroll}>
             {Object.keys(matchesDb).map(id => {
@@ -11713,6 +11900,7 @@ function CricketAddaMain() {
             </Text>
           </View>
         </ScrollView>
+        )
       )}
 
       {/* ========================================================================= */}
@@ -18988,6 +19176,70 @@ const styles = StyleSheet.create({
   navBrand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   logoImg: { width: 36, height: 36 },
   brandTitle: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  brandSub: { color: '#94a3b8', fontSize: 10.5, fontWeight: '600', marginTop: 1 },
+  emptyScorecardContainer: {
+    backgroundColor: '#0f172a',
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    padding: 28,
+    alignItems: 'center',
+    marginHorizontal: 16,
+    marginVertical: 36,
+  },
+  emptyScorecardIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#1e293b',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  emptyScorecardTitle: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '900',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptyScorecardSubtitle: {
+    color: '#94a3b8',
+    fontSize: 13,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+    maxWidth: 320,
+  },
+  emptyScorecardActionBtn: {
+    paddingVertical: 13,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 260,
+    marginBottom: 10,
+  },
+  emptyScorecardActionBtnText: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  emptyScorecardSecondaryBtn: {
+    paddingVertical: 11,
+    paddingHorizontal: 24,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+    backgroundColor: '#1e293b',
+    alignItems: 'center',
+    width: '100%',
+    maxWidth: 260,
+  },
+  emptyScorecardSecondaryBtnText: {
+    color: '#94a3b8',
+    fontSize: 13,
+    fontWeight: '700',
+  },
   proBadge: {
     color: '#10b981',
     fontSize: 10,

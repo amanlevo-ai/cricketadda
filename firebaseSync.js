@@ -234,19 +234,56 @@ export async function fetchFirebaseTeams() {
 }
 
 /**
- * Sync registered users to Cloud
+ * Sync registered users to Cloud (merges with existing cloud records to prevent cross-device overwrites)
  */
 export async function syncUsersToFirebase(users) {
   if (!isFirebaseConfigured() || !Array.isArray(users)) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const url = `${baseUrl}/users.json`;
-    const res = await fetch(url, {
+    
+    // Fetch current cloud users to merge
+    let mergedUsers = [...users];
+    try {
+      const cloudRes = await fetch(`${baseUrl}/users.json`);
+      if (cloudRes.ok) {
+        const cloudData = await cloudRes.json();
+        const existingCloudList = Array.isArray(cloudData) ? cloudData : (cloudData && typeof cloudData === 'object' ? Object.values(cloudData) : []);
+        existingCloudList.forEach(cu => {
+          const cuEmail = ((cu.email || (cu.profile && cu.profile.email)) || '').toLowerCase();
+          const cuPhone = ((cu.profile && cu.profile.phone) || cu.phone || '').replace(/[^0-9]/g, '');
+          const alreadyInList = mergedUsers.some(mu => {
+            const muEmail = ((mu.email || (mu.profile && mu.profile.email)) || '').toLowerCase();
+            const muPhone = ((mu.profile && mu.profile.phone) || mu.phone || '').replace(/[^0-9]/g, '');
+            return (cuEmail && muEmail && cuEmail === muEmail) || (cuPhone && muPhone && cuPhone === muPhone);
+          });
+          if (!alreadyInList) {
+            mergedUsers.push(cu);
+          }
+        });
+      }
+    } catch (mergeErr) {}
+
+    // Save full merged list
+    await fetch(`${baseUrl}/users.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(users),
+      body: JSON.stringify(mergedUsers),
     });
-    return res.ok;
+
+    // Also index each user by phone number for instant lookup from other phones
+    users.forEach(u => {
+      const prof = u.profile || u;
+      const uPhone = (prof.phone || u.phone || '').replace(/[^0-9]/g, '');
+      if (uPhone && uPhone.length >= 10) {
+        fetch(`${baseUrl}/registered_players/${uPhone}.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(prof),
+        }).catch(() => {});
+      }
+    });
+
+    return true;
   } catch (e) {
     return false;
   }
@@ -265,6 +302,38 @@ export async function fetchFirebaseUsers() {
       const data = await res.json();
       if (Array.isArray(data)) return data;
       if (data && typeof data === 'object') return Object.values(data);
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Lookup a player profile by phone number from Firebase Realtime Database
+ */
+export async function searchCloudPlayerByPhone(phoneDigits) {
+  if (!isFirebaseConfigured() || !phoneDigits) return null;
+  const cleanPhone = String(phoneDigits).replace(/[^0-9]/g, '');
+  if (!cleanPhone) return null;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    // 1. Check direct phone index
+    const res = await fetch(`${baseUrl}/registered_players/${cleanPhone}.json`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === 'object' && data.name) return data;
+    }
+    // 2. Fallback check in /users.json
+    const usersRes = await fetch(`${baseUrl}/users.json`);
+    if (usersRes.ok) {
+      const usersData = await usersRes.json();
+      const list = Array.isArray(usersData) ? usersData : (usersData && typeof usersData === 'object' ? Object.values(usersData) : []);
+      const match = list.find(u => {
+        const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+        return uPhone === cleanPhone;
+      });
+      if (match) return match.profile || match;
     }
     return null;
   } catch (e) {
