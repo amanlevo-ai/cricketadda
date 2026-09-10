@@ -11626,7 +11626,11 @@ function CricketAddaMain() {
 
             <View style={[styles.extraTotalRow, currentTheme.isLight && { borderBottomColor: '#e2e8f0' }]}>
               <Text style={[styles.extraLabel, currentTheme.isLight && { color: '#64748b' }]}>Extras:</Text>
-              <Text style={[styles.extraValue, currentTheme.isLight && { color: '#0f172a' }]}>{activeInningData.extras}</Text>
+              <Text style={[styles.extraValue, currentTheme.isLight && { color: '#0f172a' }]}>
+                {typeof activeInningData.extras === 'object' && activeInningData.extras !== null
+                  ? `${activeInningData.extras.total ?? ((activeInningData.extras.wides || 0) + (activeInningData.extras.noBalls || 0) + (activeInningData.extras.byes || 0) + (activeInningData.extras.legByes || 0) + (activeInningData.extras.penalty || 0))} (b ${activeInningData.extras.byes || 0}, lb ${activeInningData.extras.legByes || 0}, w ${activeInningData.extras.wides || 0}, nb ${activeInningData.extras.noBalls || 0}${activeInningData.extras.penalty ? `, p ${activeInningData.extras.penalty}` : ''})`
+                  : (activeInningData.extras || '0 (b 0, lb 0, w 0, nb 0)')}
+              </Text>
             </View>
             <View style={[styles.extraTotalRow, { borderBottomWidth: 0, paddingTop: 4 }]}>
               <Text style={[styles.totalLabel, currentTheme.isLight && { color: '#0f172a' }]}>Total Score:</Text>
@@ -11690,7 +11694,23 @@ function CricketAddaMain() {
 
           <View style={[styles.tableCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { marginTop: 16 }]}>
             <Text style={[styles.fowHeading, currentTheme.isLight && { color: '#0f172a' }]}>⚡ Fall of Wickets (FOW):</Text>
-            <Text style={[styles.fowContentText, currentTheme.isLight && { color: '#334155' }]}>{activeInningData.fow}</Text>
+            <Text style={[styles.fowContentText, currentTheme.isLight && { color: '#334155' }]}>
+              {typeof activeInningData.fow === 'string' && activeInningData.fow.trim()
+                ? activeInningData.fow
+                : Array.isArray(activeInningData.fallOfWickets) && activeInningData.fallOfWickets.length > 0
+                ? activeInningData.fallOfWickets
+                    .map((item, idx) => {
+                      if (typeof item === 'string') return item;
+                      if (typeof item === 'object' && item !== null) {
+                        return `${item.wicket || idx + 1}-${item.runs ?? 0} (${item.player || item.name || 'Batter'}, ${item.over || item.overs || '0.0'} ov)`;
+                      }
+                      return String(item);
+                    })
+                    .join(', ')
+                : Array.isArray(activeInningData.fow) && activeInningData.fow.length > 0
+                ? activeInningData.fow.map((item, idx) => typeof item === 'string' ? item : `${idx + 1}-${item.runs || 0} (${item.player || 'Batter'}, ${item.over || '0.0'} ov)`).join(', ')
+                : 'Yet to fall'}
+            </Text>
           </View>
         </ScrollView>
       )}
