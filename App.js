@@ -3335,31 +3335,17 @@ function CricketAddaMain() {
     title: 'Team Passport QR',
     subtitle: 'Scan to import team into Match Setup',
     payload: 'team_india_2026',
-    emoji: '🏏',
-    teamFlag: '🇮🇳',
-    meta: null,
   });
-
-  // Universal Scanner State (Scan Team into Wizard or Scan Player to Transfer Scoring)
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [qrScannedLocked, setQrScannedLocked] = useState(false);
   const [universalQrScannerVisible, setUniversalQrScannerVisible] = useState(false);
-  const [qrScanPurpose, setQrScanPurpose] = useState('add_team_a'); // 'add_team_a' | 'add_team_b' | 'transfer_scorer'
-
-  // Selected match for Scorecard & Wagon Wheel views
+  const [qrScanPurpose, setQrScanPurpose] = useState('add_team_a');
   const [activeMatchId, setActiveMatchId] = useState(null);
   const [scorecardInning, setScorecardInning] = useState(1);
+  const [scorecardTab, setScorecardTab] = useState('scorecard'); // 'scorecard' | 'mvp'
+  const [mvpInfoModalVisible, setMvpInfoModalVisible] = useState(false);
   const currentMatchData = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb)[0] || EMPTY_MATCH_TEMPLATE;
-
-  // USER CUSTOMIZABLE PROFILE & PHOTO STATE
-  const [userProfile, setUserProfile] = useState({
-    name: '',
-    jersey: '#1',
-    role: 'Top-Order Batter',
-    avatarUri: null,
-  });
-
-  // Dynamic Career Stats & Match History State
+  const [userProfile, setUserProfile] = useState({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
   const [userCareerData, setUserCareerData] = useState(USER_CAREER_DATA);
 
   // Interactive "About CricketAdda & Developer" Modal State
@@ -4585,6 +4571,10 @@ function CricketAddaMain() {
         setBowlerModalVisible(false);
         return true;
       }
+      if (mvpInfoModalVisible) {
+        setMvpInfoModalVisible(false);
+        return true;
+      }
       if (batterModalVisible) {
         setBatterModalVisible(false);
         return true;
@@ -4609,6 +4599,7 @@ function CricketAddaMain() {
     changeBowlerModalVisible,
     wicketModalVisible,
     dropCatchModalVisible,
+    mvpInfoModalVisible,
     newTeamModalVisible,
     commentaryModalVisible,
     batterModalVisible,
@@ -6983,7 +6974,10 @@ function CricketAddaMain() {
     outputRange: ['0%', '100%'],
   });
 
-  const openMatchScorecard = matchId => {
+  const openMatchScorecard = (matchId, tab = 'scorecard') => {
+    if (matchId) setActiveMatchId(matchId);
+    setScorecardTab(tab);
+    setScorecardInning(1);
     navigateTo('scorecard', matchId || activeMatchId);
   };
 
@@ -12233,232 +12227,219 @@ function CricketAddaMain() {
           </View>
 
           {/* ========================================================= */}
-          {/* 🏆 SCORECARD: OFFICIAL MATCH AWARDS & MVP PODIUM */}
-          {/* (Shown ONLY after match is completed/finished) */}
+          {/* 🔘 MATCH SUB-TABS: SCORECARD vs MVP RANKINGS */}
           {/* ========================================================= */}
-          {(() => {
-            // Only show awards podium once the match is finished/completed
-            const isMatchCompleted = Boolean(
-              currentMatchData?.status === 'completed' ||
-              currentMatchData?.status === 'finished' ||
-              Boolean(currentMatchData?.result) ||
-              (!isLiveMatchActive && Boolean(currentMatchData?.pom))
-            );
-            if (!isMatchCompleted) return null;
+          <View style={[styles.scorecardSubTabsBar, currentTheme.isLight && { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }]}>
+            <TouchableOpacity
+              style={[
+                styles.scorecardSubTabBtn,
+                scorecardTab === 'scorecard' && styles.scorecardSubTabBtnActive,
+                currentTheme.isLight && scorecardTab === 'scorecard' && { backgroundColor: '#ffffff', borderBottomColor: currentTheme.primary },
+              ]}
+              onPress={() => setScorecardTab('scorecard')}
+            >
+              <Text
+                style={[
+                  styles.scorecardSubTabText,
+                  currentTheme.isLight && { color: '#64748b' },
+                  scorecardTab === 'scorecard' && (currentTheme.isLight ? { color: currentTheme.primary, fontWeight: '900' } : styles.scorecardSubTabTextActive),
+                ]}
+              >
+                📋 Scorecard
+              </Text>
+            </TouchableOpacity>
 
-            const awards = calculateMatchAwardsAndMVP(currentMatchData);
-            if (!awards) return null;
-            const pom = awards.pomPlayer;
-            const bestBat = awards.bestBatter;
-            const bestBowl = awards.bestBowler;
-            const topMvp = awards.mvpLeaderboard || [];
+            <TouchableOpacity
+              style={[
+                styles.scorecardSubTabBtn,
+                scorecardTab === 'mvp' && styles.scorecardSubTabBtnActive,
+                currentTheme.isLight && scorecardTab === 'mvp' && { backgroundColor: '#ffffff', borderBottomColor: currentTheme.primary },
+              ]}
+              onPress={() => setScorecardTab('mvp')}
+            >
+              <Text
+                style={[
+                  styles.scorecardSubTabText,
+                  currentTheme.isLight && { color: '#64748b' },
+                  scorecardTab === 'mvp' && (currentTheme.isLight ? { color: currentTheme.primary, fontWeight: '900' } : styles.scorecardSubTabTextActive),
+                ]}
+              >
+                ⭐ MVP Rankings
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-            // If no player has points (e.g. empty scorecard), do not render
-            if (!pom && !bestBat && !bestBowl) return null;
+          {/* ========================================================= */}
+          {/* TAB 1: 📋 DETAILED SCORECARD (INNINGS & TABLES) */}
+          {/* ========================================================= */}
+          {scorecardTab === 'scorecard' && (
+            <View>
+              {/* 🏆 SCORECARD: OFFICIAL MATCH AWARDS & MVP PODIUM (Shown when match completed) */}
+              {(() => {
+                const isMatchCompleted = Boolean(
+                  currentMatchData?.status === 'completed' ||
+                  currentMatchData?.status === 'finished' ||
+                  Boolean(currentMatchData?.result) ||
+                  (!isLiveMatchActive && Boolean(currentMatchData?.pom))
+                );
+                if (!isMatchCompleted) return null;
 
-            return (
-              <View style={[styles.scHeaderCard, { marginTop: 10, padding: 14, backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a', borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e293b' }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
-                    <Text style={{ color: '#f59e0b', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 }}>
-                      🏆 MATCH AWARDS & MVP
-                    </Text>
-                  </View>
-                  {topMvp.length > 0 && (
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: showMvpLeaderboard ? '#0284c7' : (currentTheme.isLight ? '#f1f5f9' : '#1e293b'),
-                        borderColor: showMvpLeaderboard ? '#0284c7' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
-                        borderWidth: 1,
-                        paddingHorizontal: 10,
-                        paddingVertical: 4,
-                        borderRadius: 8,
-                      }}
-                      onPress={() => setShowMvpLeaderboard(!showMvpLeaderboard)}
-                    >
-                      <Text style={{ color: showMvpLeaderboard ? '#ffffff' : (currentTheme.isLight ? '#0f172a' : '#38bdf8'), fontSize: 11, fontWeight: 'bold' }}>
-                        {showMvpLeaderboard ? '✕ Hide Board' : '⭐ MVP Board →'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
+                const awards = calculateMatchAwardsAndMVP(currentMatchData);
+                if (!awards) return null;
+                const pom = awards.pomPlayer;
+                const bestBat = awards.bestBatter;
+                const bestBowl = awards.bestBowler;
+                const topMvp = awards.mvpLeaderboard || [];
 
-                {/* Player of the Match Card */}
-                {pom && (
-                  <View
-                    style={{
-                      backgroundColor: currentTheme.isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.12)',
-                      borderColor: '#f59e0b',
-                      borderWidth: 1.5,
-                      borderRadius: 12,
-                      padding: 12,
-                      marginBottom: 10,
-                    }}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
-                      <View style={{ backgroundColor: '#f59e0b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
-                        <Text style={{ color: '#0f172a', fontSize: 10, fontWeight: '900' }}>
-                          👑 PLAYER OF THE MATCH (MVP)
+                if (!pom && !bestBat && !bestBowl) return null;
+
+                return (
+                  <View style={[styles.scHeaderCard, { marginTop: 10, padding: 14, backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a', borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e293b' }]}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+                        <Text style={{ color: '#f59e0b', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 }}>
+                          🏆 MATCH AWARDS & MVP
                         </Text>
                       </View>
-                      <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: '#f59e0b' }}>
-                        <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fbbf24', fontSize: 11, fontWeight: '900' }}>
-                          ⭐ {pom.totalMvpPts} MVP PTS
-                        </Text>
-                      </View>
+                      {topMvp.length > 0 && (
+                        <TouchableOpacity
+                          style={{
+                            backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                            borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                            borderWidth: 1,
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 8,
+                          }}
+                          onPress={() => setScorecardTab('mvp')}
+                        >
+                          <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 11, fontWeight: 'bold' }}>
+                            ⭐ View Full MVP Rankings →
+                          </Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
 
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <PlayerAvatar name={pom.name} size={46} borderColor="#f59e0b" />
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }}>
-                          {pom.name}
-                        </Text>
-                        <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fde68a', fontSize: 11.5, fontWeight: 'bold' }}>
-                          {pom.team}
-                        </Text>
-                        <Text style={{ color: currentTheme.isLight ? '#475569' : '#cbd5e1', fontSize: 11, marginTop: 2 }}>
-                          {[
-                            pom.runs > 0 ? `🏏 ${pom.runs} runs (${pom.balls}b)` : null,
-                            pom.wickets > 0 ? `🎯 ${pom.wickets}/${pom.runsConceded} (${pom.overs} ov)` : null,
-                            pom.catches > 0 ? `🧤 ${pom.catches} ct` : null,
-                            pom.runOuts > 0 ? `⚡ ${pom.runOuts} ro` : null,
-                          ].filter(Boolean).join(' • ') || '🌟 Match Winning Impact'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-                )}
+                    {/* Player of the Match Card */}
+                    {pom && (
+                      <View
+                        style={{
+                          backgroundColor: currentTheme.isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.12)',
+                          borderColor: '#f59e0b',
+                          borderWidth: 1.5,
+                          borderRadius: 12,
+                          padding: 12,
+                          marginBottom: 10,
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
+                          <View style={{ backgroundColor: '#f59e0b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                            <Text style={{ color: '#0f172a', fontSize: 10, fontWeight: '900' }}>
+                              👑 PLAYER OF THE MATCH (MVP)
+                            </Text>
+                          </View>
+                          <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: '#f59e0b' }}>
+                            <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fbbf24', fontSize: 11, fontWeight: '900' }}>
+                              ⭐ {pom.totalMvpPts} MVP PTS
+                            </Text>
+                          </View>
+                        </View>
 
-                {/* 2-Column: Best Batter & Best Bowler */}
-                <View style={{ flexDirection: 'row', gap: 8 }}>
-                  {bestBat && (
-                    <View
-                      style={{
-                        flex: 1,
-                        backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.1)',
-                        borderColor: '#0284c7',
-                        borderWidth: 1,
-                        borderRadius: 10,
-                        padding: 10,
-                      }}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 12 }}>🏏</Text>
-                        <Text style={{ color: '#0284c7', fontSize: 10, fontWeight: '900' }} numberOfLines={1}>
-                          BEST BATSMAN
-                        </Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <PlayerAvatar name={bestBat.name} size={30} borderColor="#0284c7" />
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
-                            {bestBat.name}
-                          </Text>
-                          <Text style={{ color: '#0284c7', fontSize: 11.5, fontWeight: 'bold' }}>
-                            {bestBat.runs} <Text style={{ fontSize: 9.5, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({bestBat.balls}b)</Text>
-                          </Text>
-                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9 }}>
-                            SR: {bestBat.sr} • 4s:{bestBat.fours} 6s:{bestBat.sixes}
-                          </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <PlayerAvatar name={pom.name} size={46} borderColor="#f59e0b" />
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }}>
+                              {pom.name}
+                            </Text>
+                            <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fde68a', fontSize: 11.5, fontWeight: 'bold' }}>
+                              {pom.team}
+                            </Text>
+                            <Text style={{ color: currentTheme.isLight ? '#475569' : '#cbd5e1', fontSize: 11, marginTop: 2 }}>
+                              {[
+                                pom.runs > 0 ? `🏏 ${pom.runs} runs (${pom.balls}b)` : null,
+                                pom.wickets > 0 ? `🎯 ${pom.wickets}/${pom.runsConceded} (${pom.overs} ov)` : null,
+                                pom.catches > 0 ? `🧤 ${pom.catches} ct` : null,
+                                pom.runOuts > 0 ? `⚡ ${pom.runOuts} ro` : null,
+                              ].filter(Boolean).join(' • ') || '🌟 Match Winning Impact'}
+                            </Text>
+                          </View>
                         </View>
                       </View>
-                    </View>
-                  )}
+                    )}
 
-                  {bestBowl && (
-                    <View
-                      style={{
-                        flex: 1,
-                        backgroundColor: currentTheme.isLight ? '#ecfdf5' : 'rgba(52, 211, 153, 0.1)',
-                        borderColor: '#10b981',
-                        borderWidth: 1,
-                        borderRadius: 10,
-                        padding: 10,
-                      }}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 12 }}>🎯</Text>
-                        <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '900' }} numberOfLines={1}>
-                          BEST BOWLER
-                        </Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                        <PlayerAvatar name={bestBowl.name} size={30} borderColor="#10b981" />
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
-                            {bestBowl.name}
-                          </Text>
-                          <Text style={{ color: '#10b981', fontSize: 11.5, fontWeight: 'bold' }}>
-                            {bestBowl.wickets}/{bestBowl.runsConceded} <Text style={{ fontSize: 9.5, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({bestBowl.overs} ov)</Text>
-                          </Text>
-                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9 }}>
-                            Econ: {bestBowl.econ} • M: {bestBowl.maidens}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-                  )}
-                </View>
-
-                {/* Expandable MVP Leaderboard */}
-                {showMvpLeaderboard && topMvp.length > 0 && (
-                  <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b', paddingTop: 10 }}>
-                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#bae6fd', fontSize: 12, fontWeight: '900', marginBottom: 6 }}>
-                      ⭐ COMPLETE MATCH MVP LEADERBOARD:
-                    </Text>
-                    <View style={{ gap: 6 }}>
-                      {topMvp.map((p, idx) => {
-                        const rankBadgeColor = idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : idx === 2 ? '#b45309' : '#0284c7';
-                        return (
-                          <View
-                            key={`mvp_sc_${p.name}_${idx}`}
-                            style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              backgroundColor: currentTheme.isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)',
-                              paddingHorizontal: 8,
-                              paddingVertical: 6,
-                              borderRadius: 6,
-                              borderWidth: 1,
-                              borderColor: idx === 0 ? '#f59e0b40' : (currentTheme.isLight ? '#e2e8f0' : '#1e293b'),
-                            }}
-                          >
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                              <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: rankBadgeColor, alignItems: 'center', justifyContent: 'center' }}>
-                                <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>#{idx + 1}</Text>
-                              </View>
-                              <PlayerAvatar name={p.name} size={24} />
-                              <View style={{ flex: 1 }}>
-                                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: 'bold' }} numberOfLines={1}>
-                                  {p.name}
-                                </Text>
-                                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9.5 }} numberOfLines={1}>
-                                  {p.team}
-                                </Text>
-                              </View>
-                            </View>
-
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                              <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10 }}>
-                                {p.battingPts > 0 ? `🏏${p.battingPts}` : ''} {p.bowlingPts > 0 ? `🎯${p.bowlingPts}` : ''} {p.fieldingPts > 0 ? `🧤${p.fieldingPts}` : ''}
+                    {/* 2-Column: Best Batter & Best Bowler */}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {bestBat && (
+                        <View
+                          style={{
+                            flex: 1,
+                            backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.1)',
+                            borderColor: '#0284c7',
+                            borderWidth: 1,
+                            borderRadius: 10,
+                            padding: 10,
+                          }}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                            <Text style={{ fontSize: 12 }}>🏏</Text>
+                            <Text style={{ color: '#0284c7', fontSize: 10, fontWeight: '900' }} numberOfLines={1}>
+                              BEST BATSMAN
+                            </Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <PlayerAvatar name={bestBat.name} size={30} borderColor="#0284c7" />
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
+                                {bestBat.name}
                               </Text>
-                              <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4 }}>
-                                <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900' }}>
-                                  {p.totalMvpPts} pts
-                                </Text>
-                              </View>
+                              <Text style={{ color: '#0284c7', fontSize: 11.5, fontWeight: 'bold' }}>
+                                {bestBat.runs} <Text style={{ fontSize: 9.5, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({bestBat.balls}b)</Text>
+                              </Text>
+                              <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9 }}>
+                                SR: {bestBat.sr} • 4s:{bestBat.fours} 6s:{bestBat.sixes}
+                              </Text>
                             </View>
                           </View>
-                        );
-                      })}
+                        </View>
+                      )}
+
+                      {bestBowl && (
+                        <View
+                          style={{
+                            flex: 1,
+                            backgroundColor: currentTheme.isLight ? '#ecfdf5' : 'rgba(52, 211, 153, 0.1)',
+                            borderColor: '#10b981',
+                            borderWidth: 1,
+                            borderRadius: 10,
+                            padding: 10,
+                          }}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                            <Text style={{ fontSize: 12 }}>🎯</Text>
+                            <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '900' }} numberOfLines={1}>
+                              BEST BOWLER
+                            </Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <PlayerAvatar name={bestBowl.name} size={30} borderColor="#10b981" />
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
+                                {bestBowl.name}
+                              </Text>
+                              <Text style={{ color: '#10b981', fontSize: 11.5, fontWeight: 'bold' }}>
+                                {bestBowl.wickets}/{bestBowl.runsConceded} <Text style={{ fontSize: 9.5, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({bestBowl.overs} ov)</Text>
+                              </Text>
+                              <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9 }}>
+                                Econ: {bestBowl.econ} • M: {bestBowl.maidens}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
                     </View>
                   </View>
-                )}
-              </View>
-            );
-          })()}
+                );
+              })()}
 
           <View style={styles.inningTabRow}>
             <TouchableOpacity
@@ -12617,6 +12598,125 @@ function CricketAddaMain() {
                 : 'Yet to fall'}
             </Text>
           </View>
+            </View>
+          )}
+
+          {/* ========================================================= */}
+          {/* TAB 2: ⭐ DEDICATED MVP RANKINGS LIST (Matching Design)   */}
+          {/* ========================================================= */}
+          {scorecardTab === 'mvp' && (() => {
+            const awards = calculateMatchAwardsAndMVP(currentMatchData);
+            const leaderboard = awards?.mvpLeaderboard || [];
+
+            return (
+              <View style={{ marginTop: 4 }}>
+                {/* Top Link: "How is MVP calculated? 💡" */}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 4 }}>
+                  <TouchableOpacity
+                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 8, backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(2, 132, 199, 0.12)', borderRadius: 6, borderWidth: 1, borderColor: currentTheme.isLight ? '#bae6fd' : '#0284c7' }}
+                    onPress={() => setMvpInfoModalVisible(true)}
+                  >
+                    <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 12, fontWeight: '700' }}>
+                      How is MVP calculated? 💡
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {leaderboard.length === 0 ? (
+                  <View style={[styles.mvpListCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0' }, { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 16 }]}>
+                    <Text style={{ fontSize: 36, marginBottom: 8 }}>⭐</Text>
+                    <Text style={{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 4 }}>
+                      No MVP Points Recorded Yet
+                    </Text>
+                    <Text style={{ fontSize: 12, color: currentTheme.isLight ? '#64748b' : '#94a3b8', textAlign: 'center', lineHeight: 18 }}>
+                      MVP points will calculate automatically live as players score runs, hit boundaries, take wickets, bowl maidens, and take catches in this match.
+                    </Text>
+                  </View>
+                ) : (
+                  <View style={[styles.mvpListCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0' }]}>
+                    {leaderboard.map((player, idx) => {
+                      const rank = idx + 1;
+                      const rankColor = rank === 1 ? '#f59e0b' : rank === 2 ? '#94a3b8' : rank === 3 ? '#b45309' : (currentTheme.isLight ? '#64748b' : '#94a3b8');
+
+                      // Match performance stats breakdown
+                      const statParts = [];
+                      if (player.runs > 0 || player.balls > 0) {
+                        statParts.push(`🏏 ${player.runs}r (${player.balls}b)`);
+                      }
+                      if (player.wickets > 0 || player.oversNum > 0) {
+                        statParts.push(`🎯 ${player.wickets}/${player.runsConceded}`);
+                      }
+                      if (player.catches > 0) {
+                        statParts.push(`🧤 ${player.catches}ct`);
+                      }
+                      if (player.stumpings > 0) {
+                        statParts.push(`⚡ ${player.stumpings}st`);
+                      }
+                      if (player.runOuts > 0) {
+                        statParts.push(`🎯 ${player.runOuts}ro`);
+                      }
+                      const statSummary = statParts.join(' • ');
+
+                      return (
+                        <View
+                          key={`mvp_rank_${player.name}_${rank}`}
+                          style={[
+                            styles.mvpRowContainer,
+                            currentTheme.isLight ? { borderBottomColor: '#f1f5f9' } : { borderBottomColor: '#1e293b' },
+                            idx === leaderboard.length - 1 && { borderBottomWidth: 0 },
+                          ]}
+                        >
+                          {/* 1. Left: Rank Number */}
+                          <View style={styles.mvpRankCol}>
+                            <Text style={[styles.mvpRankNum, { color: rankColor }]}>
+                              {rank}
+                            </Text>
+                          </View>
+
+                          {/* 2. Avatar with PRO Badge */}
+                          <View style={styles.mvpAvatarCol}>
+                            <PlayerAvatar
+                              name={player.name}
+                              size={44}
+                              borderColor={rank === 1 ? '#f59e0b' : (currentTheme.isLight ? '#cbd5e1' : '#334155')}
+                            />
+                            <View style={styles.mvpProBadge}>
+                              <Text style={styles.mvpProBadgeText}>PRO</Text>
+                            </View>
+                          </View>
+
+                          {/* 3. Player Name & Team & Match Stats */}
+                          <View style={styles.mvpInfoCol}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                              <Text style={[styles.mvpPlayerName, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>
+                                {player.name}
+                              </Text>
+                              {rank === 1 && <Text style={{ fontSize: 13 }}>👑</Text>}
+                            </View>
+                            <Text style={[styles.mvpTeamName, currentTheme.isLight && { color: '#94a3b8' }]} numberOfLines={1}>
+                              {player.team ? player.team.toUpperCase() : 'TEAM'}
+                            </Text>
+                            {statSummary ? (
+                              <Text style={[styles.mvpStatsBreakdown, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>
+                                {statSummary}
+                              </Text>
+                            ) : null}
+                          </View>
+
+                          {/* 4. Right: Large Bold MVP Points */}
+                          <View style={styles.mvpScoreCol}>
+                            <Text style={[styles.mvpScoreText, currentTheme.isLight && { color: '#0f172a' }]}>
+                              {Number(player.totalMvpPts || 0).toFixed(player.totalMvpPts % 1 === 0 ? 1 : 2)}
+                            </Text>
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                )}
+              </View>
+            );
+          })()}
         </ScrollView>
         )
       )}
@@ -19788,6 +19888,103 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* THEMED IN-APP MODAL: ABOUT CRICKETADDA & DEVELOPER INFO */}
       {/* ========================================================================= */}
+      {/* ========================================================= */}
+      {/* 💡 "HOW IS MVP CALCULATED?" EXPLANATORY MODAL */}
+      {/* ========================================================= */}
+      <Modal
+        visible={mvpInfoModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => setMvpInfoModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={[
+              styles.modalContentCard,
+              currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
+              { maxWidth: 440, width: '92%', maxHeight: safeModalCardMaxHeight, padding: 18 },
+            ]}
+          >
+            {/* Modal Header */}
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderBottomWidth: 1,
+                borderBottomColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                paddingBottom: 12,
+                marginBottom: 12,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 22 }}>⭐</Text>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }}>
+                    How MVP is Calculated
+                  </Text>
+                  <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>
+                    CricketAdda Pro Official Rating Matrix
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={{ padding: 6 }}
+                onPress={() => setMvpInfoModalVisible(false)}
+              >
+                <Text style={{ fontSize: 18, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flexGrow: 1 }}>
+              {/* Batting Points */}
+              <View style={[styles.mvpModalSection, currentTheme.isLight && { backgroundColor: '#f0f9ff', borderColor: '#bae6fd' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <Text style={{ fontSize: 14 }}>🏏</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#0284c7' }}>Batting Points</Text>
+                </View>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>+1 pt</Text> per run scored</Text>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>+1 pt</Text> per four (4s) • <Text style={{ fontWeight: 'bold' }}>+2 pts</Text> per six (6s)</Text>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>Milestones:</Text> 30+ (+4 pts) • 50+ (+10 pts) • Century (+20 pts)</Text>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>Strike Rate (min 10b):</Text> ≥175 (+8 pts) • ≥140 (+4 pts) • &lt;80 (-4 pts)</Text>
+              </View>
+
+              {/* Bowling Points */}
+              <View style={[styles.mvpModalSection, currentTheme.isLight && { backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }, { marginTop: 10 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <Text style={{ fontSize: 14 }}>🎯</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#059669' }}>Bowling Points</Text>
+                </View>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>+25 pts</Text> per wicket taken</Text>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>Hauls:</Text> 3-Wkt (+15 pts) • 5-Wkt (+30 pts)</Text>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>+10 pts</Text> per maiden over • <Text style={{ fontWeight: 'bold' }}>+1 pt</Text> per dot ball</Text>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>Economy (min 2 ov):</Text> ≤5.5 (+8 pts) • ≤7.0 (+4 pts) • &gt;11.0 (-6 pts)</Text>
+              </View>
+
+              {/* Fielding Points */}
+              <View style={[styles.mvpModalSection, currentTheme.isLight && { backgroundColor: '#fffbeb', borderColor: '#fde68a' }, { marginTop: 10 }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                  <Text style={{ fontSize: 14 }}>🧤</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#d97706' }}>Fielding Points</Text>
+                </View>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>+10 pts</Text> per catch taken</Text>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>+12 pts</Text> per wicketkeeper stumping</Text>
+                <Text style={[styles.mvpModalRuleText, currentTheme.isLight && { color: '#334155' }]}>• <Text style={{ fontWeight: 'bold' }}>+15 pts</Text> per run out</Text>
+              </View>
+            </ScrollView>
+
+            {/* Dismiss Button */}
+            <TouchableOpacity
+              style={[styles.modalActionBtn, { backgroundColor: currentTheme.primary, marginTop: 14 }]}
+              onPress={() => setMvpInfoModalVisible(false)}
+            >
+              <Text style={{ color: currentTheme.primaryText, fontWeight: '900', fontSize: 14 }}>Got it ✓</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
       <Modal visible={aboutModalVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setAboutModalVisible(false)}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={{
@@ -26351,5 +26548,135 @@ const styles = StyleSheet.create({
   starPickChipText: {
     fontSize: 10.5,
     fontWeight: '600',
+  },
+  // SCORECARD & MVP SUB-NAVIGATION
+  scorecardSubTabsBar: {
+    flexDirection: 'row',
+    backgroundColor: '#0f172a',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    padding: 3,
+    marginVertical: 10,
+  },
+  scorecardSubTabBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 8,
+  },
+  scorecardSubTabBtnActive: {
+    backgroundColor: '#0284c7',
+  },
+  scorecardSubTabText: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#94a3b8',
+  },
+  scorecardSubTabTextActive: {
+    color: '#ffffff',
+    fontWeight: '900',
+  },
+
+  // MVP RANKED LIST (MATCHING REFERENCE UI)
+  mvpListCard: {
+    backgroundColor: '#0f172a',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    overflow: 'hidden',
+    marginBottom: 20,
+  },
+  mvpRowContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1e293b',
+  },
+  mvpRankCol: {
+    width: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mvpRankNum: {
+    fontSize: 16,
+    fontWeight: '900',
+  },
+  mvpAvatarCol: {
+    marginHorizontal: 10,
+    position: 'relative',
+  },
+  mvpProBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -8,
+    backgroundColor: '#0d9488',
+    paddingHorizontal: 5,
+    paddingVertical: 1.5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#ffffff',
+  },
+  mvpProBadgeText: {
+    color: '#ffffff',
+    fontSize: 8.5,
+    fontWeight: '900',
+    letterSpacing: 0.3,
+  },
+  mvpInfoCol: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  mvpPlayerName: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  mvpTeamName: {
+    fontSize: 11,
+    fontStyle: 'italic',
+    fontWeight: '600',
+    color: '#64748b',
+    marginTop: 1,
+  },
+  mvpStatsBreakdown: {
+    fontSize: 10.5,
+    color: '#94a3b8',
+    marginTop: 3,
+  },
+  mvpScoreCol: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingLeft: 8,
+  },
+  mvpScoreText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#ffffff',
+    letterSpacing: -0.5,
+  },
+  mvpScoreLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#64748b',
+    marginTop: 1,
+  },
+
+  // MVP MODAL STYLES
+  mvpModalSection: {
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#334155',
+    padding: 12,
+  },
+  mvpModalRuleText: {
+    fontSize: 11.5,
+    color: '#cbd5e1',
+    lineHeight: 18,
+    marginVertical: 1,
   },
 });
