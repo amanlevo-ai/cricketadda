@@ -4137,6 +4137,7 @@ function CricketAddaMain() {
 
   // Wizard state
   const [wizardVisible, setWizardVisible] = useState(false);
+  const [exitSetupModalVisible, setExitSetupModalVisible] = useState(false);
   const [wzStep, setWzStep] = useState(1);
 
   // Wicket modal state
@@ -7241,58 +7242,25 @@ function CricketAddaMain() {
       lastUpdated: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     }));
     setWizardVisible(false);
-    Alert.alert(
-      '💾 Match Setup Saved as Draft',
-      'Your match configuration has been auto-saved. You can resume setup or start anytime from the Matches Hub!'
-    );
+    setExitSetupModalVisible(false);
+    setActiveDropdown(null);
+    setTeamSearchQuery('');
+    showAppToast('Match setup saved as draft! 💾', '💾', 'success');
   };
 
   const discardDraft = () => {
-    Alert.alert(
-      '🗑️ Discard Draft?',
-      'Are you sure you want to discard your saved match setup draft?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Discard',
-          style: 'destructive',
-          onPress: () => {
-            setMatchDraft(INITIAL_MATCH_DRAFT);
-            setWzPhase(1);
-          },
-        },
-      ]
-    );
+    setMatchDraft(INITIAL_MATCH_DRAFT);
+    setWizardVisible(false);
+    setExitSetupModalVisible(false);
+    setWzPhase(1);
+    setActiveDropdown(null);
+    setTeamSearchQuery('');
+    showAppToast('Match draft discarded 🗑️', '🗑️');
   };
 
   const confirmCancelMatchSetup = () => {
     Keyboard.dismiss();
-    Alert.alert(
-      'Close Match Setup?',
-      'Would you like to save your match setup draft or discard it?',
-      [
-        { text: 'Keep Editing', style: 'cancel' },
-        {
-          text: 'Discard & Exit',
-          style: 'destructive',
-          onPress: () => {
-            setMatchDraft(INITIAL_MATCH_DRAFT);
-            setWizardVisible(false);
-            setWzPhase(1);
-            setActiveDropdown(null);
-            setTeamSearchQuery('');
-          },
-        },
-        {
-          text: 'Save Draft & Exit',
-          onPress: () => {
-            saveDraftAndClose();
-            setActiveDropdown(null);
-            setTeamSearchQuery('');
-          },
-        },
-      ]
-    );
+    setExitSetupModalVisible(true);
   };
 
   const handleWizardNext = () => {
@@ -12509,7 +12477,7 @@ function CricketAddaMain() {
           </TouchableOpacity>
 
           <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 22, fontWeight: '900' }}>⚙️ App & Scorer Settings</Text>
+            <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 22, fontWeight: '900' }}>⚙️ App Settings</Text>
             <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 12, marginTop: 2 }}>
               Configure match rules, DLS calculation engine, feedback and data
             </Text>
@@ -12547,57 +12515,6 @@ function CricketAddaMain() {
               <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 13, fontWeight: 'bold' }}>
                 🚪 Sign Out
               </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* CLOUD DATABASE & REALTIME SYNC STATUS */}
-          <Text style={{ color: currentTheme.isLight ? '#0284c7' : (currentTheme.secondary || '#38bdf8'), fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8 }}>
-            🌐 CLOUD DATABASE & REALTIME SYNC
-          </Text>
-          <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: '#10b981', marginBottom: 16 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#10b981' }} />
-                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 14, fontWeight: '900' }}>
-                  Firebase Cloud Database
-                </Text>
-              </View>
-              <View style={{ backgroundColor: '#10b98120', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#10b981' }}>
-                <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '900' }}>🟢 LIVE & CONNECTED</Text>
-              </View>
-            </View>
-
-            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11.5, lineHeight: 16, marginBottom: 10 }}>
-              Production database is active at <Text style={{ color: '#0284c7', fontWeight: 'bold' }}>cricketadda-live-default-rtdb.firebaseio.com</Text>. Scores, match events, teams, and player profiles sync instantly across multiple devices worldwide.
-            </Text>
-
-            <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#1e293b', borderRadius: 8, padding: 10, marginBottom: 12, gap: 4 }}>
-              <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11 }}>• ⚡ Real-Time Ball-by-Ball Live Stream</Text>
-              <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11 }}>• 👥 Multi-Device Squads & Team Sync</Text>
-              <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11 }}>• 🪪 Live Player QR Code Verification</Text>
-              <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11 }}>• 📊 Cross-Device Match Statistics</Text>
-            </View>
-
-            <TouchableOpacity
-              style={{
-                backgroundColor: '#0284c7',
-                borderRadius: 8,
-                paddingVertical: 10,
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'row',
-                gap: 8,
-              }}
-              onPress={handleTestDbConnection}
-              disabled={isPingingDb}
-            >
-              {isPingingDb ? (
-                <ActivityIndicator size="small" color="#ffffff" />
-              ) : (
-                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>
-                  ⚡ Test Live Database Connection
-                </Text>
-              )}
             </TouchableOpacity>
           </View>
 
@@ -14707,10 +14624,10 @@ function CricketAddaMain() {
                   <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8, alignItems: 'center' }}>
                     <View style={{ flex: 1, position: 'relative', justifyContent: 'center' }}>
                       <TextInput
-                        style={[styles.wizardTextInput, { height: 44, paddingHorizontal: 12, paddingRight: playerPhoneInput ? 32 : 12, textAlign: 'left', textAlignVertical: 'center' }]}
+                        style={[styles.wizardTextInput, { height: 44, fontSize: 12.5, paddingHorizontal: 10, paddingRight: playerPhoneInput ? 32 : 10, textAlign: 'left', textAlignVertical: 'center' }]}
                         value={playerPhoneInput}
                         onChangeText={handlePhoneInputChange}
-                        placeholder="Enter 10-Digit Mobile Number"
+                        placeholder="Enter 10-digit number"
                         placeholderTextColor="#64748b"
                         keyboardType="phone-pad"
                         maxLength={10}
@@ -15189,7 +15106,7 @@ function CricketAddaMain() {
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>👥</Text>
                     <Text style={styles.squadEmptyPromptText}>No custom players added yet.</Text>
                     <Text style={{ color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 2 }}>
-                      Add teammates above via Phone Number, QR Scan, or quick autofill.
+                      Add teammates above via Mobile Number or QR Scan.
                     </Text>
                   </View>
                 ) : (
@@ -15253,18 +15170,6 @@ function CricketAddaMain() {
                   </View>
                 )}
               </View>
-
-              {/* Quick Autofill Remaining Button */}
-              {newTeamSquad.length < 20 && (
-                <TouchableOpacity
-                  style={styles.squadAutofillMiniBtn}
-                  onPress={handleAutofillRemainingPlayers}
-                >
-                  <Text style={styles.squadAutofillMiniBtnText}>
-                    ⚡ Quick Autofill Remaining to {Math.max(11, Math.min(20, newTeamSquad.length < 11 ? 11 : newTeamSquad.length + 5))} Players
-                  </Text>
-                </TouchableOpacity>
-              )}
 
               {/* Action Buttons */}
               <View style={[styles.modalBtnRow, { marginTop: 16, marginBottom: 12 }]}>
@@ -16279,6 +16184,160 @@ function CricketAddaMain() {
         </View>
       </Modal>
 
+      {/* ========================================================================= */}
+      {/* THEMED IN-APP MODAL: CLOSE MATCH SETUP CONFIRMATION */}
+      {/* ========================================================================= */}
+      <Modal
+        visible={exitSetupModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => setExitSetupModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
+          <View
+            style={{
+              backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+              borderColor: currentTheme.isLight ? '#cbd5e1' : currentTheme.cardBorder,
+              borderWidth: 1.5,
+              borderRadius: 20,
+              padding: 20,
+              width: Math.min(width - 32, 380),
+              alignItems: 'center',
+              shadowColor: '#000000',
+              shadowRadius: 20,
+              shadowOpacity: 0.4,
+              elevation: 12,
+            }}
+          >
+            {/* Header Icon */}
+            <View
+              style={{
+                width: 56,
+                height: 56,
+                borderRadius: 28,
+                backgroundColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.15)',
+                borderWidth: 2,
+                borderColor: currentTheme.primary,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 12,
+              }}
+            >
+              <Text style={{ fontSize: 26 }}>🏟️</Text>
+            </View>
+
+            {/* Title */}
+            <Text
+              style={{
+                color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                fontSize: 18,
+                fontWeight: '900',
+                textAlign: 'center',
+                marginBottom: 6,
+              }}
+            >
+              Close Match Setup?
+            </Text>
+
+            {/* Subtitle */}
+            <Text
+              style={{
+                color: currentTheme.isLight ? '#64748b' : '#94a3b8',
+                fontSize: 12.5,
+                textAlign: 'center',
+                lineHeight: 18,
+                marginBottom: 20,
+              }}
+            >
+              Would you like to save your match configuration as a draft to resume anytime, or discard and exit?
+            </Text>
+
+            {/* Action Buttons */}
+            <View style={{ width: '100%', gap: 10 }}>
+              {/* Save Draft & Exit */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: currentTheme.primary,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 8,
+                }}
+                activeOpacity={0.8}
+                onPress={saveDraftAndClose}
+              >
+                <Text style={{ fontSize: 15 }}>💾</Text>
+                <Text
+                  style={{
+                    color: currentTheme.primaryText || '#ffffff',
+                    fontSize: 13.5,
+                    fontWeight: '900',
+                  }}
+                >
+                  Save Draft & Exit
+                </Text>
+              </TouchableOpacity>
+
+              {/* Discard & Exit */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: currentTheme.isLight ? '#fee2e2' : 'rgba(239, 68, 68, 0.12)',
+                  borderColor: '#ef4444',
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  paddingVertical: 11,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 8,
+                }}
+                activeOpacity={0.8}
+                onPress={discardDraft}
+              >
+                <Text style={{ fontSize: 14 }}>🗑️</Text>
+                <Text
+                  style={{
+                    color: currentTheme.isLight ? '#dc2626' : '#f87171',
+                    fontSize: 13,
+                    fontWeight: '800',
+                  }}
+                >
+                  Discard & Exit
+                </Text>
+              </TouchableOpacity>
+
+              {/* Keep Editing */}
+              <TouchableOpacity
+                style={{
+                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  paddingVertical: 11,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                activeOpacity={0.8}
+                onPress={() => setExitSetupModalVisible(false)}
+              >
+                <Text
+                  style={{
+                    color: currentTheme.isLight ? '#475569' : '#94a3b8',
+                    fontSize: 13,
+                    fontWeight: '700',
+                  }}
+                >
+                  ✕ Keep Editing
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* MODAL 6: CRICHEROES STYLE SELECT PLAYING TEAMS & MATCH SETUP ENGINE */}
       <Modal visible={wizardVisible} animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.cricModalFullscreen, { backgroundColor: currentTheme.bg }]}>
@@ -16345,27 +16404,6 @@ function CricketAddaMain() {
               keyboardShouldPersistTaps="always"
               showsVerticalScrollIndicator={false}
             >
-              {/* Quick 1-Tap Matchup Autofill Chips */}
-              <View style={[styles.quickAutofillRow, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                <Text style={[styles.quickAutofillLabel, { color: currentTheme.isLight ? '#475569' : '#94a3b8' }]}>⚡ Quick Autofill Matchup:</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={{ flexGrow: 0 }}>
-                  {[
-                    { a: REGISTERED_APP_TEAMS[0], b: REGISTERED_APP_TEAMS[1], label: '🦁 Punjab vs ⚡ Delhi' },
-                    { a: REGISTERED_APP_TEAMS[2], b: REGISTERED_APP_TEAMS[3], label: '👑 Royal vs 🦁 Chennai' },
-                    { a: REGISTERED_APP_TEAMS[5], b: REGISTERED_APP_TEAMS[6], label: '🇮🇳 India vs 🇦🇺 Australia' },
-                    { a: REGISTERED_APP_TEAMS[4], b: REGISTERED_APP_TEAMS[0], label: '🌊 Mumbai vs 🦁 Punjab' },
-                  ].map(pair => (
-                    <TouchableOpacity
-                      key={pair.label}
-                      style={[styles.quickMatchupChip, { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a', borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155' }]}
-                      onPress={() => selectMatchupPair(pair.a, pair.b)}
-                    >
-                      <Text style={[styles.quickMatchupChipText, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>{pair.label}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
               {/* Vertical Matchup Center Stage */}
               <View style={styles.cricMatchupCenterStage}>
                 {/* ==================== TEAM A SECTION ==================== */}
@@ -19054,26 +19092,6 @@ function CricketAddaMain() {
                   flex: 1,
                   paddingVertical: 8,
                   borderRadius: 8,
-                  backgroundColor: aboutActiveTab === 'tech' ? currentTheme.primary : 'transparent',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onPress={() => setAboutActiveTab('tech')}
-              >
-                <Text style={{
-                  color: aboutActiveTab === 'tech' ? (currentTheme.primaryText || '#ffffff') : (currentTheme.isLight ? '#475569' : '#94a3b8'),
-                  fontSize: 11.5,
-                  fontWeight: '900',
-                }}>
-                  ⚡ Engine & Tech
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 8,
                   backgroundColor: aboutActiveTab === 'features' ? currentTheme.primary : 'transparent',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -19163,85 +19181,11 @@ function CricketAddaMain() {
                       </View>
                       <Text style={{ color: currentTheme.primary, fontSize: 11, fontWeight: 'bold' }}>Open ↗</Text>
                     </TouchableOpacity>
-
-                    {/* GitHub Repo Row */}
-                    <TouchableOpacity
-                      style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: currentTheme.isLight ? '#ffffff' : '#1e293b', padding: 10, borderRadius: 8, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155' }}
-                      onPress={() => {
-                        Linking.openURL('https://github.com/amanlevo-ai/cricketadda').catch(() => {
-                          showAppToast('GitHub: amanlevo-ai/cricketadda', '🌐');
-                        });
-                      }}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                        <Text style={{ fontSize: 16 }}>🐙</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: 'bold' }}>GitHub Repository</Text>
-                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5 }}>amanlevo-ai/cricketadda</Text>
-                        </View>
-                      </View>
-                      <Text style={{ color: currentTheme.primary, fontSize: 11, fontWeight: 'bold' }}>View ↗</Text>
-                    </TouchableOpacity>
                   </View>
                 </View>
               )}
 
-              {/* TAB 2: ENGINE & TECH */}
-              {aboutActiveTab === 'tech' && (
-                <View style={{ gap: 10 }}>
-                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <Text style={{ fontSize: 15 }}>⚖️</Text>
-                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>ICC Standard Match Rules</Text>
-                    </View>
-                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
-                      Full rulebook compliance for legal balls, extras (wides, no-balls, byes, leg-byes, penalties), all wicket dismissal modes, and powerplays.
-                    </Text>
-                  </View>
-
-                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <Text style={{ fontSize: 15 }}>🌧️</Text>
-                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>Duckworth-Lewis-Stern (DLS)</Text>
-                    </View>
-                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
-                      Built-in mathematical DLS engine dynamically computes revised target scores and par scores during rain or weather delays.
-                    </Text>
-                  </View>
-
-                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <Text style={{ fontSize: 15 }}>🎯</Text>
-                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>360° Wagon Wheel & Analytics</Text>
-                    </View>
-                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
-                      Interactive radial shot placement engine, field zone filters, worm rate curves, and batter vs bowler head-to-head match-ups.
-                    </Text>
-                  </View>
-
-                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <Text style={{ fontSize: 15 }}>🌐</Text>
-                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>Firebase Realtime Cloud Database</Text>
-                    </View>
-                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
-                      Ultra-low latency cloud streaming synchronizes every ball, wicket, and match statistic across multiple devices worldwide.
-                    </Text>
-                  </View>
-
-                  <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <Text style={{ fontSize: 15 }}>🔐</Text>
-                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>Multi-Tier OTP & Session Security</Text>
-                    </View>
-                    <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, lineHeight: 16 }}>
-                      Dual-provider email verification (Resend + Brevo fallback) and automated 30-day inactivity logout security policy.
-                    </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* TAB 3: FEATURES */}
+              {/* TAB 2: FEATURES */}
               {aboutActiveTab === 'features' && (
                 <View style={{ gap: 10 }}>
                   <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 10, padding: 11, borderWidth: 1, borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
