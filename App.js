@@ -8372,14 +8372,10 @@ function CricketAddaMain() {
 
       // Update live match teams if currently active
       if (battingTeamName === cleanName || (updatedTeamObj && battingTeamName === updatedTeamObj.name)) {
-        setBattingTeamFlag(newTeamFlag || '🦁');
-        setBattingTeamLogo(finalTeamLogo);
-        setBattingTeamSquad(finalSquad);
+        setCustomMyTeamFlag(newTeamFlag || '🦁');
       }
       if (bowlingTeamName === cleanName || (updatedTeamObj && bowlingTeamName === updatedTeamObj.name)) {
-        setBowlingTeamFlag(newTeamFlag || '🦁');
-        setBowlingTeamLogo(finalTeamLogo);
-        setBowlingTeamSquad(finalSquad);
+        setCustomOppTeamFlag(newTeamFlag || '🦁');
       }
 
       setNewTeamModalVisible(false);
@@ -16187,18 +16183,30 @@ function CricketAddaMain() {
               {/* 🏆 MATCH AWARDS & MVP PODIUM */}
               {/* ========================================================= */}
               {(() => {
+                const dynamicBatting2 = typeof getDynamicBatting === 'function' ? getDynamicBatting(currentMatchData?.innings2?.batting) : (currentMatchData?.innings2?.batting || []);
+                const dynamicBowling2 = typeof getDynamicBowling === 'function' ? getDynamicBowling(currentMatchData?.innings2?.bowling) : (currentMatchData?.innings2?.bowling || []);
                 const activeCompletedMatch = matchesDb[activeMatchId] || {
-                  innings1: firstInningsSummary || currentMatchData?.innings1 || {},
+                  ...currentMatchData,
+                  innings1: firstInningsSummary
+                    ? {
+                        ...currentMatchData?.innings1,
+                        runs: firstInningsSummary.runs,
+                        wickets: firstInningsSummary.wickets,
+                        overs: firstInningsSummary.overs,
+                        batting: typeof getDynamicBatting === 'function' ? getDynamicBatting(currentMatchData?.innings1?.batting, firstInningsSummary.batting, true) : (firstInningsSummary.batting || []),
+                        bowling: typeof getDynamicBowling === 'function' ? getDynamicBowling(currentMatchData?.innings1?.bowling, firstInningsSummary.bowling, true) : (firstInningsSummary.bowling || []),
+                      }
+                    : currentMatchData?.innings1 || {},
                   innings2: {
                     team: battingTeamName,
                     runs: liveRuns,
                     wickets: liveWickets,
                     overs: oversStr,
-                    batting: liveBattingTable,
-                    bowling: liveBowlingTable,
+                    batting: dynamicBatting2,
+                    bowling: dynamicBowling2,
                   },
-                  teamA: currentMatchData?.teamA,
-                  teamB: currentMatchData?.teamB,
+                  teamA: currentMatchData?.teamA || firstInningsSummary?.team || 'Team 1',
+                  teamB: currentMatchData?.teamB || battingTeamName || 'Team 2',
                 };
                 const awards = calculateMatchAwardsAndMVP(activeCompletedMatch);
                 if (!awards) return null;
