@@ -1150,6 +1150,266 @@ const calculateDLS = (
   };
 };
 
+
+// ============================================================================
+// ICC-STANDARD MATCH AWARDS & MVP (MOST VALUABLE PLAYER) ENGINE
+// Computes Player of the Match, Best Batter, Best Bowler, and MVP Leaderboard
+// ============================================================================
+function calculateMatchAwardsAndMVP(matchData) {
+  if (!matchData) return null;
+
+  const inn1 = matchData.innings1 || {};
+  const inn2 = matchData.innings2 || {};
+  const inn1Batting = Array.isArray(inn1.batting) ? inn1.batting : [];
+  const inn1Bowling = Array.isArray(inn1.bowling) ? inn1.bowling : [];
+  const inn2Batting = Array.isArray(inn2.batting) ? inn2.batting : [];
+  const inn2Bowling = Array.isArray(inn2.bowling) ? inn2.bowling : [];
+
+  const inn1Team = inn1.team || matchData.teamA || 'Team 1';
+  const inn2Team = inn2.team || matchData.teamB || 'Team 2';
+
+  const playersMap = {};
+
+  const getOrCreatePlayer = (rawName, team) => {
+    if (!rawName) return null;
+    const cleanName = String(rawName).replace(/\s*\([^)]*\)/g, '').trim();
+    if (!cleanName) return null;
+    if (!playersMap[cleanName]) {
+      playersMap[cleanName] = {
+        name: cleanName,
+        fullName: rawName,
+        team: team || 'Player',
+        runs: 0,
+        balls: 0,
+        fours: 0,
+        sixes: 0,
+        sr: '0.0',
+        isNotOut: false,
+        didBat: false,
+        wickets: 0,
+        overs: '0.0',
+        oversNum: 0,
+        maidens: 0,
+        runsConceded: 0,
+        econ: '0.0',
+        dots: 0,
+        didBowl: false,
+        catches: 0,
+        stumpings: 0,
+        runOuts: 0,
+        battingPts: 0,
+        bowlingPts: 0,
+        fieldingPts: 0,
+        totalMvpPts: 0,
+      };
+    }
+    return playersMap[cleanName];
+  };
+
+  // 1. Process 1st Innings Batting
+  inn1Batting.forEach(b => {
+    const p = getOrCreatePlayer(b.name, inn1Team);
+    if (!p) return;
+    p.didBat = true;
+    p.runs += Number(b.runs || 0);
+    p.balls += Number(b.balls || 0);
+    p.fours += Number(b.fours || 0);
+    p.sixes += Number(b.sixes || 0);
+    p.isNotOut = Boolean(b.isNotOut);
+    p.sr = b.sr || (p.balls > 0 ? ((p.runs / p.balls) * 100).toFixed(1) : '0.0');
+
+    if (b.dismissal) {
+      const dis = String(b.dismissal);
+      const catchMatch = dis.match(/c\s+([A-Za-z\s]+?)\s+b\s+/i);
+      if (catchMatch && catchMatch[1]) {
+        const fName = catchMatch[1].trim();
+        if (fName && fName.toLowerCase() !== 'sub' && fName.toLowerCase() !== '&') {
+          const fielder = getOrCreatePlayer(fName, inn2Team);
+          if (fielder) fielder.catches += 1;
+        }
+      } else if (dis.toLowerCase().includes('c & b') || dis.toLowerCase().includes('c&b')) {
+        const bowlerMatch = dis.match(/b\s+([A-Za-z\s]+)/i);
+        if (bowlerMatch && bowlerMatch[1]) {
+          const fielder = getOrCreatePlayer(bowlerMatch[1].trim(), inn2Team);
+          if (fielder) fielder.catches += 1;
+        }
+      }
+      const stMatch = dis.match(/st\s+([A-Za-z\s]+?)\s+b\s+/i);
+      if (stMatch && stMatch[1]) {
+        const fielder = getOrCreatePlayer(stMatch[1].trim(), inn2Team);
+        if (fielder) fielder.stumpings += 1;
+      }
+      const roMatch = dis.match(/run out\s*\(([^)]+)\)/i);
+      if (roMatch && roMatch[1]) {
+        const roNames = roMatch[1].split(/[\/,+]/);
+        roNames.forEach(rn => {
+          const cleanFielder = rn.trim();
+          if (cleanFielder) {
+            const fielder = getOrCreatePlayer(cleanFielder, inn2Team);
+            if (fielder) fielder.runOuts += 1;
+          }
+        });
+      }
+    }
+  });
+
+  // 2. Process 1st Innings Bowling
+  inn1Bowling.forEach(bw => {
+    const p = getOrCreatePlayer(bw.name, inn2Team);
+    if (!p) return;
+    p.didBowl = true;
+    p.wickets += Number(bw.wickets || 0);
+    const ovParts = String(bw.overs || '0.0').split('.');
+    const ovNum = (parseInt(ovParts[0] || '0', 10)) + (parseInt(ovParts[1] || '0', 10) / 6);
+    p.oversNum += ovNum;
+    p.overs = String(bw.overs || '0.0');
+    p.maidens += Number(bw.maidens || 0);
+    p.runsConceded += Number(bw.runs || 0);
+    p.econ = bw.econ || (p.oversNum > 0 ? (p.runsConceded / p.oversNum).toFixed(1) : '0.0');
+    p.dots += Number(bw.dots || (ovNum >= 1 ? Math.floor(ovNum * 2.5) : 0));
+  });
+
+  // 3. Process 2nd Innings Batting
+  inn2Batting.forEach(b => {
+    const p = getOrCreatePlayer(b.name, inn2Team);
+    if (!p) return;
+    p.didBat = true;
+    p.runs += Number(b.runs || 0);
+    p.balls += Number(b.balls || 0);
+    p.fours += Number(b.fours || 0);
+    p.sixes += Number(b.sixes || 0);
+    p.isNotOut = Boolean(b.isNotOut);
+    p.sr = b.sr || (p.balls > 0 ? ((p.runs / p.balls) * 100).toFixed(1) : '0.0');
+
+    if (b.dismissal) {
+      const dis = String(b.dismissal);
+      const catchMatch = dis.match(/c\s+([A-Za-z\s]+?)\s+b\s+/i);
+      if (catchMatch && catchMatch[1]) {
+        const fName = catchMatch[1].trim();
+        if (fName && fName.toLowerCase() !== 'sub' && fName.toLowerCase() !== '&') {
+          const fielder = getOrCreatePlayer(fName, inn1Team);
+          if (fielder) fielder.catches += 1;
+        }
+      } else if (dis.toLowerCase().includes('c & b') || dis.toLowerCase().includes('c&b')) {
+        const bowlerMatch = dis.match(/b\s+([A-Za-z\s]+)/i);
+        if (bowlerMatch && bowlerMatch[1]) {
+          const fielder = getOrCreatePlayer(bowlerMatch[1].trim(), inn1Team);
+          if (fielder) fielder.catches += 1;
+        }
+      }
+      const stMatch = dis.match(/st\s+([A-Za-z\s]+?)\s+b\s+/i);
+      if (stMatch && stMatch[1]) {
+        const fielder = getOrCreatePlayer(stMatch[1].trim(), inn1Team);
+        if (fielder) fielder.stumpings += 1;
+      }
+      const roMatch = dis.match(/run out\s*\(([^)]+)\)/i);
+      if (roMatch && roMatch[1]) {
+        const roNames = roMatch[1].split(/[\/,+]/);
+        roNames.forEach(rn => {
+          const cleanFielder = rn.trim();
+          if (cleanFielder) {
+            const fielder = getOrCreatePlayer(cleanFielder, inn1Team);
+            if (fielder) fielder.runOuts += 1;
+          }
+        });
+      }
+    }
+  });
+
+  // 4. Process 2nd Innings Bowling
+  inn2Bowling.forEach(bw => {
+    const p = getOrCreatePlayer(bw.name, inn1Team);
+    if (!p) return;
+    p.didBowl = true;
+    p.wickets += Number(bw.wickets || 0);
+    const ovParts = String(bw.overs || '0.0').split('.');
+    const ovNum = (parseInt(ovParts[0] || '0', 10)) + (parseInt(ovParts[1] || '0', 10) / 6);
+    p.oversNum += ovNum;
+    p.overs = String(bw.overs || '0.0');
+    p.maidens += Number(bw.maidens || 0);
+    p.runsConceded += Number(bw.runs || 0);
+    p.econ = bw.econ || (p.oversNum > 0 ? (p.runsConceded / p.oversNum).toFixed(1) : '0.0');
+    p.dots += Number(bw.dots || (ovNum >= 1 ? Math.floor(ovNum * 2.5) : 0));
+  });
+
+  const playerList = Object.values(playersMap);
+
+  playerList.forEach(p => {
+    let batPts = p.runs * 1;
+    batPts += p.fours * 1;
+    batPts += p.sixes * 2;
+    if (p.runs >= 100) batPts += 20;
+    else if (p.runs >= 50) batPts += 10;
+    else if (p.runs >= 30) batPts += 4;
+
+    const srNum = parseFloat(p.sr || '0');
+    if (p.balls >= 10) {
+      if (srNum >= 175) batPts += 8;
+      else if (srNum >= 140) batPts += 4;
+      else if (srNum < 80) batPts -= 4;
+    }
+    p.battingPts = Math.round(batPts * 10) / 10;
+
+    let bowlPts = p.wickets * 25;
+    if (p.wickets >= 5) bowlPts += 30;
+    else if (p.wickets >= 3) bowlPts += 15;
+    bowlPts += p.maidens * 10;
+    bowlPts += p.dots * 1;
+
+    const econNum = parseFloat(p.econ || '0');
+    if (p.oversNum >= 2.0) {
+      if (econNum <= 5.5) bowlPts += 8;
+      else if (econNum <= 7.0) bowlPts += 4;
+      else if (econNum > 11.0) bowlPts -= 6;
+    }
+    p.bowlingPts = Math.round(bowlPts * 10) / 10;
+
+    let fldPts = (p.catches * 10) + (p.stumpings * 12) + (p.runOuts * 15);
+    p.fieldingPts = fldPts;
+
+    p.totalMvpPts = Math.round((p.battingPts + p.bowlingPts + p.fieldingPts) * 10) / 10;
+  });
+
+  const mvpLeaderboard = [...playerList].sort((a, b) => b.totalMvpPts - a.totalMvpPts);
+
+  const battersList = playerList
+    .filter(p => p.didBat && (p.runs > 0 || p.balls > 0))
+    .sort((a, b) => {
+      if (b.runs !== a.runs) return b.runs - a.runs;
+      return parseFloat(b.sr || 0) - parseFloat(a.sr || 0);
+    });
+  const bestBatter = battersList[0] || null;
+
+  const bowlersList = playerList
+    .filter(p => p.didBowl && p.oversNum > 0)
+    .sort((a, b) => {
+      if (b.wickets !== a.wickets) return b.wickets - a.wickets;
+      return parseFloat(a.econ || 99) - parseFloat(b.econ || 99);
+    });
+  const bestBowler = bowlersList[0] || null;
+
+  const pomPlayer = mvpLeaderboard[0] || null;
+  let pomSummary = '';
+  if (pomPlayer) {
+    const parts = [];
+    if (pomPlayer.runs > 0) parts.push(`${pomPlayer.runs} runs (${pomPlayer.balls}b)`);
+    if (pomPlayer.wickets > 0) parts.push(`${pomPlayer.wickets}/${pomPlayer.runsConceded} (${pomPlayer.overs} ov)`);
+    if (pomPlayer.catches > 0) parts.push(`${pomPlayer.catches} ct`);
+    if (pomPlayer.stumpings > 0) parts.push(`${pomPlayer.stumpings} st`);
+    if (pomPlayer.runOuts > 0) parts.push(`${pomPlayer.runOuts} ro`);
+    const statStr = parts.length > 0 ? ` (${parts.join(', ')})` : '';
+    pomSummary = `${pomPlayer.name}${statStr}`;
+  }
+
+  return {
+    pom: pomSummary || (matchData.pom ? matchData.pom : (pomPlayer ? pomPlayer.name : 'Match MVP')),
+    pomPlayer,
+    bestBatter,
+    bestBowler,
+    mvpLeaderboard: mvpLeaderboard.slice(0, 10),
+  };
+}
+
 const getResponsiveBadgePos = (wheelDimension, angleDegrees, badgeW, badgeH) => {
   const center = wheelDimension / 2;
   const radius = wheelDimension * 0.31;
@@ -2964,6 +3224,7 @@ function CricketAddaMain() {
 
   const [matchFilter, setMatchFilter] = useState('all');
   const [statsFilter, setStatsFilter] = useState('all');
+  const [showMvpLeaderboard, setShowMvpLeaderboard] = useState(false);
 
   // Dynamic Matches Database & Auto-Saved Setup Draft State
   const [matchesDb, setMatchesDb] = useState(MATCH_DATABASE);
@@ -9752,12 +10013,47 @@ function CricketAddaMain() {
                             {isAbandoned ? (m.result || '⛔ Match Abandoned (No Result)') : `🏆 ${m.result || 'Match Completed'}`}
                           </Text>
                         </View>
-                        {m.pom && !isAbandoned && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginVertical: 4 }}>
-                            <PlayerAvatar name={m.pom.split(' ')[0]} size={24} borderColor="#eab308" />
-                            <Text style={[styles.pomText, currentTheme.isLight && { color: '#475569' }]}>Player of the Match: <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#fff', fontWeight: 'bold' }}>{m.pom}</Text></Text>
-                          </View>
-                        )}
+                        {(() => {
+                          if (isAbandoned) return null;
+                          const cardAwards = calculateMatchAwardsAndMVP(m);
+                          const pomText = cardAwards?.pom || m.pom;
+                          const bestBat = cardAwards?.bestBatter;
+                          const bestBowl = cardAwards?.bestBowler;
+
+                          return (
+                            <View style={{ marginVertical: 6, gap: 4 }}>
+                              {pomText ? (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                  <PlayerAvatar name={pomText.split(' ')[0]} size={22} borderColor="#f59e0b" />
+                                  <Text style={[styles.pomText, currentTheme.isLight && { color: '#475569' }]} numberOfLines={1}>
+                                    👑 <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>POM:</Text> <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#fff', fontWeight: 'bold' }}>{pomText}</Text>
+                                  </Text>
+                                </View>
+                              ) : null}
+
+                              {(bestBat || bestBowl) ? (
+                                <View style={{ flexDirection: 'row', gap: 6, marginTop: 2 }}>
+                                  {bestBat ? (
+                                    <View style={{ flex: 1, backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.1)', borderColor: '#0284c7', borderWidth: 0.8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                      <Text style={{ fontSize: 10 }}>🏏</Text>
+                                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#bae6fd', fontSize: 10, fontWeight: 'bold' }} numberOfLines={1}>
+                                        {bestBat.name.split(' ')[0]}: <Text style={{ color: '#0284c7' }}>{bestBat.runs} ({bestBat.balls}b)</Text>
+                                      </Text>
+                                    </View>
+                                  ) : null}
+                                  {bestBowl ? (
+                                    <View style={{ flex: 1, backgroundColor: currentTheme.isLight ? '#ecfdf5' : 'rgba(52, 211, 153, 0.1)', borderColor: '#10b981', borderWidth: 0.8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                      <Text style={{ fontSize: 10 }}>🎯</Text>
+                                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#a7f3d0', fontSize: 10, fontWeight: 'bold' }} numberOfLines={1}>
+                                        {bestBowl.name.split(' ')[0]}: <Text style={{ color: '#10b981' }}>{bestBowl.wickets}/{bestBowl.runsConceded}</Text>
+                                      </Text>
+                                    </View>
+                                  ) : null}
+                                </View>
+                              ) : null}
+                            </View>
+                          );
+                        })()}
 
                         <TouchableOpacity
                           style={[styles.viewScorecardBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]}
@@ -11924,6 +12220,219 @@ function CricketAddaMain() {
             )}
             <Text style={[styles.scTossText, currentTheme.isLight && { color: '#64748b' }]}>🪙 {currentMatchData.toss}</Text>
           </View>
+
+          {/* ========================================================= */}
+          {/* 🏆 SCORECARD: OFFICIAL MATCH AWARDS & MVP PODIUM */}
+          {/* ========================================================= */}
+          {(() => {
+            const awards = calculateMatchAwardsAndMVP(currentMatchData);
+            if (!awards) return null;
+            const pom = awards.pomPlayer;
+            const bestBat = awards.bestBatter;
+            const bestBowl = awards.bestBowler;
+            const topMvp = awards.mvpLeaderboard || [];
+
+            return (
+              <View style={[styles.scHeaderCard, { marginTop: 10, padding: 14, backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a', borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e293b' }]}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <Text style={{ color: '#f59e0b', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 }}>
+                    🏆 MATCH AWARDS & MVP
+                  </Text>
+                  {topMvp.length > 0 && (
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: showMvpLeaderboard ? '#0284c7' : (currentTheme.isLight ? '#f1f5f9' : '#1e293b'),
+                        borderColor: showMvpLeaderboard ? '#0284c7' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
+                        borderWidth: 1,
+                        paddingHorizontal: 8,
+                        paddingVertical: 3,
+                        borderRadius: 6,
+                      }}
+                      onPress={() => setShowMvpLeaderboard(!showMvpLeaderboard)}
+                    >
+                      <Text style={{ color: showMvpLeaderboard ? '#ffffff' : (currentTheme.isLight ? '#0f172a' : '#38bdf8'), fontSize: 11, fontWeight: 'bold' }}>
+                        {showMvpLeaderboard ? '✕ Hide MVP Board' : '⭐ MVP Leaderboard →'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Player of the Match Card */}
+                {pom && (
+                  <View
+                    style={{
+                      backgroundColor: currentTheme.isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.12)',
+                      borderColor: '#f59e0b',
+                      borderWidth: 1.5,
+                      borderRadius: 12,
+                      padding: 12,
+                      marginBottom: 10,
+                    }}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <View style={{ backgroundColor: '#f59e0b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
+                        <Text style={{ color: '#0f172a', fontSize: 10, fontWeight: '900' }}>
+                          👑 PLAYER OF THE MATCH (MVP)
+                        </Text>
+                      </View>
+                      <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6, borderWidth: 1, borderColor: '#f59e0b' }}>
+                        <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fbbf24', fontSize: 11, fontWeight: '900' }}>
+                          ⭐ {pom.totalMvpPts} MVP PTS
+                        </Text>
+                      </View>
+                    </View>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                      <PlayerAvatar name={pom.name} size={46} borderColor="#f59e0b" />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }}>
+                          {pom.name}
+                        </Text>
+                        <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fde68a', fontSize: 11.5, fontWeight: 'bold' }}>
+                          {pom.team}
+                        </Text>
+                        <Text style={{ color: currentTheme.isLight ? '#475569' : '#cbd5e1', fontSize: 11, marginTop: 2 }}>
+                          {[
+                            pom.runs > 0 ? `🏏 ${pom.runs} runs (${pom.balls}b)` : null,
+                            pom.wickets > 0 ? `🎯 ${pom.wickets}/${pom.runsConceded} (${pom.overs} ov)` : null,
+                            pom.catches > 0 ? `🧤 ${pom.catches} ct` : null,
+                            pom.runOuts > 0 ? `⚡ ${pom.runOuts} ro` : null,
+                          ].filter(Boolean).join(' • ') || '🌟 Match Winning Impact'}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+                {/* 2-Column: Best Batter & Best Bowler */}
+                <View style={{ flexDirection: 'row', gap: 8 }}>
+                  {bestBat && (
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.1)',
+                        borderColor: '#0284c7',
+                        borderWidth: 1,
+                        borderRadius: 10,
+                        padding: 10,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 12 }}>🏏</Text>
+                        <Text style={{ color: '#0284c7', fontSize: 10, fontWeight: '900' }} numberOfLines={1}>
+                          BEST BATSMAN
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <PlayerAvatar name={bestBat.name} size={30} borderColor="#0284c7" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
+                            {bestBat.name}
+                          </Text>
+                          <Text style={{ color: '#0284c7', fontSize: 11.5, fontWeight: 'bold' }}>
+                            {bestBat.runs} <Text style={{ fontSize: 9.5, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({bestBat.balls}b)</Text>
+                          </Text>
+                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9 }}>
+                            SR: {bestBat.sr} • 4s:{bestBat.fours} 6s:{bestBat.sixes}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {bestBowl && (
+                    <View
+                      style={{
+                        flex: 1,
+                        backgroundColor: currentTheme.isLight ? '#ecfdf5' : 'rgba(52, 211, 153, 0.1)',
+                        borderColor: '#10b981',
+                        borderWidth: 1,
+                        borderRadius: 10,
+                        padding: 10,
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 12 }}>🎯</Text>
+                        <Text style={{ color: '#10b981', fontSize: 10, fontWeight: '900' }} numberOfLines={1}>
+                          BEST BOWLER
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <PlayerAvatar name={bestBowl.name} size={30} borderColor="#10b981" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
+                            {bestBowl.name}
+                          </Text>
+                          <Text style={{ color: '#10b981', fontSize: 11.5, fontWeight: 'bold' }}>
+                            {bestBowl.wickets}/{bestBowl.runsConceded} <Text style={{ fontSize: 9.5, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({bestBowl.overs} ov)</Text>
+                          </Text>
+                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9 }}>
+                            Econ: {bestBowl.econ} • M: {bestBowl.maidens}
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+                </View>
+
+                {/* Expandable MVP Leaderboard */}
+                {showMvpLeaderboard && topMvp.length > 0 && (
+                  <View style={{ marginTop: 12, borderTopWidth: 1, borderTopColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b', paddingTop: 10 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#bae6fd', fontSize: 12, fontWeight: '900', marginBottom: 6 }}>
+                      ⭐ COMPLETE MATCH MVP LEADERBOARD:
+                    </Text>
+                    <View style={{ gap: 6 }}>
+                      {topMvp.map((p, idx) => {
+                        const rankBadgeColor = idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : idx === 2 ? '#b45309' : '#0284c7';
+                        return (
+                          <View
+                            key={`mvp_sc_${p.name}_${idx}`}
+                            style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              backgroundColor: currentTheme.isLight ? '#f8fafc' : 'rgba(15, 23, 42, 0.6)',
+                              paddingHorizontal: 8,
+                              paddingVertical: 6,
+                              borderRadius: 6,
+                              borderWidth: 1,
+                              borderColor: idx === 0 ? '#f59e0b40' : (currentTheme.isLight ? '#e2e8f0' : '#1e293b'),
+                            }}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                              <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: rankBadgeColor, alignItems: 'center', justifyContent: 'center' }}>
+                                <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>#{idx + 1}</Text>
+                              </View>
+                              <PlayerAvatar name={p.name} size={24} />
+                              <View style={{ flex: 1 }}>
+                                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: 'bold' }} numberOfLines={1}>
+                                  {p.name}
+                                </Text>
+                                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9.5 }} numberOfLines={1}>
+                                  {p.team}
+                                </Text>
+                              </View>
+                            </View>
+
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10 }}>
+                                {p.battingPts > 0 ? `🏏${p.battingPts}` : ''} {p.bowlingPts > 0 ? `🎯${p.bowlingPts}` : ''} {p.fieldingPts > 0 ? `🧤${p.fieldingPts}` : ''}
+                              </Text>
+                              <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4 }}>
+                                <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900' }}>
+                                  {p.totalMvpPts} pts
+                                </Text>
+                              </View>
+                            </View>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+              </View>
+            );
+          })()}
 
           <View style={styles.inningTabRow}>
             <TouchableOpacity
@@ -15673,6 +16182,221 @@ function CricketAddaMain() {
                   </Text>
                 </View>
               </View>
+
+              {/* ========================================================= */}
+              {/* 🏆 MATCH AWARDS & MVP PODIUM */}
+              {/* ========================================================= */}
+              {(() => {
+                const activeCompletedMatch = matchesDb[activeMatchId] || {
+                  innings1: firstInningsSummary || currentMatchData?.innings1 || {},
+                  innings2: {
+                    team: battingTeamName,
+                    runs: liveRuns,
+                    wickets: liveWickets,
+                    overs: oversStr,
+                    batting: liveBattingTable,
+                    bowling: liveBowlingTable,
+                  },
+                  teamA: currentMatchData?.teamA,
+                  teamB: currentMatchData?.teamB,
+                };
+                const awards = calculateMatchAwardsAndMVP(activeCompletedMatch);
+                if (!awards) return null;
+
+                const pom = awards.pomPlayer;
+                const bestBat = awards.bestBatter;
+                const bestBowl = awards.bestBowler;
+                const topMvp = awards.mvpLeaderboard || [];
+
+                return (
+                  <View style={{ marginVertical: 10, gap: 10 }}>
+                    <Text style={{ color: '#f59e0b', fontSize: 13, fontWeight: '900', letterSpacing: 0.5, textAlign: 'center' }}>
+                      🏆 OFFICIAL MATCH AWARDS & MVP
+                    </Text>
+
+                    {/* 1. PLAYER OF THE MATCH (MVP) GOLD CARD */}
+                    {pom && (
+                      <View
+                        style={{
+                          backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                          borderColor: '#f59e0b',
+                          borderWidth: 1.5,
+                          borderRadius: 12,
+                          padding: 12,
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                          <View style={{ backgroundColor: '#f59e0b', paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: 6 }}>
+                            <Text style={{ color: '#0f172a', fontSize: 10.5, fontWeight: '900' }}>
+                              👑 PLAYER OF THE MATCH
+                            </Text>
+                          </View>
+                          <View style={{ backgroundColor: 'rgba(245, 158, 11, 0.3)', paddingHorizontal: 8, paddingVertical: 2.5, borderRadius: 6, borderWidth: 1, borderColor: '#f59e0b' }}>
+                            <Text style={{ color: '#fbbf24', fontSize: 11, fontWeight: '900' }}>
+                              ⭐ {pom.totalMvpPts} MVP PTS
+                            </Text>
+                          </View>
+                        </View>
+
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <PlayerAvatar name={pom.name} size={48} borderColor="#f59e0b" />
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>
+                              {pom.name}
+                            </Text>
+                            <Text style={{ color: '#fde68a', fontSize: 11.5, fontWeight: 'bold' }}>
+                              {pom.team}
+                            </Text>
+                            <Text style={{ color: '#cbd5e1', fontSize: 11, marginTop: 2 }}>
+                              {[
+                                pom.runs > 0 ? `🏏 ${pom.runs} runs (${pom.balls}b)` : null,
+                                pom.wickets > 0 ? `🎯 ${pom.wickets}/${pom.runsConceded} (${pom.overs} ov)` : null,
+                                pom.catches > 0 ? `🧤 ${pom.catches} ct` : null,
+                                pom.runOuts > 0 ? `⚡ ${pom.runOuts} ro` : null,
+                              ].filter(Boolean).join(' • ') || '🌟 Match Winning Impact'}
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    )}
+
+                    {/* 2. BEST BATTER & BEST BOWLER 2-COLUMN ROW */}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      {/* Best Batter */}
+                      {bestBat && (
+                        <View
+                          style={{
+                            flex: 1,
+                            backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                            borderColor: '#38bdf8',
+                            borderWidth: 1.2,
+                            borderRadius: 10,
+                            padding: 10,
+                          }}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                            <Text style={{ fontSize: 12 }}>🏏</Text>
+                            <Text style={{ color: '#38bdf8', fontSize: 10, fontWeight: '900' }} numberOfLines={1}>
+                              BEST BATSMAN
+                            </Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <PlayerAvatar name={bestBat.name} size={32} borderColor="#38bdf8" />
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '900' }} numberOfLines={1}>
+                                {bestBat.name}
+                              </Text>
+                              <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>
+                                {bestBat.runs} <Text style={{ fontSize: 10, color: '#bae6fd' }}>({bestBat.balls}b)</Text>
+                              </Text>
+                              <Text style={{ color: '#94a3b8', fontSize: 9.5 }}>
+                                SR: {bestBat.sr} • 4s:{bestBat.fours} 6s:{bestBat.sixes}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+
+                      {/* Best Bowler */}
+                      {bestBowl && (
+                        <View
+                          style={{
+                            flex: 1,
+                            backgroundColor: 'rgba(52, 211, 153, 0.12)',
+                            borderColor: '#34d399',
+                            borderWidth: 1.2,
+                            borderRadius: 10,
+                            padding: 10,
+                          }}
+                        >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                            <Text style={{ fontSize: 12 }}>🎯</Text>
+                            <Text style={{ color: '#34d399', fontSize: 10, fontWeight: '900' }} numberOfLines={1}>
+                              BEST BOWLER
+                            </Text>
+                          </View>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                            <PlayerAvatar name={bestBowl.name} size={32} borderColor="#34d399" />
+                            <View style={{ flex: 1 }}>
+                              <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '900' }} numberOfLines={1}>
+                                {bestBowl.name}
+                              </Text>
+                              <Text style={{ color: '#34d399', fontSize: 12, fontWeight: 'bold' }}>
+                                {bestBowl.wickets}/{bestBowl.runsConceded} <Text style={{ fontSize: 10, color: '#a7f3d0' }}>({bestBowl.overs} ov)</Text>
+                              </Text>
+                              <Text style={{ color: '#94a3b8', fontSize: 9.5 }}>
+                                Econ: {bestBowl.econ} • M: {bestBowl.maidens}
+                              </Text>
+                            </View>
+                          </View>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* 3. MVP LEADERBOARD TOP 5 LIST */}
+                    {topMvp.length > 0 && (
+                      <View style={{ backgroundColor: '#082f49', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#0369a1' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <Text style={{ color: '#bae6fd', fontSize: 11, fontWeight: '900' }}>
+                            ⭐ TOP 5 MVP PERFORMERS:
+                          </Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 9.5 }}>
+                            Bat • Bowl • Fld = Total
+                          </Text>
+                        </View>
+
+                        <View style={{ gap: 6 }}>
+                          {topMvp.slice(0, 5).map((p, idx) => {
+                            const rankBadgeColor = idx === 0 ? '#f59e0b' : idx === 1 ? '#94a3b8' : idx === 2 ? '#b45309' : '#0284c7';
+                            return (
+                              <View
+                                key={`mvp_modal_${p.name}_${idx}`}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  backgroundColor: 'rgba(15, 23, 42, 0.6)',
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 5,
+                                  borderRadius: 6,
+                                  borderWidth: 1,
+                                  borderColor: idx === 0 ? '#f59e0b40' : '#1e293b',
+                                }}
+                              >
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                                  <View style={{ width: 18, height: 18, borderRadius: 9, backgroundColor: rankBadgeColor, alignItems: 'center', justifyContent: 'center' }}>
+                                    <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>#{idx + 1}</Text>
+                                  </View>
+                                  <PlayerAvatar name={p.name} size={22} />
+                                  <View style={{ flex: 1 }}>
+                                    <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: 'bold' }} numberOfLines={1}>
+                                      {p.name}
+                                    </Text>
+                                    <Text style={{ color: '#94a3b8', fontSize: 9 }} numberOfLines={1}>
+                                      {p.team}
+                                    </Text>
+                                  </View>
+                                </View>
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                  <Text style={{ color: '#94a3b8', fontSize: 9.5 }}>
+                                    {p.battingPts > 0 ? `🏏${p.battingPts}` : ''} {p.bowlingPts > 0 ? `🎯${p.bowlingPts}` : ''} {p.fieldingPts > 0 ? `🧤${p.fieldingPts}` : ''}
+                                  </Text>
+                                  <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 4 }}>
+                                    <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>
+                                      {p.totalMvpPts} pts
+                                    </Text>
+                                  </View>
+                                </View>
+                              </View>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                );
+              })()}
 
               {/* Action Buttons */}
               <TouchableOpacity
