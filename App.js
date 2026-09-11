@@ -3480,7 +3480,7 @@ function CricketAddaMain() {
 
     try {
       // 1. Check local usersDb
-      let existing = Array.isArray(usersDb) ? usersDb.find(u => (u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail)) : null;
+      let existing = Array.isArray(usersDb) ? usersDb.find(u => u && ((u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail))) : null;
 
       // 2. If not found locally (e.g. app freshly installed), fetch from Firebase Cloud Database!
       if (!existing && isFirebaseConfigured()) {
@@ -3492,10 +3492,11 @@ function CricketAddaMain() {
           if (!existing) {
             const allCloudUsers = await fetchFirebaseUsers();
             if (Array.isArray(allCloudUsers) && allCloudUsers.length > 0) {
-              existing = allCloudUsers.find(u => (u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail));
+              const cleanCloudList = allCloudUsers.filter(Boolean);
+              existing = cleanCloudList.find(u => u && ((u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail)));
               if (existing) {
-                setUsersDb(allCloudUsers);
-                AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(allCloudUsers)).catch(() => {});
+                setUsersDb(cleanCloudList);
+                AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(cleanCloudList)).catch(() => {});
               }
             }
           }
@@ -3654,7 +3655,8 @@ function CricketAddaMain() {
     };
 
     setUsersDb(prev => {
-      const filtered = prev.filter(u => u.email.toLowerCase() !== cleanEmail);
+      const safePrev = Array.isArray(prev) ? prev.filter(Boolean) : [];
+      const filtered = safePrev.filter(u => u && u.email && u.email.toLowerCase() !== cleanEmail);
       const updated = [newUserRecord, ...filtered];
       AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updated)).catch(() => {});
       syncUsersToFirebase(updated).catch(() => {});
@@ -3876,24 +3878,25 @@ function CricketAddaMain() {
 
   const modalBadgeW = Math.round(MODAL_WHEEL_SIZE * 0.165);
   const modalBadgeH = Math.round(MODAL_WHEEL_SIZE * 0.115);
-
   const scorerWheelSize = Math.round(Math.min(width - 36, 310));
   const scorerBadgeW = Math.round(scorerWheelSize * 0.165);
   const scorerBadgeH = Math.round(scorerWheelSize * 0.115);
 
   const updateAndPersistUserProfile = (updater) => {
     setUserProfile(prev => {
-      const updated = typeof updater === 'function' ? updater(prev) : { ...prev, ...updater };
+      const safePrev = prev || {};
+      const updated = typeof updater === 'function' ? updater(safePrev) : { ...safePrev, ...updater };
       AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(updated)).catch(() => {});
 
       // 1. Sync to usersDb
       setUsersDb(prevUsers => {
-        if (!Array.isArray(prevUsers)) return prevUsers;
-        const currentEmail = (updated.email || authEmail || '').toLowerCase();
-        const currentPhone = (updated.phone || authPhone || '').replace(/[^0-9]/g, '');
+        if (!Array.isArray(prevUsers)) return prevUsers || [];
+        const currentEmail = String(updated?.email || authEmail || '').toLowerCase();
+        const currentPhone = String(updated?.phone || authPhone || '').replace(/[^0-9]/g, '');
         const updatedList = prevUsers.map(u => {
-          const uEmail = (u.email || (u.profile && u.profile.email) || '').toLowerCase();
-          const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+          if (!u) return null;
+          const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+          const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
           if ((currentEmail && uEmail === currentEmail) || (currentPhone && uPhone === currentPhone)) {
             return {
               ...u,
@@ -3901,7 +3904,7 @@ function CricketAddaMain() {
             };
           }
           return u;
-        });
+        }).filter(Boolean);
         AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updatedList)).catch(() => {});
         syncUsersToFirebase(updatedList).catch(() => {});
         return updatedList;
@@ -3909,22 +3912,23 @@ function CricketAddaMain() {
 
       // 2. Sync to registeredPlayers so squad lists and player tags update immediately
       setRegisteredPlayers(prevPlayers => {
-        if (!Array.isArray(prevPlayers)) return prevPlayers;
-        const currentName = (updated.name || '').trim().toLowerCase();
-        const currentPhone = (updated.phone || authPhone || '').replace(/[^0-9]/g, '');
+        if (!Array.isArray(prevPlayers)) return prevPlayers || [];
+        const currentName = String(updated?.name || '').trim().toLowerCase();
+        const currentPhone = String(updated?.phone || authPhone || '').replace(/[^0-9]/g, '');
         const updatedList = prevPlayers.map(p => {
-          const pName = (p.name || '').trim().toLowerCase();
-          const pPhone = (p.phone || '').replace(/[^0-9]/g, '');
+          if (!p) return null;
+          const pName = String(p.name || '').trim().toLowerCase();
+          const pPhone = String(p.phone || '').replace(/[^0-9]/g, '');
           if ((currentPhone && pPhone === currentPhone) || (currentName && pName === currentName)) {
-            return { ...p, avatarUri: updated.avatarUri || p.avatarUri };
+            return { ...p, avatarUri: updated?.avatarUri || p.avatarUri };
           }
           return p;
-        });
+        }).filter(Boolean);
         AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updatedList)).catch(() => {});
         return updatedList;
       });
 
-      syncSingleUserProfileToFirebase(updated, updated.email || authEmail).catch(() => {});
+      syncSingleUserProfileToFirebase(updated, updated?.email || authEmail).catch(() => {});
 
       return updated;
     });
@@ -4321,15 +4325,17 @@ function CricketAddaMain() {
         if (isFirebaseConfigured()) {
           fetchFirebaseTeams().then(cloudTeams => {
             if (Array.isArray(cloudTeams) && cloudTeams.length > 0) {
-              setRegisteredTeams(cloudTeams);
-              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(cloudTeams)).catch(() => {});
+              const cleanTeams = cloudTeams.filter(Boolean);
+              setRegisteredTeams(cleanTeams);
+              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(cleanTeams)).catch(() => {});
             }
           }).catch(() => {});
 
           fetchFirebaseUsers().then(cloudUsers => {
             if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
-              setUsersDb(cloudUsers);
-              AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(cloudUsers)).catch(() => {});
+              const cleanUsers = cloudUsers.filter(Boolean);
+              setUsersDb(cleanUsers);
+              AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(cleanUsers)).catch(() => {});
             }
           }).catch(() => {});
 
@@ -6129,11 +6135,12 @@ function CricketAddaMain() {
         const pPhone = (data.phone || data.mobile || '').replace(/[^0-9]/g, '');
         const pRole = (data.role && (data.role.includes('BOWL') ? 'BOWL' : data.role.includes('WK') ? 'WK' : data.role.includes('ALL') ? 'ALL' : 'BAT')) || 'BAT';
         
-        let existing = registeredPlayers.find(p => p.name.toLowerCase() === pName.toLowerCase() || (pPhone && (p.phone || '').replace(/[^0-9]/g, '') === pPhone));
+        let existing = registeredPlayers.find(p => p && (p.name?.toLowerCase() === pName.toLowerCase() || (pPhone && (p.phone || '').replace(/[^0-9]/g, '') === pPhone)));
         if (!existing && Array.isArray(usersDb)) {
           const userMatch = usersDb.find(u => {
-            const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
-            const uName = (u.name || (u.profile && u.profile.name) || '').toLowerCase();
+            if (!u) return false;
+            const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+            const uName = String(u.name || (u.profile && u.profile.name) || '').toLowerCase();
             return (pPhone && uPhone === pPhone) || (pName && uName === pName.toLowerCase());
           });
           if (userMatch) {
@@ -7898,7 +7905,8 @@ function CricketAddaMain() {
       // 2. Check local usersDb
       if (!found && Array.isArray(usersDb)) {
         const userMatch = usersDb.find(u => {
-          const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+          if (!u) return false;
+          const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
           return uPhone === cleanDigits;
         });
         if (userMatch) {
@@ -7980,7 +7988,8 @@ function CricketAddaMain() {
     // 2. Search local usersDb
     if (!found && Array.isArray(usersDb)) {
       const userMatch = usersDb.find(u => {
-        const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+        if (!u) return false;
+        const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
         return uPhone === cleanDigits;
       });
       if (userMatch) {
@@ -8357,15 +8366,17 @@ function CricketAddaMain() {
 
       // Update in usersDb
       setUsersDb(prev => {
+        const safePrev = Array.isArray(prev) ? prev.filter(Boolean) : [];
         const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
-        const updated = prev.map(u => {
+        const updated = safePrev.map(u => {
+          if (!u) return null;
           if (u.email && u.email.toLowerCase() === uEmail) {
-            const existingTeams = Array.isArray(u.createdTeams) ? u.createdTeams : [];
-            const newCreated = existingTeams.map(t => (t.id === targetTeamId ? { ...t, name: cleanName, shortName: cleanName.slice(0, 3).toUpperCase(), flag: newTeamFlag || t.flag, logo: finalTeamLogo, logoUri: finalTeamLogo, city: newTeamCity.trim() || t.city, squad: finalSquad, captain: captainPlayer?.name || t.captain, wicketkeeper: wkPlayer?.name || t.wicketkeeper } : t));
+            const existingTeams = Array.isArray(u.createdTeams) ? u.createdTeams.filter(Boolean) : [];
+            const newCreated = existingTeams.map(t => (t && t.id === targetTeamId ? { ...t, name: cleanName, shortName: cleanName.slice(0, 3).toUpperCase(), flag: newTeamFlag || t.flag, logo: finalTeamLogo, logoUri: finalTeamLogo, city: newTeamCity.trim() || t.city, squad: finalSquad, captain: captainPlayer?.name || t.captain, wicketkeeper: wkPlayer?.name || t.wicketkeeper } : t)).filter(Boolean);
             return { ...u, createdTeams: newCreated };
           }
           return u;
-        });
+        }).filter(Boolean);
         AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updated)).catch(() => {});
         return updated;
       });
@@ -8418,13 +8429,15 @@ function CricketAddaMain() {
 
     // 2. Persist in user's account in usersDb
     setUsersDb(prev => {
-      const updated = prev.map(u => {
+      const safePrev = Array.isArray(prev) ? prev.filter(Boolean) : [];
+      const updated = safePrev.map(u => {
+        if (!u) return null;
         if (u.email && u.email.toLowerCase() === uEmail) {
-          const prevTeams = Array.isArray(u.createdTeams) ? u.createdTeams.filter(t => t.id !== newTeamObj.id) : [];
+          const prevTeams = Array.isArray(u.createdTeams) ? u.createdTeams.filter(t => t && t.id !== newTeamObj.id) : [];
           return { ...u, createdTeams: [newTeamObj, ...prevTeams] };
         }
         return u;
-      });
+      }).filter(Boolean);
       AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updated)).catch(() => {});
       return updated;
     });
@@ -8456,9 +8469,9 @@ function CricketAddaMain() {
     if (uName && team.captain && team.captain.toLowerCase().trim() === uName) return true;
 
     // 2. Check usersDb createdTeams array
-    if (uEmail) {
-      const currentUser = usersDb.find(u => u.email && u.email.toLowerCase() === uEmail);
-      if (currentUser && Array.isArray(currentUser.createdTeams) && currentUser.createdTeams.some(t => t.id === team.id)) {
+    if (uEmail && Array.isArray(usersDb)) {
+      const currentUser = usersDb.find(u => u && u.email && u.email.toLowerCase() === uEmail);
+      if (currentUser && Array.isArray(currentUser.createdTeams) && currentUser.createdTeams.some(t => t && t.id === team.id)) {
         return true;
       }
     }
@@ -8522,12 +8535,12 @@ function CricketAddaMain() {
       return [];
     }
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
-    const currentUser = usersDb.find(u => u.email && u.email.toLowerCase() === uEmail);
+    const currentUser = Array.isArray(usersDb) ? usersDb.find(u => u && u.email && u.email.toLowerCase() === uEmail) : null;
     const myCreatedIds = new Set(
-      Array.isArray(currentUser?.createdTeams) ? currentUser.createdTeams.map(t => t.id) : []
+      Array.isArray(currentUser?.createdTeams) ? currentUser.createdTeams.filter(Boolean).map(t => t.id) : []
     );
     // User's clubs = ONLY teams created by this user or teams where user is in squad
-    return registeredTeams.filter(t => (t.isCustomCreated && (myCreatedIds.has(t.id) || isCreatedByMe(t))) || isPlayingInTeam(t));
+    return registeredTeams.filter(t => t && ((t.isCustomCreated && (myCreatedIds.has(t.id) || isCreatedByMe(t))) || isPlayingInTeam(t)));
   }, [registeredTeams, isAuthenticated, userProfile, authEmail, usersDb]);
 
   // Delete a player from a created team squad
@@ -8669,14 +8682,16 @@ function CricketAddaMain() {
 
     // Also delete from usersDb for the active user
     setUsersDb(prev => {
+      const safePrev = Array.isArray(prev) ? prev.filter(Boolean) : [];
       const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
-      const updatedUsers = prev.map(u => {
+      const updatedUsers = safePrev.map(u => {
+        if (!u) return null;
         if (u.email && u.email.toLowerCase() === uEmail) {
-          const existingTeams = Array.isArray(u.createdTeams) ? u.createdTeams.filter(t => t.id !== teamId) : [];
+          const existingTeams = Array.isArray(u.createdTeams) ? u.createdTeams.filter(t => t && t.id !== teamId) : [];
           return { ...u, createdTeams: existingTeams };
         }
         return u;
-      });
+      }).filter(Boolean);
       AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updatedUsers)).catch(() => {});
       return updatedUsers;
     });

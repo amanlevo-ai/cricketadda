@@ -240,20 +240,24 @@ export async function syncUsersToFirebase(users) {
   if (!isFirebaseConfigured() || !Array.isArray(users)) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const cleanUsers = users.filter(Boolean);
     
     // Fetch current cloud users to merge
-    let mergedUsers = [...users];
+    let mergedUsers = [...cleanUsers];
     try {
       const cloudRes = await fetch(`${baseUrl}/users.json`);
       if (cloudRes.ok) {
         const cloudData = await cloudRes.json();
-        const existingCloudList = Array.isArray(cloudData) ? cloudData : (cloudData && typeof cloudData === 'object' ? Object.values(cloudData) : []);
+        const rawCloudList = Array.isArray(cloudData) ? cloudData : (cloudData && typeof cloudData === 'object' ? Object.values(cloudData) : []);
+        const existingCloudList = rawCloudList.filter(Boolean);
         existingCloudList.forEach(cu => {
-          const cuEmail = ((cu.email || (cu.profile && cu.profile.email)) || '').toLowerCase();
-          const cuPhone = ((cu.profile && cu.profile.phone) || cu.phone || '').replace(/[^0-9]/g, '');
+          if (!cu) return;
+          const cuEmail = String(cu.email || (cu.profile && cu.profile.email) || '').toLowerCase();
+          const cuPhone = String((cu.profile && cu.profile.phone) || cu.phone || '').replace(/[^0-9]/g, '');
           const alreadyInList = mergedUsers.some(mu => {
-            const muEmail = ((mu.email || (mu.profile && mu.profile.email)) || '').toLowerCase();
-            const muPhone = ((mu.profile && mu.profile.phone) || mu.phone || '').replace(/[^0-9]/g, '');
+            if (!mu) return false;
+            const muEmail = String(mu.email || (mu.profile && mu.profile.email) || '').toLowerCase();
+            const muPhone = String((mu.profile && mu.profile.phone) || mu.phone || '').replace(/[^0-9]/g, '');
             return (cuEmail && muEmail && cuEmail === muEmail) || (cuPhone && muPhone && cuPhone === muPhone);
           });
           if (!alreadyInList) {
@@ -267,13 +271,14 @@ export async function syncUsersToFirebase(users) {
     await fetch(`${baseUrl}/users.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(mergedUsers),
+      body: JSON.stringify(mergedUsers.filter(Boolean)),
     });
 
     // Also index each user by phone number for instant lookup from other phones
-    users.forEach(u => {
+    cleanUsers.forEach(u => {
+      if (!u) return;
       const prof = u.profile || u;
-      const uPhone = (prof.phone || u.phone || '').replace(/[^0-9]/g, '');
+      const uPhone = String((prof && prof.phone) || u.phone || '').replace(/[^0-9]/g, '');
       if (uPhone && uPhone.length >= 10) {
         fetch(`${baseUrl}/registered_players/${uPhone}.json`, {
           method: 'PUT',
@@ -300,8 +305,8 @@ export async function fetchFirebaseUsers() {
     const res = await fetch(url);
     if (res.ok) {
       const data = await res.json();
-      if (Array.isArray(data)) return data;
-      if (data && typeof data === 'object') return Object.values(data);
+      if (Array.isArray(data)) return data.filter(Boolean);
+      if (data && typeof data === 'object') return Object.values(data).filter(Boolean);
     }
     return null;
   } catch (e) {
@@ -328,9 +333,11 @@ export async function searchCloudPlayerByPhone(phoneDigits) {
     const usersRes = await fetch(`${baseUrl}/users.json`);
     if (usersRes.ok) {
       const usersData = await usersRes.json();
-      const list = Array.isArray(usersData) ? usersData : (usersData && typeof usersData === 'object' ? Object.values(usersData) : []);
+      const rawList = Array.isArray(usersData) ? usersData : (usersData && typeof usersData === 'object' ? Object.values(usersData) : []);
+      const list = rawList.filter(Boolean);
       const match = list.find(u => {
-        const uPhone = ((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+        if (!u) return false;
+        const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
         return uPhone === cleanPhone;
       });
       if (match) return match.profile || match;
@@ -349,7 +356,7 @@ export async function syncSingleUserProfileToFirebase(profile, email) {
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
     const cleanPhone = String(profile.phone || '').replace(/[^0-9]/g, '');
-    const cleanEmail = (email || profile.email || '').trim().toLowerCase();
+    const cleanEmail = String(email || profile.email || '').trim().toLowerCase();
 
     // 1. Direct index by phone for instant cross-device lookup
     if (cleanPhone && cleanPhone.length >= 10) {
@@ -406,9 +413,11 @@ export async function fetchCloudUserByEmail(email) {
     const usersRes = await fetch(`${baseUrl}/users.json`);
     if (usersRes.ok) {
       const usersData = await usersRes.json();
-      const list = Array.isArray(usersData) ? usersData : (usersData && typeof usersData === 'object' ? Object.values(usersData) : []);
+      const rawList = Array.isArray(usersData) ? usersData : (usersData && typeof usersData === 'object' ? Object.values(usersData) : []);
+      const list = rawList.filter(Boolean);
       const match = list.find(u => {
-        const uEmail = ((u.email || (u.profile && u.profile.email)) || '').toLowerCase();
+        if (!u) return false;
+        const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
         return uEmail === cleanEmail;
       });
       if (match) return match;
