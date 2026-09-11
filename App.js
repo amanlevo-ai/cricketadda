@@ -24,6 +24,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import jsQR from 'jsqr';
+import QRCode from 'qrcode';
 import {
   isFirebaseConfigured,
   checkFirebaseConnectivity,
@@ -35,7 +36,9 @@ import {
   syncTeamsToFirebase,
   fetchFirebaseTeams,
   syncUsersToFirebase,
+  syncSingleUserProfileToFirebase,
   fetchFirebaseUsers,
+  fetchCloudUserByEmail,
   searchCloudPlayerByPhone,
   sendVerificationOtpEmail,
 } from './firebaseSync';
@@ -2270,93 +2273,52 @@ const RealisticHitWicketIcon = ({ size = 26, style = {} }) => {
 
 // ============================================================================
 // SVG QR CODE GENERATOR & UNIQUE CRICKET PASSPORTS (TEAMS, PLAYERS, SCORING RIGHTS)
+// Uses standard ISO/IEC 18004 QR Code Matrix generator for 100% reliable cross-device camera scanning
 // ============================================================================
-function generateQrMatrix(text, size = 21) {
-  const matrix = Array.from({ length: size }, () => Array(size).fill(false));
-
-  // 1. Top-Left Finder Pattern (7x7)
-  for (let r = 0; r < 7; r++) {
-    for (let c = 0; c < 7; c++) {
-      if (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
-        matrix[r][c] = true;
+function generateQrMatrix(text) {
+  try {
+    const qr = QRCode.create(String(text || 'cricketadda'), { errorCorrectionLevel: 'M' });
+    const size = qr.modules.size;
+    const matrix = [];
+    for (let r = 0; r < size; r++) {
+      const row = [];
+      for (let c = 0; c < size; c++) {
+        row.push(Boolean(qr.modules.data[r * size + c]));
+      }
+      matrix.push(row);
+    }
+    return { matrix, size };
+  } catch (e) {
+    const size = 21;
+    const matrix = Array.from({ length: size }, () => Array(size).fill(false));
+    for (let r = 0; r < 7; r++) {
+      for (let c = 0; c < 7; c++) {
+        if (r === 0 || r === 6 || c === 0 || c === 6 || (r >= 2 && r <= 4 && c >= 2 && c <= 4)) {
+          matrix[r][c] = true;
+        }
       }
     }
+    return { matrix, size };
   }
-
-  // 2. Top-Right Finder Pattern (7x7)
-  for (let r = 0; r < 7; r++) {
-    for (let c = size - 7; c < size; c++) {
-      const localC = c - (size - 7);
-      if (r === 0 || r === 6 || localC === 0 || localC === 6 || (r >= 2 && r <= 4 && localC >= 2 && localC <= 4)) {
-        matrix[r][c] = true;
-      }
-    }
-  }
-
-  // 3. Bottom-Left Finder Pattern (7x7)
-  for (let r = size - 7; r < size; r++) {
-    for (let c = 0; c < 7; c++) {
-      const localR = r - (size - 7);
-      if (localR === 0 || localR === 6 || c === 0 || c === 6 || (localR >= 2 && localR <= 4 && c >= 2 && c <= 4)) {
-        matrix[r][c] = true;
-      }
-    }
-  }
-
-  // 4. Timing Lines
-  for (let i = 8; i < size - 8; i++) {
-    if (i % 2 === 0) {
-      matrix[6][i] = true;
-      matrix[i][6] = true;
-    }
-  }
-
-  // 5. Hash payload to deterministically fill data modules
-  let hash = 0;
-  for (let i = 0; i < text.length; i++) {
-    hash = (hash << 5) - hash + text.charCodeAt(i);
-    hash |= 0;
-  }
-  let seed = Math.abs(hash) || 1234567;
-
-  const nextRand = () => {
-    seed = (seed * 9301 + 49297) % 233280;
-    return seed / 233280;
-  };
-
-  for (let r = 0; r < size; r++) {
-    for (let c = 0; c < size; c++) {
-      const inTL = r < 8 && c < 8;
-      const inTR = r < 8 && c >= size - 8;
-      const inBL = r >= size - 8 && c < 8;
-      const inCenter = r >= 8 && r <= 12 && c >= 8 && c <= 12;
-      if (!inTL && !inTR && !inBL && !inCenter && r !== 6 && c !== 6) {
-        matrix[r][c] = nextRand() > 0.48;
-      }
-    }
-  }
-
-  return matrix;
 }
 
 function CricketSvgQrCode({ value, size = 180, logoEmoji = '🏏', color = '#0f172a', bgColor = '#ffffff' }) {
-  const matrixSize = 21;
-  const matrix = React.useMemo(() => generateQrMatrix(String(value || 'cricketadda'), matrixSize), [value]);
+  const { matrix, size: matrixSize } = React.useMemo(() => generateQrMatrix(String(value || 'cricketadda')), [value]);
+  const quietZone = 2;
+  const totalGridSize = matrixSize + (quietZone * 2);
 
   return (
-    <View style={{ width: size, height: size, backgroundColor: bgColor, borderRadius: 12, padding: 10, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 8 }}>
-      <Svg width={size - 20} height={size - 20} viewBox={`0 0 ${matrixSize} ${matrixSize}`}>
+    <View style={{ width: size, height: size, backgroundColor: bgColor, borderRadius: 12, padding: 8, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 8 }}>
+      <Svg width={size - 16} height={size - 16} viewBox={`0 0 ${totalGridSize} ${totalGridSize}`}>
+        {/* Crisp White Quiet Zone Border */}
+        <Rect x="0" y="0" width={totalGridSize} height={totalGridSize} fill={bgColor} />
         {matrix.map((row, r) =>
           row.map((cell, c) => {
             if (!cell) return null;
-            return <Rect key={`${r}_${c}`} x={c} y={r} width="1" height="1" fill={color} />;
+            return <Rect key={`${r}_${c}`} x={c + quietZone} y={r + quietZone} width="1" height="1" fill={color} />;
           })
         )}
       </Svg>
-      {/* Central Brand Badge */}
-      <View style={{ position: 'absolute', width: Math.round(size * 0.22), height: Math.round(size * 0.22), backgroundColor: '#ffffff', borderRadius: 8, borderWidth: 2, borderColor: '#38bdf8', justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.2, elevation: 4 }}>
-        <Text style={{ fontSize: Math.round(size * 0.12) }}>{logoEmoji}</Text>
-      </View>
     </View>
   );
 }
@@ -3044,6 +3006,8 @@ function CricketAddaMain() {
   const [playerAddTab, setPlayerAddTab] = useState('phone'); // 'phone' | 'qr' | 'popular'
   const [playerPhoneInput, setPlayerPhoneInput] = useState('');
   const [playerPhoneSearchResult, setPlayerPhoneSearchResult] = useState(null);
+  const [phoneSearchNotFound, setPhoneSearchNotFound] = useState(false);
+  const [phoneSearching, setPhoneSearching] = useState(false);
   const [scannedPlayerProfile, setScannedPlayerProfile] = useState(null);
   const [customMyTeamName, setCustomMyTeamName] = useState('');
   const [customMyTeamFlag, setCustomMyTeamFlag] = useState('🦁');
@@ -3239,7 +3203,7 @@ function CricketAddaMain() {
     }
   };
 
-  const handleOtpVerify = () => {
+  const handleOtpVerify = async () => {
     setAuthError('');
     const fullOtp = authOtp.join('').trim();
     if (fullOtp.length < 6) {
@@ -3253,23 +3217,74 @@ function CricketAddaMain() {
     const cleanEmail = authEmail.trim().toLowerCase();
     setAuthLoading(true);
 
-    setTimeout(() => {
+    try {
+      // 1. Check local usersDb
+      let existing = Array.isArray(usersDb) ? usersDb.find(u => (u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail)) : null;
+
+      // 2. If not found locally (e.g. app freshly installed), fetch from Firebase Cloud Database!
+      if (!existing && isFirebaseConfigured()) {
+        try {
+          const cloudUser = await fetchCloudUserByEmail(cleanEmail);
+          if (cloudUser && (cloudUser.profile || cloudUser.email)) {
+            existing = cloudUser;
+          }
+          if (!existing) {
+            const allCloudUsers = await fetchFirebaseUsers();
+            if (Array.isArray(allCloudUsers) && allCloudUsers.length > 0) {
+              existing = allCloudUsers.find(u => (u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail));
+              if (existing) {
+                setUsersDb(allCloudUsers);
+                AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(allCloudUsers)).catch(() => {});
+              }
+            }
+          }
+        } catch (cloudErr) {
+          console.log('[Auth] Cloud profile restore check:', cloudErr);
+        }
+      }
+
       setAuthLoading(false);
 
-      const existing = usersDb.find(u => u.email && u.email.toLowerCase() === cleanEmail);
       if (existing) {
-        setUserProfile(existing.profile || { name: 'Player', jersey: '#18', role: 'Top-Order Batter', avatarUri: null });
-        setUserCareerData(existing.careerStats || EMPTY_USER_CAREER_DATA);
+        const restoredProfile = existing.profile || { name: 'Player', jersey: '#18', role: 'Top-Order Batter', avatarUri: null };
+        const restoredCareer = existing.careerStats || EMPTY_USER_CAREER_DATA;
         const userTeams = Array.isArray(existing.createdTeams) ? existing.createdTeams : [];
-        setRegisteredTeams(userTeams);
-        AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(userTeams)).catch(() => {});
-        AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(existing.profile)).catch(() => {});
-        AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(existing.careerStats || EMPTY_USER_CAREER_DATA)).catch(() => {});
+
+        setUserProfile(restoredProfile);
+        setUserCareerData(restoredCareer);
+        if (userTeams.length > 0) {
+          setRegisteredTeams(userTeams);
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(userTeams)).catch(() => {});
+        }
+        AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(restoredProfile)).catch(() => {});
+        AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(restoredCareer)).catch(() => {});
         AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
+
+        // Restore into registeredPlayers
+        if (restoredProfile.name) {
+          setRegisteredPlayers(prev => {
+            const cleanPhone = (restoredProfile.phone || '').replace(/[^0-9]/g, '');
+            const filtered = prev.filter(p => (cleanPhone && (p.phone || '').replace(/[^0-9]/g, '') !== cleanPhone) && p.name.toLowerCase() !== restoredProfile.name.toLowerCase());
+            const newRecord = {
+              id: restoredProfile.id || `usr_${cleanPhone || Date.now()}`,
+              name: restoredProfile.name,
+              phone: cleanPhone,
+              role: restoredProfile.role?.includes('BOWL') ? 'BOWL' : restoredProfile.role?.includes('WK') ? 'WK' : restoredProfile.role?.includes('ALL') ? 'ALL' : 'BAT',
+              battingStyle: restoredProfile.battingStyle || 'Right Hand Bat',
+              bowlingStyle: restoredProfile.bowlingStyle || 'Right Arm Medium',
+              jersey: (restoredProfile.jersey || '18').replace('#', ''),
+              avatarUri: restoredProfile.avatarUri || null,
+            };
+            const updated = [newRecord, ...filtered];
+            AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updated)).catch(() => {});
+            return updated;
+          });
+        }
+
         setIsAuthenticated(true);
         setAuthStep(1);
         setActiveTab('profile');
-        showAppToast(`Welcome back, ${existing.profile?.name || 'Player'}!`, '👋');
+        showAppToast(`Welcome back, ${restoredProfile?.name || 'Player'}! Profile restored.`, '👋');
         return;
       }
 
@@ -3280,7 +3295,10 @@ function CricketAddaMain() {
       setAuthPhone('');
       setAuthJersey('#18');
       setAuthStep(3);
-    }, 400);
+    } catch (err) {
+      setAuthLoading(false);
+      setAuthStep(3);
+    }
   };
 
   const handleProfileComplete = () => {
@@ -3365,7 +3383,7 @@ function CricketAddaMain() {
     setRegisteredTeams(REGISTERED_APP_TEAMS);
     AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS)).catch(() => {});
 
-    // 4. Save to usersDb
+    // 4. Save to usersDb & sync to Cloud
     const newUserRecord = {
       email: cleanEmail,
       profile: newProfile,
@@ -3378,8 +3396,11 @@ function CricketAddaMain() {
       const filtered = prev.filter(u => u.email.toLowerCase() !== cleanEmail);
       const updated = [newUserRecord, ...filtered];
       AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updated)).catch(() => {});
+      syncUsersToFirebase(updated).catch(() => {});
       return updated;
     });
+
+    syncSingleUserProfileToFirebase(newProfile, cleanEmail).catch(() => {});
 
     // 5. Register in players directory
     const regPlayerRecord = {
@@ -3641,6 +3662,8 @@ function CricketAddaMain() {
         AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updatedList)).catch(() => {});
         return updatedList;
       });
+
+      syncSingleUserProfileToFirebase(updated, updated.email || authEmail).catch(() => {});
 
       return updated;
     });
@@ -5027,7 +5050,8 @@ function CricketAddaMain() {
     shotSector = null,
     dismissalTypeVal = null,
     dismissedPlayerName = null,
-    wicketFielderName = null
+    wicketFielderName = null,
+    overthrowRuns = 0
   ) => {
     const isLegal = extraType !== 'wide' && extraType !== 'noBall';
     const effectiveBalls = currentBalls + (isLegal ? 1 : 0);
@@ -5035,12 +5059,38 @@ function CricketAddaMain() {
     const ballInThisOver = ((effectiveBalls - 1) % 6) + 1;
     const ovStr = effectiveBalls > 0 ? `${completedOversBeforeBall}.${ballInThisOver}` : '0.1';
     const shotAreaName = shotSector ? shotSector.name : null;
+    const otRuns = Number(overthrowRuns) || 0;
+    const totalDeliveryRuns = (runs || 0) + otRuns;
 
     let badge = 'RUN';
     let badgeType = 'run';
     let text = '';
 
-    if (isWkt) {
+    if (otRuns > 0) {
+      badgeType = 'overthrow';
+      if (extraType === 'wide') {
+        const pen = extraPenalty !== undefined && extraPenalty !== null ? extraPenalty : 1;
+        const totalW = pen + totalDeliveryRuns;
+        badge = `${totalW} Wd`;
+        text = `OVERTHROW! WIDE + ${totalDeliveryRuns} RUNS! ${currentBowler} sprays it wide, batters sprint through for ${runs} run${runs === 1 ? '' : 's'} + ${otRuns} overthrow extras (${totalW} runs total conceded)!`;
+      } else if (extraType === 'noBall') {
+        badge = `Nb+${runs}+${otRuns}`;
+        text = shotAreaName
+          ? `OVERTHROW! NO BALL + ${totalDeliveryRuns} RUNS! ${currentBowler} oversteps! ${currentStriker} hits towards ${shotAreaName} for ${runs} run${runs === 1 ? '' : 's'} + ${otRuns} overthrow runs (${1 + totalDeliveryRuns} runs total)! Free Hit follows!`
+          : `OVERTHROW! NO BALL + ${totalDeliveryRuns} RUNS! ${currentBowler} oversteps the crease! Batters take ${runs} run${runs === 1 ? '' : 's'} + ${otRuns} overthrow runs (${1 + totalDeliveryRuns} runs total)! Free Hit follows!`;
+      } else if (extraType === 'bye') {
+        badge = `${runs}+${otRuns} B`;
+        text = `OVERTHROW! ${runs} BYE + ${otRuns} OVERTHROW RUNS! Batters complete ${runs} bye${runs === 1 ? '' : 's'}, and a wayward throw gives away ${otRuns} overthrow runs (${totalDeliveryRuns} runs total)!`;
+      } else if (extraType === 'legBye') {
+        badge = `${runs}+${otRuns} Lb`;
+        text = `OVERTHROW! ${runs} LEG BYE + ${otRuns} OVERTHROW RUNS! Deflection off pads gives ${runs} leg bye${runs === 1 ? '' : 's'} + ${otRuns} overthrow runs (${totalDeliveryRuns} runs total)!`;
+      } else {
+        badge = `${runs}+${otRuns} OT`;
+        text = shotAreaName
+          ? `OVERTHROW! ${runs} run${runs === 1 ? '' : 's'} completed by running + ${otRuns} overthrow runs towards ${shotAreaName} (${totalDeliveryRuns} runs total)! Fielder's errant throw conceded bonus overthrows!`
+          : `OVERTHROW! ${runs} run${runs === 1 ? '' : 's'} completed by running + ${otRuns} overthrow runs (${totalDeliveryRuns} runs total)! Fielder misses the stumps and concedes extra runs!`;
+      }
+    } else if (isWkt) {
       badge = 'W';
       badgeType = 'wkt';
       const outType = dismissalTypeVal || 'bowled';
@@ -5174,7 +5224,7 @@ function CricketAddaMain() {
       batter: currentStriker,
       ballSymbol: badge,
       badgeType,
-      runs,
+      runs: totalDeliveryRuns,
       shotArea: shotAreaName,
       text,
       timestamp: 'Just now',
@@ -5491,7 +5541,8 @@ function CricketAddaMain() {
       shotSector,
       actualDismissalVal,
       dismissedNameVal,
-      finalFielderVal
+      finalFielderVal,
+      otRuns
     );
     setLiveCommentaryList(prev => [...newCommEntries, ...prev]);
 
@@ -5826,6 +5877,23 @@ function CricketAddaMain() {
           if (userMatch) {
             existing = userMatch.profile || userMatch;
           }
+        }
+
+        // Cross-device cloud lookup to fetch full cloud profile & avatar
+        if ((!existing || !existing.avatarUri) && pPhone && isFirebaseConfigured()) {
+          searchCloudPlayerByPhone(pPhone).then(cloudProf => {
+            if (cloudProf && cloudProf.name) {
+              setScannedPlayerProfile(prev => prev ? ({
+                ...prev,
+                name: cloudProf.name || prev.name,
+                avatarUri: cloudProf.avatarUri || prev.avatarUri,
+                role: cloudProf.role ? (cloudProf.role.includes('BOWL') ? 'BOWL' : cloudProf.role.includes('WK') ? 'WK' : cloudProf.role.includes('ALL') ? 'ALL' : 'BAT') : prev.role,
+                battingStyle: cloudProf.battingStyle || prev.battingStyle,
+                bowlingStyle: cloudProf.bowlingStyle || prev.bowlingStyle,
+                jersey: cloudProf.jersey || prev.jersey,
+              }) : prev);
+            }
+          }).catch(() => {});
         }
 
         const scannedProfile = {
@@ -7589,9 +7657,11 @@ function CricketAddaMain() {
     setActiveDropdown(null);
   };
 
-  const handlePhoneInputChange = (text) => {
+  const handlePhoneInputChange = async (text) => {
     const cleanDigits = text.replace(/[^0-9]/g, '').slice(0, 10);
     setPlayerPhoneInput(cleanDigits);
+    setPhoneSearchNotFound(false);
+
     if (cleanDigits.length >= 10) {
       // 1. Check local registeredPlayers
       let found = registeredPlayers.find(p => (p.phone || '').replace(/[^0-9]/g, '') === cleanDigits);
@@ -7621,30 +7691,43 @@ function CricketAddaMain() {
         }
       }
 
+      // 3. Check Cloud Database
+      if (!found && isFirebaseConfigured()) {
+        try {
+          const cloudProfile = await searchCloudPlayerByPhone(cleanDigits);
+          if (cloudProfile && cloudProfile.name) {
+            found = {
+              id: cloudProfile.id || `usr_${cleanDigits}`,
+              name: cloudProfile.name,
+              phone: cleanDigits,
+              role: (cloudProfile.role && cloudProfile.role.includes('Bowler')) ? 'BOWL' : (cloudProfile.role && cloudProfile.role.includes('Keeper')) ? 'WK' : (cloudProfile.role && cloudProfile.role.includes('All')) ? 'ALL' : 'BAT',
+              battingStyle: cloudProfile.battingStyle || 'Right Hand Bat',
+              bowlingStyle: cloudProfile.bowlingStyle || 'Right Arm Medium',
+              jersey: cloudProfile.jersey ? String(cloudProfile.jersey).replace('#', '') : '',
+              avatarUri: cloudProfile.avatarUri || null,
+              matches: cloudProfile.matches || 1,
+              runs: cloudProfile.runs || 0,
+              wickets: cloudProfile.wickets || 0,
+              strikeRate: cloudProfile.strikeRate || '0.0',
+              economy: cloudProfile.economy || '0.0',
+              rating: cloudProfile.rating || '8.5',
+            };
+          }
+        } catch (e) {}
+      }
+
       if (found) {
         setPlayerPhoneSearchResult(found);
+        setPhoneSearchNotFound(false);
         setNewPlayerNameInput(found.name);
         setNewPlayerRoleInput(found.role || 'BAT');
       } else {
-        setPlayerPhoneSearchResult({
-          id: `p_ph_${Date.now()}`,
-          name: newPlayerNameInput.trim() || '',
-          phone: cleanDigits,
-          role: newPlayerRoleInput || 'BAT',
-          battingStyle: 'Right Hand Bat',
-          bowlingStyle: newPlayerRoleInput === 'BOWL' ? 'Right Arm Fast' : 'Right Arm Medium',
-          jersey: '',
-          isNew: true,
-          matches: 0,
-          runs: 0,
-          wickets: 0,
-          strikeRate: '0.0',
-          economy: '0.0',
-          rating: '7.5',
-        });
+        setPlayerPhoneSearchResult(null);
+        setPhoneSearchNotFound(true);
       }
     } else {
       setPlayerPhoneSearchResult(null);
+      setPhoneSearchNotFound(false);
     }
   };
 
@@ -7658,6 +7741,9 @@ function CricketAddaMain() {
       showAppToast('Please enter a valid 10-digit phone number', '⚠️', 'error');
       return;
     }
+
+    setPhoneSearching(true);
+    setPhoneSearchNotFound(false);
 
     // 1. Search local registeredPlayers
     let found = registeredPlayers.find(p => (p.phone || '').replace(/[^0-9]/g, '') === cleanDigits);
@@ -7712,29 +7798,18 @@ function CricketAddaMain() {
       }
     }
 
+    setPhoneSearching(false);
+
     if (found) {
       setPlayerPhoneSearchResult(found);
+      setPhoneSearchNotFound(false);
       setNewPlayerNameInput(found.name);
       setNewPlayerRoleInput(found.role || 'BAT');
-      showAppToast(`Found player: ${found.name}`, '👤');
+      showAppToast(`Found registered player: ${found.name}`, '👤');
     } else {
-      setPlayerPhoneSearchResult({
-        id: `p_ph_${Date.now()}`,
-        name: newPlayerNameInput.trim() || '',
-        phone: cleanDigits,
-        role: newPlayerRoleInput || 'BAT',
-        battingStyle: 'Right Hand Bat',
-        bowlingStyle: newPlayerRoleInput === 'BOWL' ? 'Right Arm Fast' : 'Right Arm Medium',
-        jersey: '',
-        isNew: true,
-        matches: 0,
-        runs: 0,
-        wickets: 0,
-        strikeRate: '0.0',
-        economy: '0.0',
-        rating: '7.5',
-      });
-      showAppToast('Player not registered. Enter details to add', 'ℹ️');
+      setPlayerPhoneSearchResult(null);
+      setPhoneSearchNotFound(true);
+      showAppToast('No registered player found with this mobile number', '⚠️', 'error');
     }
   };
 
@@ -11162,22 +11237,23 @@ function CricketAddaMain() {
                   let subLabel = null;
 
                   if (selectedExtraType === 'wide') {
-                    label = `${r + 1} Wd`;
-                    subLabel = r === 0 ? '+0 extra' : `+${r} extra`;
+                    label = r === 0 ? '1 Wd' : `${r + 1} Wd`;
+                    subLabel = null;
                   } else if (selectedExtraType === 'noBall') {
                     if (nbSubMode === 'bye') {
-                      label = r === 0 ? '1 Nb' : `Nb+${r} B`;
-                      subLabel = r === 0 ? 'no byes' : `+${r} Byes`;
+                      label = `Nb+${r} B`;
                     } else if (nbSubMode === 'legBye') {
-                      label = r === 0 ? '1 Nb' : `Nb+${r} LB`;
-                      subLabel = r === 0 ? 'no lb' : `+${r} Leg Byes`;
+                      label = `Nb+${r} LB`;
                     } else {
-                      label = r === 0 ? '1 Nb' : `Nb+${r}`;
-                      subLabel = r === 0 ? 'off bat' : `+${r} bat runs`;
+                      label = `Nb+${r}`;
                     }
-                  } else if (selectedExtraType === 'bye' || selectedExtraType === 'legBye') {
-                    label = `${r} ${selectedExtraType === 'bye' ? 'B' : 'LB'}`;
-                    subLabel = 'runs taken';
+                    subLabel = null;
+                  } else if (selectedExtraType === 'bye') {
+                    label = `${r} B`;
+                    subLabel = null;
+                  } else if (selectedExtraType === 'legBye') {
+                    label = `${r} LB`;
+                    subLabel = null;
                   } else {
                     label = String(r);
                     subLabel = r === 0 ? 'Dot' : r === 4 ? 'Four' : r === 6 ? 'Six' : `${r} Run${r > 1 ? 's' : ''}`;
@@ -11576,6 +11652,7 @@ function CricketAddaMain() {
                   const isSix = item.badgeType === 'six';
                   const isFour = item.badgeType === 'four';
                   const isWkt = item.badgeType === 'wkt';
+                  const isOverthrow = item.badgeType === 'overthrow';
                   const isExtra = item.badgeType === 'wide' || item.badgeType === 'noBall';
 
                   return (
@@ -11591,6 +11668,7 @@ function CricketAddaMain() {
                         isSix && styles.commentaryRowSix,
                         isFour && styles.commentaryRowFour,
                         isWkt && styles.commentaryRowWkt,
+                        isOverthrow && { borderLeftWidth: 3, borderLeftColor: '#a855f7' },
                       ]}
                     >
                       {/* Left: Over & Badge */}
@@ -11601,6 +11679,7 @@ function CricketAddaMain() {
                           isSix && { backgroundColor: '#581c87', borderColor: '#c084fc' },
                           isFour && { backgroundColor: '#78350f', borderColor: '#f59e0b' },
                           isWkt && { backgroundColor: '#7f1d1d', borderColor: '#ef4444' },
+                          isOverthrow && { backgroundColor: '#4c1d95', borderColor: '#a855f7' },
                           isExtra && { backgroundColor: '#1e293b', borderColor: '#f97316' },
                         ]}>
                           <Text style={[
@@ -11608,6 +11687,7 @@ function CricketAddaMain() {
                             isSix && { color: '#e9d5ff' },
                             isFour && { color: '#fde68a' },
                             isWkt && { color: '#fca5a5' },
+                            isOverthrow && { color: '#f3e8ff', fontWeight: '900' },
                             isExtra && { color: '#fdba74' },
                           ]}>
                             {item.ballSymbol === '•' ? '0' : item.ballSymbol}
@@ -14322,6 +14402,7 @@ function CricketAddaMain() {
                     const isSix = item.badgeType === 'six';
                     const isFour = item.badgeType === 'four';
                     const isWkt = item.badgeType === 'wkt';
+                    const isOverthrow = item.badgeType === 'overthrow';
                     const isExtra = item.badgeType === 'wide' || item.badgeType === 'noBall';
 
                     return (
@@ -14333,6 +14414,7 @@ function CricketAddaMain() {
                           isSix && styles.commentaryRowSix,
                           isFour && styles.commentaryRowFour,
                           isWkt && styles.commentaryRowWkt,
+                          isOverthrow && { borderLeftWidth: 3, borderLeftColor: '#a855f7' },
                         ]}
                       >
                         <View style={styles.commentaryLeftCol}>
@@ -14342,6 +14424,7 @@ function CricketAddaMain() {
                             isSix && { backgroundColor: '#581c87', borderColor: '#c084fc' },
                             isFour && { backgroundColor: '#78350f', borderColor: '#f59e0b' },
                             isWkt && { backgroundColor: '#7f1d1d', borderColor: '#ef4444' },
+                            isOverthrow && { backgroundColor: '#4c1d95', borderColor: '#a855f7' },
                             isExtra && { backgroundColor: '#1e293b', borderColor: '#f97316' },
                           ]}>
                             <Text style={[
@@ -14349,6 +14432,7 @@ function CricketAddaMain() {
                               isSix && { color: '#e9d5ff' },
                               isFour && { color: '#fde68a' },
                               isWkt && { color: '#fca5a5' },
+                              isOverthrow && { color: '#f3e8ff', fontWeight: '900' },
                               isExtra && { color: '#fdba74' },
                             ]}>
                               {item.ballSymbol === '•' ? '0' : item.ballSymbol}
@@ -14692,12 +14776,41 @@ function CricketAddaMain() {
                     </ScrollView>
                   </View>
 
-                  {/* Registered / New Player Profile Card */}
-                  {playerPhoneSearchResult ? (
+                  {/* Registered Player Profile Card / Loading / Not Found Message */}
+                  {phoneSearching ? (
+                    <View style={{ paddingVertical: 18, alignItems: 'center', justifyContent: 'center' }}>
+                      <ActivityIndicator size="small" color="#38bdf8" />
+                      <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 8, fontWeight: '600' }}>
+                        Searching registered players across Cloud & Local DB...
+                      </Text>
+                    </View>
+                  ) : phoneSearchNotFound ? (
+                    <View style={{
+                      backgroundColor: currentTheme.isLight ? '#fef2f2' : 'rgba(239, 68, 68, 0.12)',
+                      borderColor: '#ef4444',
+                      borderWidth: 1.5,
+                      borderRadius: 12,
+                      padding: 14,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      marginVertical: 6,
+                    }}>
+                      <Text style={{ fontSize: 26, marginBottom: 4 }}>🚫</Text>
+                      <Text style={{ color: '#ef4444', fontSize: 13, fontWeight: 'bold', textAlign: 'center', marginBottom: 4 }}>
+                        No Registered Player Found
+                      </Text>
+                      <Text style={{ color: currentTheme.isLight ? '#475569' : '#cbd5e1', fontSize: 11, textAlign: 'center', lineHeight: 16 }}>
+                        No player is registered on CricketAdda with mobile number +91 {playerPhoneInput}.
+                      </Text>
+                      <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10, textAlign: 'center', marginTop: 4 }}>
+                        Please verify the 10-digit number or ask the player to create an account on CricketAdda.
+                      </Text>
+                    </View>
+                  ) : playerPhoneSearchResult ? (
                     <View style={styles.playerProfileCard}>
                       <View style={styles.playerProfileHeader}>
                         <PlayerAvatar
-                          name={playerPhoneSearchResult.name || newPlayerNameInput || 'Player'}
+                          name={playerPhoneSearchResult.name || 'Player'}
                           customUri={playerPhoneSearchResult.avatarUri}
                           size={52}
                           borderColor="#10b981"
@@ -14705,11 +14818,11 @@ function CricketAddaMain() {
                         <View style={{ flex: 1, marginLeft: 12 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                             <Text style={styles.playerProfileName}>
-                              {playerPhoneSearchResult.name || (newPlayerNameInput.trim() || 'New Teammate')}
+                              {playerPhoneSearchResult.name}
                             </Text>
-                            <View style={[styles.playerVerifiedTag, { backgroundColor: playerPhoneSearchResult.isNew ? '#f59e0b' : '#10b981' }]}>
+                            <View style={[styles.playerVerifiedTag, { backgroundColor: '#10b981' }]}>
                               <Text style={styles.playerVerifiedTagText}>
-                                {playerPhoneSearchResult.isNew ? 'NEW PLAYER' : 'VERIFIED PRO'}
+                                VERIFIED PRO
                               </Text>
                             </View>
                           </View>
@@ -14772,65 +14885,26 @@ function CricketAddaMain() {
                         </View>
                       </View>
 
-                      {/* If new player, allow setting name & role */}
-                      {playerPhoneSearchResult.isNew && (
-                        <View style={{ marginTop: 4, marginBottom: 8 }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: 'bold', marginBottom: 4 }}>PLAYER NAME:</Text>
-                          <TextInput
-                            style={[styles.wizardTextInput, { height: 38, marginBottom: 8 }]}
-                            value={newPlayerNameInput}
-                            onChangeText={setNewPlayerNameInput}
-                            placeholder="Enter Player's Full Name"
-                            placeholderTextColor="#64748b"
-                          />
-                          <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: 'bold', marginBottom: 4 }}>PLAYER ROLE:</Text>
-                          <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
-                            {[
-                              { key: 'BAT', label: 'Batter', icon: '🏏' },
-                              { key: 'BOWL', label: 'Bowler', is3DBall: true },
-                              { key: 'ALL', label: 'All-Round', icon: '⚡' },
-                              { key: 'WK', label: 'Keeper', icon: '🧤' },
-                            ].map(r => {
-                              const isSel = newPlayerRoleInput === r.key;
-                              return (
-                                <TouchableOpacity
-                                  key={r.key}
-                                  style={[styles.playerRoleSelectChip, isSel && styles.playerRoleSelectChipActive]}
-                                  onPress={() => {
-                                    setNewPlayerRoleInput(r.key);
-                                    setPlayerPhoneSearchResult(prev => prev ? ({ ...prev, role: r.key }) : null);
-                                  }}
-                                >
-                                  <Text style={[styles.playerRoleSelectChipText, isSel && styles.playerRoleSelectChipTextActive]}>
-                                    {r.icon || '🔴'} {r.label}
-                                  </Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </View>
-                        </View>
-                      )}
-
                       {/* ADD TO TEAM BUTTON */}
                       <TouchableOpacity
                         style={[
                           styles.playerProfileAddBtn,
-                          newTeamSquad.some(p => p.name.toLowerCase() === (playerPhoneSearchResult.name || newPlayerNameInput).trim().toLowerCase() || (playerPhoneSearchResult.phone && p.phone === playerPhoneSearchResult.phone)) && styles.playerProfileAddBtnDisabled
+                          newTeamSquad.some(p => p.name.toLowerCase() === (playerPhoneSearchResult.name || '').trim().toLowerCase() || (playerPhoneSearchResult.phone && p.phone === playerPhoneSearchResult.phone)) && styles.playerProfileAddBtnDisabled
                         ]}
-                        disabled={newTeamSquad.some(p => p.name.toLowerCase() === (playerPhoneSearchResult.name || newPlayerNameInput).trim().toLowerCase() || (playerPhoneSearchResult.phone && p.phone === playerPhoneSearchResult.phone))}
+                        disabled={newTeamSquad.some(p => p.name.toLowerCase() === (playerPhoneSearchResult.name || '').trim().toLowerCase() || (playerPhoneSearchResult.phone && p.phone === playerPhoneSearchResult.phone))}
                         onPress={handleAddFoundPlayerByPhone}
                       >
                         <Text style={styles.playerProfileAddBtnText}>
-                          {newTeamSquad.some(p => p.name.toLowerCase() === (playerPhoneSearchResult.name || newPlayerNameInput).trim().toLowerCase() || (playerPhoneSearchResult.phone && p.phone === playerPhoneSearchResult.phone))
+                          {newTeamSquad.some(p => p.name.toLowerCase() === (playerPhoneSearchResult.name || '').trim().toLowerCase() || (playerPhoneSearchResult.phone && p.phone === playerPhoneSearchResult.phone))
                             ? '✓ Already in Squad'
                             : '➕ Add to Team'}
                         </Text>
                       </TouchableOpacity>
                     </View>
                   ) : (
-                    <View style={{ paddingVertical: 8, alignItems: 'center' }}>
+                    <View style={{ paddingVertical: 10, alignItems: 'center' }}>
                       <Text style={{ color: '#64748b', fontSize: 11, textAlign: 'center', lineHeight: 16 }}>
-                        💡 Enter a player's 10-digit mobile number above and tap "Search" to view their profile and add them to your team.
+                        💡 Enter a registered player's 10-digit mobile number above and tap "Search" to view their profile and add them to your squad.
                       </Text>
                     </View>
                   )}

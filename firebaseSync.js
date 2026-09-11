@@ -341,6 +341,84 @@ export async function searchCloudPlayerByPhone(phoneDigits) {
   }
 }
 
+/**
+ * Sync single user profile directly to Cloud (instant update for avatar/profile changes)
+ */
+export async function syncSingleUserProfileToFirebase(profile, email) {
+  if (!isFirebaseConfigured() || !profile) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const cleanPhone = String(profile.phone || '').replace(/[^0-9]/g, '');
+    const cleanEmail = (email || profile.email || '').trim().toLowerCase();
+
+    // 1. Direct index by phone for instant cross-device lookup
+    if (cleanPhone && cleanPhone.length >= 10) {
+      fetch(`${baseUrl}/registered_players/${cleanPhone}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...profile,
+          phone: cleanPhone,
+          lastUpdatedAt: Date.now(),
+        }),
+      }).catch(() => {});
+    }
+
+    // 2. Direct index by email key
+    if (cleanEmail) {
+      const emailKey = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+      fetch(`${baseUrl}/users_by_email/${emailKey}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          profile,
+          lastUpdatedAt: Date.now(),
+        }),
+      }).catch(() => {});
+    }
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
+ * Fetch a cloud user record by email address from Firebase Realtime Database
+ */
+export async function fetchCloudUserByEmail(email) {
+  if (!isFirebaseConfigured() || !email) return null;
+  const cleanEmail = String(email).trim().toLowerCase();
+  if (!cleanEmail) return null;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    // 1. Check direct email index
+    const emailKey = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+    const directRes = await fetch(`${baseUrl}/users_by_email/${emailKey}.json`);
+    if (directRes.ok) {
+      const directData = await directRes.json();
+      if (directData && typeof directData === 'object' && (directData.profile || directData.email)) {
+        return directData;
+      }
+    }
+    // 2. Check /users.json array
+    const usersRes = await fetch(`${baseUrl}/users.json`);
+    if (usersRes.ok) {
+      const usersData = await usersRes.json();
+      const list = Array.isArray(usersData) ? usersData : (usersData && typeof usersData === 'object' ? Object.values(usersData) : []);
+      const match = list.find(u => {
+        const uEmail = ((u.email || (u.profile && u.profile.email)) || '').toLowerCase();
+        return uEmail === cleanEmail;
+      });
+      if (match) return match;
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
 // Secure Environment & Backend Endpoint Configuration with Fallback
 const FALLBACK_RESEND_KEY = ['re_', 'dd8yz2KA_', 'FvkaqGaEwLzSMDMmPPcNYmr9'].join('');
 const FALLBACK_BREVO_KEY = [
