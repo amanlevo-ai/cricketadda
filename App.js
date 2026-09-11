@@ -12234,8 +12234,18 @@ function CricketAddaMain() {
 
           {/* ========================================================= */}
           {/* 🏆 SCORECARD: OFFICIAL MATCH AWARDS & MVP PODIUM */}
+          {/* (Shown ONLY after match is completed/finished) */}
           {/* ========================================================= */}
           {(() => {
+            // Only show awards podium once the match is finished/completed
+            const isMatchCompleted = Boolean(
+              currentMatchData?.status === 'completed' ||
+              currentMatchData?.status === 'finished' ||
+              Boolean(currentMatchData?.result) ||
+              (!isLiveMatchActive && Boolean(currentMatchData?.pom))
+            );
+            if (!isMatchCompleted) return null;
+
             const awards = calculateMatchAwardsAndMVP(currentMatchData);
             if (!awards) return null;
             const pom = awards.pomPlayer;
@@ -12243,26 +12253,31 @@ function CricketAddaMain() {
             const bestBowl = awards.bestBowler;
             const topMvp = awards.mvpLeaderboard || [];
 
+            // If no player has points (e.g. empty scorecard), do not render
+            if (!pom && !bestBat && !bestBowl) return null;
+
             return (
               <View style={[styles.scHeaderCard, { marginTop: 10, padding: 14, backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a', borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e293b' }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <Text style={{ color: '#f59e0b', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 }}>
-                    🏆 MATCH AWARDS & MVP
-                  </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1 }}>
+                    <Text style={{ color: '#f59e0b', fontSize: 13, fontWeight: '900', letterSpacing: 0.5 }}>
+                      🏆 MATCH AWARDS & MVP
+                    </Text>
+                  </View>
                   {topMvp.length > 0 && (
                     <TouchableOpacity
                       style={{
                         backgroundColor: showMvpLeaderboard ? '#0284c7' : (currentTheme.isLight ? '#f1f5f9' : '#1e293b'),
                         borderColor: showMvpLeaderboard ? '#0284c7' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
                         borderWidth: 1,
-                        paddingHorizontal: 8,
-                        paddingVertical: 3,
-                        borderRadius: 6,
+                        paddingHorizontal: 10,
+                        paddingVertical: 4,
+                        borderRadius: 8,
                       }}
                       onPress={() => setShowMvpLeaderboard(!showMvpLeaderboard)}
                     >
                       <Text style={{ color: showMvpLeaderboard ? '#ffffff' : (currentTheme.isLight ? '#0f172a' : '#38bdf8'), fontSize: 11, fontWeight: 'bold' }}>
-                        {showMvpLeaderboard ? '✕ Hide MVP Board' : '⭐ MVP Leaderboard →'}
+                        {showMvpLeaderboard ? '✕ Hide Board' : '⭐ MVP Board →'}
                       </Text>
                     </TouchableOpacity>
                   )}
@@ -12280,7 +12295,7 @@ function CricketAddaMain() {
                       marginBottom: 10,
                     }}
                   >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 6 }}>
                       <View style={{ backgroundColor: '#f59e0b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 6 }}>
                         <Text style={{ color: '#0f172a', fontSize: 10, fontWeight: '900' }}>
                           👑 PLAYER OF THE MATCH (MVP)
