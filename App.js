@@ -7486,11 +7486,74 @@ function CricketAddaMain() {
     setWicketInspectModalVisible(true);
   };
 
+  // Helpers for parsing overs, extras, and fall of wickets
+  const parseOversToBalls = ov => {
+    if (typeof ov === 'number') return ov;
+    if (!ov || typeof ov !== 'string') return 0;
+    const parts = ov.split('.');
+    const wholeOvers = Number(parts[0]) || 0;
+    const balls = Number(parts[1]) || 0;
+    return wholeOvers * 6 + balls;
+  };
+
+  const calculateExtrasFromHistory = (history, inningNum, fallbackExtras) => {
+    if (!Array.isArray(history) || history.length === 0) {
+      return fallbackExtras || '0 (b 0, lb 0, w 0, nb 0)';
+    }
+    const innDeliveries = history.filter(h => (h.innings || 1) === inningNum);
+    if (innDeliveries.length === 0) {
+      return fallbackExtras || '0 (b 0, lb 0, w 0, nb 0)';
+    }
+
+    let wides = 0;
+    let noBalls = 0;
+    let byes = 0;
+    let legByes = 0;
+
+    innDeliveries.forEach(d => {
+      const extraType = d.extraType;
+      const added = Number(d.addedRuns) || 0;
+      if (extraType === 'wide') {
+        wides += added;
+      } else if (extraType === 'noBall') {
+        noBalls += 1;
+        if (d.nbRunType === 'bye') byes += Math.max(0, added - 1);
+        else if (d.nbRunType === 'legBye') legByes += Math.max(0, added - 1);
+      } else if (extraType === 'bye') {
+        byes += added;
+      } else if (extraType === 'legBye') {
+        legByes += added;
+      }
+    });
+
+    const total = wides + noBalls + byes + legByes;
+    return `${total} (b ${byes}, lb ${legByes}, w ${wides}, nb ${noBalls})`;
+  };
+
+  const calculateFOWFromHistory = (history, inningNum, fallbackFow) => {
+    if (!Array.isArray(history) || history.length === 0) {
+      return fallbackFow || 'Yet to fall';
+    }
+    const wkts = history.filter(h => h.isWkt && (h.innings || 1) === inningNum);
+    if (wkts.length === 0) {
+      return fallbackFow || 'Yet to fall';
+    }
+
+    return wkts.map((w, idx) => {
+      const wNum = idx + 1;
+      const wRuns = w.liveRuns !== undefined ? w.liveRuns : 0;
+      const wBalls = w.liveBalls !== undefined ? w.liveBalls : 0;
+      const wOv = `${Math.floor(wBalls / 6)}.${wBalls % 6} ov`;
+      const pName = w.dismissedPlayerName || w.striker || 'Batter';
+      return `${wNum}-${wRuns} (${pName}, ${wOv})`;
+    }).join(', ');
+  };
+
   const getDynamicBatting = (staticBatting, forcedBattersMap = null, isForcedHistorical = false) => {
     const battersMap = new Map();
 
     (staticBatting || []).forEach(b => {
-      battersMap.set(b.name.toLowerCase(), { ...b });
+      if (b && b.name) battersMap.set(String(b.name).toLowerCase(), { ...b });
     });
 
     const activeMap = forcedBattersMap || liveBatters;
@@ -7542,7 +7605,7 @@ function CricketAddaMain() {
 
     // 1. Seed with static bowlers
     (staticBowling || []).forEach(bw => {
-      bowlersMap.set(bw.name.toLowerCase(), { ...bw });
+      if (bw && bw.name) bowlersMap.set(String(bw.name).toLowerCase(), { ...bw });
     });
 
     const activeMap = forcedBowlersMap || liveBowlerStats;
@@ -7596,33 +7659,105 @@ function CricketAddaMain() {
       (currentMatchData.innings1?.batting && currentMatchData.innings1.batting.length > 0) ||
       (currentMatchData.innings1?.runs > 0) ||
       (currentMatchData.innings2?.runs > 0) ||
+      (currentMatchData.liveState?.liveRuns > 0) ||
       currentMatchData.status === 'live' ||
       currentMatchData.status === 'finished' ||
+      currentMatchData.status === 'completed' ||
       Boolean(currentMatchData.result)
     ))
   );
-  const baseInning = scorecardInning === 1 ? currentMatchData.innings1 : currentMatchData.innings2;
-  const activeInningData = isLiveMatchActive && scorecardInning === currentInnings
-    ? {
-        ...baseInning,
-        runs: liveRuns,
-        wickets: liveWickets,
-        overs: oversStr,
-        crr: crr,
-        batting: getDynamicBatting(baseInning.batting),
-        bowling: getDynamicBowling(baseInning.bowling),
-      }
-    : (scorecardInning === 1 && firstInningsSummary
-        ? {
-            ...currentMatchData.innings1,
-            runs: firstInningsSummary.runs,
-            wickets: firstInningsSummary.wickets,
-            overs: firstInningsSummary.overs,
-            crr: firstInningsSummary.crr || (firstInningsSummary.runs / (maxOvers || 20)).toFixed(2),
-            batting: getDynamicBatting(currentMatchData.innings1.batting, firstInningsSummary.batting, true),
-            bowling: getDynamicBowling(currentMatchData.innings1.bowling, firstInningsSummary.bowling, true),
-          }
-        : baseInning);
+
+  const getInningScorecardData = useCallback((targetMatch, inningNum) => {
+    if (!targetMatch) return { batting: [], bowling: [], runs: 0, wickets: 0, overs: '0.0', crr: '0.00', extras: '0 (b 0, lb 0, w 0, nb 0)', fow: 'Yet to fall', team: 'Team', flag: '🏏' };
+    const isTargetActive = targetMatch.id === activeMatchId;
+    const mLive = targetMatch.liveState;
+    const currentLiveInnings = isTargetActive ? currentInnings : (mLive?.currentInnings || 1);
+    const isLiveMatch = targetMatch.status === 'live';
+    const isLiveNow = isLiveMatch && inningNum === currentLiveInnings;
+
+    const baseInning = inningNum === 1 ? (targetMatch.innings1 || {}) : (targetMatch.innings2 || {});
+
+    // Batters map resolution
+    let activeBattersMap = null;
+    if (isLiveNow && isTargetActive && Object.keys(liveBatters).length > 0) {
+      activeBattersMap = liveBatters;
+    } else if (isLiveNow && mLive?.liveBatters && Object.keys(mLive.liveBatters).length > 0) {
+      activeBattersMap = mLive.liveBatters;
+    } else if (inningNum === 1 && (mLive?.firstInningsSummary?.batting || firstInningsSummary?.batting)) {
+      activeBattersMap = mLive?.firstInningsSummary?.batting || firstInningsSummary?.batting;
+    } else if (mLive?.liveBatters && Object.keys(mLive.liveBatters).length > 0) {
+      activeBattersMap = mLive.liveBatters;
+    }
+
+    // Bowlers map resolution
+    let activeBowlersMap = null;
+    if (isLiveNow && isTargetActive && Object.keys(liveBowlerStats).length > 0) {
+      activeBowlersMap = liveBowlerStats;
+    } else if (isLiveNow && mLive?.liveBowlerStats && Object.keys(mLive.liveBowlerStats).length > 0) {
+      activeBowlersMap = mLive.liveBowlerStats;
+    } else if (inningNum === 1 && (mLive?.firstInningsSummary?.bowling || firstInningsSummary?.bowling)) {
+      activeBowlersMap = mLive?.firstInningsSummary?.bowling || firstInningsSummary?.bowling;
+    } else if (mLive?.liveBowlerStats && Object.keys(mLive.liveBowlerStats).length > 0) {
+      activeBowlersMap = mLive.liveBowlerStats;
+    }
+
+    const runs = isLiveNow && isTargetActive
+      ? liveRuns
+      : (isLiveNow && typeof mLive?.liveRuns === 'number'
+        ? mLive.liveRuns
+        : (inningNum === 1 && mLive?.firstInningsSummary?.runs !== undefined
+          ? mLive.firstInningsSummary.runs
+          : (inningNum === 1 && firstInningsSummary?.runs !== undefined && isTargetActive
+            ? firstInningsSummary.runs
+            : (baseInning.runs ?? (mLive?.liveRuns ?? 0)))));
+
+    const wickets = isLiveNow && isTargetActive
+      ? liveWickets
+      : (isLiveNow && typeof mLive?.liveWickets === 'number'
+        ? mLive.liveWickets
+        : (inningNum === 1 && mLive?.firstInningsSummary?.wickets !== undefined
+          ? mLive.firstInningsSummary.wickets
+          : (inningNum === 1 && firstInningsSummary?.wickets !== undefined && isTargetActive
+            ? firstInningsSummary.wickets
+            : (baseInning.wickets ?? (mLive?.liveWickets ?? 0)))));
+
+    const balls = isLiveNow && isTargetActive
+      ? liveBalls
+      : (isLiveNow && typeof mLive?.liveBalls === 'number'
+        ? mLive.liveBalls
+        : (inningNum === 1 && mLive?.firstInningsSummary?.overs
+          ? parseOversToBalls(mLive.firstInningsSummary.overs)
+          : (inningNum === 1 && firstInningsSummary?.overs && isTargetActive
+            ? parseOversToBalls(firstInningsSummary.overs)
+            : parseOversToBalls(baseInning.overs || '0.0'))));
+
+    const overs = `${Math.floor(balls / 6)}.${balls % 6}`;
+    const maxOv = baseInning.maxOvers || targetMatch.overs || 20;
+    const crr = balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00';
+
+    const historyStack = isTargetActive && scoringHistory.length > 0 ? scoringHistory : (mLive?.scoringHistory || []);
+    const dynamicExtras = calculateExtrasFromHistory(historyStack, inningNum, baseInning.extras);
+    const dynamicFow = calculateFOWFromHistory(historyStack, inningNum, baseInning.fow);
+
+    return {
+      ...baseInning,
+      team: baseInning.team || (inningNum === 1 ? targetMatch.teamA : targetMatch.teamB) || `Team ${inningNum}`,
+      flag: baseInning.flag || (inningNum === 1 ? targetMatch.flagA : targetMatch.flagB) || '🏏',
+      runs,
+      wickets,
+      overs,
+      balls,
+      crr,
+      batting: getDynamicBatting(baseInning.batting || [], activeBattersMap, !isLiveNow),
+      bowling: getDynamicBowling(baseInning.bowling || [], activeBowlersMap, !isLiveNow),
+      extras: dynamicExtras,
+      fow: dynamicFow,
+    };
+  }, [activeMatchId, liveRuns, liveWickets, liveBalls, liveBatters, liveBowlerStats, currentInnings, scoringHistory, firstInningsSummary, oversStr, crr]);
+
+  const inn1ScorecardData = getInningScorecardData(currentMatchData, 1);
+  const inn2ScorecardData = getInningScorecardData(currentMatchData, 2);
+  const activeInningData = scorecardInning === 1 ? inn1ScorecardData : inn2ScorecardData;
 
   // -------------------------------------------------------------
   // PHASE 1: MATCH SETUP & DRAFT MANAGEMENT
@@ -12674,13 +12809,7 @@ function CricketAddaMain() {
               onPress={() => setScorecardInning(1)}
             >
               <Text style={[styles.inningTabText, currentTheme.isLight && { color: '#475569' }, scorecardInning === 1 && (currentTheme.isLight ? { color: '#0284c7' } : styles.inningTabTextActive)]}>
-                {currentMatchData.innings1.flag} {currentMatchData.innings1.team} ({
-                  currentInnings === 1 && isLiveMatchActive
-                    ? `${liveRuns}/${liveWickets}`
-                    : firstInningsSummary
-                    ? `${firstInningsSummary.runs}/${firstInningsSummary.wickets}`
-                    : `${currentMatchData.innings1.runs}/${currentMatchData.innings1.wickets}`
-                })
+                {inn1ScorecardData.flag} {inn1ScorecardData.team} ({inn1ScorecardData.runs}/{inn1ScorecardData.wickets})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -12688,13 +12817,7 @@ function CricketAddaMain() {
               onPress={() => setScorecardInning(2)}
             >
               <Text style={[styles.inningTabText, currentTheme.isLight && { color: '#475569' }, scorecardInning === 2 && (currentTheme.isLight ? { color: '#0284c7' } : styles.inningTabTextActive)]}>
-                {currentMatchData.innings2.flag} {currentMatchData.innings2.team} ({
-                  currentInnings === 2 && isLiveMatchActive
-                    ? `${liveRuns}/${liveWickets}`
-                    : currentMatchData.innings2.runs > 0 || currentMatchData.innings2.wickets > 0
-                    ? `${currentMatchData.innings2.runs}/${currentMatchData.innings2.wickets}`
-                    : '0/0'
-                })
+                {inn2ScorecardData.flag} {inn2ScorecardData.team} ({inn2ScorecardData.runs}/{inn2ScorecardData.wickets})
               </Text>
             </TouchableOpacity>
           </View>
