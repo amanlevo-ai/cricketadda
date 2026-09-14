@@ -3155,6 +3155,9 @@ function CelebrationGraphicView({ type, loopAnim, spinAnim, glowAnim }) {
 
 // Persistent AsyncStorage Keys
 const STORAGE_KEYS = {
+  THEME: '@cricketadda_pref_theme',
+  ACTIVE_MATCH_ID: '@cricketadda_active_match_id',
+  ACTIVE_SCORER: '@cricketadda_active_scorer',
   AUTO_WHEEL: '@cricketadda_pref_auto_wheel',
   SWAP_BATTERS: '@cricketadda_pref_swap_batters',
   REGISTERED_TEAMS: '@cricketadda_pref_teams',
@@ -3791,32 +3794,37 @@ function CricketAddaMain() {
       .slice(0, 6);
   }, [captainNewPlayerName, allAvailablePlayersMaster, captainSquadList]);
 
-  const isOfficialScorer = useMemo(() => {
-    if (!isAuthenticated) return false;
+  // Match Scorer Permission Guard: Check if active user has official scoring rights for a given match
+  const isUserScorerForMatch = useCallback(targetMatch => {
+    if (!targetMatch) return false;
     if (viewerSimulated) return false;
 
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
     const uName = (userProfile?.name || '').toLowerCase().trim();
     const uId = userProfile?.id;
-    if (!uName && !uEmail && !uId) return false;
-
-    const currentMatch = matchesDb[activeMatchId] || MATCH_DATABASE[activeMatchId];
-    if (!currentMatch) return false;
 
     // 1. Check match creator:
-    if (currentMatch.creatorEmail && currentMatch.creatorEmail.toLowerCase() === uEmail) return true;
-    if (currentMatch.creatorId && currentMatch.creatorId === uId) return true;
-    if (currentMatch.creatorName && currentMatch.creatorName.toLowerCase() === uName) return true;
+    if (targetMatch.creatorEmail && uEmail && targetMatch.creatorEmail.toLowerCase() === uEmail) return true;
+    if (targetMatch.creatorId && uId && targetMatch.creatorId === uId) return true;
+    if (targetMatch.creatorName && uName && targetMatch.creatorName.toLowerCase() === uName) return true;
 
-    // 2. Official Scorer transferred or assigned to active user:
-    if (currentMatch.scorerId && currentMatch.scorerId === uId) return true;
-    if (currentMatch.scorerName && currentMatch.scorerName.toLowerCase() === uName) return true;
-    if (activeScorer?.id && activeScorer.id === uId) return true;
-    if (activeScorer?.name && activeScorer.name.toLowerCase() === uName) return true;
+    // 2. Check designated/transferred scorer:
+    if (targetMatch.scorerId && uId && targetMatch.scorerId === uId) return true;
+    if (targetMatch.scorerName && uName && targetMatch.scorerName.toLowerCase() === uName) return true;
+    if (activeScorer?.authorizedMatchId === targetMatch.id) return true;
+    if (activeScorer?.id && uId && activeScorer.id === uId && (targetMatch.scorerId === activeScorer.id || !targetMatch.scorerId)) return true;
+    if (activeScorer?.name && uName && activeScorer.name.toLowerCase() === uName && (targetMatch.scorerName === activeScorer.name || !targetMatch.scorerName)) return true;
 
-    // Default: Any authenticated user has scoring capability
-    return true;
-  }, [isAuthenticated, viewerSimulated, userProfile, authEmail, activeMatchId, matchesDb, activeScorer]);
+    // 3. Fallback for locally created matches without explicit cloud creator IDs:
+    if (!targetMatch.creatorId && !targetMatch.scorerId) return true;
+
+    return false;
+  }, [userProfile, authEmail, activeScorer, viewerSimulated]);
+
+  const isOfficialScorer = useMemo(() => {
+    const currentMatch = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb)[0] || MATCH_DATABASE[activeMatchId];
+    return isUserScorerForMatch(currentMatch);
+  }, [activeMatchId, matchesDb, isUserScorerForMatch]);
 
   const [photoPickerVisible, setPhotoPickerVisible] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState('');
@@ -4237,6 +4245,12 @@ function CricketAddaMain() {
   useEffect(() => {
     const loadUserPreferences = async () => {
       try {
+        // 0. Load Stored Theme Preference
+        const storedTheme = await AsyncStorage.getItem(STORAGE_KEYS.THEME);
+        if (storedTheme) {
+          setSelectedThemeId(storedTheme);
+        }
+
         const storedWheel = await AsyncStorage.getItem(STORAGE_KEYS.AUTO_WHEEL);
         if (storedWheel !== null) {
           setAutoWheel(storedWheel === 'true');
@@ -4292,6 +4306,23 @@ function CricketAddaMain() {
             AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
           }
         }
+
+        // Restore Scorer & Active Match ID
+        const storedScorer = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_SCORER);
+        if (storedScorer) {
+          try {
+            const parsedScorer = JSON.parse(storedScorer);
+            if (parsedScorer && typeof parsedScorer === 'object') {
+              setActiveScorer(parsedScorer);
+            }
+          } catch (e) {}
+        }
+
+        const storedActiveMatchId = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_MATCH_ID);
+        if (storedActiveMatchId) {
+          setActiveMatchId(storedActiveMatchId);
+        }
+
         const storedCareer = await AsyncStorage.getItem(STORAGE_KEYS.USER_CAREER);
         if (storedCareer) {
           const parsedCareer = JSON.parse(storedCareer);
@@ -4303,7 +4334,25 @@ function CricketAddaMain() {
         if (storedMatches) {
           const parsedMatches = JSON.parse(storedMatches);
           if (parsedMatches && typeof parsedMatches === 'object') {
-            setMatchesDb(prev => ({ ...prev, ...parsedMatches }));
+            setMatchesDb(prev => {
+              const merged = { ...prev, ...parsedMatches };
+              // Rehydrate live scoring state for active match
+              const targetId = storedActiveMatchId || Object.keys(merged).find(k => merged[k]?.status === 'live');
+              if (targetId && merged[targetId]?.liveState) {
+                const ls = merged[targetId].liveState;
+                if (typeof ls.liveRuns === 'number') setLiveRuns(ls.liveRuns);
+                if (typeof ls.liveWickets === 'number') setLiveWickets(ls.liveWickets);
+                if (typeof ls.liveBalls === 'number') setLiveBalls(ls.liveBalls);
+                if (Array.isArray(ls.liveThisOver)) setLiveThisOver(ls.liveThisOver);
+                if (Array.isArray(ls.scoringHistory)) setScoringHistory(ls.scoringHistory);
+                if (ls.liveBatters) setLiveBatters(ls.liveBatters);
+                if (ls.liveBowlerStats) setLiveBowlerStats(ls.liveBowlerStats);
+                if (ls.currentInnings) setCurrentInnings(ls.currentInnings);
+                if (ls.firstInningsSummary) setFirstInningsSummary(ls.firstInningsSummary);
+                if (ls.lastOverStats) setLastOverStats(ls.lastOverStats);
+              }
+              return merged;
+            });
           }
         }
 
@@ -9941,11 +9990,11 @@ function CricketAddaMain() {
 
                         <View style={styles.liveActionBtnRow}>
                           <TouchableOpacity
-                            style={[styles.scoreLiveMatchBtn, { backgroundColor: isOfficialScorer ? currentTheme.primary : '#0284c7' }]}
+                            style={[styles.scoreLiveMatchBtn, { backgroundColor: canScoreThisMatch ? currentTheme.primary : '#0284c7' }]}
                             onPress={() => handleScoreMatchPress(m.id)}
                           >
-                            <Text style={[styles.scoreLiveMatchText, { color: '#ffffff' }]}>
-                              {isOfficialScorer ? '⚡ Score This Match →' : 'Watch Live Match →'}
+                            <Text style={[styles.scoreLiveMatchText, { color: canScoreThisMatch ? currentTheme.primaryText : '#ffffff' }]}>
+                              {canScoreThisMatch ? '⚡ Score Match →' : '👁️ Watch Live Match →'}
                             </Text>
                           </TouchableOpacity>
                           <TouchableOpacity
@@ -11269,37 +11318,74 @@ function CricketAddaMain() {
 
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thisOverScroll}>
                   <Text style={[styles.thisOverLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>This Over: </Text>
-                  {sanitizedThisOver.map((b, i) => (
-                    <TouchableOpacity
-                      key={`this_over_ball_${i}_${b}`}
-                      activeOpacity={isOfficialScorer ? 0.7 : 1}
-                      disabled={!isOfficialScorer}
-                      style={[
-                        styles.ballPill,
-                        b === 'W'
-                          ? styles.ballWkt
-                          : b === '6'
-                          ? styles.ballSix
-                          : b === '4'
-                          ? styles.ballFour
-                          : styles.ballDot,
-                      ]}
-                      onPress={() => {
-                        if (isOfficialScorer) {
-                          Alert.alert(
-                            `Delivery #${i + 1} (${b})`,
-                            `You tapped on ball ${b} of this over.\n\nWould you like to undo the last recorded ball to correct it?`,
-                            [
-                              { text: 'Cancel', style: 'cancel' },
-                              { text: '↩️ Undo Last Ball', onPress: handleUndoLastBall },
-                            ]
-                          );
-                        }
-                      }}
-                    >
-                      <Text style={styles.ballPillText}>{b}</Text>
-                    </TouchableOpacity>
-                  ))}
+                  {sanitizedThisOver.map((b, i) => {
+                    const str = String(b || '').toUpperCase();
+                    const isWkt = str.includes('W') && !str.includes('WD');
+                    const isWd = str.includes('WD');
+                    const isNb = str.includes('NB');
+                    const isSix = str === '6';
+                    const isFour = str === '4';
+                    const isDot = str === '0' || str === '.';
+
+                    const pillBg = isWkt
+                      ? '#ef4444'
+                      : isWd
+                      ? '#d97706'
+                      : isNb
+                      ? '#7c3aed'
+                      : isSix
+                      ? '#06b6d4'
+                      : isFour
+                      ? '#10b981'
+                      : isDot
+                      ? (currentTheme.isLight ? '#e2e8f0' : '#1e293b')
+                      : '#0284c7';
+
+                    const pillTextColor = (isSix || isFour) ? '#022c22' : isDot ? (currentTheme.isLight ? '#475569' : '#94a3b8') : '#ffffff';
+                    const isWidePill = str.length > 2;
+
+                    return (
+                      <TouchableOpacity
+                        key={`this_over_ball_${i}_${b}`}
+                        activeOpacity={isOfficialScorer ? 0.7 : 1}
+                        disabled={!isOfficialScorer}
+                        style={[
+                          styles.ballPill,
+                          {
+                            backgroundColor: pillBg,
+                            minWidth: isWidePill ? 34 : 28,
+                            paddingHorizontal: isWidePill ? 6 : 2,
+                            borderColor: isDot ? (currentTheme.isLight ? '#cbd5e1' : '#334155') : pillBg,
+                          },
+                        ]}
+                        onPress={() => {
+                          if (isOfficialScorer) {
+                            Alert.alert(
+                              `Delivery #${i + 1} (${b})`,
+                              `You tapped on ball ${b} of this over.\n\nWould you like to undo the last recorded ball to correct it?`,
+                              [
+                                { text: 'Cancel', style: 'cancel' },
+                                { text: '↩️ Undo Last Ball', onPress: handleUndoLastBall },
+                              ]
+                            );
+                          }
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.ballPillText,
+                            {
+                              color: pillTextColor,
+                              fontSize: str.length > 3 ? 9 : (str.length > 2 ? 10 : 11),
+                            },
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {b}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
                 </ScrollView>
               </View>
 
@@ -13180,7 +13266,10 @@ function CricketAddaMain() {
                       paddingHorizontal: 12,
                       gap: 12,
                     }}
-                    onPress={() => setSelectedThemeId(t.id)}
+                    onPress={() => {
+                            setSelectedThemeId(t.id);
+                            AsyncStorage.setItem(STORAGE_KEYS.THEME, t.id).catch(() => {});
+                          }}
                   >
                     <Text style={{ fontSize: 24 }}>{t.icon}</Text>
                     <View style={{ flex: 1, paddingRight: 6 }}>
@@ -13427,7 +13516,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       <Modal visible={photoPickerVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View>
@@ -14288,7 +14377,7 @@ function CricketAddaMain() {
       {/* MODAL 5: ENHANCED INTERACTIVE WICKET DISMISSAL MODAL */}
       <Modal visible={wicketModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View>
@@ -14553,7 +14642,7 @@ function CricketAddaMain() {
       {/* MODAL 5.5: RECORD DROPPED CATCH MODAL */}
       <Modal visible={dropCatchModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View>
@@ -14743,7 +14832,7 @@ function CricketAddaMain() {
       {/* MODAL 5.54: OVERTHROW SCORING MODAL */}
       <Modal visible={overthrowModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View style={{ flex: 1 }}>
@@ -14889,7 +14978,7 @@ function CricketAddaMain() {
       {/* MODAL 5.55: LIVE BALL-BY-BALL COMMENTARY OVERLAY MODAL */}
       <Modal visible={commentaryModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
             <View style={styles.photoPickerHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={[styles.photoPickerTitle, { color: '#38bdf8' }]}>🎙️ Live Commentary</Text>
@@ -15018,7 +15107,7 @@ function CricketAddaMain() {
       {/* MODAL 5.56: NEW CUSTOM TEAM & 20-PLAYER SQUAD BUILDER MODAL (MAX 20 PLAYERS) */}
       <Modal visible={newTeamModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
             <View style={styles.photoPickerHeader}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.photoPickerTitle, { color: '#10b981' }]}>
@@ -15830,7 +15919,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       <Modal visible={inningStartModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
             <View style={styles.photoPickerHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                 <RealisticCricketLeatherBall size={18} />
@@ -16047,7 +16136,7 @@ function CricketAddaMain() {
       {/* MODAL 5.8: CHANGE BOWLER & END OF OVER MODAL */}
       <Modal visible={changeBowlerModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View>
@@ -16156,7 +16245,7 @@ function CricketAddaMain() {
       {/* MODAL 5.85: INNINGS BREAK & 1ST INNINGS COMPLETED MODAL */}
       <Modal visible={inningsBreakModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 420), maxHeight: safeModalCardMaxHeight, padding: 18, backgroundColor: '#090d16', borderColor: '#10b981', borderWidth: 2 }]}>
+          <View style={[styles.modalCard, { width: Math.min(width - 16, 420), maxHeight: safeModalCardMaxHeight, padding: 18, backgroundColor: currentTheme.isLight ? '#ffffff' : '#090d16', borderColor: '#10b981', borderWidth: 2 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Header */}
               <View style={{ alignItems: 'center', marginBottom: 12 }}>
@@ -16885,7 +16974,10 @@ function CricketAddaMain() {
                           paddingHorizontal: 12,
                           gap: 10,
                         }}
-                        onPress={() => setSelectedThemeId(t.id)}
+                        onPress={() => {
+                            setSelectedThemeId(t.id);
+                            AsyncStorage.setItem(STORAGE_KEYS.THEME, t.id).catch(() => {});
+                          }}
                       >
                         <Text style={{ fontSize: 22 }}>{t.icon}</Text>
                         <View style={{ flex: 1, paddingRight: 6 }}>
@@ -19236,8 +19328,8 @@ function CricketAddaMain() {
       <Modal visible={qrDisplayModalVisible} transparent animationType="fade" statusBarTranslucent={true} onRequestClose={() => setQrDisplayModalVisible(false)}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={{
-            backgroundColor: '#0f172a',
-            borderColor: '#38bdf8',
+            backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+            borderColor: currentTheme.isLight ? '#cbd5e1' : '#38bdf8',
             borderWidth: 2,
             borderRadius: 18,
             padding: 18,
@@ -19646,7 +19738,7 @@ function CricketAddaMain() {
       {/* MODAL: ADD PLAYER TO CREATED TEAM MODAL */}
       <Modal visible={addPlayerModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Modal Header */}
               <View style={styles.photoPickerHeader}>
