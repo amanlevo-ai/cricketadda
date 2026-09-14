@@ -11499,11 +11499,18 @@ function CricketAddaMain() {
                   </View>
                 </View>
 
-                {/* Teams & Flags Row with Short Names */}
+                {/* Teams Header Row with Highlighted Batting Team */}
                 <View style={styles.scorerTeamsHeaderRow}>
+                  {/* BATTING TEAM (HIGHLIGHTED WITH MODERN BROADCAST ACCENT) */}
                   <TouchableOpacity
-                    style={styles.scorerTeamFlagBox}
-                    activeOpacity={0.7}
+                    style={[
+                      styles.battingTeamCardHighlight,
+                      {
+                        backgroundColor: currentTheme.isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.14)',
+                        borderColor: currentTheme.isLight ? '#10b981' : 'rgba(52, 211, 153, 0.55)',
+                      }
+                    ]}
+                    activeOpacity={0.75}
                     onPress={openCaptainTeamModal}
                   >
                     <TeamFlagBadge
@@ -11515,32 +11522,49 @@ function CricketAddaMain() {
                       theme={currentTheme}
                       size="md"
                     />
-                    <View style={{ flex: 1, minWidth: 0, marginLeft: 8 }}>
-                      <Text style={[styles.scorerTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }]} numberOfLines={1}>
+                    <View style={{ flex: 1, minWidth: 0, marginLeft: 7 }}>
+                      <Text style={[styles.scorerTeamName, { color: currentTheme.isLight ? '#065f46' : '#ffffff', fontSize: 14, fontWeight: '900' }]} numberOfLines={1}>
                         {battingTeamName}
                       </Text>
-                      <Text style={[styles.scorerInningsSub, { color: currentTheme.primary }]} numberOfLines={1}>
-                        {currentInnings === 1 ? '1st Inn (Batting)' : '2nd Inn (Batting)'}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                        <View style={{ backgroundColor: currentTheme.isLight ? '#10b981' : '#059669', paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.4 }}>🏏 BATTING</Text>
+                        </View>
+                        <Text style={{ color: currentTheme.isLight ? '#047857' : '#6ee7b7', fontSize: 9.5, fontWeight: '700' }}>
+                          {currentInnings === 1 ? '1st Inn' : '2nd Inn'}
+                        </Text>
+                      </View>
                     </View>
                   </TouchableOpacity>
 
-                  <View style={[styles.scorerVsBadge, { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b', borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155' }]}>
+                  {/* VS BADGE */}
+                  <View style={[styles.scorerVsBadge, { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a', borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155' }]}>
                     <Text style={[styles.scorerVsText, { color: currentTheme.isLight ? '#475569' : '#94a3b8' }]}>VS</Text>
                   </View>
 
+                  {/* BOWLING TEAM (CLEAN MUTED OPPONENT CARD) */}
                   <TouchableOpacity
-                    style={[styles.scorerTeamFlagBox, { justifyContent: 'flex-end' }]}
+                    style={[
+                      styles.bowlingTeamCardMuted,
+                      {
+                        backgroundColor: currentTheme.isLight ? '#f8fafc' : 'rgba(30, 41, 59, 0.45)',
+                        borderColor: currentTheme.isLight ? '#e2e8f0' : '#334155',
+                      }
+                    ]}
                     activeOpacity={1}
-                    onPress={undefined}
                   >
-                    <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end', marginRight: 8 }}>
-                      <Text style={[styles.scorerOppTeamName, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 15, fontWeight: '800' }]} numberOfLines={1}>
+                    <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end', marginRight: 7 }}>
+                      <Text style={[styles.scorerOppTeamName, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 13.5, fontWeight: '800' }]} numberOfLines={1}>
                         {bowlingTeamName}
                       </Text>
-                      <Text style={[styles.scorerInningsSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]} numberOfLines={1}>
-                        {currentInnings === 1 ? 'Bowling' : 'Bowling'}
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+                        <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9.5, fontWeight: '600' }}>
+                          {currentInnings === 1 ? '1st Inn' : '2nd Inn'}
+                        </Text>
+                        <View style={{ backgroundColor: currentTheme.isLight ? '#64748b' : '#334155', paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.4 }}>🎯 BOWLING</Text>
+                        </View>
+                      </View>
                     </View>
                     <TeamFlagBadge
                       flag={bowlingTeamFlag}
@@ -11595,7 +11619,8 @@ function CricketAddaMain() {
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thisOverScroll}>
                   <Text style={[styles.thisOverLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>This Over: </Text>
                   {sanitizedThisOver.map((b, i) => {
-                    const str = String(b || '').toUpperCase();
+                    const rawStr = String(b || '').trim();
+                    const str = rawStr.toUpperCase();
                     const isWkt = str.includes('W') && !str.includes('WD');
                     const isWd = str.includes('WD');
                     const isNb = str.includes('NB');
@@ -11618,27 +11643,31 @@ function CricketAddaMain() {
                       : '#0284c7';
 
                     const pillTextColor = (isSix || isFour) ? '#022c22' : isDot ? (currentTheme.isLight ? '#475569' : '#94a3b8') : '#ffffff';
-                    const isWidePill = str.length > 2;
+                    
+                    // Dynamic pill width and padding based on string length to ensure zero ellipsis truncation
+                    const pillPaddingH = rawStr.length >= 5 ? 8 : (rawStr.length >= 3 ? 6 : 4);
+                    const pillMinWidth = rawStr.length >= 5 ? 44 : (rawStr.length >= 3 ? 34 : 28);
+                    const pillFontSize = rawStr.length >= 6 ? 9 : (rawStr.length >= 4 ? 9.5 : (rawStr.length >= 3 ? 10.5 : 11));
 
                     return (
                       <TouchableOpacity
-                        key={`this_over_ball_${i}_${b}`}
+                        key={`this_over_ball_${i}_${rawStr}`}
                         activeOpacity={isOfficialScorer ? 0.7 : 1}
                         disabled={!isOfficialScorer}
                         style={[
                           styles.ballPill,
                           {
                             backgroundColor: pillBg,
-                            minWidth: isWidePill ? 34 : 28,
-                            paddingHorizontal: isWidePill ? 6 : 2,
+                            minWidth: pillMinWidth,
+                            paddingHorizontal: pillPaddingH,
                             borderColor: isDot ? (currentTheme.isLight ? '#cbd5e1' : '#334155') : pillBg,
                           },
                         ]}
                         onPress={() => {
                           if (isOfficialScorer) {
                             Alert.alert(
-                              `Delivery #${i + 1} (${b})`,
-                              `You tapped on ball ${b} of this over.\n\nWould you like to undo the last recorded ball to correct it?`,
+                              `Delivery #${i + 1} (${rawStr})`,
+                              `You tapped on ball "${rawStr}" of this over.\n\nWould you like to undo the last recorded ball to correct it?`,
                               [
                                 { text: 'Cancel', style: 'cancel' },
                                 { text: '↩️ Undo Last Ball', onPress: handleUndoLastBall },
@@ -11652,12 +11681,13 @@ function CricketAddaMain() {
                             styles.ballPillText,
                             {
                               color: pillTextColor,
-                              fontSize: str.length > 3 ? 9 : (str.length > 2 ? 10 : 11),
+                              fontSize: pillFontSize,
+                              fontWeight: '900',
+                              letterSpacing: 0.2,
                             },
                           ]}
-                          numberOfLines={1}
                         >
-                          {b}
+                          {rawStr}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -21918,7 +21948,28 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     marginVertical: 4,
-    gap: 8,
+    gap: 6,
+  },
+  battingTeamCardHighlight: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1.5,
+    minWidth: 0,
+  },
+  bowlingTeamCardMuted: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    minWidth: 0,
   },
   scorerTeamFlagBox: {
     flexDirection: 'row',
@@ -21973,7 +22024,7 @@ const styles = StyleSheet.create({
   crrText: { color: '#6ee7b7', fontSize: 11, fontWeight: '700' },
   thisOverScroll: { marginTop: 10, flexDirection: 'row' },
   thisOverLabel: { color: '#94a3b8', fontSize: 12, fontWeight: '700', alignSelf: 'center' },
-  ballPill: { width: 28, height: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 6 },
+  ballPill: { height: 28, minWidth: 28, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 6, paddingHorizontal: 4, borderWidth: 1 },
   ballDot: { backgroundColor: '#1e293b', borderWidth: 1, borderColor: '#334155' },
   ballFour: { backgroundColor: '#10b981' },
   ballSix: { backgroundColor: '#06b6d4' },
