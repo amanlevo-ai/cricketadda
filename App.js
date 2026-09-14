@@ -4344,8 +4344,38 @@ function CricketAddaMain() {
           if (parsedMatches && typeof parsedMatches === 'object') {
             setMatchesDb(prev => {
               const merged = { ...prev, ...parsedMatches };
+              // Synchronize innings1 / innings2 directly from liveState across all matches
+              Object.keys(merged).forEach(k => {
+                const mObj = merged[k];
+                if (mObj && mObj.liveState) {
+                  const ls = mObj.liveState;
+                  const cInn = ls.currentInnings || 1;
+                  const lsBalls = ls.liveBalls || 0;
+                  const lsOv = `${Math.floor(lsBalls / 6)}.${lsBalls % 6}`;
+                  if (cInn === 1) {
+                    mObj.innings1 = {
+                      ...(mObj.innings1 || {}),
+                      runs: typeof ls.liveRuns === 'number' ? ls.liveRuns : (mObj.innings1?.runs || 0),
+                      wickets: typeof ls.liveWickets === 'number' ? ls.liveWickets : (mObj.innings1?.wickets || 0),
+                      overs: lsBalls > 0 ? lsOv : (mObj.innings1?.overs || '0.0'),
+                    };
+                  } else if (cInn === 2) {
+                    mObj.innings2 = {
+                      ...(mObj.innings2 || {}),
+                      runs: typeof ls.liveRuns === 'number' ? ls.liveRuns : (mObj.innings2?.runs || 0),
+                      wickets: typeof ls.liveWickets === 'number' ? ls.liveWickets : (mObj.innings2?.wickets || 0),
+                      overs: lsBalls > 0 ? lsOv : (mObj.innings2?.overs || '0.0'),
+                    };
+                  }
+                }
+              });
+
               // Rehydrate live scoring state for active match
               const targetId = storedActiveMatchId || Object.keys(merged).find(k => merged[k]?.status === 'live');
+              if (targetId) {
+                setActiveMatchId(targetId);
+                AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_MATCH_ID, targetId).catch(() => {});
+              }
               if (targetId && merged[targetId]?.liveState) {
                 const ls = merged[targetId].liveState;
                 if (typeof ls.liveRuns === 'number') setLiveRuns(ls.liveRuns);
@@ -5817,10 +5847,23 @@ function CricketAddaMain() {
     const nextBallsForDb = liveBalls + (isLegalDelivery ? 1 : 0);
     const nextRunsForDb = liveRuns + addedRuns;
     const nextWktsForDb = liveWickets + (isWkt ? 1 : 0);
+    const oversFormatted = `${Math.floor(nextBallsForDb / 6)}.${nextBallsForDb % 6}`;
     setMatchesDb(prev => {
       const cur = prev[activeMatchId] || {};
       const updatedMatch = {
         ...cur,
+        innings1: {
+          ...(cur.innings1 || {}),
+          runs: currentInnings === 1 ? nextRunsForDb : (cur.innings1?.runs || 0),
+          wickets: currentInnings === 1 ? nextWktsForDb : (cur.innings1?.wickets || 0),
+          overs: currentInnings === 1 ? oversFormatted : (cur.innings1?.overs || '0.0'),
+        },
+        innings2: {
+          ...(cur.innings2 || {}),
+          runs: currentInnings === 2 ? nextRunsForDb : (cur.innings2?.runs || 0),
+          wickets: currentInnings === 2 ? nextWktsForDb : (cur.innings2?.wickets || 0),
+          overs: currentInnings === 2 ? oversFormatted : (cur.innings2?.overs || '0.0'),
+        },
         liveState: {
           currentInnings,
           liveRuns: nextRunsForDb,
@@ -5835,6 +5878,7 @@ function CricketAddaMain() {
           firstInningsSummary,
           lastOverStats,
         },
+        lastUpdatedAt: Date.now(),
       };
       const updatedDb = { ...prev, [activeMatchId]: updatedMatch };
       AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
@@ -9968,22 +10012,46 @@ function CricketAddaMain() {
                     const m = matchesDb[id];
                     const isCurrentActive = id === activeMatchId;
                     const canScoreThisMatch = isUserScorerForMatch(m);
-                    const maxOv = m.innings1.maxOvers || 20;
+                    const maxOv = m.innings1?.maxOvers || 20;
+                    const mLive = m.liveState;
+                    const mInnings = isCurrentActive ? currentInnings : (mLive?.currentInnings || 1);
 
-                    const inn1Runs = isCurrentActive
-                      ? (currentInnings === 1 ? liveRuns : (firstInningsSummary ? firstInningsSummary.runs : m.innings1.runs))
-                      : m.innings1.runs;
-                    const inn1Wkts = isCurrentActive
-                      ? (currentInnings === 1 ? liveWickets : (firstInningsSummary ? firstInningsSummary.wickets : m.innings1.wickets))
-                      : m.innings1.wickets;
-                    const inn1Overs = isCurrentActive
-                      ? (currentInnings === 1 ? oversStr : (firstInningsSummary ? firstInningsSummary.overs : m.innings1.overs))
-                      : m.innings1.overs;
+                    const inn1Runs = isCurrentActive && currentInnings === 1
+                      ? liveRuns
+                      : (firstInningsSummary?.runs ?? mLive?.firstInningsSummary?.runs ?? (mInnings === 1 && typeof mLive?.liveRuns === 'number' ? mLive.liveRuns : m.innings1?.runs ?? 0));
 
-                    const inn2Runs = isCurrentActive && currentInnings === 2 ? liveRuns : (m.innings2?.runs || 0);
-                    const inn2Wkts = isCurrentActive && currentInnings === 2 ? liveWickets : (m.innings2?.wickets || 0);
-                    const inn2Overs = isCurrentActive && currentInnings === 2 ? oversStr : (m.innings2?.overs || '0.0');
-                    const inn2HasStarted = isCurrentActive ? currentInnings === 2 : (m.innings2?.runs > 0 || m.innings2?.wickets > 0);
+                    const inn1Wkts = isCurrentActive && currentInnings === 1
+                      ? liveWickets
+                      : (firstInningsSummary?.wickets ?? mLive?.firstInningsSummary?.wickets ?? (mInnings === 1 && typeof mLive?.liveWickets === 'number' ? mLive.liveWickets : m.innings1?.wickets ?? 0));
+
+                    const inn1Overs = isCurrentActive && currentInnings === 1
+                      ? oversStr
+                      : (firstInningsSummary?.overs ?? mLive?.firstInningsSummary?.overs ?? (mInnings === 1 && typeof mLive?.liveBalls === 'number' ? `${Math.floor(mLive.liveBalls / 6)}.${mLive.liveBalls % 6}` : m.innings1?.overs ?? '0.0'));
+
+                    const inn2Runs = isCurrentActive && currentInnings === 2
+                      ? liveRuns
+                      : (mInnings === 2 && typeof mLive?.liveRuns === 'number' ? mLive.liveRuns : m.innings2?.runs ?? 0);
+
+                    const inn2Wkts = isCurrentActive && currentInnings === 2
+                      ? liveWickets
+                      : (mInnings === 2 && typeof mLive?.liveWickets === 'number' ? mLive.liveWickets : m.innings2?.wickets ?? 0);
+
+                    const inn2Overs = isCurrentActive && currentInnings === 2
+                      ? oversStr
+                      : (mInnings === 2 && typeof mLive?.liveBalls === 'number' ? `${Math.floor(mLive.liveBalls / 6)}.${mLive.liveBalls % 6}` : m.innings2?.overs ?? '0.0');
+
+                    const inn2HasStarted = isCurrentActive
+                      ? currentInnings === 2
+                      : (mInnings === 2 || (m.innings2?.runs > 0 || m.innings2?.wickets > 0));
+
+                    const cardStriker = isCurrentActive
+                      ? striker
+                      : (mLive?.currentStriker || m.currentStriker || Object.keys(mLive?.liveBatters || {})[0] || 'Batter 1');
+                    const cardBowler = isCurrentActive
+                      ? bowler
+                      : (mLive?.currentBowler || m.currentBowler || Object.keys(mLive?.liveBowlerStats || {})[0] || 'Bowler 1');
+                    const cardBatters = isCurrentActive ? liveBatters : (mLive?.liveBatters || {});
+                    const cardBowlerStats = isCurrentActive ? liveBowlerStats : (mLive?.liveBowlerStats || {});
 
                     return (
                       <View key={m.id} style={[styles.liveMatchHeroCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { marginBottom: 16 }]}>
@@ -10039,27 +10107,27 @@ function CricketAddaMain() {
                           </View>
                         </View>
 
-                        {isCurrentActive && (
+                        {(isCurrentActive || mLive) && (
                           <View style={[styles.onPitchStrip, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0', borderWidth: 1 }]}>
                             <View style={styles.pitchPlayerItem}>
-                              <PlayerAvatar name={striker} size={32} customUri={striker.includes(userProfile.name) ? userProfile.avatarUri : null} />
+                              <PlayerAvatar name={cardStriker} size={32} customUri={cardStriker.includes(userProfile.name) ? userProfile.avatarUri : null} />
                               <View style={{ flex: 1 }}>
                                 <Text style={[styles.pitchPlayerRole, currentTheme.isLight && { color: '#0284c7' }]}>STRIKER ★</Text>
                                 <Text style={[styles.pitchPlayerName, currentTheme.isLight && { color: '#0f172a' }]}>
-                                  {striker.split(' ')[0]}: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{(liveBatters[striker]?.runs || 0)}*</Text> ({(liveBatters[striker]?.balls || 0)}b)
+                                  {cardStriker.split(' ')[0]}: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{(cardBatters[cardStriker]?.runs || 0)}*</Text> ({(cardBatters[cardStriker]?.balls || 0)}b)
                                 </Text>
                               </View>
                             </View>
 
                             <View style={styles.pitchPlayerItem}>
-                              <PlayerAvatar name={bowler} size={32} borderColor="#38bdf8" />
+                              <PlayerAvatar name={cardBowler} size={32} borderColor="#38bdf8" />
                               <View style={{ flex: 1 }}>
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                                   <Text style={[styles.pitchPlayerRole, currentTheme.isLight && { color: '#0284c7' }]}>BOWLER</Text>
                                   <RealisticCricketLeatherBall size={10} />
                                 </View>
                                 <Text style={[styles.pitchPlayerName, currentTheme.isLight && { color: '#0f172a' }]}>
-                                  {bowler.split(' ')[0]}: <Text style={{ color: '#0284c7', fontWeight: 'bold' }}>{(liveBowlerStats[bowler]?.wickets || 0)}-{(liveBowlerStats[bowler]?.runs || 0)}</Text> ({Math.floor((liveBowlerStats[bowler]?.balls || 0) / 6)}.{(liveBowlerStats[bowler]?.balls || 0) % 6} ov)
+                                  {cardBowler.split(' ')[0]}: <Text style={{ color: '#0284c7', fontWeight: 'bold' }}>{(cardBowlerStats[cardBowler]?.wickets || 0)}-{(cardBowlerStats[cardBowler]?.runs || 0)}</Text> ({Math.floor((cardBowlerStats[cardBowler]?.balls || 0) / 6)}.{(cardBowlerStats[cardBowler]?.balls || 0) % 6} ov)
                                 </Text>
                               </View>
                             </View>
