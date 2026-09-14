@@ -10849,61 +10849,7 @@ function CricketAddaMain() {
             )}
           </View>
 
-          {/* SPECTATOR READ-ONLY BROADCAST STATUS BANNER */}
-          {!isOfficialScorer && (
-            <View style={{
-              backgroundColor: currentTheme.isLight ? '#f0f9ff' : '#0c2d48',
-              borderColor: currentTheme.isLight ? '#bae6fd' : '#0284c7',
-              borderWidth: 1,
-              borderRadius: 10,
-              paddingVertical: 7,
-              paddingHorizontal: 12,
-              marginBottom: 10,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                <View style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 4,
-                  backgroundColor: '#10b981',
-                }} />
-                <View style={{ flex: 1 }}>
-                  <Text style={{
-                    color: currentTheme.isLight ? '#0369a1' : '#38bdf8',
-                    fontSize: 11.5,
-                    fontWeight: '900',
-                    letterSpacing: 0.5,
-                  }}>
-                    👁️ LIVE SPECTATOR MODE
-                  </Text>
-                  <Text style={{
-                    color: currentTheme.isLight ? '#64748b' : '#94a3b8',
-                    fontSize: 10.5,
-                    fontWeight: '600',
-                  }} numberOfLines={1}>
-                    Official Scorer: {activeScorer?.name || currentMatchData?.scorerName || 'Match Official'}
-                  </Text>
-                </View>
-              </View>
-              <View style={{
-                backgroundColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.2)',
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 10,
-              }}>
-                <Text style={{
-                  color: currentTheme.isLight ? '#0284c7' : '#7dd3fc',
-                  fontSize: 10,
-                  fontWeight: 'bold',
-                }}>
-                  READ-ONLY
-                </Text>
-              </View>
-            </View>
-          )}
+
 
           {isFirstInningsFinished ? (
             /* ========================================================================= */
