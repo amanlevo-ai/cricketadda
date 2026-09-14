@@ -2,7 +2,10 @@
 // CRICKETADDA BULLETPROOF CLOUD DATABASE CLIENT (FIREBASE REALTIME DATABASE)
 // Zero external native SDK dependencies -> 100% crash-free on Android, iOS, & Web
 // Multi-device real-time sync across any phones over 4G/5G/Wi-Fi worldwide
+// Offline-first local caching + Automatic Cloud Sync Queue on Reconnect
 // ============================================================================
+
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "AIzaSyAisjW7FzpNvyzlR436lp6Gj2vPeLRYh3E",
@@ -19,6 +22,7 @@ let activeFirebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
 
 // Cloud sync toggle (Enabled for real live database mode)
 export const ENABLE_CLOUD_SYNC = true;
+export const OFFLINE_SYNC_QUEUE_KEY = '@cricketadda_offline_sync_queue';
 
 export function isFirebaseConfigured() {
   return (
@@ -35,6 +39,33 @@ export function initFirebase(customConfig = null) {
   }
   console.log('[FirebaseSync] 🟢 Live Firebase Cloud Database Active at', activeFirebaseConfig.databaseURL);
   return true;
+}
+
+/**
+ * Checks connectivity to Firebase Realtime Database with timeout & latency measurement
+ */
+export async function checkFirebaseConnectivity(timeoutMs = 3500) {
+  if (!isFirebaseConfigured()) return { connected: false, message: 'Cloud sync disabled' };
+  const startTime = Date.now();
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+
+    const res = await fetch(`${baseUrl}/ping.json`, {
+      method: 'GET',
+      headers: { 'Cache-Control': 'no-cache' },
+      signal: controller ? controller.signal : undefined,
+    });
+    if (timeoutId) clearTimeout(timeoutId);
+    const latency = Date.now() - startTime;
+    if (res.ok) {
+      return { connected: true, latency, message: 'Connected to Firebase RTDB' };
+    }
+    return { connected: false, latency, message: `HTTP ${res.status}` };
+  } catch (err) {
+    return { connected: false, latency: Date.now() - startTime, error: err.message };
+  }
 }
 
 /**
@@ -79,11 +110,74 @@ export async function wipeAllFirebaseData() {
   }
 }
 
-/**
- * Pushes live match state update to Firebase Realtime Database via REST
- */
-export async function syncMatchToFirebase(matchId, matchState) {
-  if (!isFirebaseConfigured()) return false;
+// ============================================================================
+// OFFLINE SYNC QUEUE MANAGEMENT
+// ============================================================================
+
+export async function getOfflineQueue() {
+  try {
+    const json = await AsyncStorage.getItem(OFFLINE_SYNC_QUEUE_KEY);
+    if (!json) return [];
+    const list = JSON.parse(json);
+    return Array.isArray(list) ? list : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+export async function saveOfflineQueue(queue) {
+  try {
+    await AsyncStorage.setItem(OFFLINE_SYNC_QUEUE_KEY, JSON.stringify(queue || []));
+  } catch (e) {}
+}
+
+export function coalesceOfflineJobs(jobs) {
+  if (!Array.isArray(jobs) || jobs.length === 0) return [];
+  const reversed = [...jobs].reverse();
+  const seenKeys = new Set();
+  const keptReversed = [];
+
+  for (const job of reversed) {
+    if (!job || !job.action) continue;
+    let key = job.action;
+    if (job.action === 'syncMatch' && job.payload && job.payload.matchId) {
+      key = `syncMatch_${job.payload.matchId}`;
+    } else if (job.action === 'syncProfile' && job.payload && (job.payload.email || job.payload.profile?.email)) {
+      key = `syncProfile_${job.payload.email || job.payload.profile?.email}`;
+    }
+
+    if (!seenKeys.has(key)) {
+      seenKeys.add(key);
+      keptReversed.push(job);
+    }
+  }
+
+  return keptReversed.reverse();
+}
+
+export async function enqueueOfflineSync(action, payload) {
+  try {
+    const existingQueue = await getOfflineQueue();
+    const newJob = {
+      id: `job_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
+      action,
+      payload,
+      queuedAt: Date.now(),
+    };
+    const updatedQueue = coalesceOfflineJobs([...existingQueue, newJob]);
+    await saveOfflineQueue(updatedQueue);
+    return updatedQueue.length;
+  } catch (e) {
+    return 0;
+  }
+}
+
+// ============================================================================
+// DIRECT CLOUD SYNC METHODS (REST HTTP)
+// ============================================================================
+
+export async function syncMatchToFirebaseDirect(matchId, matchState) {
+  if (!isFirebaseConfigured() || !matchState) return false;
   try {
     const id = matchId || 'match_final_2026';
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
@@ -94,73 +188,16 @@ export async function syncMatchToFirebase(matchId, matchState) {
     };
     const res = await fetch(url, {
       method: 'PATCH',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
     return res.ok;
   } catch (err) {
-    console.log('[FirebaseSync] Match sync notice:', err.message);
     return false;
   }
 }
 
-/**
- * Fetches single match from Firebase
- */
-export async function fetchFirebaseMatch(matchId) {
-  if (!isFirebaseConfigured()) return null;
-  try {
-    const id = matchId || 'match_final_2026';
-    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const url = `${baseUrl}/matches/${id}.json`;
-    const res = await fetch(url);
-    if (res.ok) {
-      return await res.json();
-    }
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Subscribes to real-time updates for a specific match from Firebase via polling stream
- */
-export function subscribeToFirebaseMatch(matchId, onMatchUpdate) {
-  if (!isFirebaseConfigured()) return () => {};
-  let isActive = true;
-  const id = matchId || 'match_final_2026';
-  const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-  const url = `${baseUrl}/matches/${id}.json`;
-
-  const fetchLatest = async () => {
-    if (!isActive) return;
-    try {
-      const res = await fetch(url);
-      if (res.ok) {
-        const data = await res.json();
-        if (data && typeof onMatchUpdate === 'function' && isActive) {
-          onMatchUpdate(data);
-        }
-      }
-    } catch (e) {}
-  };
-
-  fetchLatest();
-  const interval = setInterval(fetchLatest, 1500);
-
-  return () => {
-    isActive = false;
-    clearInterval(interval);
-  };
-}
-
-/**
- * Sync entire matches database to Cloud
- */
-export async function syncMatchesDbToFirebase(matchesDb) {
+export async function syncMatchesDbToFirebaseDirect(matchesDb) {
   if (!isFirebaseConfigured() || !matchesDb) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
@@ -176,28 +213,7 @@ export async function syncMatchesDbToFirebase(matchesDb) {
   }
 }
 
-/**
- * Fetch matches database from Cloud
- */
-export async function fetchFirebaseMatchesDb() {
-  if (!isFirebaseConfigured()) return null;
-  try {
-    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const url = `${baseUrl}/matches_db.json`;
-    const res = await fetch(url);
-    if (res.ok) {
-      return await res.json();
-    }
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Sync registered teams to Cloud
- */
-export async function syncTeamsToFirebase(teams) {
+export async function syncTeamsToFirebaseDirect(teams) {
   if (!isFirebaseConfigured() || !Array.isArray(teams)) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
@@ -213,30 +229,7 @@ export async function syncTeamsToFirebase(teams) {
   }
 }
 
-/**
- * Fetch registered teams from Cloud
- */
-export async function fetchFirebaseTeams() {
-  if (!isFirebaseConfigured()) return null;
-  try {
-    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const url = `${baseUrl}/teams.json`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data)) return data;
-      if (data && typeof data === 'object') return Object.values(data);
-    }
-    return null;
-  } catch (e) {
-    return null;
-  }
-}
-
-/**
- * Sync registered users to Cloud (merges with existing cloud records to prevent cross-device overwrites)
- */
-export async function syncUsersToFirebase(users) {
+export async function syncUsersToFirebaseDirect(users) {
   if (!isFirebaseConfigured() || !Array.isArray(users)) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
@@ -291,6 +284,273 @@ export async function syncUsersToFirebase(users) {
     return true;
   } catch (e) {
     return false;
+  }
+}
+
+export async function syncSingleUserProfileToFirebaseDirect(profile, email) {
+  if (!isFirebaseConfigured() || !profile) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const cleanPhone = String(profile.phone || '').replace(/[^0-9]/g, '');
+    const cleanEmail = String(email || profile.email || '').trim().toLowerCase();
+
+    // 1. Direct index by phone for instant cross-device lookup
+    if (cleanPhone && cleanPhone.length >= 10) {
+      fetch(`${baseUrl}/registered_players/${cleanPhone}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...profile,
+          phone: cleanPhone,
+          lastUpdatedAt: Date.now(),
+        }),
+      }).catch(() => {});
+    }
+
+    // 2. Direct index by email key
+    if (cleanEmail) {
+      const emailKey = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
+      fetch(`${baseUrl}/users_by_email/${emailKey}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: cleanEmail,
+          profile,
+          lastUpdatedAt: Date.now(),
+        }),
+      }).catch(() => {});
+    }
+
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// ============================================================================
+// RESILIENT OFFLINE-FIRST WRAPPERS (AUTO-ENQUEUE ON DISCONNECT)
+// ============================================================================
+
+export async function syncMatchToFirebase(matchId, matchState) {
+  const success = await syncMatchToFirebaseDirect(matchId, matchState);
+  if (!success) {
+    await enqueueOfflineSync('syncMatch', { matchId, matchState });
+  }
+  return success;
+}
+
+export async function syncMatchesDbToFirebase(matchesDb) {
+  const success = await syncMatchesDbToFirebaseDirect(matchesDb);
+  if (!success) {
+    await enqueueOfflineSync('syncMatchesDb', matchesDb);
+  }
+  return success;
+}
+
+export async function syncTeamsToFirebase(teams) {
+  const success = await syncTeamsToFirebaseDirect(teams);
+  if (!success) {
+    await enqueueOfflineSync('syncTeams', teams);
+  }
+  return success;
+}
+
+export async function syncUsersToFirebase(users) {
+  const success = await syncUsersToFirebaseDirect(users);
+  if (!success) {
+    await enqueueOfflineSync('syncUsers', users);
+  }
+  return success;
+}
+
+export async function syncSingleUserProfileToFirebase(profile, email) {
+  const success = await syncSingleUserProfileToFirebaseDirect(profile, email);
+  if (!success) {
+    await enqueueOfflineSync('syncProfile', { profile, email });
+  }
+  return success;
+}
+
+/**
+ * Flushes the entire offline sync queue to Firebase Realtime Database
+ */
+export async function flushOfflineSyncQueue() {
+  const queue = await getOfflineQueue();
+  if (!queue || queue.length === 0) return { flushed: 0, remaining: 0 };
+
+  const conn = await checkFirebaseConnectivity(3000);
+  if (!conn.connected) {
+    return { flushed: 0, remaining: queue.length, offline: true };
+  }
+
+  const coalesced = coalesceOfflineJobs(queue);
+  const remainingJobs = [];
+  let flushedCount = 0;
+
+  for (const job of coalesced) {
+    try {
+      let success = false;
+      if (job.action === 'syncMatch') {
+        const { matchId, matchState } = job.payload || {};
+        success = await syncMatchToFirebaseDirect(matchId, matchState);
+      } else if (job.action === 'syncMatchesDb') {
+        success = await syncMatchesDbToFirebaseDirect(job.payload);
+      } else if (job.action === 'syncTeams') {
+        success = await syncTeamsToFirebaseDirect(job.payload);
+      } else if (job.action === 'syncUsers') {
+        success = await syncUsersToFirebaseDirect(job.payload);
+      } else if (job.action === 'syncProfile') {
+        const { profile, email } = job.payload || {};
+        success = await syncSingleUserProfileToFirebaseDirect(profile, email);
+      }
+
+      if (success) {
+        flushedCount++;
+      } else {
+        remainingJobs.push(job);
+      }
+    } catch (err) {
+      remainingJobs.push(job);
+    }
+  }
+
+  await saveOfflineQueue(remainingJobs);
+  return { flushed: flushedCount, remaining: remainingJobs.length };
+}
+
+/**
+ * Starts automatic background sync poller that monitors internet connection
+ * and flushes offline queue as soon as connectivity is restored
+ */
+export function startAutoSyncWorker(onStatusChange, onSyncComplete) {
+  let isChecking = false;
+  let lastOnlineState = null;
+
+  const checkAndSync = async () => {
+    if (isChecking) return;
+    isChecking = true;
+    try {
+      const conn = await checkFirebaseConnectivity(3000);
+      const isNowOnline = Boolean(conn.connected);
+
+      if (isNowOnline !== lastOnlineState) {
+        lastOnlineState = isNowOnline;
+        if (typeof onStatusChange === 'function') {
+          onStatusChange(isNowOnline, conn);
+        }
+      }
+
+      if (isNowOnline) {
+        const queue = await getOfflineQueue();
+        if (queue.length > 0) {
+          const result = await flushOfflineSyncQueue();
+          if (result.flushed > 0 && typeof onSyncComplete === 'function') {
+            onSyncComplete(result.flushed);
+          }
+        }
+      }
+    } catch (e) {
+    } finally {
+      isChecking = false;
+    }
+  };
+
+  checkAndSync();
+  const intervalId = setInterval(checkAndSync, 5000);
+
+  return () => clearInterval(intervalId);
+}
+
+// ============================================================================
+// CLOUD FETCH & QUERY METHODS
+// ============================================================================
+
+/**
+ * Fetches single match from Firebase
+ */
+export async function fetchFirebaseMatch(matchId) {
+  if (!isFirebaseConfigured()) return null;
+  try {
+    const id = matchId || 'match_final_2026';
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/matches/${id}.json`;
+    const res = await fetch(url);
+    if (res.ok) {
+      return await res.json();
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Subscribes to real-time updates for a specific match from Firebase via polling stream
+ */
+export function subscribeToFirebaseMatch(matchId, onMatchUpdate) {
+  if (!isFirebaseConfigured()) return () => {};
+  let isActive = true;
+  const id = matchId || 'match_final_2026';
+  const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+  const url = `${baseUrl}/matches/${id}.json`;
+
+  const fetchLatest = async () => {
+    if (!isActive) return;
+    try {
+      const res = await fetch(url);
+      if (res.ok) {
+        const data = await res.json();
+        if (data && typeof onMatchUpdate === 'function' && isActive) {
+          onMatchUpdate(data);
+        }
+      }
+    } catch (e) {}
+  };
+
+  fetchLatest();
+  const interval = setInterval(fetchLatest, 1500);
+
+  return () => {
+    isActive = false;
+    clearInterval(interval);
+  };
+}
+
+/**
+ * Fetch matches database from Cloud
+ */
+export async function fetchFirebaseMatchesDb() {
+  if (!isFirebaseConfigured()) return null;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/matches_db.json`;
+    const res = await fetch(url);
+    if (res.ok) {
+      return await res.json();
+    }
+    return null;
+  } catch (e) {
+    return null;
+  }
+}
+
+/**
+ * Fetch registered teams from Cloud
+ */
+export async function fetchFirebaseTeams() {
+  if (!isFirebaseConfigured()) return null;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const url = `${baseUrl}/teams.json`;
+    const res = await fetch(url);
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) return data;
+      if (data && typeof data === 'object') return Object.values(data);
+    }
+    return null;
+  } catch (e) {
+    return null;
   }
 }
 
@@ -349,49 +609,6 @@ export async function searchCloudPlayerByPhone(phoneDigits) {
 }
 
 /**
- * Sync single user profile directly to Cloud (instant update for avatar/profile changes)
- */
-export async function syncSingleUserProfileToFirebase(profile, email) {
-  if (!isFirebaseConfigured() || !profile) return false;
-  try {
-    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const cleanPhone = String(profile.phone || '').replace(/[^0-9]/g, '');
-    const cleanEmail = String(email || profile.email || '').trim().toLowerCase();
-
-    // 1. Direct index by phone for instant cross-device lookup
-    if (cleanPhone && cleanPhone.length >= 10) {
-      fetch(`${baseUrl}/registered_players/${cleanPhone}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...profile,
-          phone: cleanPhone,
-          lastUpdatedAt: Date.now(),
-        }),
-      }).catch(() => {});
-    }
-
-    // 2. Direct index by email key
-    if (cleanEmail) {
-      const emailKey = cleanEmail.replace(/[^a-zA-Z0-9]/g, '_');
-      fetch(`${baseUrl}/users_by_email/${emailKey}.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: cleanEmail,
-          profile,
-          lastUpdatedAt: Date.now(),
-        }),
-      }).catch(() => {});
-    }
-
-    return true;
-  } catch (e) {
-    return false;
-  }
-}
-
-/**
  * Fetch a cloud user record by email address from Firebase Realtime Database
  */
 export async function fetchCloudUserByEmail(email) {
@@ -442,7 +659,6 @@ const BREVO_API_KEY = (typeof process !== 'undefined' && process.env && process.
 
 /**
  * Dispatches 6-digit OTP verification email via secure backend or configured service.
- * Follows security standards: no sensitive personal data or plaintext OTPs written to public logs/databases.
  */
 export async function sendVerificationOtpEmail(recipientEmail, otpCode) {
   if (!recipientEmail || !otpCode) return false;
@@ -491,7 +707,7 @@ export async function sendVerificationOtpEmail(recipientEmail, otpCode) {
     } catch (backendErr) {}
   }
 
-  // 2. Direct Service Dispatch (If environment variables are configured in build)
+  // 2. Direct Service Dispatch
   let emailSentSuccessfully = false;
 
   if (RESEND_API_KEY) {
@@ -537,7 +753,7 @@ export async function sendVerificationOtpEmail(recipientEmail, otpCode) {
     } catch (brevoErr) {}
   }
 
-  // 3. Sanitized Cloud Activity Tracking (No plaintext OTP or sensitive tokens stored)
+  // 3. Sanitized Cloud Activity Tracking
   try {
     if (isFirebaseConfigured()) {
       const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
@@ -555,4 +771,3 @@ export async function sendVerificationOtpEmail(recipientEmail, otpCode) {
 
   return true;
 }
-

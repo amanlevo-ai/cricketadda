@@ -41,6 +41,10 @@ import {
   fetchCloudUserByEmail,
   searchCloudPlayerByPhone,
   sendVerificationOtpEmail,
+  startAutoSyncWorker,
+  flushOfflineSyncQueue,
+  getOfflineQueue,
+  enqueueOfflineSync,
 } from './firebaseSync';
 import Svg, {
   Circle,
@@ -3167,6 +3171,7 @@ const STORAGE_KEYS = {
   USERS_DB: '@cricketadda_users_db',
   MATCHES_DB: '@cricketadda_matches_db',
   LAST_ACTIVE_TIME: '@cricketadda_last_active_time',
+  OFFLINE_SYNC_QUEUE: '@cricketadda_offline_sync_queue',
 };
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 days inactivity limit (2,592,000,000 ms)
@@ -4379,8 +4384,25 @@ function CricketAddaMain() {
 
           fetchFirebaseMatchesDb().then(cloudDb => {
             if (cloudDb && typeof cloudDb === 'object') {
-              setMatchesDb(prev => ({ ...prev, ...cloudDb }));
-              AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(cloudDb)).catch(() => {});
+              setMatchesDb(prev => {
+                const merged = { ...cloudDb };
+                // Keep local in-flight or offline edits without overwriting
+                Object.keys(prev).forEach(mId => {
+                  const localMatch = prev[mId];
+                  const cloudMatch = cloudDb[mId];
+                  if (!cloudMatch) {
+                    merged[mId] = localMatch;
+                  } else {
+                    const localTime = localMatch.lastUpdatedAt || localMatch.lastSyncedAt || 0;
+                    const cloudTime = cloudMatch.lastUpdatedAt || cloudMatch.lastSyncedAt || 0;
+                    if (localTime >= cloudTime || localMatch.status === 'live') {
+                      merged[mId] = { ...cloudMatch, ...localMatch };
+                    }
+                  }
+                });
+                AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(merged)).catch(() => {});
+                return merged;
+              });
             }
           }).catch(() => {});
         }
@@ -4417,10 +4439,13 @@ function CricketAddaMain() {
     }
   }, [usersDb]);
 
-  // Live Cloud Database Auto-Sync: Automatically sync matches database to Cloud
+  // Live Cloud Database Auto-Sync: Automatically sync matches database to Cloud & persist locally
   useEffect(() => {
-    if (isFirebaseConfigured() && matchesDb && Object.keys(matchesDb).length > 0) {
-      syncMatchesDbToFirebase(matchesDb);
+    if (matchesDb && Object.keys(matchesDb).length > 0) {
+      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(matchesDb)).catch(() => {});
+      if (isFirebaseConfigured()) {
+        syncMatchesDbToFirebase(matchesDb);
+      }
     }
   }, [matchesDb]);
 
@@ -4478,6 +4503,25 @@ function CricketAddaMain() {
   const [nbSubMode, setNbSubMode] = useState('bat'); // 'bat' | 'bye' | 'legBye'
   const [dbPingResult, setDbPingResult] = useState(null);
   const [isPingingDb, setIsPingingDb] = useState(false);
+  const [isOnline, setIsOnline] = useState(true);
+  const [offlinePendingCount, setOfflinePendingCount] = useState(0);
+
+  // Background Auto-Sync Engine & Offline Reconnection Listener
+  useEffect(() => {
+    const stopWorker = startAutoSyncWorker(
+      (onlineStatus) => {
+        setIsOnline(onlineStatus);
+      },
+      (syncedCount) => {
+        showAppToast(`☁️ Online: ${syncedCount} offline update${syncedCount > 1 ? 's' : ''} synced to cloud!`, '✅');
+        getOfflineQueue().then(q => setOfflinePendingCount(q.length));
+      }
+    );
+    getOfflineQueue().then(q => setOfflinePendingCount(q.length));
+    return () => {
+      if (typeof stopWorker === 'function') stopWorker();
+    };
+  }, []);
 
   const handleTestDbConnection = async () => {
     setIsPingingDb(true);
@@ -9756,6 +9800,36 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {activeTab === 'matches' && (
         <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
+          {/* OFFLINE SYNC STATUS BANNER ON MATCHES DASHBOARD */}
+          {!isOnline && (
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: currentTheme.isLight ? '#fefce8' : 'rgba(234, 179, 8, 0.15)',
+              borderColor: '#eab308',
+              borderWidth: 1,
+              borderRadius: 10,
+              paddingVertical: 7,
+              paddingHorizontal: 12,
+              marginBottom: 10,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                <Text style={{ fontSize: 13 }}>⚡</Text>
+                <Text style={{
+                  color: currentTheme.isLight ? '#854d0e' : '#fde047',
+                  fontSize: 11.5,
+                  fontWeight: '700',
+                }}>
+                  Offline Mode • All changes saved locally {offlinePendingCount > 0 ? `(${offlinePendingCount} pending sync)` : ''}
+                </Text>
+              </View>
+              <View style={{ backgroundColor: '#ca8a04', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 4 }}>
+                <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>AUTO-SYNC ON</Text>
+              </View>
+            </View>
+          )}
+
           {/* AUTO-SAVED MATCH DRAFT BANNER */}
           {matchDraft.hasDraft && matchDraft.myTeam && matchDraft.opponentTeam && ((matchDraft.myPlayingXI?.length >= 11 && matchDraft.opponentPlayingXI?.length >= 11) || matchDraft.step > 1) && (
             <View style={[styles.draftCardBanner, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
@@ -10852,7 +10926,56 @@ function CricketAddaMain() {
             )}
           </View>
 
-
+          {/* OFFLINE / ONLINE MULTI-DEVICE SYNC STATUS BANNER */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            paddingVertical: 5,
+            paddingHorizontal: 10,
+            backgroundColor: isOnline
+              ? (currentTheme.isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)')
+              : (currentTheme.isLight ? '#fefce8' : 'rgba(234, 179, 8, 0.15)'),
+            borderRadius: 8,
+            marginBottom: 8,
+            borderWidth: 1,
+            borderColor: isOnline ? (currentTheme.isLight ? '#86efac' : '#059669') : '#eab308',
+          }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+              <Text style={{ fontSize: 11 }}>{isOnline ? '🟢' : '🟡'}</Text>
+              <Text style={{
+                color: isOnline
+                  ? (currentTheme.isLight ? '#166534' : '#6ee7b7')
+                  : (currentTheme.isLight ? '#854d0e' : '#fde047'),
+                fontSize: 11,
+                fontWeight: '700',
+              }} numberOfLines={1}>
+                {isOnline
+                  ? (offlinePendingCount > 0 ? `Online • Syncing ${offlinePendingCount} offline items...` : 'Cloud Live • Multi-Device Sync Active')
+                  : `Offline Mode • Data saved locally${offlinePendingCount > 0 ? ` (${offlinePendingCount} pending)` : ''}`}
+              </Text>
+            </View>
+            {!isOnline ? (
+              <View style={{ backgroundColor: '#ca8a04', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 4 }}>
+                <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>AUTO-SYNC ON</Text>
+              </View>
+            ) : (
+              <TouchableOpacity
+                onPress={async () => {
+                  const res = await flushOfflineSyncQueue();
+                  if (res.flushed > 0) {
+                    showAppToast(`☁️ Synced ${res.flushed} items to cloud!`, '✅');
+                  } else {
+                    showAppToast('☁️ All records up to date in cloud', '✅');
+                  }
+                  getOfflineQueue().then(q => setOfflinePendingCount(q.length));
+                }}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+              >
+                <Text style={{ color: currentTheme.primary, fontSize: 10, fontWeight: '800' }}>SYNC NOW ↻</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
           {isFirstInningsFinished ? (
             /* ========================================================================= */
