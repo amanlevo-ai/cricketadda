@@ -11446,12 +11446,9 @@ function CricketAddaMain() {
                         {battingTeamName}
                       </Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <View style={{ backgroundColor: currentTheme.isLight ? '#10b981' : '#059669', paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4 }}>
+                        <View style={{ backgroundColor: currentTheme.isLight ? '#10b981' : '#059669', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                           <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.4 }}>🏏 BATTING</Text>
                         </View>
-                        <Text style={{ color: currentTheme.isLight ? '#047857' : '#6ee7b7', fontSize: 9.5, fontWeight: '700' }}>
-                          {currentInnings === 1 ? '1st Inn' : '2nd Inn'}
-                        </Text>
                       </View>
                     </View>
                   </TouchableOpacity>
@@ -11477,10 +11474,7 @@ function CricketAddaMain() {
                         {bowlingTeamName}
                       </Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9.5, fontWeight: '600' }}>
-                          {currentInnings === 1 ? '1st Inn' : '2nd Inn'}
-                        </Text>
-                        <View style={{ backgroundColor: currentTheme.isLight ? '#64748b' : '#334155', paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4 }}>
+                        <View style={{ backgroundColor: currentTheme.isLight ? '#64748b' : '#334155', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                           <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.4 }}>🎯 BOWLING</Text>
                         </View>
                       </View>
@@ -13733,51 +13727,51 @@ function CricketAddaMain() {
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View>
-                  <Text style={styles.photoPickerTitle}>📷 Customize Profile & Photo</Text>
-                  <Text style={styles.photoPickerSub}>Upload from gallery, take with camera, or enter image URL</Text>
+                  <Text style={[styles.photoPickerTitle, currentTheme.isLight && { color: '#0f172a' }]}>📷 Customize Profile & Photo</Text>
+                  <Text style={[styles.photoPickerSub, currentTheme.isLight && { color: '#64748b' }]}>Upload from gallery, take with camera, or enter image URL</Text>
                 </View>
-                <TouchableOpacity style={styles.closeRoundBtn} onPress={() => setPhotoPickerVisible(false)}>
-                  <Text style={styles.closeRoundBtnText}>✕</Text>
+                <TouchableOpacity style={[styles.closeRoundBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9' }]} onPress={() => setPhotoPickerVisible(false)}>
+                  <Text style={[styles.closeRoundBtnText, currentTheme.isLight && { color: '#475569' }]}>✕</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Current Active Preview */}
-              <View style={styles.activePhotoPreviewCard}>
+              <View style={[styles.activePhotoPreviewCard, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
                 <PlayerAvatar name={editNameInput || (!isAuthenticated && authName ? authName : userProfile.name)} customUri={userProfile.avatarUri} size={64} borderColor="#10b981" />
                 <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={styles.previewActiveName}>
+                  <Text style={[styles.previewActiveName, currentTheme.isLight && { color: '#0f172a' }]}>
                     {editNameInput || (!isAuthenticated && authName ? authName : userProfile.name)} <Text style={{ color: '#34d399' }}>({editJerseyInput || (!isAuthenticated && authJersey ? authJersey : userProfile.jersey)})</Text>
                   </Text>
-                  <Text style={styles.previewActiveRole}>
+                  <Text style={[styles.previewActiveRole, currentTheme.isLight && { color: '#0284c7' }]}>
                     {editRoleInput || (!isAuthenticated && authRole ? authRole : userProfile.role)}
                   </Text>
-                  <Text style={styles.previewActiveStatus}>✓ Active Profile Avatar</Text>
+                  <Text style={[styles.previewActiveStatus, currentTheme.isLight && { color: '#16a34a' }]}>✓ Active Profile Avatar</Text>
                 </View>
               </View>
 
               {/* Action Buttons: Gallery & Camera */}
-              <Text style={styles.pickerSectionHeading}>📱 UPLOAD FROM YOUR DEVICE</Text>
+              <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>📱 UPLOAD FROM YOUR DEVICE</Text>
               <View style={styles.uploadBtnRow}>
-                <TouchableOpacity style={styles.galleryUploadBtn} onPress={pickImageFromGallery}>
+                <TouchableOpacity style={[styles.galleryUploadBtn, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }]} onPress={pickImageFromGallery}>
                   <Text style={styles.uploadBtnIcon}>🖼️</Text>
-                  <Text style={styles.uploadBtnTitle}>Choose Gallery Photo</Text>
+                  <Text style={[styles.uploadBtnTitle, currentTheme.isLight && { color: '#0f172a' }]}>Choose Gallery Photo</Text>
                   <Text style={styles.uploadBtnSub}>Select from device photos</Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.cameraUploadBtn} onPress={takePhotoWithCamera}>
+                <TouchableOpacity style={[styles.cameraUploadBtn, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }]} onPress={takePhotoWithCamera}>
                   <Text style={styles.uploadBtnIcon}>📸</Text>
-                  <Text style={styles.uploadBtnTitle}>Take New Photo</Text>
+                  <Text style={[styles.uploadBtnTitle, currentTheme.isLight && { color: '#0f172a' }]}>Take New Photo</Text>
                   <Text style={styles.uploadBtnSub}>Capture with camera</Text>
                 </TouchableOpacity>
               </View>
 
               {/* Custom Web URL Option */}
-              <Text style={[styles.pickerSectionHeading, { marginTop: 16 }]}>🔗 OR ENTER IMAGE WEB URL</Text>
+              <Text style={[styles.pickerSectionHeading, { marginTop: 16 }, currentTheme.isLight && { color: '#0f172a' }]}>🔗 OR ENTER IMAGE WEB URL</Text>
               <View style={styles.urlInputRow}>
                 <TextInput
-                  style={styles.urlInput}
+                  style={[styles.urlInput, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1', color: '#0f172a' }]}
                   placeholder="https://example.com/my-photo.jpg"
-                  placeholderTextColor="#64748b"
+                  placeholderTextColor="#94a3b8"
                   value={customUrlInput}
                   onChangeText={setCustomUrlInput}
                   autoCapitalize="none"
@@ -13788,32 +13782,32 @@ function CricketAddaMain() {
               </View>
 
               {/* Edit Name & Jersey Form */}
-              <Text style={[styles.pickerSectionHeading, { marginTop: 16 }]}>✏️ EDIT PROFILE DETAILS</Text>
-              <View style={styles.profileEditForm}>
+              <Text style={[styles.pickerSectionHeading, { marginTop: 16 }, currentTheme.isLight && { color: '#0f172a' }]}>✏️ EDIT PROFILE DETAILS</Text>
+              <View style={[styles.profileEditForm, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }]}>
                 <View style={styles.formField}>
-                  <Text style={styles.formLabel}>PLAYER NAME:</Text>
+                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>PLAYER NAME:</Text>
                   <TextInput
-                    style={styles.formInput}
+                    style={[styles.formInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }]}
                     value={editNameInput}
                     onChangeText={setEditNameInput}
                     placeholder="Enter your name"
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor="#94a3b8"
                   />
                 </View>
                 <View style={styles.formField}>
-                  <Text style={styles.formLabel}>JERSEY #:</Text>
+                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>JERSEY #:</Text>
                   <TextInput
-                    style={styles.formInput}
+                    style={[styles.formInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }]}
                     value={editJerseyInput}
                     onChangeText={setEditJerseyInput}
                     placeholder="#45"
-                    placeholderTextColor="#64748b"
+                    placeholderTextColor="#94a3b8"
                   />
                 </View>
 
                 {/* Playing Role (Selectable Options) */}
                 <View style={[styles.formField, { marginTop: 6 }]}>
-                  <Text style={styles.formLabel}>PLAYING ROLE (SELECT OPTION):</Text>
+                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>PLAYING ROLE (SELECT OPTION):</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                     {[
                       'Top-Order Batter',
@@ -13830,11 +13824,12 @@ function CricketAddaMain() {
                           style={[
                             styles.authRoleChipCompact,
                             { paddingVertical: 7, paddingHorizontal: 10, borderRadius: 8 },
-                            isSel && styles.authRoleChipActive,
+                            currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
+                            isSel && (currentTheme.isLight ? { backgroundColor: '#dcfce7', borderColor: '#10b981' } : styles.authRoleChipActive),
                           ]}
                           onPress={() => setEditRoleInput(r)}
                         >
-                          <Text style={[styles.authRoleChipTextCompact, { fontSize: 11.5 }, isSel && styles.authRoleChipTextActive]}>
+                          <Text style={[styles.authRoleChipTextCompact, { fontSize: 11.5 }, currentTheme.isLight && { color: '#334155' }, isSel && (currentTheme.isLight ? { color: '#15803d', fontWeight: '900' } : styles.authRoleChipTextActive)]}>
                             {r === 'Top-Order Batter' ? '🏏 Top-Order' : r === 'Middle-Order Batter' ? '🏏 Mid-Order' : r === 'Fast Bowler' ? '⚡ Fast Bowl' : r === 'Spin Bowler' ? '🌀 Spin Bowl' : r === 'Wicketkeeper Batter' ? '🧤 WK-Batter' : '🔥 All-Rounder'}
                           </Text>
                         </TouchableOpacity>
@@ -13845,7 +13840,7 @@ function CricketAddaMain() {
 
                 {/* Batting Hand (Left / Right Hand Options) */}
                 <View style={[styles.formField, { marginTop: 8 }]}>
-                  <Text style={styles.formLabel}>BATTING HAND (LEFT / RIGHT HAND):</Text>
+                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>BATTING HAND (LEFT / RIGHT HAND):</Text>
                   <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
                     {['Right-hand Bat', 'Left-hand Bat'].map(b => {
                       const isSel = editBattingStyleInput === b;
@@ -13855,11 +13850,12 @@ function CricketAddaMain() {
                           style={[
                             styles.authStyleChipCompact,
                             { paddingVertical: 8, borderRadius: 8 },
-                            isSel && styles.authStyleChipActive,
+                            currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
+                            isSel && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.authStyleChipActive),
                           ]}
                           onPress={() => setEditBattingStyleInput(b)}
                         >
-                          <Text style={[styles.authStyleChipTextCompact, { fontSize: 12 }, isSel && styles.authStyleChipTextActive]}>
+                          <Text style={[styles.authStyleChipTextCompact, { fontSize: 12 }, currentTheme.isLight && { color: '#334155' }, isSel && (currentTheme.isLight ? { color: '#0369a1', fontWeight: '900' } : styles.authStyleChipTextActive)]}>
                             {b === 'Right-hand Bat' ? '👉 Right-hand Bat' : '👈 Left-hand Bat'}
                           </Text>
                         </TouchableOpacity>
@@ -13870,7 +13866,7 @@ function CricketAddaMain() {
 
                 {/* Bowling Style (Options) */}
                 <View style={[styles.formField, { marginTop: 8 }]}>
-                  <Text style={styles.formLabel}>BOWLING STYLE (SELECT OPTION):</Text>
+                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>BOWLING STYLE (SELECT OPTION):</Text>
                   <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
                     {[
                       'Right-arm Fast',
@@ -13886,11 +13882,12 @@ function CricketAddaMain() {
                           style={[
                             styles.authRoleChipCompact,
                             { paddingVertical: 6, paddingHorizontal: 9, borderRadius: 8 },
-                            isSel && styles.authRoleChipActive,
+                            currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
+                            isSel && (currentTheme.isLight ? { backgroundColor: '#dcfce7', borderColor: '#10b981' } : styles.authRoleChipActive),
                           ]}
                           onPress={() => setEditBowlingStyleInput(bw)}
                         >
-                          <Text style={[styles.authRoleChipTextCompact, { fontSize: 11 }, isSel && styles.authRoleChipTextActive]}>
+                          <Text style={[styles.authRoleChipTextCompact, { fontSize: 11 }, currentTheme.isLight && { color: '#334155' }, isSel && (currentTheme.isLight ? { color: '#15803d', fontWeight: '900' } : styles.authRoleChipTextActive)]}>
                             {bw === 'Right-arm Fast' ? '⚡ RA Fast' : bw === 'Right-arm Spin' ? '🌀 RA Spin' : bw === 'Left-arm Fast' ? '⚡ LA Fast' : bw === 'Left-arm Spin' ? '🌀 LA Spin' : '🚫 Non-Bowler'}
                           </Text>
                         </TouchableOpacity>
@@ -13904,8 +13901,8 @@ function CricketAddaMain() {
                 <TouchableOpacity style={styles.saveProfileBtn} onPress={saveProfileEdits}>
                   <Text style={styles.saveProfileBtnText}>Save Profile ✓</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.closePickerBtn} onPress={() => setPhotoPickerVisible(false)}>
-                  <Text style={styles.closePickerBtnText}>Cancel</Text>
+                <TouchableOpacity style={[styles.closePickerBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]} onPress={() => setPhotoPickerVisible(false)}>
+                  <Text style={[styles.closePickerBtnText, currentTheme.isLight && { color: '#475569' }]}>Cancel</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
@@ -15339,18 +15336,19 @@ function CricketAddaMain() {
 
             <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
               {/* 1. TEAM DETAILS */}
-              <Text style={styles.pickerSectionHeading}>🏷️ 1. TEAM DETAILS:</Text>
+              <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>🏷️ 1. TEAM DETAILS:</Text>
               <View style={styles.wizardInputBox}>
-                <Text style={styles.inputFieldLabel}>Team Name:</Text>
+                <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>Team Name:</Text>
                 <TextInput
                   style={[
                     styles.wizardTextInput,
+                    currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' },
                     registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && { borderColor: '#ef4444', borderWidth: 1.5 }
                   ]}
                   value={newTeamName}
                   onChangeText={setNewTeamName}
                   placeholder="e.g. Mumbai Super Kings"
-                  placeholderTextColor="#64748b"
+                  placeholderTextColor="#94a3b8"
                 />
               </View>
 
@@ -15364,18 +15362,18 @@ function CricketAddaMain() {
               )}
 
               <View style={styles.wizardInputBox}>
-                <Text style={styles.inputFieldLabel}>City / Club (Optional):</Text>
+                <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>City / Club (Optional):</Text>
                 <TextInput
-                  style={styles.wizardTextInput}
+                  style={[styles.wizardTextInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }]}
                   value={newTeamCity}
                   onChangeText={setNewTeamCity}
                   placeholder="e.g. Wankhede / Mumbai"
-                  placeholderTextColor="#64748b"
+                  placeholderTextColor="#94a3b8"
                 />
               </View>
 
               {/* CUSTOM TEAM PICTURE / LOGO & MASCOT */}
-              <Text style={[styles.inputFieldLabel, { marginTop: 8 }]}>Team Picture & Mascot:</Text>
+              <Text style={[styles.inputFieldLabel, { marginTop: 8 }, currentTheme.isLight && { color: '#475569' }]}>Team Picture & Mascot:</Text>
               <View style={{
                 backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a101d',
                 borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
@@ -15515,16 +15513,28 @@ function CricketAddaMain() {
               {/* Player Addition Method Tabs */}
               <View style={styles.playerAddTabRow}>
                 <TouchableOpacity
-                  style={[styles.playerAddTabBtn, playerAddTab === 'phone' && styles.playerAddTabBtnActive]}
+                  style={[
+                    styles.playerAddTabBtn,
+                    currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' },
+                    playerAddTab === 'phone' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.playerAddTabBtnActive)
+                  ]}
                   onPress={() => setPlayerAddTab('phone')}
                 >
-                  <Text style={[styles.playerAddTabText, playerAddTab === 'phone' && styles.playerAddTabTextActive]}>
+                  <Text style={[
+                    styles.playerAddTabText,
+                    currentTheme.isLight && { color: '#475569' },
+                    playerAddTab === 'phone' && (currentTheme.isLight ? { color: '#ffffff', fontWeight: '900' } : styles.playerAddTabTextActive)
+                  ]}>
                     📞 By Phone #
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.playerAddTabBtn, playerAddTab === 'qr' && styles.playerAddTabBtnActive]}
+                  style={[
+                    styles.playerAddTabBtn,
+                    currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' },
+                    playerAddTab === 'qr' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.playerAddTabBtnActive)
+                  ]}
                   onPress={() => {
                     setQrScannedLocked(false);
                     setScannedPlayerProfile(null);
@@ -15535,16 +15545,28 @@ function CricketAddaMain() {
                     setPlayerAddTab('qr');
                   }}
                 >
-                  <Text style={[styles.playerAddTabText, playerAddTab === 'qr' && styles.playerAddTabTextActive]}>
+                  <Text style={[
+                    styles.playerAddTabText,
+                    currentTheme.isLight && { color: '#475569' },
+                    playerAddTab === 'qr' && (currentTheme.isLight ? { color: '#ffffff', fontWeight: '900' } : styles.playerAddTabTextActive)
+                  ]}>
                     📷 Scan QR Pass
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  style={[styles.playerAddTabBtn, playerAddTab === 'popular' && styles.playerAddTabBtnActive]}
+                  style={[
+                    styles.playerAddTabBtn,
+                    currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' },
+                    playerAddTab === 'popular' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.playerAddTabBtnActive)
+                  ]}
                   onPress={() => setPlayerAddTab('popular')}
                 >
-                  <Text style={[styles.playerAddTabText, playerAddTab === 'popular' && styles.playerAddTabTextActive]}>
+                  <Text style={[
+                    styles.playerAddTabText,
+                    currentTheme.isLight && { color: '#475569' },
+                    playerAddTab === 'popular' && (currentTheme.isLight ? { color: '#ffffff', fontWeight: '900' } : styles.playerAddTabTextActive)
+                  ]}>
                     📇 Manual
                   </Text>
                 </TouchableOpacity>
@@ -15552,8 +15574,8 @@ function CricketAddaMain() {
 
               {/* TAB 1: ADD BY PHONE NUMBER */}
               {playerAddTab === 'phone' && (
-                <View style={styles.addPlayerCardBox}>
-                  <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: 'bold', marginBottom: 6 }}>
+                <View style={[styles.addPlayerCardBox, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }]}>
+                  <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 11, fontWeight: 'bold', marginBottom: 6 }}>
                     📞 SEARCH PLAYER BY 10-DIGIT MOBILE NUMBER:
                   </Text>
                   
@@ -15561,11 +15583,15 @@ function CricketAddaMain() {
                   <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8, alignItems: 'center' }}>
                     <View style={{ flex: 1, position: 'relative', justifyContent: 'center' }}>
                       <TextInput
-                        style={[styles.wizardTextInput, { height: 44, fontSize: 12.5, paddingHorizontal: 10, paddingRight: playerPhoneInput ? 32 : 10, textAlign: 'left', textAlignVertical: 'center' }]}
+                        style={[
+                          styles.wizardTextInput,
+                          currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' },
+                          { height: 44, fontSize: 12.5, paddingHorizontal: 10, paddingRight: playerPhoneInput ? 32 : 10, textAlign: 'left', textAlignVertical: 'center' }
+                        ]}
                         value={playerPhoneInput}
                         onChangeText={handlePhoneInputChange}
                         placeholder="Enter 10-digit number"
-                        placeholderTextColor="#64748b"
+                        placeholderTextColor="#94a3b8"
                         keyboardType="phone-pad"
                         maxLength={10}
                       />
@@ -15592,7 +15618,7 @@ function CricketAddaMain() {
 
                   {/* Quick Test Dummy Player Pills */}
                   <View style={{ marginBottom: 10 }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: 'bold', marginBottom: 5 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10, fontWeight: 'bold', marginBottom: 5 }}>
                       ⚡ TAP DUMMY PLAYER TO TEST SEARCH:
                     </Text>
                     <ScrollView horizontal showsHorizontalScrollIndicator={false}>
@@ -15603,8 +15629,8 @@ function CricketAddaMain() {
                             <TouchableOpacity
                               key={rp.id || rp.name}
                               style={{
-                                backgroundColor: '#1e293b',
-                                borderColor: '#38bdf8',
+                                backgroundColor: currentTheme.isLight ? '#ffffff' : '#1e293b',
+                                borderColor: currentTheme.isLight ? '#cbd5e1' : '#38bdf8',
                                 borderWidth: 1,
                                 borderRadius: 8,
                                 paddingHorizontal: 9,
@@ -15620,9 +15646,9 @@ function CricketAddaMain() {
                                 setNewPlayerRoleInput(rp.role || 'BAT');
                               }}
                             >
-                              <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }}>{rp.name}</Text>
-                              <Text style={{ color: '#38bdf8', fontSize: 9.5, fontWeight: '600' }}>({roleText})</Text>
-                              <Text style={{ color: '#94a3b8', fontSize: 9.5 }}>• {rp.phone}</Text>
+                              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>{rp.name}</Text>
+                              <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 9.5, fontWeight: '600' }}>({roleText})</Text>
+                              <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9.5 }}>• {rp.phone}</Text>
                             </TouchableOpacity>
                           );
                         })}
@@ -15661,7 +15687,7 @@ function CricketAddaMain() {
                       </Text>
                     </View>
                   ) : playerPhoneSearchResult ? (
-                    <View style={styles.playerProfileCard}>
+                    <View style={[styles.playerProfileCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}>
                       <View style={styles.playerProfileHeader}>
                         <PlayerAvatar
                           name={playerPhoneSearchResult.name || 'Player'}
@@ -15671,7 +15697,7 @@ function CricketAddaMain() {
                         />
                         <View style={{ flex: 1, marginLeft: 12 }}>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                            <Text style={styles.playerProfileName}>
+                            <Text style={[styles.playerProfileName, currentTheme.isLight && { color: '#0f172a' }]}>
                               {playerPhoneSearchResult.name}
                             </Text>
                             <View style={[styles.playerVerifiedTag, { backgroundColor: '#10b981' }]}>
@@ -16012,11 +16038,11 @@ function CricketAddaMain() {
                   {/* Manual Type */}
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'stretch' }}>
                     <TextInput
-                      style={[styles.wizardTextInput, { flex: 1, height: 42, paddingHorizontal: 12, textAlign: 'left', textAlignVertical: 'center' }]}
+                      style={[styles.wizardTextInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }, { flex: 1, height: 42, paddingHorizontal: 12, textAlign: 'left', textAlignVertical: 'center' }]}
                       value={newPlayerNameInput}
                       onChangeText={setNewPlayerNameInput}
                       placeholder="Type custom player name"
-                      placeholderTextColor="#64748b"
+                      placeholderTextColor="#94a3b8"
                     />
                     <TouchableOpacity
                       style={[
@@ -16035,14 +16061,14 @@ function CricketAddaMain() {
 
               {/* SQUAD LIST (MAX 20) */}
               <View style={{ marginTop: 12 }}>
-                <Text style={styles.pickerSectionHeading}>
+                <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>
                   📋 SQUAD ROSTER ({newTeamSquad.length} Players):
                 </Text>
                 {newTeamSquad.length === 0 ? (
-                  <View style={styles.squadEmptyPrompt}>
+                  <View style={[styles.squadEmptyPrompt, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>👥</Text>
-                    <Text style={styles.squadEmptyPromptText}>No custom players added yet.</Text>
-                    <Text style={{ color: '#64748b', fontSize: 11, textAlign: 'center', marginTop: 2 }}>
+                    <Text style={[styles.squadEmptyPromptText, currentTheme.isLight && { color: '#0f172a' }]}>No custom players added yet.</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#64748b', fontSize: 11, textAlign: 'center', marginTop: 2 }}>
                       Add teammates above via Mobile Number or QR Scan.
                     </Text>
                   </View>
@@ -16053,10 +16079,10 @@ function CricketAddaMain() {
                       const isCapt = p.isCaptain || idx === 0 || (userProfile?.name && p.name && p.name.toLowerCase() === userProfile.name.toLowerCase());
                       const displayName = p.name.toLowerCase().includes('(c)') ? p.name : isCapt ? `${p.name} (c)` : p.name;
                       return (
-                        <View key={p.id || idx} style={styles.squadPlayerCardRow}>
+                        <View key={p.id || idx} style={[styles.squadPlayerCardRow, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
                           {/* Number */}
-                          <View style={styles.squadPlayerCardNum}>
-                            <Text style={styles.squadPlayerCardNumText}>#{idx + 1}</Text>
+                          <View style={[styles.squadPlayerCardNum, currentTheme.isLight && { backgroundColor: '#e2e8f0' }]}>
+                            <Text style={[styles.squadPlayerCardNumText, currentTheme.isLight && { color: '#475569' }]}>#{idx + 1}</Text>
                           </View>
 
                           {/* Player Avatar / Profile Pic */}
@@ -16070,16 +16096,16 @@ function CricketAddaMain() {
 
                           {/* Player Details */}
                           <View style={{ flex: 1, marginLeft: 8 }}>
-                            <Text style={styles.squadPlayerCardName} numberOfLines={1}>
+                            <Text style={[styles.squadPlayerCardName, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>
                               {displayName}
                             </Text>
 
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                              <Text style={styles.squadPlayerCardRole}>
+                              <Text style={[styles.squadPlayerCardRole, currentTheme.isLight && { color: '#0284c7' }]}>
                                 {roleText}
                               </Text>
                               {p.phone ? (
-                                <Text style={{ color: '#64748b', fontSize: 10 }}>
+                                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#64748b', fontSize: 10 }}>
                                   • {p.phone}
                                 </Text>
                               ) : null}
@@ -16089,15 +16115,15 @@ function CricketAddaMain() {
                           {/* Action: Delete only (or subtle Locked tag for Captain/Self) */}
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                             {isCapt ? (
-                              <View style={styles.squadSelfLockBtn}>
+                              <View style={[styles.squadSelfLockBtn, currentTheme.isLight && { backgroundColor: '#ecfdf5', borderColor: '#10b981' }]}>
                                 <Text style={{ color: '#10b981', fontSize: 9.5, fontWeight: 'bold' }}>Locked</Text>
                               </View>
                             ) : (
                               <TouchableOpacity
-                                style={styles.squadPlayerDeleteBtn}
+                                style={[styles.squadPlayerDeleteBtn, currentTheme.isLight && { backgroundColor: '#fee2e2' }]}
                                 onPress={() => handleRemovePlayerFromNewTeamSquad(idx)}
                               >
-                                <Text style={styles.squadPlayerDeleteBtnText}>✕</Text>
+                                <Text style={[styles.squadPlayerDeleteBtnText, currentTheme.isLight && { color: '#ef4444' }]}>✕</Text>
                               </TouchableOpacity>
                             )}
                           </View>
@@ -16110,8 +16136,8 @@ function CricketAddaMain() {
 
               {/* Action Buttons */}
               <View style={[styles.modalBtnRow, { marginTop: 16, marginBottom: 12 }]}>
-                <TouchableOpacity style={styles.skipBtn} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
-                  <Text style={styles.skipBtnText}>Cancel</Text>
+                <TouchableOpacity style={[styles.skipBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
+                  <Text style={[styles.skipBtnText, currentTheme.isLight && { color: '#475569' }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.confirmBtn, { backgroundColor: '#10b981' }]}
@@ -19316,7 +19342,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       <Modal visible={scorerTransferModalVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setScorerTransferModalVisible(false)}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.teamPickerModalCard, { maxHeight: Math.min(safeModalCardMaxHeight, 660), backgroundColor: '#090d16', borderColor: '#38bdf8', borderWidth: 1.5 }]}>
+          <View style={[styles.teamPickerModalCard, { maxHeight: Math.min(safeModalCardMaxHeight, 660), backgroundColor: currentTheme.isLight ? '#ffffff' : '#090d16', borderColor: '#38bdf8', borderWidth: 1.5 }]}>
             {/* Header */}
             <View style={styles.teamPickerHeaderRow}>
               <View style={{ flex: 1 }}>
