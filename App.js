@@ -3817,9 +3817,10 @@ function CricketAddaMain() {
 
     // 3. Fallback for locally created matches without explicit cloud creator IDs:
     if (!targetMatch.creatorId && !targetMatch.scorerId) return true;
+    if (targetMatch.id === activeMatchId && (!targetMatch.creatorId || !targetMatch.scorerId)) return true;
 
     return false;
-  }, [userProfile, authEmail, activeScorer, viewerSimulated]);
+  }, [userProfile, authEmail, activeScorer, viewerSimulated, activeMatchId]);
 
   const isOfficialScorer = useMemo(() => {
     const currentMatch = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb)[0] || MATCH_DATABASE[activeMatchId];
@@ -4228,7 +4229,7 @@ function CricketAddaMain() {
   }, []);
 
   // Wagon Wheel Scorer State
-  const [autoWheel, setAutoWheel] = useState(true);
+  const [autoWheel, setAutoWheel] = useState(false);
   const [wheelModalVisible, setWheelModalVisible] = useState(false);
   const [pendingRuns, setPendingRuns] = useState(0);
   const [pendingExtraType, setPendingExtraType] = useState(null);
@@ -4254,6 +4255,8 @@ function CricketAddaMain() {
         const storedWheel = await AsyncStorage.getItem(STORAGE_KEYS.AUTO_WHEEL);
         if (storedWheel !== null) {
           setAutoWheel(storedWheel === 'true');
+        } else {
+          setAutoWheel(false);
         }
         const storedSwap = await AsyncStorage.getItem(STORAGE_KEYS.SWAP_BATTERS);
         if (storedSwap !== null) {
