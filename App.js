@@ -9967,6 +9967,7 @@ function CricketAddaMain() {
                   .map(id => {
                     const m = matchesDb[id];
                     const isCurrentActive = id === activeMatchId;
+                    const canScoreThisMatch = isUserScorerForMatch(m);
                     const maxOv = m.innings1.maxOvers || 20;
 
                     const inn1Runs = isCurrentActive
