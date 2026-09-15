@@ -3842,6 +3842,7 @@ function CricketAddaMain() {
     registeredTeams.some(t => (t.captain && userProfile.name && userProfile.name.toLowerCase().includes(t.captain.toLowerCase())) || t.createdBy === userProfile.id || t.createdBy === userProfile.email)
   );
 
+  const [matchTeamEditSlot, setMatchTeamEditSlot] = useState(null); // 'batting' | 'bowling' | null
   const [captainTeamModalVisible, setCaptainTeamModalVisible] = useState(false);
   const [captainTargetSlot, setCaptainTargetSlot] = useState('batting'); // 'batting' | 'bowling'
   const [captainEditTeamName, setCaptainEditTeamName] = useState('');
@@ -5310,8 +5311,17 @@ function CricketAddaMain() {
   let nonStriker = match.currentNonStriker || (currentMatchData?.innings1?.batting?.[1]?.name) || 'Hardik Pandya';
   let bowler = match.currentBowler || (currentMatchData?.innings1?.bowling?.[0]?.name) || 'Mitchell Starc';
 
-  // All 11 Playing XI players of the opposition fielding/bowling team eligible to bowl
+  // All Playing XI players of the opposition fielding/bowling team eligible to bowl
   const activeOppBowlers = (() => {
+    if (match.fieldingSquad && match.fieldingSquad.length > 0) return match.fieldingSquad;
+    if (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0) return currentMatchData.fieldingSquad;
+    if (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0) {
+      return currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name);
+    }
+    const registeredOppTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === bowlingTeamName.toLowerCase().trim());
+    if (registeredOppTeam && Array.isArray(registeredOppTeam.squad) && registeredOppTeam.squad.length > 0) {
+      return registeredOppTeam.squad.map(p => typeof p === 'string' ? p : p.name);
+    }
     if (currentInnings === 1) {
       if (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0) {
         return currentMatchData.innings1.bowling.map(b => b.name);
@@ -5319,7 +5329,6 @@ function CricketAddaMain() {
       if (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0) {
         return currentMatchData.innings2.batting.map(b => b.name);
       }
-      if (match.fieldingSquad && match.fieldingSquad.length > 0) return match.fieldingSquad;
       return OPPOSITION_FIELDERS;
     } else {
       if (currentMatchData?.innings2?.bowling && currentMatchData.innings2.bowling.length > 0) {
@@ -5334,8 +5343,15 @@ function CricketAddaMain() {
 
   const activeOppFielders = activeOppBowlers;
 
-  // All 11 Playing XI players of the active batting team
+  // All Playing XI players of the active batting team
   const activeBattingSquad = (() => {
+    if (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0) {
+      return currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
+    }
+    const registeredBatTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === battingTeamName.toLowerCase().trim());
+    if (registeredBatTeam && Array.isArray(registeredBatTeam.squad) && registeredBatTeam.squad.length > 0) {
+      return registeredBatTeam.squad.map(p => typeof p === 'string' ? p : p.name);
+    }
     if (currentInnings === 1) {
       if (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0) {
         return currentMatchData.innings1.batting.map(b => b.name);
@@ -5367,17 +5383,7 @@ function CricketAddaMain() {
   })();
 
   const activeBenchBatters = (() => {
-    const rawList = (currentInnings === 1)
-      ? ((currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0)
-          ? currentMatchData.innings1.batting.map(b => b.name)
-          : (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0
-              ? currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name)
-              : BENCH_BATTERS))
-      : ((currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0)
-          ? currentMatchData.innings2.batting.map(b => b.name)
-          : (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0
-              ? currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name)
-              : ['Mitchell Marsh (c)', 'Glenn Maxwell', 'Marcus Stoinis', 'Tim David', 'Josh Inglis (wk)', 'Pat Cummins (c)', 'Mitchell Starc', 'Adam Zampa', 'Josh Hazlewood']));
+    const rawList = activeBattingSquad;
 
     const dismissedNames = scoringHistory
       .filter(s => s.innings === currentInnings && s.isWkt)
@@ -6510,6 +6516,92 @@ function CricketAddaMain() {
   // ============================================================================
   // CAPTAIN & TEAM CUSTOMIZATION LOGIC (OWN TEAM & SQUAD ROSTER MANAGEMENT)
   // ============================================================================
+  const handleEditTeamAndSquadFromScorer = (slot = 'bowling') => {
+    const isBowling = slot === 'bowling';
+    const targetName = isBowling ? bowlingTeamName : battingTeamName;
+    const targetFlag = isBowling ? bowlingTeamFlag : battingTeamFlag;
+    const targetLogo = isBowling ? bowlingTeamLogo : battingTeamLogo;
+    const targetShort = isBowling ? bowlingTeamShort : battingTeamShort;
+
+    setMatchTeamEditSlot(slot);
+
+    // Look for existing registered team
+    let foundTeam = registeredTeams.find(
+      t => t && t.name && t.name.toLowerCase().trim() === targetName.toLowerCase().trim()
+    );
+
+    // Collect all players currently part of this team's match squad
+    const rawSquadNames = isBowling
+      ? (
+          (match.fieldingSquad && match.fieldingSquad.length > 0)
+            ? match.fieldingSquad
+            : (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0)
+            ? currentMatchData.fieldingSquad
+            : (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0)
+            ? currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name)
+            : (foundTeam && Array.isArray(foundTeam.squad) && foundTeam.squad.length > 0)
+            ? foundTeam.squad.map(p => typeof p === 'string' ? p : p.name)
+            : activeOppBowlers
+        )
+      : (
+          (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0)
+            ? currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name)
+            : (foundTeam && Array.isArray(foundTeam.squad) && foundTeam.squad.length > 0)
+            ? foundTeam.squad.map(p => typeof p === 'string' ? p : p.name)
+            : activeBattingSquad
+        );
+
+    const cleanSquad = (rawSquadNames || []).map((p, idx) => {
+      if (typeof p === 'string') {
+        const cleanName = p.replace(/s*([^)]*)/g, '').trim();
+        return {
+          id: `p_squad_${idx}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+          name: cleanName,
+          phone: '',
+          role: p.includes('(c)') ? 'BAT' : p.includes('(wk)') ? 'WK' : (idx % 3 === 0 ? 'BOWL' : idx % 2 === 0 ? 'ALL' : 'BAT'),
+          isCaptain: p.includes('(c)') || idx === 0,
+          isViceCaptain: idx === 1,
+          isWk: p.includes('(wk)'),
+          avatarUri: PLAYER_AVATARS[cleanName] || null,
+        };
+      }
+      return p;
+    });
+
+    if (foundTeam) {
+      // Merge match players into existing squad if any missing
+      const existingNames = new Set((foundTeam.squad || []).map(p => (typeof p === 'string' ? p : p.name).toLowerCase().trim()));
+      const mergedSquad = [...(foundTeam.squad || [])];
+      cleanSquad.forEach(p => {
+        if (!existingNames.has(p.name.toLowerCase().trim())) {
+          mergedSquad.push(p);
+        }
+      });
+      const teamToEdit = {
+        ...foundTeam,
+        flag: targetFlag || foundTeam.flag,
+        logo: targetLogo || foundTeam.logo,
+        logoUri: targetLogo || foundTeam.logoUri,
+        squad: mergedSquad,
+      };
+      openNewTeamModal(isBowling ? 'teamB' : 'teamA', '', teamToEdit);
+    } else {
+      const newCustomTeam = {
+        id: `custom_team_${targetName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_${Date.now()}`,
+        name: targetName,
+        shortName: targetShort || targetName.slice(0, 3).toUpperCase(),
+        flag: targetFlag || (isBowling ? '⚡' : '🦁'),
+        logo: targetLogo,
+        logoUri: targetLogo,
+        city: 'Match Team',
+        squad: cleanSquad,
+        isCustomCreated: true,
+      };
+      setRegisteredTeams(prev => [newCustomTeam, ...prev]);
+      openNewTeamModal(isBowling ? 'teamB' : 'teamA', '', newCustomTeam);
+    }
+  };
+
   const openCaptainTeamModal = (teamToEdit = null) => {
     // If a specific team was passed
     if (teamToEdit && teamToEdit.name) {
@@ -8845,19 +8937,122 @@ function CricketAddaMain() {
         return updated;
       });
 
-      // Update live match teams if currently active
-      if (battingTeamName === cleanName || (updatedTeamObj && battingTeamName === updatedTeamObj.name)) {
+      // Update live match teams and squad roster if currently active
+      const squadPlayerNames = finalSquad.map(p => typeof p === 'string' ? p : p.name).filter(Boolean);
+      const isMatchBattingTeam = matchTeamEditSlot === 'batting' ||
+        battingTeamName.toLowerCase().trim() === cleanName.toLowerCase().trim() ||
+        (editingTeamId && targetTeamId === editingTeamId && battingTeamName.toLowerCase().trim() === (newTeamName || '').toLowerCase().trim()) ||
+        (updatedTeamObj && battingTeamName.toLowerCase().trim() === updatedTeamObj.name.toLowerCase().trim());
+      const isMatchBowlingTeam = matchTeamEditSlot === 'bowling' ||
+        bowlingTeamName.toLowerCase().trim() === cleanName.toLowerCase().trim() ||
+        (editingTeamId && targetTeamId === editingTeamId && bowlingTeamName.toLowerCase().trim() === (newTeamName || '').toLowerCase().trim()) ||
+        (updatedTeamObj && bowlingTeamName.toLowerCase().trim() === updatedTeamObj.name.toLowerCase().trim());
+
+      if (isMatchBattingTeam) {
         setCustomMyTeamFlag(newTeamFlag || '🦁');
       }
-      if (bowlingTeamName === cleanName || (updatedTeamObj && bowlingTeamName === updatedTeamObj.name)) {
+      if (isMatchBowlingTeam) {
         setCustomOppTeamFlag(newTeamFlag || '🦁');
       }
 
+      if (activeMatchId && (isMatchBattingTeam || isMatchBowlingTeam)) {
+        setMatchesDb(prev => {
+          const cur = prev[activeMatchId] || {};
+          const updated = { ...cur };
+
+          if (isMatchBowlingTeam) {
+            if (currentInnings === 1) {
+              updated.teamB = cleanName;
+              updated.flagB = newTeamFlag || cur.flagB;
+              updated.logoB = finalTeamLogo || cur.logoB;
+              if (updated.innings2) {
+                updated.innings2.team = cleanName;
+                updated.innings2.flag = newTeamFlag || cur.innings2?.flag;
+                updated.innings2.logo = finalTeamLogo || cur.innings2?.logo;
+              }
+            } else {
+              updated.teamA = cleanName;
+              updated.flagA = newTeamFlag || cur.flagA;
+              updated.logoA = finalTeamLogo || cur.logoA;
+              if (updated.innings1) {
+                updated.innings1.team = cleanName;
+                updated.innings1.flag = newTeamFlag || cur.innings1?.flag;
+                updated.innings1.logo = finalTeamLogo || cur.innings1?.logo;
+              }
+            }
+            updated.fieldingSquad = squadPlayerNames;
+            updated.oppPlayingXI = squadPlayerNames;
+          }
+
+          if (isMatchBattingTeam) {
+            if (currentInnings === 1) {
+              updated.teamA = cleanName;
+              updated.flagA = newTeamFlag || cur.flagA;
+              updated.logoA = finalTeamLogo || cur.logoA;
+              if (updated.innings1) {
+                updated.innings1.team = cleanName;
+                updated.innings1.flag = newTeamFlag || cur.innings1?.flag;
+                updated.innings1.logo = finalTeamLogo || cur.innings1?.logo;
+              }
+            } else {
+              updated.teamB = cleanName;
+              updated.flagB = newTeamFlag || cur.flagB;
+              updated.logoB = finalTeamLogo || cur.logoB;
+              if (updated.innings2) {
+                updated.innings2.team = cleanName;
+                updated.innings2.flag = newTeamFlag || cur.innings2?.flag;
+                updated.innings2.logo = finalTeamLogo || cur.innings2?.logo;
+              }
+            }
+            updated.myPlayingXI = squadPlayerNames;
+          }
+
+          const updatedDb = { ...prev, [activeMatchId]: updated };
+          AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
+          return updatedDb;
+        });
+
+        if (isMatchBowlingTeam) {
+          setMatch(prev => ({
+            ...prev,
+            fieldingSquad: squadPlayerNames,
+          }));
+          setLiveBowlerStats(prev => {
+            const next = { ...prev };
+            squadPlayerNames.forEach(pName => {
+              if (!next[pName]) {
+                next[pName] = { balls: 0, maidens: 0, runs: 0, wickets: 0 };
+              }
+            });
+            return next;
+          });
+        }
+
+        if (isMatchBattingTeam) {
+          setLiveBatters(prev => {
+            const next = { ...prev };
+            squadPlayerNames.forEach(pName => {
+              if (!next[pName]) {
+                next[pName] = { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 };
+              }
+            });
+            return next;
+          });
+        }
+
+        broadcastMatchState({
+          fieldingSquad: isMatchBowlingTeam ? squadPlayerNames : (match.fieldingSquad || []),
+          battingTeamName: isMatchBattingTeam ? cleanName : battingTeamName,
+          bowlingTeamName: isMatchBowlingTeam ? cleanName : bowlingTeamName,
+        });
+      }
+
+      setMatchTeamEditSlot(null);
       setNewTeamModalVisible(false);
       setEditingTeamId(null);
       setTeamSearchQuery('');
 
-      showAppToast(`Team "${cleanName}" (${finalSquad.length} players) updated!`, '🏏');
+      showAppToast(`Team "${cleanName}" (${finalSquad.length} players) updated for match!`, '🏏');
       return;
     }
 
@@ -8911,11 +9106,78 @@ function CricketAddaMain() {
       selectTeamForSlot(newTeamSlot, newTeamObj);
     }
 
+    // Sync with active match if opened from scorer
+    const squadPlayerNamesNew = finalSquad.map(p => typeof p === 'string' ? p : p.name).filter(Boolean);
+    const isMatchBattingTeamNew = matchTeamEditSlot === 'batting' || newTeamSlot === 'teamA';
+    const isMatchBowlingTeamNew = matchTeamEditSlot === 'bowling' || newTeamSlot === 'teamB';
+
+    if (activeMatchId && (isMatchBattingTeamNew || isMatchBowlingTeamNew)) {
+      setMatchesDb(prev => {
+        const cur = prev[activeMatchId] || {};
+        const updated = { ...cur };
+        if (isMatchBowlingTeamNew) {
+          if (currentInnings === 1) {
+            updated.teamB = cleanName;
+            updated.flagB = newTeamFlag || cur.flagB;
+            updated.logoB = finalTeamLogo || cur.logoB;
+            if (updated.innings2) {
+              updated.innings2.team = cleanName;
+              updated.innings2.flag = newTeamFlag || cur.innings2?.flag;
+            }
+          } else {
+            updated.teamA = cleanName;
+            updated.flagA = newTeamFlag || cur.flagA;
+            updated.logoA = finalTeamLogo || cur.logoA;
+            if (updated.innings1) {
+              updated.innings1.team = cleanName;
+              updated.innings1.flag = newTeamFlag || cur.innings1?.flag;
+            }
+          }
+          updated.fieldingSquad = squadPlayerNamesNew;
+          updated.oppPlayingXI = squadPlayerNamesNew;
+        }
+        if (isMatchBattingTeamNew) {
+          if (currentInnings === 1) {
+            updated.teamA = cleanName;
+            updated.flagA = newTeamFlag || cur.flagA;
+            updated.logoA = finalTeamLogo || cur.logoA;
+            if (updated.innings1) {
+              updated.innings1.team = cleanName;
+              updated.innings1.flag = newTeamFlag || cur.innings1?.flag;
+            }
+          } else {
+            updated.teamB = cleanName;
+            updated.flagB = newTeamFlag || cur.flagB;
+            updated.logoB = finalTeamLogo || cur.logoB;
+            if (updated.innings2) {
+              updated.innings2.team = cleanName;
+              updated.innings2.flag = newTeamFlag || cur.innings2?.flag;
+            }
+          }
+          updated.myPlayingXI = squadPlayerNamesNew;
+        }
+        const updatedDb = { ...prev, [activeMatchId]: updated };
+        AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
+        return updatedDb;
+      });
+
+      if (isMatchBowlingTeamNew) {
+        setMatch(prev => ({ ...prev, fieldingSquad: squadPlayerNamesNew }));
+      }
+
+      broadcastMatchState({
+        fieldingSquad: isMatchBowlingTeamNew ? squadPlayerNamesNew : (match.fieldingSquad || []),
+        battingTeamName: isMatchBattingTeamNew ? cleanName : battingTeamName,
+        bowlingTeamName: isMatchBowlingTeamNew ? cleanName : bowlingTeamName,
+      });
+    }
+
+    setMatchTeamEditSlot(null);
     setNewTeamModalVisible(false);
     setEditingTeamId(null);
     setTeamSearchQuery('');
 
-    showAppToast(`Team "${cleanName}" (${finalSquad.length} players) saved!`, '🏏');
+    showAppToast(`Team "${cleanName}" (${finalSquad.length} players) saved for match!`, '🏏');
   };
 
   // Helper to determine if a team was created by the current user (Owner/Captain)
@@ -11614,9 +11876,9 @@ function CricketAddaMain() {
                   </View>
                 </View>
 
-                {/* Teams Header Row with Highlighted Batting Team */}
+                {/* Teams Header Row with Highlighted Batting Team and Clickable Opponent Team for Squad Editing */}
                 <View style={styles.scorerTeamsHeaderRow}>
-                  {/* BATTING TEAM (HIGHLIGHTED WITH MODERN BROADCAST ACCENT) */}
+                  {/* BATTING TEAM (HIGHLIGHTED WITH MODERN BROADCAST ACCENT - CLICKABLE TO EDIT SQUAD) */}
                   <TouchableOpacity
                     style={[
                       styles.battingTeamCardHighlight,
@@ -11626,7 +11888,7 @@ function CricketAddaMain() {
                       }
                     ]}
                     activeOpacity={0.75}
-                    onPress={openCaptainTeamModal}
+                    onPress={() => handleEditTeamAndSquadFromScorer('batting')}
                   >
                     <TeamFlagBadge
                       flag={battingTeamFlag}
@@ -11643,7 +11905,7 @@ function CricketAddaMain() {
                       </Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
                         <View style={{ backgroundColor: currentTheme.isLight ? '#10b981' : '#059669', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.4 }}>🏏 BATTING</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.4 }}>🏏 BATTING • ✏️ SQUAD</Text>
                         </View>
                       </View>
                     </View>
@@ -11654,24 +11916,25 @@ function CricketAddaMain() {
                     <Text style={[styles.scorerVsText, { color: currentTheme.isLight ? '#475569' : '#94a3b8' }]}>VS</Text>
                   </View>
 
-                  {/* BOWLING TEAM (CLEAN MUTED OPPONENT CARD) */}
+                  {/* BOWLING / OPPONENT TEAM (CLICKABLE TO EDIT TEAM & ADD PLAYERS TO SQUAD) */}
                   <TouchableOpacity
                     style={[
                       styles.bowlingTeamCardMuted,
                       {
                         backgroundColor: currentTheme.isLight ? '#f8fafc' : 'rgba(30, 41, 59, 0.45)',
-                        borderColor: currentTheme.isLight ? '#e2e8f0' : '#334155',
+                        borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
                       }
                     ]}
-                    activeOpacity={1}
+                    activeOpacity={0.75}
+                    onPress={() => handleEditTeamAndSquadFromScorer('bowling')}
                   >
                     <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end', marginRight: 7 }}>
                       <Text style={[styles.scorerOppTeamName, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 13.5, fontWeight: '800' }]} numberOfLines={1}>
                         {bowlingTeamName}
                       </Text>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <View style={{ backgroundColor: currentTheme.isLight ? '#64748b' : '#334155', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.4 }}>🎯 BOWLING</Text>
+                        <View style={{ backgroundColor: currentTheme.isLight ? '#0284c7' : '#0369a1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.4 }}>🎯 OPPONENT • ✏️ SQUAD</Text>
                         </View>
                       </View>
                     </View>
@@ -16597,9 +16860,30 @@ function CricketAddaMain() {
               </View>
 
               {/* SELECT NEXT BOWLER */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 8 }}>
-                <RealisticCricketLeatherBall size={14} />
-                <Text style={[styles.pickerSectionHeading, { marginTop: 0 }]}>SELECT NEXT BOWLER:</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 12, marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <RealisticCricketLeatherBall size={14} />
+                  <Text style={[styles.pickerSectionHeading, { marginTop: 0 }]}>SELECT NEXT BOWLER:</Text>
+                </View>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.15)',
+                    borderColor: currentTheme.isLight ? '#7dd3fc' : '#38bdf8',
+                    borderWidth: 1,
+                    paddingHorizontal: 8,
+                    paddingVertical: 3,
+                    borderRadius: 6,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                  onPress={() => {
+                    closeChangeBowlerModal();
+                    handleEditTeamAndSquadFromScorer('bowling');
+                  }}
+                >
+                  <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#38bdf8', fontSize: 11, fontWeight: 'bold' }}>✏️ Edit Squad / Add</Text>
+                </TouchableOpacity>
               </View>
               <View style={styles.grid2ColContainer}>
                 {activeOppBowlers.map((b, idx) => {
