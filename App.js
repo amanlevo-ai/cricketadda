@@ -3453,6 +3453,7 @@ const STORAGE_KEYS = {
   MATCHES_DB: '@cricketadda_matches_db',
   LAST_ACTIVE_TIME: '@cricketadda_last_active_time',
   OFFLINE_SYNC_QUEUE: '@cricketadda_offline_sync_queue',
+  RESET_VERSION: '@cricketadda_reset_test_data_v2',
 };
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 days inactivity limit (2,592,000,000 ms)
@@ -4064,6 +4065,52 @@ function CricketAddaMain() {
     showAppToast('Signed out! Ready for fresh new user sign in.', '🚪');
   };
 
+  const handleResetMatchesTeamsAndStats = async () => {
+    Alert.alert(
+      '🧹 Reset Teams, Matches & Stats',
+      'This will delete all matches in the database, created teams, match stats, and career history so you can test fresh from scratch.\n\nYour User Profile & Account will NOT be deleted.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset Test Data',
+          style: 'destructive',
+          onPress: async () => {
+            setRegisteredTeams([]);
+            setMatchesDb({});
+            setActiveMatchId(null);
+            setMatchDraft(INITIAL_MATCH_DRAFT);
+            setUserCareerData(EMPTY_USER_CAREER_DATA);
+            setLiveRuns(0);
+            setLiveWickets(0);
+            setLiveBalls(0);
+            setLiveThisOver([]);
+            setLiveBatters({});
+            setLiveBowlerStats({});
+            setLiveCommentaryList([]);
+            setMatchDroppedCatches([]);
+            setFirstInningsSummary(null);
+            setCurrentInnings(1);
+            setScoringHistory([]);
+            setScorecardInning(1);
+
+            try {
+              await AsyncStorage.multiRemove([
+                STORAGE_KEYS.REGISTERED_TEAMS,
+                STORAGE_KEYS.MATCHES_DB,
+                STORAGE_KEYS.ACTIVE_MATCH_ID,
+                STORAGE_KEYS.USER_CAREER,
+                STORAGE_KEYS.ACTIVE_SCORER,
+              ]);
+            } catch (e) {}
+
+            showAppToast('Clean Test Mode: Teams, matches & stats reset! Profile preserved.', '🧹');
+          },
+        },
+      ]
+    );
+  };
+
+
   const isUserCaptain = Boolean(
     userProfile.role?.toLowerCase().includes('captain') ||
     (currentMatchData?.captainA && userProfile.name && userProfile.name.toLowerCase().includes(currentMatchData.captainA.toLowerCase())) ||
@@ -4575,131 +4622,42 @@ function CricketAddaMain() {
         if (storedSwap !== null) {
           setSwapBattersOnOverEnd(storedSwap === 'true');
         }
-        const storedTeams = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_TEAMS);
-        if (storedTeams) {
-          const parsed = JSON.parse(storedTeams);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setRegisteredTeams(parsed);
+                // One-time automatic cleanup for fresh testing mode
+        const resetDone = await AsyncStorage.getItem(STORAGE_KEYS.RESET_VERSION);
+        if (!resetDone) {
+          await AsyncStorage.multiRemove([
+            STORAGE_KEYS.REGISTERED_TEAMS,
+            STORAGE_KEYS.MATCHES_DB,
+            STORAGE_KEYS.ACTIVE_MATCH_ID,
+            STORAGE_KEYS.USER_CAREER,
+            STORAGE_KEYS.ACTIVE_SCORER,
+          ]);
+          await AsyncStorage.setItem(STORAGE_KEYS.RESET_VERSION, 'done');
+          setRegisteredTeams([]);
+          setMatchesDb({});
+          setActiveMatchId(null);
+          setUserCareerData(EMPTY_USER_CAREER_DATA);
+        } else {
+          const storedTeams = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_TEAMS);
+          if (storedTeams) {
+            try {
+              const parsed = JSON.parse(storedTeams);
+              if (Array.isArray(parsed)) setRegisteredTeams(parsed);
+            } catch (e) {}
           }
-        }
-        const storedPlayers = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_PLAYERS);
-        if (storedPlayers) {
-          const parsedPlayers = JSON.parse(storedPlayers);
-          if (Array.isArray(parsedPlayers) && parsedPlayers.length > 0) {
-            setRegisteredPlayers(parsedPlayers);
+          const storedCareer = await AsyncStorage.getItem(STORAGE_KEYS.USER_CAREER);
+          if (storedCareer) {
+            try {
+              const parsedCareer = JSON.parse(storedCareer);
+              if (parsedCareer && typeof parsedCareer === 'object') setUserCareerData(parsedCareer);
+            } catch (e) {}
           }
-        }
-        const storedUsers = await AsyncStorage.getItem(STORAGE_KEYS.USERS_DB);
-        if (storedUsers) {
-          const parsedUsers = JSON.parse(storedUsers);
-          if (Array.isArray(parsedUsers) && parsedUsers.length > 0) {
-            setUsersDb(parsedUsers);
-          }
-        }
-        const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
-        const storedLastActive = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
-
-        if (storedProfile) {
-          const parsedProfile = JSON.parse(storedProfile);
-          const lastActiveTime = storedLastActive ? Number(storedLastActive) : 0;
-          const isExpired = lastActiveTime > 0 && (Date.now() - lastActiveTime > THIRTY_DAYS_MS);
-
-          if (isExpired) {
-            // Auto logout after 30 days of inactivity
-            await AsyncStorage.multiRemove([
-              STORAGE_KEYS.USER_PROFILE,
-              STORAGE_KEYS.USER_CAREER,
-              STORAGE_KEYS.LAST_ACTIVE_TIME,
-            ]);
-            setIsAuthenticated(false);
-            showAppToast('Session expired after 30 days of inactivity. Please sign in again.', '⏳');
-          } else if (parsedProfile && (parsedProfile.email || parsedProfile.name)) {
-            setUserProfile(parsedProfile);
-            if (parsedProfile.email) {
-              setIsAuthenticated(true);
-            }
-            // Refresh activity timestamp on active app usage
-            AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
-          }
-        }
-
-        // Restore Scorer & Active Match ID
-        const storedScorer = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_SCORER);
-        if (storedScorer) {
-          try {
-            const parsedScorer = JSON.parse(storedScorer);
-            if (parsedScorer && typeof parsedScorer === 'object') {
-              setActiveScorer(parsedScorer);
-            }
-          } catch (e) {}
-        }
-
-        const storedActiveMatchId = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_MATCH_ID);
-        if (storedActiveMatchId) {
-          setActiveMatchId(storedActiveMatchId);
-        }
-
-        const storedCareer = await AsyncStorage.getItem(STORAGE_KEYS.USER_CAREER);
-        if (storedCareer) {
-          const parsedCareer = JSON.parse(storedCareer);
-          if (parsedCareer && typeof parsedCareer === 'object') {
-            setUserCareerData(parsedCareer);
-          }
-        }
-        const storedMatches = await AsyncStorage.getItem(STORAGE_KEYS.MATCHES_DB);
-        if (storedMatches) {
-          const parsedMatches = JSON.parse(storedMatches);
-          if (parsedMatches && typeof parsedMatches === 'object') {
-            setMatchesDb(prev => {
-              const merged = { ...prev, ...parsedMatches };
-              // Synchronize innings1 / innings2 directly from liveState across all matches
-              Object.keys(merged).forEach(k => {
-                const mObj = merged[k];
-                if (mObj && mObj.liveState) {
-                  const ls = mObj.liveState;
-                  const cInn = ls.currentInnings || 1;
-                  const lsBalls = ls.liveBalls || 0;
-                  const lsOv = `${Math.floor(lsBalls / 6)}.${lsBalls % 6}`;
-                  if (cInn === 1) {
-                    mObj.innings1 = {
-                      ...(mObj.innings1 || {}),
-                      runs: typeof ls.liveRuns === 'number' ? ls.liveRuns : (mObj.innings1?.runs || 0),
-                      wickets: typeof ls.liveWickets === 'number' ? ls.liveWickets : (mObj.innings1?.wickets || 0),
-                      overs: lsBalls > 0 ? lsOv : (mObj.innings1?.overs || '0.0'),
-                    };
-                  } else if (cInn === 2) {
-                    mObj.innings2 = {
-                      ...(mObj.innings2 || {}),
-                      runs: typeof ls.liveRuns === 'number' ? ls.liveRuns : (mObj.innings2?.runs || 0),
-                      wickets: typeof ls.liveWickets === 'number' ? ls.liveWickets : (mObj.innings2?.wickets || 0),
-                      overs: lsBalls > 0 ? lsOv : (mObj.innings2?.overs || '0.0'),
-                    };
-                  }
-                }
-              });
-
-              // Rehydrate live scoring state for active match
-              const targetId = storedActiveMatchId || Object.keys(merged).find(k => merged[k]?.status === 'live');
-              if (targetId) {
-                setActiveMatchId(targetId);
-                AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_MATCH_ID, targetId).catch(() => {});
-              }
-              if (targetId && merged[targetId]?.liveState) {
-                const ls = merged[targetId].liveState;
-                if (typeof ls.liveRuns === 'number') setLiveRuns(ls.liveRuns);
-                if (typeof ls.liveWickets === 'number') setLiveWickets(ls.liveWickets);
-                if (typeof ls.liveBalls === 'number') setLiveBalls(ls.liveBalls);
-                if (Array.isArray(ls.liveThisOver)) setLiveThisOver(ls.liveThisOver);
-                if (Array.isArray(ls.scoringHistory)) setScoringHistory(ls.scoringHistory);
-                if (ls.liveBatters) setLiveBatters(ls.liveBatters);
-                if (ls.liveBowlerStats) setLiveBowlerStats(ls.liveBowlerStats);
-                if (ls.currentInnings) setCurrentInnings(ls.currentInnings);
-                if (ls.firstInningsSummary) setFirstInningsSummary(ls.firstInningsSummary);
-                if (ls.lastOverStats) setLastOverStats(ls.lastOverStats);
-                if (Array.isArray(ls.liveCommentaryList)) setLiveCommentaryList(ls.liveCommentaryList);
-              }
-              return merged;
-            });
+          const storedMatches = await AsyncStorage.getItem(STORAGE_KEYS.MATCHES_DB);
+          if (storedMatches) {
+            try {
+              const parsedMatches = JSON.parse(storedMatches);
+              if (parsedMatches && typeof parsedMatches === 'object') setMatchesDb(parsedMatches);
+            } catch (e) {}
           }
         }
 
@@ -14574,6 +14532,29 @@ function CricketAddaMain() {
             ))
           )}
 
+                    {/* Clean Test Reset Button on Profile */}
+          <TouchableOpacity
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+              backgroundColor: currentTheme.isLight ? '#fef3c7' : 'rgba(180, 83, 9, 0.25)',
+              borderColor: '#f59e0b',
+              borderWidth: 1,
+              borderRadius: 10,
+              paddingVertical: 12,
+              paddingHorizontal: 16,
+              marginTop: 16,
+            }}
+            onPress={handleResetMatchesTeamsAndStats}
+          >
+            <Text style={{ fontSize: 16 }}>🧹</Text>
+            <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fcd34d', fontSize: 13, fontWeight: 'bold' }}>
+              Reset Teams, Matches & Stats (Test Mode)
+            </Text>
+          </TouchableOpacity>
+
           {/* Sign Out Button on Profile */}
           <TouchableOpacity
             style={{
@@ -14651,6 +14632,35 @@ function CricketAddaMain() {
             >
               <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 13, fontWeight: 'bold' }}>
                 🚪 Sign Out
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+                    {/* CLEAN TEST DATA RESET */}
+          <Text style={{ color: currentTheme.isLight ? '#0284c7' : (currentTheme.secondary || '#38bdf8'), fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8 }}>
+            🧹 TEST DATA & RESET
+          </Text>
+          <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', marginBottom: 16 }}>
+            <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 14, fontWeight: 'bold', marginBottom: 4 }}>
+              Clean Slate for App Testing
+            </Text>
+            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11.5, marginBottom: 12 }}>
+              Deletes all matches from DB, created teams, live scoring data, and career stats to test match setup and scoring from scratch. Your user profile and account details are 100% preserved.
+            </Text>
+            <TouchableOpacity
+              style={{
+                backgroundColor: currentTheme.isLight ? '#fef3c7' : 'rgba(180, 83, 9, 0.3)',
+                borderColor: '#f59e0b',
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingVertical: 11,
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={handleResetMatchesTeamsAndStats}
+            >
+              <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fcd34d', fontSize: 13, fontWeight: 'bold' }}>
+                🧹 Reset Teams, Matches & Stats
               </Text>
             </TouchableOpacity>
           </View>
