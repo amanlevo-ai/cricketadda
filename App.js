@@ -1183,7 +1183,7 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
   } else if (Array.isArray(mLive.firstInningsSummary?.batting) && mLive.firstInningsSummary.batting.length > 0) {
     inn1Batting = mLive.firstInningsSummary.batting;
   } else if (mLive.liveBatters && (mLive.currentInnings === 1 || !mLive.firstInningsSummary)) {
-    inn1Batting = Object.keys(mLive.liveBatters).map(name => ({
+    inn1Batting = Object.keys(mLive?.liveBatters || {}).map(name => ({
       name,
       ...mLive.liveBatters[name],
     }));
@@ -1200,7 +1200,7 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
   } else if (Array.isArray(mLive.firstInningsSummary?.bowling) && mLive.firstInningsSummary.bowling.length > 0) {
     inn1Bowling = mLive.firstInningsSummary.bowling;
   } else if (mLive.liveBowlerStats && (mLive.currentInnings === 1 || !mLive.firstInningsSummary)) {
-    inn1Bowling = Object.keys(mLive.liveBowlerStats).map(name => {
+    inn1Bowling = Object.keys(mLive?.liveBowlerStats || {}).map(name => {
       const bw = mLive.liveBowlerStats[name];
       const balls = bw.balls || 0;
       return {
@@ -1221,7 +1221,7 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
   } else if (Array.isArray(inn2.batting) && inn2.batting.some(b => (b.runs || 0) > 0 || (b.balls || 0) > 0)) {
     inn2Batting = inn2.batting;
   } else if (mLive.liveBatters && mLive.currentInnings === 2) {
-    inn2Batting = Object.keys(mLive.liveBatters).map(name => ({
+    inn2Batting = Object.keys(mLive?.liveBatters || {}).map(name => ({
       name,
       ...mLive.liveBatters[name],
     }));
@@ -1236,7 +1236,7 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
   } else if (Array.isArray(inn2.bowling) && inn2.bowling.some(bw => (bw.runs || 0) > 0 || (bw.wickets || 0) > 0 || (bw.balls || 0) > 0)) {
     inn2Bowling = inn2.bowling;
   } else if (mLive.liveBowlerStats && mLive.currentInnings === 2) {
-    inn2Bowling = Object.keys(mLive.liveBowlerStats).map(name => {
+    inn2Bowling = Object.keys(mLive?.liveBowlerStats || {}).map(name => {
       const bw = mLive.liveBowlerStats[name];
       const balls = bw.balls || 0;
       return {
@@ -1482,7 +1482,7 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
     if (pomPlayer.catches > 0) parts.push(`${pomPlayer.catches} ct`);
     if (pomPlayer.stumpings > 0) parts.push(`${pomPlayer.stumpings} st`);
     if (pomPlayer.runOuts > 0) parts.push(`${pomPlayer.runOuts} ro`);
-    const statStr = parts.length > 0 ? ` (${parts.join(', ')})` : '';
+    const statStr = (parts || []).length > 0 ? ` (${parts.join(', ')})` : '';
     pomSummary = `${pomPlayer.name}${statStr}`;
   }
 
@@ -3740,7 +3740,7 @@ function CricketAddaMain() {
   const [scorecardInning, setScorecardInning] = useState(1);
   const [scorecardTab, setScorecardTab] = useState('scorecard'); // 'scorecard' | 'mvp'
   const [mvpInfoModalVisible, setMvpInfoModalVisible] = useState(false);
-  const currentMatchData = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb)[0] || EMPTY_MATCH_TEMPLATE;
+  const currentMatchData = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb || {})[0] || EMPTY_MATCH_TEMPLATE;
 
   // Real-time dynamic career & match history computation
   const activeUserCareerData = useMemo(() => {
@@ -3980,7 +3980,7 @@ function CricketAddaMain() {
       return;
     }
     const cleanPhone = authPhone.trim().replace(/[^0-9]/g, '');
-    if (!cleanPhone || cleanPhone.length < 10) {
+    if (!cleanPhone || (cleanPhone || '').length < 10) {
       setAuthError('Phone number is compulsory (Please enter a valid 10-digit mobile number)');
       return;
     }
@@ -4285,7 +4285,7 @@ function CricketAddaMain() {
   }, [userProfile, authEmail, activeScorer, viewerSimulated, activeMatchId]);
 
   const isOfficialScorer = useMemo(() => {
-    const currentMatch = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb)[0] || MATCH_DATABASE[activeMatchId];
+    const currentMatch = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb || {})[0] || MATCH_DATABASE[activeMatchId];
     return isUserScorerForMatch(currentMatch);
   }, [activeMatchId, matchesDb, isUserScorerForMatch]);
 
@@ -4425,7 +4425,7 @@ function CricketAddaMain() {
         quality: 0.85,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         const newAvatarUri = result.assets[0].uri;
         updateAndPersistUserProfile(prev => ({
           ...prev,
@@ -4473,7 +4473,7 @@ function CricketAddaMain() {
         quality: 0.85,
       });
 
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         const newAvatarUri = result.assets[0].uri;
         updateAndPersistUserProfile(prev => ({
           ...prev,
@@ -4772,7 +4772,7 @@ function CricketAddaMain() {
           }).catch(() => {});
 
           fetchFirebaseUsers().then(cloudUsers => {
-            if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+            if (Array.isArray(cloudUsers) && (cloudUsers || []).length > 0) {
               const cleanUsers = cloudUsers.filter(Boolean);
               setUsersDb(cleanUsers);
               AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(cleanUsers)).catch(() => {});
@@ -4806,21 +4806,21 @@ function CricketAddaMain() {
 
   // Live Cloud Database Auto-Sync: Automatically sync teams to Cloud
   useEffect(() => {
-    if (isFirebaseConfigured() && Array.isArray(registeredTeams) && registeredTeams.length > 0) {
+    if (isFirebaseConfigured() && Array.isArray(registeredTeams) && (registeredTeams || []).length > 0) {
       syncTeamsToFirebase(registeredTeams);
     }
   }, [registeredTeams]);
 
   // Live Cloud Database Auto-Sync: Automatically sync users to Cloud
   useEffect(() => {
-    if (isFirebaseConfigured() && Array.isArray(usersDb) && usersDb.length > 0) {
+    if (isFirebaseConfigured() && Array.isArray(usersDb) && (usersDb || []).length > 0) {
       syncUsersToFirebase(usersDb);
     }
   }, [usersDb]);
 
   // Live Cloud Database Auto-Sync: Automatically sync matches database to Cloud & persist locally
   useEffect(() => {
-    if (matchesDb && Object.keys(matchesDb).length > 0) {
+    if (matchesDb && Object.keys(matchesDb || {}).length > 0) {
       AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(matchesDb)).catch(() => {});
       if (isFirebaseConfigured()) {
         syncMatchesDbToFirebase(matchesDb);
@@ -5167,7 +5167,7 @@ function CricketAddaMain() {
     }
 
     const list = CELEBRATION_MESSAGES[type] || CELEBRATION_MESSAGES.wicket || CELEBRATION_MESSAGES.six;
-    const randomMsg = list[Math.floor(Math.random() * list.length)];
+    const randomMsg = list[Math.floor(Math.random() * (list || []).length)];
 
     let mainColor = '#f59e0b';
     let glowColor = '#fbbf24';
@@ -5573,7 +5573,7 @@ function CricketAddaMain() {
     ? firstInningsSummary.target
     : (currentMatchData?.innings1?.runs ? currentMatchData.innings1.runs + 1 : 0);
 
-    const maxWicketsForSquad = Math.max(1, (activeBattingSquad.length > 0 ? activeBattingSquad.length - 1 : 10));
+    const maxWicketsForSquad = Math.max(1, (activeBattingSquad.length > 0 ? (activeBattingSquad || []).length - 1 : 10));
   const isFirstInningsFinished = currentInnings === 1 && (liveBalls >= maxLegalBalls || liveWickets >= maxWicketsForSquad);
   const isSecondInningsFinished = currentInnings === 2 && (
     (targetRuns > 0 && liveRuns >= targetRuns) ||
@@ -5860,7 +5860,7 @@ function CricketAddaMain() {
 
   // The displayed "This Over" balls MUST ALWAYS correspond to the current over's legal ball count (liveBalls % 6)
   const sanitizedThisOver = useMemo(() => {
-    if (!Array.isArray(liveThisOver) || liveThisOver.length === 0) return [];
+    if (!Array.isArray(liveThisOver) || (liveThisOver || []).length === 0) return [];
     const legalCount = liveBalls % 6;
     if (legalCount === 0) {
       if (liveThisOver.filter(s => s && !String(s).includes('Wd') && !String(s).includes('Nb')).length >= 6) {
@@ -5870,7 +5870,7 @@ function CricketAddaMain() {
     }
     let legalFound = 0;
     const result = [];
-    for (let i = liveThisOver.length - 1; i >= 0; i--) {
+    for (let i = (liveThisOver || []).length - 1; i >= 0; i--) {
       const sym = liveThisOver[i];
       if (!sym) continue;
       const isExtra = String(sym).includes('Wd') || String(sym).includes('Nb');
@@ -6031,14 +6031,14 @@ function CricketAddaMain() {
           `OUT! RUN OUT! Mix-up between the batters! ${fielder} fires a bullet throw to the stumps, catching ${outPlayer} well short of the crease!`,
           `OUT! RUN OUT! Sensational fielding by ${fielder}! Quick pickup, deadly throw, and ${outPlayer} departs!`,
         ];
-        text = runOutLines[Math.floor(Math.random() * runOutLines.length)];
+        text = runOutLines[Math.floor(Math.random() * (runOutLines || []).length)];
       } else if (outType === 'bowled') {
         const bowledLines = [
           `OUT! CLEAN BOWLED! Absolute beauty from ${currentBowler}! Speeds through the defense, uprooting the stumps to dismiss ${outPlayer}!`,
           `OUT! BOWLED HIM! Fast, accurate delivery by ${currentBowler}, breaching the defense of ${outPlayer} and shattering the woodwork!`,
           `OUT! KNOCKED HIM OVER! Unstoppable delivery from ${currentBowler}, crashing into the stumps! ${outPlayer} departs!`,
         ];
-        text = bowledLines[Math.floor(Math.random() * bowledLines.length)];
+        text = bowledLines[Math.floor(Math.random() * (bowledLines || []).length)];
       } else if (outType === 'caught') {
         const caughtLines = shotAreaName ? [
           `OUT! CAUGHT! ${outPlayer} tries to clear ${shotAreaName}, but ${fielder} settles underneath it and takes a calm catch off ${currentBowler}!`,
@@ -6049,20 +6049,20 @@ function CricketAddaMain() {
           `OUT! CAUGHT! Edged and taken! ${fielder} pouches a sharp catch to dismiss ${outPlayer} off ${currentBowler}!`,
           `OUT! GONE! Spliced high into the air, and ${fielder} makes no mistake! Vital wicket for ${currentBowler}!`,
         ];
-        text = caughtLines[Math.floor(Math.random() * caughtLines.length)];
+        text = caughtLines[Math.floor(Math.random() * (caughtLines || []).length)];
       } else if (outType === 'lbw') {
         const lbwLines = [
           `OUT! LBW! Trapped right in front! ${currentBowler} angles it in sharply, strikes ${outPlayer} on the pads, and the umpire raises the finger!`,
           `OUT! LBW! Huge appeal and given! Ball was sliding onto the stumps, hitting ${outPlayer} plumb in line!`,
           `OUT! LBW! Rapid delivery from ${currentBowler}, beating ${outPlayer}'s inside edge to strike the front pad!`,
         ];
-        text = lbwLines[Math.floor(Math.random() * lbwLines.length)];
+        text = lbwLines[Math.floor(Math.random() * (lbwLines || []).length)];
       } else if (outType === 'stumped') {
         const stumpedLines = [
           `OUT! STUMPED! ${outPlayer} advances down the pitch, deceived in flight by ${currentBowler}, and ${fielder} whips off the bails in a flash!`,
           `OUT! STUMPED! Lightning-fast hands behind the stumps from ${fielder}! ${outPlayer} is stranded outside the crease!`,
         ];
-        text = stumpedLines[Math.floor(Math.random() * stumpedLines.length)];
+        text = stumpedLines[Math.floor(Math.random() * (stumpedLines || []).length)];
       } else if (outType === 'hit_wicket') {
         text = `OUT! HIT WICKET! Complete disbelief for ${outPlayer}, accidentally clipping the bails while playing the shot!`;
       } else if (outType === 'obstructing') {
@@ -6106,7 +6106,7 @@ function CricketAddaMain() {
         `SIX! Monstrous hit! Pulled cleanly over deep square leg into the second tier! Pure authority from ${currentStriker}!`,
         `SIX! Stand and deliver! Smashed straight back over the bowler's head for a sensational maximum!`,
       ];
-      text = sixLines[Math.floor(Math.random() * sixLines.length)];
+      text = sixLines[Math.floor(Math.random() * (sixLines || []).length)];
     } else if (runs === 4) {
       badge = '4';
       badgeType = 'four';
@@ -6119,7 +6119,7 @@ function CricketAddaMain() {
         `FOUR! Slashed away! Short and wide from ${currentBowler}, cracked through backward point for a boundary!`,
         `FOUR! Elegantly flicked through mid-wicket! Finds the gap with pinpoint accuracy!`,
       ];
-      text = fourLines[Math.floor(Math.random() * fourLines.length)];
+      text = fourLines[Math.floor(Math.random() * (fourLines || []).length)];
     } else if (runs === 0) {
       badge = '0';
       badgeType = 'dot';
@@ -6132,7 +6132,7 @@ function CricketAddaMain() {
         `Beaten! Good channel outside off, slight away shape, ${currentStriker} pushes and misses.`,
         `Tapped gently towards backward point, fielder quickly gathers to deny any single.`,
       ];
-      text = dotLines[Math.floor(Math.random() * dotLines.length)];
+      text = dotLines[Math.floor(Math.random() * (dotLines || []).length)];
     } else {
       badge = String(runs);
       badgeType = 'run';
@@ -6458,7 +6458,7 @@ function CricketAddaMain() {
         sixShotType = 'six_ramp';
       } else {
         const pool = ['six_stadium', 'six_helicopter', 'six_straight', 'six_ramp'];
-        sixShotType = pool[Math.floor(Math.random() * pool.length)];
+        sixShotType = pool[Math.floor(Math.random() * (pool || []).length)];
       }
       celebrationEvent = { id: Date.now(), type: sixShotType, player: striker, runs: '6', teamFlag: battingTeamFlag, teamName: battingTeamName };
     }
@@ -6474,7 +6474,7 @@ function CricketAddaMain() {
         fourShotType = 'four_cut';
       } else {
         const pool = ['four_drive', 'four_pull', 'four_cut'];
-        fourShotType = pool[Math.floor(Math.random() * pool.length)];
+        fourShotType = pool[Math.floor(Math.random() * (pool || []).length)];
       }
       celebrationEvent = { id: Date.now(), type: fourShotType, player: striker, runs: '4', teamFlag: battingTeamFlag, teamName: battingTeamName };
     }
@@ -6765,7 +6765,7 @@ function CricketAddaMain() {
     }
     if (str.includes('Nb')) {
       const parts = str.split('+');
-      const extraBat = parts.length > 1 ? parseInt(parts[1]) || 0 : 0;
+      const extraBat = (parts || []).length > 1 ? parseInt(parts[1]) || 0 : 0;
       return { runs: 1 + extraBat, isWkt: false, isLegal: false };
     }
     if (str.includes('B') || str.includes('Lb')) {
@@ -7182,8 +7182,8 @@ function CricketAddaMain() {
     // Collect all players currently part of this team's match squad
     const rawSquadNames = isBowling
       ? (
-          (match.fieldingSquad && match.fieldingSquad.length > 0)
-            ? match.fieldingSquad
+          (currentMatchData?.fieldingSquad && currentMatchData?.fieldingSquad.length > 0)
+            ? currentMatchData?.fieldingSquad
             : (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0)
             ? currentMatchData.fieldingSquad
             : (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0)
@@ -7341,7 +7341,7 @@ function CricketAddaMain() {
         aspect: [1, 1],
         quality: 0.85,
       });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         setCaptainEditTeamLogo(result.assets[0].uri);
         showAppToast('Team picture updated! 🖼️', '🎉', 'success');
       }
@@ -7453,7 +7453,7 @@ function CricketAddaMain() {
     });
 
     setCaptainTeamModalVisible(false);
-    Alert.alert('👑 Captain Rights Applied', `Squad updated (${captainSquadList.length} players) and brand set to "${cleanName}"! Synced live across all screens.`);
+    Alert.alert('👑 Captain Rights Applied', `Squad updated (${(captainSquadList || []).length} players) and brand set to "${cleanName}"! Synced live across all screens.`);
   };
 
   const handleUndoLastBall = () => {
@@ -7478,8 +7478,8 @@ function CricketAddaMain() {
     setMatchCompletedModalVisible(false);
 
     // 2. If we have recorded ball snapshots in scoringHistory
-    if (scoringHistory && scoringHistory.length > 0) {
-      const lastAction = scoringHistory[scoringHistory.length - 1];
+    if (scoringHistory && (scoringHistory || []).length > 0) {
+      const lastAction = scoringHistory[(scoringHistory || []).length - 1];
 
       // Double-check if the last snapshot belongs to the previous innings
       if (currentInnings === 2 && lastAction.innings === 1) {
@@ -7600,8 +7600,8 @@ function CricketAddaMain() {
     }
 
     // 3. Fallback if undoing pre-existing balls in this over
-    if (liveThisOver && liveThisOver.length > 0) {
-      const lastBallSymbol = liveThisOver[liveThisOver.length - 1];
+    if (liveThisOver && (liveThisOver || []).length > 0) {
+      const lastBallSymbol = liveThisOver[(liveThisOver || []).length - 1];
       const parsed = parseBallSymbol(lastBallSymbol);
 
       const nextOver = liveThisOver.slice(0, -1);
@@ -7685,7 +7685,7 @@ function CricketAddaMain() {
       return;
     }
 
-    if (finalBowler.toLowerCase() === lastOverBowler.toLowerCase() && activeOppBowlers.length > 1) {
+    if (finalBowler.toLowerCase() === lastOverBowler.toLowerCase() && (activeOppBowlers || []).length > 1) {
       Alert.alert(
         '🚫 Consecutive Overs Not Allowed',
         `• ${finalBowler} bowled the previous over.\n• Under cricket rules, a bowler cannot bowl two consecutive overs.\n• You must choose a different bowler from the bowling team.`
@@ -8220,20 +8220,20 @@ function CricketAddaMain() {
 
     // 2. Clone base over details if available
     let oversList = [];
-    if (bowler.overDetails && bowler.overDetails.length > 0) {
+    if (bowler.overDetails && (bowler?.overDetails || []).length > 0) {
       oversList = JSON.parse(JSON.stringify(bowler.overDetails));
     }
 
     // 3. If there are live deliveries bowled by this bowler during this match
     if (bowlerLiveActions.length > 0) {
-      const lastStaticOver = oversList.length > 0 ? oversList[oversList.length - 1] : null;
-      let staticBallCountInLastOver = lastStaticOver && Array.isArray(lastStaticOver.balls) ? lastStaticOver.balls.length : 6;
+      const lastStaticOver = (oversList || []).length > 0 ? oversList[(oversList || []).length - 1] : null;
+      let staticBallCountInLastOver = lastStaticOver && Array.isArray(lastStaticOver.balls) ? (lastStaticOver?.balls || []).length : 6;
 
       let actionIdx = 0;
       if (lastStaticOver && staticBallCountInLastOver < 6) {
         const neededToComplete = 6 - staticBallCountInLastOver;
         const fillActions = bowlerLiveActions.slice(0, neededToComplete);
-        actionIdx = fillActions.length;
+        actionIdx = (fillActions || []).length;
 
         fillActions.forEach(act => {
           lastStaticOver.balls.push({
@@ -8248,7 +8248,7 @@ function CricketAddaMain() {
         });
 
         const updatedBallsCount = (lastStaticOver?.balls?.length || 0);
-        const overMatchNumber = lastStaticOver.overNum || oversList.length;
+        const overMatchNumber = lastStaticOver.overNum || (oversList || []).length;
         lastStaticOver.matchOver = updatedBallsCount >= 6
           ? `${lastStaticOver.matchOver.split('(')[0].trim() || `Over ${overMatchNumber}`} (${overMatchNumber - 1}.1 - ${overMatchNumber}.0)`
           : `${lastStaticOver.matchOver.split('(')[0].trim() || `Over ${overMatchNumber}`} (${overMatchNumber - 1}.1 - ${overMatchNumber - 1}.${updatedBallsCount})`;
@@ -8259,9 +8259,9 @@ function CricketAddaMain() {
       }
 
       const remainingActions = bowlerLiveActions.slice(actionIdx);
-      for (let i = 0; i < remainingActions.length; i += 6) {
+      for (let i = 0; i < (remainingActions || []).length; i += 6) {
         const chunk = remainingActions.slice(i, i + 6);
-        const overNumber = oversList.length + 1;
+        const overNumber = (oversList || []).length + 1;
         const ovBalls = chunk.map(act => ({
           val: act.ballSymbol || String(act.addedRuns),
           isWkt: !!act.isWkt,
@@ -8276,21 +8276,21 @@ function CricketAddaMain() {
 
         oversList.push({
           overNum: overNumber,
-          matchOver: ovBalls.length >= 6 ? `Over ${overNumber} (Full Over)` : `Over ${overNumber} (${ovBalls.length} balls)`,
+          matchOver: (ovBalls || []).length >= 6 ? `Over ${overNumber} (Full Over)` : `Over ${overNumber} (${(ovBalls || []).length} balls)`,
           phase: overNumber <= 6 ? 'Powerplay' : overNumber <= 15 ? 'Middle Overs' : 'Death Overs',
           balls: ovBalls,
           runs: ovRuns,
           wickets: ovWkts,
-          econ: ovBalls.length > 0 ? ((ovRuns / ovBalls.length) * 6).toFixed(2) : '0.00',
+          econ: (ovBalls || []).length > 0 ? ((ovRuns / (ovBalls || []).length) * 6).toFixed(2) : '0.00',
         });
       }
     }
 
     // 4. If bowler has completed overs but oversList still has fewer balls than totalLiveBalls (e.g. 4 full overs)
-    const currentBallsInOversList = oversList.reduce((acc, ov) => acc + (ov.balls ? ov.balls.length : 0), 0);
+    const currentBallsInOversList = oversList.reduce((acc, ov) => acc + (ov.balls ? (ov?.balls || []).length : 0), 0);
     if (oversList.length === 0 || currentBallsInOversList < totalLiveBalls) {
       if (oversList.length > 0) {
-        const lastOver = oversList[oversList.length - 1];
+        const lastOver = oversList[(oversList || []).length - 1];
         while ((lastOver?.balls?.length || 0) < 6 && (oversList.reduce((a, o) => a + (o?.balls?.length || 0), 0)) < totalLiveBalls) {
           lastOver.balls.push({ val: '0', isWkt: false });
         }
@@ -8302,7 +8302,7 @@ function CricketAddaMain() {
 
       const totalOversNeeded = Math.ceil(totalLiveBalls / 6);
       while (oversList.length < totalOversNeeded) {
-        const i = oversList.length;
+        const i = (oversList || []).length;
         const isLast = i === totalOversNeeded - 1;
         const ballsInThisOver = isLast ? (totalLiveBalls % 6 || 6) : 6;
         const runsInOver = Math.round(totalLiveRuns / totalOversNeeded);
@@ -8394,7 +8394,7 @@ function CricketAddaMain() {
   };
 
   const calculateExtrasFromHistory = (history, inningNum, fallbackExtras) => {
-    if (!Array.isArray(history) || history.length === 0) {
+    if (!Array.isArray(history) || (history || []).length === 0) {
       return fallbackExtras || '0 (b 0, lb 0, w 0, nb 0)';
     }
     const innDeliveries = history.filter(h => (h.innings || 1) === inningNum);
@@ -8428,7 +8428,7 @@ function CricketAddaMain() {
   };
 
   const calculateFOWFromHistory = (history, inningNum, fallbackFow, currentWickets = 0, currentRuns = 0, currentOvers = '0.0', battingList = []) => {
-    if (Array.isArray(history) && history.length > 0) {
+    if (Array.isArray(history) && (history || []).length > 0) {
       const wkts = history.filter(h => h.isWkt && (h.innings || 1) === inningNum);
       if (wkts.length > 0) {
         return wkts.map((w, idx) => {
@@ -8644,7 +8644,7 @@ function CricketAddaMain() {
       const sumBowlerBalls = list.reduce((acc, b) => acc + (Number(b.balls) || 0), 0);
       if (sumBowlerBalls > totalInningsBalls) {
         let excess = sumBowlerBalls - totalInningsBalls;
-        for (let i = list.length - 1; i >= 0 && excess > 0; i--) {
+        for (let i = (list || []).length - 1; i >= 0 && excess > 0; i--) {
           const canDeduct = Math.min(excess, list[i].balls);
           list[i].balls -= canDeduct;
           excess -= canDeduct;
@@ -8659,7 +8659,7 @@ function CricketAddaMain() {
       const sumBowlerWkts = list.reduce((acc, b) => acc + (Number(b.wickets) || 0), 0);
       if (sumBowlerWkts > totalInningsWickets) {
         let excessWkts = sumBowlerWkts - totalInningsWickets;
-        for (let i = list.length - 1; i >= 0 && excessWkts > 0; i--) {
+        for (let i = (list || []).length - 1; i >= 0 && excessWkts > 0; i--) {
           const canDeduct = Math.min(excessWkts, list[i].wickets);
           list[i].wickets -= canDeduct;
           excessWkts -= canDeduct;
@@ -8672,7 +8672,7 @@ function CricketAddaMain() {
 
   const isLiveMatchActive = currentMatchData?.status === 'live';
   const hasValidScorecard = Boolean(
-    (Object.keys(matchesDb).length > 0 && currentMatchData && currentMatchData.id && currentMatchData.id !== 'match_new') ||
+    (Object.keys(matchesDb || {}).length > 0 && currentMatchData && currentMatchData.id && currentMatchData.id !== 'match_new') ||
     isLiveMatchActive ||
     (currentMatchData && (
       (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0) ||
@@ -8698,25 +8698,25 @@ function CricketAddaMain() {
 
     // Batters map resolution
     let activeBattersMap = null;
-    if (isLiveNow && isTargetActive && Object.keys(liveBatters).length > 0) {
+    if (isLiveNow && isTargetActive && Object.keys(liveBatters || {}).length > 0) {
       activeBattersMap = liveBatters;
-    } else if (isLiveNow && mLive?.liveBatters && Object.keys(mLive.liveBatters).length > 0) {
+    } else if (isLiveNow && mLive?.liveBatters && Object.keys(mLive?.liveBatters || {}).length > 0) {
       activeBattersMap = mLive.liveBatters;
     } else if (inningNum === 1 && (mLive?.firstInningsSummary?.batting || firstInningsSummary?.batting)) {
       activeBattersMap = mLive?.firstInningsSummary?.batting || firstInningsSummary?.batting;
-    } else if (mLive?.liveBatters && Object.keys(mLive.liveBatters).length > 0) {
+    } else if (mLive?.liveBatters && Object.keys(mLive?.liveBatters || {}).length > 0) {
       activeBattersMap = mLive.liveBatters;
     }
 
     // Bowlers map resolution
     let activeBowlersMap = null;
-    if (isLiveNow && isTargetActive && Object.keys(liveBowlerStats).length > 0) {
+    if (isLiveNow && isTargetActive && Object.keys(liveBowlerStats || {}).length > 0) {
       activeBowlersMap = liveBowlerStats;
-    } else if (isLiveNow && mLive?.liveBowlerStats && Object.keys(mLive.liveBowlerStats).length > 0) {
+    } else if (isLiveNow && mLive?.liveBowlerStats && Object.keys(mLive?.liveBowlerStats || {}).length > 0) {
       activeBowlersMap = mLive.liveBowlerStats;
     } else if (inningNum === 1 && (mLive?.firstInningsSummary?.bowling || firstInningsSummary?.bowling)) {
       activeBowlersMap = mLive?.firstInningsSummary?.bowling || firstInningsSummary?.bowling;
-    } else if (mLive?.liveBowlerStats && Object.keys(mLive.liveBowlerStats).length > 0) {
+    } else if (mLive?.liveBowlerStats && Object.keys(mLive?.liveBowlerStats || {}).length > 0) {
       activeBowlersMap = mLive.liveBowlerStats;
     }
 
@@ -8754,7 +8754,7 @@ function CricketAddaMain() {
     const maxOv = baseInning.maxOvers || targetMatch.overs || 20;
     const crr = balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00';
 
-    const historyStack = isTargetActive && scoringHistory.length > 0 ? scoringHistory : (mLive?.scoringHistory || targetMatch.scoringHistory || []);
+    const historyStack = isTargetActive && (scoringHistory || []).length > 0 ? scoringHistory : (mLive?.scoringHistory || targetMatch.scoringHistory || []);
     const dynamicBattingList = getDynamicBatting(
       baseInning.batting || [],
       activeBattersMap,
@@ -8894,11 +8894,11 @@ function CricketAddaMain() {
 
     // Phase 4 Validation: Playing XI & Roles (Captain & Keeper for both teams)
     if (wzPhase === 4) {
-      if (!matchDraft.myPlayingXI || matchDraft.myPlayingXI.length < 2) {
+      if (!matchDraft.myPlayingXI || (matchDraft?.myPlayingXI || []).length < 2) {
         Alert.alert('Playing XI Required', `Please select at least 2 players in Playing XI for ${matchDraft.myTeam?.name || 'Team A'}.`);
         return;
       }
-      if (!matchDraft.opponentPlayingXI || matchDraft.opponentPlayingXI.length < 2) {
+      if (!matchDraft.opponentPlayingXI || (matchDraft?.opponentPlayingXI || []).length < 2) {
         Alert.alert('Playing XI Required', `Please select at least 2 players in Playing XI for ${matchDraft.opponentTeam?.name || 'Team B'}.`);
         return;
       }
@@ -9042,7 +9042,7 @@ function CricketAddaMain() {
         aspect: [1, 1],
         quality: 0.85,
       });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         const logoUri = result.assets[0].uri;
         setNewTeamLogo(logoUri);
         setNewTeamCustomLogoUrl('');
@@ -9078,7 +9078,7 @@ function CricketAddaMain() {
         aspect: [1, 1],
         quality: 0.85,
       });
-      if (!result.canceled && result.assets && result.assets.length > 0) {
+      if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         const logoUri = result.assets[0].uri;
         setNewTeamLogo(logoUri);
         setNewTeamCustomLogoUrl('');
@@ -9116,7 +9116,7 @@ function CricketAddaMain() {
       setShowTeamLogoUrlInput(false);
       setNewTeamCity(teamToEdit.city || teamToEdit.homeGround || '');
 
-      const formattedSquad = Array.isArray(teamToEdit.squad) && teamToEdit.squad.length > 0
+      const formattedSquad = Array.isArray(teamToEdit.squad) && teamToEdi(t?.squad || []).length > 0
         ? teamToEdit.squad.map((p, idx) => {
             if (typeof p === 'string') {
               const cleanName = p.replace(' (c)', '').replace(' (wk)', '').trim();
@@ -9390,7 +9390,7 @@ function CricketAddaMain() {
       bowlingStyle: playerPhoneSearchResult.bowlingStyle || (targetRole === 'BOWL' ? 'Right Arm Fast' : 'Right Arm Medium'),
       jersey: playerPhoneSearchResult.jersey || '',
       isCaptain: false,
-      isViceCaptain: newTeamSquad.length === 1,
+      isViceCaptain: (newTeamSquad || []).length === 1,
       isWk: targetRole === 'WK',
       avatarUri: playerPhoneSearchResult.avatarUri || PLAYER_AVATARS[targetName] || null,
       matches: playerPhoneSearchResult.matches || 24,
@@ -9404,7 +9404,7 @@ function CricketAddaMain() {
     setNewTeamSquad(prev => [...prev, newPlayer]);
 
     // Persist to registered players database if 10-digit phone
-    if (targetPhone && targetPhone.length === 10) {
+    if (targetPhone && (targetPhone || '').length === 10) {
       setRegisteredPlayers(prev => {
         if (prev.some(p => p.phone === targetPhone)) return prev;
         const updated = [...prev, newPlayer];
@@ -9425,7 +9425,7 @@ function CricketAddaMain() {
       return;
     }
     const cleanPhone = playerPhoneInput.trim().replace(/[^0-9]/g, '');
-    if (cleanPhone && cleanPhone.length < 10) {
+    if (cleanPhone && (cleanPhone || '').length < 10) {
       showAppToast('Please enter a full 10-digit mobile number, or leave it blank', '⚠️', 'error');
       return;
     }
@@ -9440,15 +9440,15 @@ function CricketAddaMain() {
     }
 
     const newPlayer = {
-      id: `p_ph_${Date.now()}_${newTeamSquad.length + 1}`,
+      id: `p_ph_${Date.now()}_${(newTeamSquad || []).length + 1}`,
       name: cleanName,
       phone: cleanPhone,
       role: newPlayerRoleInput,
       battingStyle: 'Right Hand Bat',
       bowlingStyle: newPlayerRoleInput === 'BOWL' ? 'Right Arm Fast' : 'Right Arm Medium',
       jersey: '',
-      isCaptain: newTeamSquad.length === 0,
-      isViceCaptain: newTeamSquad.length === 1,
+      isCaptain: (newTeamSquad || []).length === 0,
+      isViceCaptain: (newTeamSquad || []).length === 1,
       isWk: newPlayerRoleInput === 'WK',
       avatarUri: PLAYER_AVATARS[cleanName] || null,
       matches: 12,
@@ -9462,7 +9462,7 @@ function CricketAddaMain() {
     setNewTeamSquad(prev => [...prev, newPlayer]);
 
     // Save to persistent registered players database
-    if (cleanPhone && cleanPhone.length === 10) {
+    if (cleanPhone && (cleanPhone || '').length === 10) {
       setRegisteredPlayers(prev => {
         if (prev.some(p => p.phone === cleanPhone)) return prev;
         const updated = [...prev, newPlayer];
@@ -9500,7 +9500,7 @@ function CricketAddaMain() {
       bowlingStyle: playerData.bowlingStyle || (pRole === 'BOWL' ? 'Right Arm Fast' : 'Right Arm Medium'),
       jersey: playerData.jersey || '',
       isCaptain: false,
-      isViceCaptain: newTeamSquad.length === 1,
+      isViceCaptain: (newTeamSquad || []).length === 1,
       isWk: pRole === 'WK',
       avatarUri: playerData.avatarUri || PLAYER_AVATARS[pName] || null,
       matches: playerData.matches || 28,
@@ -9514,7 +9514,7 @@ function CricketAddaMain() {
     setNewTeamSquad(prev => [...prev, newPlayer]);
 
     // Add to registered players database if has 10-digit phone
-    if (pPhone && pPhone.length === 10) {
+    if (pPhone && (pPhone || '').length === 10) {
       setRegisteredPlayers(prev => {
         if (prev.some(p => p.phone === pPhone)) return prev;
         const updated = [...prev, newPlayer];
@@ -9544,12 +9544,12 @@ function CricketAddaMain() {
     }
 
     const newPlayerObj = {
-      id: `p_cust_${Date.now()}_${newTeamSquad.length + 1}`,
+      id: `p_cust_${Date.now()}_${(newTeamSquad || []).length + 1}`,
       name: cleanPlayerName,
       phone: '',
       role: newPlayerRoleInput,
-      isCaptain: newTeamSquad.length === 0,
-      isViceCaptain: newTeamSquad.length === 1,
+      isCaptain: (newTeamSquad || []).length === 0,
+      isViceCaptain: (newTeamSquad || []).length === 1,
       isWk: newPlayerRoleInput === 'WK',
       avatarUri: PLAYER_AVATARS[cleanPlayerName] || null,
     };
@@ -9586,7 +9586,7 @@ function CricketAddaMain() {
   };
 
   const handleAutofillRemainingPlayers = () => {
-    const currentCount = newTeamSquad.length;
+    const currentCount = (newTeamSquad || []).length;
     if (currentCount >= 20) {
       showAppToast('Squad already has 20 players', 'ℹ️');
       return;
@@ -9607,7 +9607,7 @@ function CricketAddaMain() {
       });
     }
     setNewTeamSquad(prev => [...prev, ...newItems]);
-    showAppToast(`Autofilled ${newItems.length} players (${currentCount + newItems.length}/20)`, '⚡');
+    showAppToast(`Autofilled ${(newItems || []).length} players (${currentCount + (newItems || []).length}/20)`, '⚡');
   };
 
   const handleSaveNewTeamWithSquad = () => {
@@ -9630,7 +9630,7 @@ function CricketAddaMain() {
     let finalSquad = [...newTeamSquad];
 
     // If squad is completely empty, add the creator as captain
-    if (finalSquad.length === 0) {
+    if ((finalSquad || []).length === 0) {
       finalSquad.push({
         id: `p_cap_${Date.now()}`,
         name: userProfile.name || 'Captain',
@@ -9647,7 +9647,7 @@ function CricketAddaMain() {
     finalSquad = finalSquad.slice(0, 20);
 
     const captainPlayer = finalSquad.find(p => p.isCaptain) || finalSquad[0];
-    const wkPlayer = finalSquad.find(p => p.isWk || p.role === 'WK') || (finalSquad.length > 1 ? finalSquad[1] : null);
+    const wkPlayer = finalSquad.find(p => p.isWk || p.role === 'WK') || ((finalSquad || []).length > 1 ? finalSquad[1] : null);
 
     if (editingTeamId) {
       // UPDATE EXISTING TEAM
@@ -9798,7 +9798,7 @@ function CricketAddaMain() {
         }
 
         broadcastMatchState({
-          fieldingSquad: isMatchBowlingTeam ? squadPlayerNames : (match.fieldingSquad || []),
+          fieldingSquad: isMatchBowlingTeam ? squadPlayerNames : (currentMatchData?.fieldingSquad || []),
           battingTeamName: isMatchBattingTeam ? cleanName : battingTeamName,
           bowlingTeamName: isMatchBowlingTeam ? cleanName : bowlingTeamName,
         });
@@ -9809,7 +9809,7 @@ function CricketAddaMain() {
       setEditingTeamId(null);
       setTeamSearchQuery('');
 
-      showAppToast(`Team "${cleanName}" (${finalSquad.length} players) updated for match!`, '🏏');
+      showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) updated for match!`, '🏏');
       return;
     }
 
@@ -9859,7 +9859,7 @@ function CricketAddaMain() {
     });
 
     // 3. Select for the active slot ONLY if wizard is actively open AND squad has at least 11 players
-    if (wizardVisible && typeof selectTeamForSlot === 'function' && newTeamSlot && finalSquad.length >= 11) {
+    if (wizardVisible && typeof selectTeamForSlot === 'function' && newTeamSlot && (finalSquad || []).length >= 11) {
       selectTeamForSlot(newTeamSlot, newTeamObj);
     }
 
@@ -9923,7 +9923,7 @@ function CricketAddaMain() {
       }
 
       broadcastMatchState({
-        fieldingSquad: isMatchBowlingTeamNew ? squadPlayerNamesNew : (match.fieldingSquad || []),
+        fieldingSquad: isMatchBowlingTeamNew ? squadPlayerNamesNew : (currentMatchData?.fieldingSquad || []),
         battingTeamName: isMatchBattingTeamNew ? cleanName : battingTeamName,
         bowlingTeamName: isMatchBowlingTeamNew ? cleanName : bowlingTeamName,
       });
@@ -9934,7 +9934,7 @@ function CricketAddaMain() {
     setEditingTeamId(null);
     setTeamSearchQuery('');
 
-    showAppToast(`Team "${cleanName}" (${finalSquad.length} players) saved for match!`, '🏏');
+    showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) saved for match!`, '🏏');
   };
 
   // Helper to determine if a team was created by the current user (Owner/Captain)
@@ -9986,7 +9986,7 @@ function CricketAddaMain() {
 
     let count = 0;
     if (matchesDb && typeof matchesDb === 'object') {
-      Object.values(matchesDb).forEach(m => {
+      Object.values(matchesDb || {}).forEach(m => {
         if (!m) return;
         const mA = (m.teamA || '').toLowerCase().trim();
         const mB = (m.teamB || '').toLowerCase().trim();
@@ -10123,7 +10123,7 @@ function CricketAddaMain() {
     setRegisteredTeams(updatedTeams);
     AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updatedTeams)).catch(() => {});
     
-    if (cleanPhone && cleanPhone.length === 10) {
+    if (cleanPhone && (cleanPhone || '').length === 10) {
       setRegisteredPlayers(prev => {
         if (prev.some(p => p.phone === cleanPhone)) return prev;
         const updated = [...prev, newPlayerObj];
@@ -10343,14 +10343,14 @@ function CricketAddaMain() {
     const isSelected = currentXI.some(p => p.name === player.name);
 
     if (isSelected) {
-      if (currentXI.length <= 1) {
+      if ((currentXI || []).length <= 1) {
         Alert.alert('Selection Error', 'Playing XI must have at least 1 player.');
         return;
       }
       const updated = currentXI.filter(p => p.name !== player.name);
       updateDraft({ [teamKey]: updated });
     } else {
-      if (currentXI.length >= 11) {
+      if ((currentXI || []).length >= 11) {
         Alert.alert('Maximum 11 Players', 'Playing XI can only contain exactly 11 players. Please deselect a player first.');
         return;
       }
@@ -10377,7 +10377,7 @@ function CricketAddaMain() {
     const targetKey = guestTargetTeam === 'myTeam' ? 'myPlayingXI' : 'opponentPlayingXI';
     const currentXI = matchDraft[targetKey] || [];
 
-    if (currentXI.length >= 11) {
+    if ((currentXI || []).length >= 11) {
       Alert.alert('Playing XI Full (11/11)', 'You already have 11 players selected. Please remove one player to add this guest player.');
       return;
     }
@@ -10586,7 +10586,7 @@ function CricketAddaMain() {
     const targetMatch = matchesDb[matchId] || MATCH_DATABASE[matchId];
     if (!targetMatch) return;
 
-    if (activeMatchId === matchId && (liveBalls > 0 || liveRuns > 0 || scoringHistory.length > 0 || liveCommentaryList.length > 1)) {
+    if (activeMatchId === matchId && (liveBalls > 0 || liveRuns > 0 || (scoringHistory || []).length > 0 || (liveCommentaryList || []).length > 1)) {
       // User is already actively scoring this match in memory! Preserve all live state!
       navigateTo('scorer', matchId);
       return;
@@ -10860,7 +10860,7 @@ function CricketAddaMain() {
                       }}
                       onSubmitEditing={handleEmailSubmit}
                     />
-                    {authEmail.length > 0 && (
+                    {(authEmail || '').length > 0 && (
                       <TouchableOpacity onPress={() => setAuthEmail('')}>
                         <Text style={{ color: '#94a3b8', fontSize: 16, paddingHorizontal: 6 }}>✕</Text>
                       </TouchableOpacity>
@@ -11299,7 +11299,7 @@ function CricketAddaMain() {
                   </TouchableOpacity>
                 </View>
               ) : (
-                Object.keys(matchesDb)
+                Object.keys(matchesDb || {})
                   .filter(id => matchesDb[id]?.status === 'live')
                   .map(id => {
                     const m = matchesDb[id];
@@ -11475,7 +11475,7 @@ function CricketAddaMain() {
                   </Text>
                 </View>
               ) : (
-                Object.keys(matchesDb)
+                Object.keys(matchesDb || {})
                   .filter(id => matchesDb[id]?.status === 'completed' || matchesDb[id]?.status === 'abandoned')
                   .map(id => {
                     const m = matchesDb[id];
@@ -11615,7 +11615,7 @@ function CricketAddaMain() {
 
               <View style={styles.teamsMetricItem}>
                 <Text style={[styles.teamsMetricNum, { color: '#f59e0b' }]}>
-                  {userVisibleTeams.length}
+                  {(userVisibleTeams || []).length}
                 </Text>
                 <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Total Clubs</Text>
               </View>
@@ -11695,7 +11695,7 @@ function CricketAddaMain() {
                   teamFilterTab === 'all' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)
                 ]}
               >
-                🌐 All Clubs ({userVisibleTeams.length})
+                🌐 All Clubs ({(userVisibleTeams || []).length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -11723,7 +11723,7 @@ function CricketAddaMain() {
               });
             }
 
-            if (list.length === 0) {
+            if ((list || []).length === 0) {
               return (
                 <View style={[styles.teamsEmptyCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
                   <Text style={{ fontSize: 44, marginBottom: 8 }}>
@@ -12018,7 +12018,7 @@ function CricketAddaMain() {
 
                       {/* Squad Members Roster */}
                       <View style={{ gap: 6, marginTop: 4 }}>
-                        {Array.isArray(t?.squad) && t.squad.length > 0 ? (
+                        {Array.isArray(t?.squad) && (t?.squad || []).length > 0 ? (
                           t.squad.map((p, pIdx) => {
                             const pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
                             const cleanPName = pName.replace(' (c)', '').replace(' (wk)', '').trim();
@@ -12376,7 +12376,7 @@ function CricketAddaMain() {
                 borderWidth: 1,
                 borderColor: '#1e293b',
               }}>
-                {Object.keys(liveBatters).map((name, i) => {
+                {Object.keys(liveBatters || {}).map((name, i) => {
                   const b = liveBatters[name];
                   return (
                     <View
@@ -12386,7 +12386,7 @@ function CricketAddaMain() {
                         justifyContent: 'space-between',
                         alignItems: 'center',
                         paddingVertical: 5,
-                        borderBottomWidth: i === Object.keys(liveBatters).length - 1 ? 0 : 1,
+                        borderBottomWidth: i === Object.keys(liveBatters || {}).length - 1 ? 0 : 1,
                         borderBottomColor: '#1e293b',
                       }}
                     >
@@ -12737,9 +12737,9 @@ function CricketAddaMain() {
                     const pillTextColor = (isSix || isFour) ? '#022c22' : isDot ? (currentTheme.isLight ? '#475569' : '#94a3b8') : '#ffffff';
                     
                     // Dynamic pill width and padding based on string length to ensure zero ellipsis truncation
-                    const pillPaddingH = rawStr.length >= 5 ? 8 : (rawStr.length >= 3 ? 6 : 4);
-                    const pillMinWidth = rawStr.length >= 5 ? 44 : (rawStr.length >= 3 ? 34 : 28);
-                    const pillFontSize = rawStr.length >= 6 ? 9 : (rawStr.length >= 4 ? 9.5 : (rawStr.length >= 3 ? 10.5 : 11));
+                    const pillPaddingH = (rawStr || '').length >= 5 ? 8 : ((rawStr || '').length >= 3 ? 6 : 4);
+                    const pillMinWidth = (rawStr || '').length >= 5 ? 44 : ((rawStr || '').length >= 3 ? 34 : 28);
+                    const pillFontSize = (rawStr || '').length >= 6 ? 9 : ((rawStr || '').length >= 4 ? 9.5 : ((rawStr || '').length >= 3 ? 10.5 : 11));
 
                     return (
                       <TouchableOpacity
@@ -12929,7 +12929,7 @@ function CricketAddaMain() {
                   style={styles.pendingBowlerBanner}
                   onPress={() => {
                     const eligible = activeOppBowlers.filter(b => b !== bowler);
-                    if (Array.isArray(eligible) && eligible.length > 0) setNextBowler(eligible[0]);
+                    if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
                     setChangeBowlerModalVisible(true);
                   }}
                 >
@@ -13098,7 +13098,7 @@ function CricketAddaMain() {
                   onPress={() => {
                     if (needsNewBowler) {
                       const eligible = activeOppBowlers.filter(b => b !== bowler);
-                      if (Array.isArray(eligible) && eligible.length > 0) setNextBowler(eligible[0]);
+                      if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
                       setChangeBowlerModalVisible(true);
                       Alert.alert('🔴 Select Next Bowler', 'Over completed. Please select next bowler first.');
                       return;
@@ -13126,7 +13126,7 @@ function CricketAddaMain() {
                   onPress={() => {
                     if (needsNewBowler) {
                       const eligible = activeOppBowlers.filter(b => b !== bowler);
-                      if (Array.isArray(eligible) && eligible.length > 0) setNextBowler(eligible[0]);
+                      if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
                       setChangeBowlerModalVisible(true);
                       Alert.alert('🔴 Select Next Bowler', 'Over completed. Please select next bowler first.');
                       return;
@@ -13142,13 +13142,13 @@ function CricketAddaMain() {
                   onPress={() => {
                     if (needsNewBowler) {
                       const eligible = activeOppBowlers.filter(b => b !== bowler);
-                      if (Array.isArray(eligible) && eligible.length > 0) setNextBowler(eligible[0]);
+                      if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
                       setChangeBowlerModalVisible(true);
                       Alert.alert('🔴 Select Next Bowler', 'Over completed. Please select next bowler first.');
                       return;
                     }
                     const eligibleBatters = activeBenchBatters.filter(b => b !== striker && b !== nonStriker);
-                    if (Array.isArray(eligibleBatters) && eligibleBatters.length > 0) {
+                    if (Array.isArray(eligibleBatters) && (eligibleBatters || []).length > 0) {
                       setIncomingBatter(eligibleBatters[0]);
                     }
                     setCustomIncomingBatter('');
@@ -13384,7 +13384,7 @@ function CricketAddaMain() {
               </View>
             </View>
 
-            {liveCommentaryList.length === 0 ? (
+            {(liveCommentaryList || []).length === 0 ? (
               <View style={[styles.commentaryEmptyBox, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a', borderColor: currentTheme.cardBorder }]}>
                 <Text style={{ fontSize: 24, marginBottom: 4 }}>🏏</Text>
                 <Text style={[styles.commentaryEmptyText, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Ready for first ball! Start scoring to see live commentary.</Text>
@@ -13692,7 +13692,7 @@ function CricketAddaMain() {
             {/* Quick Match Carousel Switcher */}
           <Text style={[styles.switcherHeaderTitle, currentTheme.isLight && { color: '#64748b' }]}>🏏 SWITCH MATCH SCORECARD:</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.matchSwitcherScroll}>
-            {Object.keys(matchesDb).map(id => {
+            {Object.keys(matchesDb || {}).map(id => {
               const m = matchesDb[id];
               const isSelected = m.id === activeMatchId;
               return (
@@ -14029,7 +14029,7 @@ function CricketAddaMain() {
               <Text style={[styles.thText, currentTheme.isLight && { color: '#64748b' }, { flex: 1.1, textAlign: 'right' }]}>ECON</Text>
             </View>
 
-            {(!activeInningData.bowling || activeInningData.bowling.length === 0) ? (
+            {(!activeInningData.bowling || (activeInningData?.bowling || []).length === 0) ? (
               <View style={{ paddingVertical: 14, alignItems: 'center' }}>
                 <Text style={{ color: '#64748b', fontSize: 12, fontStyle: 'italic' }}>
                   Yet to bowl in this innings
@@ -14075,7 +14075,7 @@ function CricketAddaMain() {
             <Text style={[styles.fowContentText, currentTheme.isLight && { color: '#334155' }]}>
               {typeof activeInningData.fow === 'string' && activeInningData.fow.trim()
                 ? activeInningData.fow
-                : Array.isArray(activeInningData.fallOfWickets) && activeInningData.fallOfWickets.length > 0
+                : Array.isArray(activeInningData.fallOfWickets) && (activeInningData?.fallOfWickets || []).length > 0
                 ? activeInningData.fallOfWickets
                     .map((item, idx) => {
                       if (typeof item === 'string') return item;
@@ -14085,7 +14085,7 @@ function CricketAddaMain() {
                       return String(item);
                     })
                     .join(', ')
-                : Array.isArray(activeInningData.fow) && activeInningData.fow.length > 0
+                : Array.isArray(activeInningData.fow) && (activeInningData?.fow || []).length > 0
                 ? activeInningData.fow.map((item, idx) => typeof item === 'string' ? item : `${idx + 1}-${item.runs || 0} (${item.player || 'Batter'}, ${item.over || '0.0'} ov)`).join(', ')
                 : 'Yet to fall'}
             </Text>
@@ -14114,7 +14114,7 @@ function CricketAddaMain() {
                   </TouchableOpacity>
                 </View>
 
-                {(!leaderboard || leaderboard.length === 0) ? (
+                {(!leaderboard || (leaderboard || []).length === 0) ? (
                   <View style={[styles.mvpListCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0' }, { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 16 }]}>
                     <Text style={{ fontSize: 36, marginBottom: 8 }}>⭐</Text>
                     <Text style={{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 4 }}>
@@ -14512,7 +14512,7 @@ function CricketAddaMain() {
 
           <Text style={[styles.sectionHeading, currentTheme.isLight && { color: '#0f172a' }, { marginVertical: 10 }]}>📜 Match-by-Match History & Scores</Text>
 
-          {(!filteredMatchHistoryList || filteredMatchHistoryList.length === 0) ? (
+          {(!filteredMatchHistoryList || (filteredMatchHistoryList || []).length === 0) ? (
             <View style={[styles.historyCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 16 }]}>
               <Text style={{ fontSize: 36, marginBottom: 8 }}>🏏</Text>
               <Text style={[{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 6 }]}>
@@ -16503,7 +16503,7 @@ function CricketAddaMain() {
 
             {/* Scrollable Ball-by-Ball Feed */}
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingVertical: 10 }}>
-              {liveCommentaryList.length === 0 ? (
+              {(liveCommentaryList || []).length === 0 ? (
                 <View style={styles.commentaryEmptyBox}>
                   <Text style={{ fontSize: 28, marginBottom: 6 }}>🏏</Text>
                   <Text style={styles.commentaryEmptyText}>Ready for delivery! Start scoring to see live ball-by-ball commentary.</Text>
@@ -17355,7 +17355,7 @@ function CricketAddaMain() {
                 <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>
                   📋 SQUAD ROSTER ({(newTeamSquad || []).length} Players):
                 </Text>
-                {(!newTeamSquad || newTeamSquad.length === 0) ? (
+                {(!newTeamSquad || (newTeamSquad || []).length === 0) ? (
                   <View style={[styles.squadEmptyPrompt, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>👥</Text>
                     <Text style={[styles.squadEmptyPromptText, currentTheme.isLight && { color: '#0f172a' }]}>No custom players added yet.</Text>
@@ -17840,10 +17840,10 @@ function CricketAddaMain() {
               {/* Top Batting Performers */}
               <Text style={[styles.pickerSectionHeading, { marginTop: 8 }]}>⭐ 1ST INNINGS TOP BATTING:</Text>
               <View style={{ backgroundColor: '#0f172a', borderRadius: 8, padding: 8, marginBottom: 12, borderWidth: 1, borderColor: '#1e293b' }}>
-                {Object.keys(liveBatters).map((name, i) => {
+                {Object.keys(liveBatters || {}).map((name, i) => {
                   const b = liveBatters[name];
                   return (
-                    <View key={`inn1_top_bat_${name}_${i}`} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4, borderBottomWidth: i === Object.keys(liveBatters).length - 1 ? 0 : 1, borderBottomColor: '#1e293b' }}>
+                    <View key={`inn1_top_bat_${name}_${i}`} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4, borderBottomWidth: i === Object.keys(liveBatters || {}).length - 1 ? 0 : 1, borderBottomColor: '#1e293b' }}>
                       <Text style={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }}>{name}</Text>
                       <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '900' }}>{b.runs}* ({b.balls}b • {b.fours}x4 {b.sixes}x6)</Text>
                     </View>
