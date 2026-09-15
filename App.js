@@ -6433,13 +6433,14 @@ function CricketAddaMain() {
     };
     setLiveBatters(updatedLiveBatters);
 
-    // 3. Update Live Bowler stats
+    // 3. Update Live Bowler stats (Only credit bowler with wicket for bowler dismissals; Run outs and retired outs are team wickets)
+    const isBowlerCreditedWkt = isWkt && customDismissalType !== 'run_out' && customDismissalType !== 'retired' && customDismissalType !== 'obstructing';
     const updatedLiveBowlers = {
       ...liveBowlerStats,
       [bowler]: {
         ...(liveBowlerStats[bowler] || { runs: 0, wickets: 0, balls: 0, maidens: 0 }),
         runs: (liveBowlerStats[bowler]?.runs || 0) + bowlerRunsConceded,
-        wickets: (liveBowlerStats[bowler]?.wickets || 0) + (isWkt ? 1 : 0),
+        wickets: (liveBowlerStats[bowler]?.wickets || 0) + (isBowlerCreditedWkt ? 1 : 0),
         balls: (liveBowlerStats[bowler]?.balls || 0) + (isLegalDelivery ? 1 : 0),
       },
     };
@@ -7701,6 +7702,20 @@ function CricketAddaMain() {
       setLiveBalls(nextB);
       setLiveWickets(nextW);
 
+      setLiveBowlerStats(prev => {
+        const cur = prev[bowler];
+        if (!cur) return prev;
+        return {
+          ...prev,
+          [bowler]: {
+            ...cur,
+            balls: parsed.isLegal ? Math.max(0, (cur.balls || 0) - 1) : cur.balls,
+            runs: Math.max(0, (cur.runs || 0) - parsed.runs),
+            wickets: parsed.isWkt ? Math.max(0, (cur.wickets || 0) - 1) : cur.wickets,
+          },
+        };
+      });
+
       setLiveBatters(prev => {
         const cur = prev[striker];
         if (!cur) return prev;
@@ -8608,55 +8623,139 @@ function CricketAddaMain() {
     return Array.from(battersMap.values());
   };
 
-  const getDynamicBowling = (staticBowling, forcedBowlersMap = null, isForcedHistorical = false) => {
+  const getDynamicBowling = (
+    staticBowling,
+    forcedBowlersMap = null,
+    isForcedHistorical = false,
+    historyStack = [],
+    inningNum = 1,
+    totalInningsRuns = 0,
+    totalInningsWickets = 0,
+    totalInningsBalls = 0,
+    currentBowlerName = null
+  ) => {
     const bowlersMap = new Map();
 
-    // 1. Seed with static bowlers
-    (staticBowling || []).forEach(bw => {
-      if (bw && bw.name) bowlersMap.set(String(bw.name).toLowerCase(), { ...bw });
-    });
+    // 1. If historyStack has delivery snapshots for this innings, compute ground-truth stats directly from deliveries
+    const inningDeliveries = (historyStack || []).filter(h => !h.innings || h.innings === inningNum);
+    
+    if (inningDeliveries.length > 0) {
+      const bowlerDeliveriesMap = {};
 
-    const activeMap = forcedBowlersMap || liveBowlerStats;
+      inningDeliveries.forEach(d => {
+        const bName = d.bowler || 'Bowler';
+        if (!bowlerDeliveriesMap[bName]) {
+          bowlerDeliveriesMap[bName] = { balls: 0, runs: 0, wickets: 0 };
+        }
 
-    // 2. Add or update every bowler from activeMap
-    Object.keys(activeMap).forEach(bName => {
-      const liveBw = activeMap[bName];
-      if (!liveBw) return;
+        const isLegal = d.isLegalDelivery !== false;
+        const isByeOrLegBye = d.extraType === 'bye' || d.extraType === 'legBye';
+        const runsConceded = isByeOrLegBye ? 0 : (Number(d.addedRuns) || 0);
+        const isBowlerWkt = Boolean(
+          d.isWkt &&
+          d.customDismissalType !== 'run_out' &&
+          d.customDismissalType !== 'retired' &&
+          d.customDismissalType !== 'obstructing'
+        );
 
-      const key = bName.toLowerCase();
-      const existing = bowlersMap.get(key) || {
-        name: bName,
-        style: 'Right-arm Fast Medium',
-        maidens: 0,
-        sectorBreakdown: [],
-        overDetails: [],
-      };
-
-      const ovStr = `${Math.floor(liveBw.balls / 6)}.${liveBw.balls % 6}`;
-      const econ = liveBw.balls > 0 ? ((liveBw.runs / liveBw.balls) * 6).toFixed(2) : '0.00';
-
-      bowlersMap.set(key, {
-        ...existing,
-        name: bName,
-        overs: ovStr,
-        balls: liveBw.balls,
-        runs: liveBw.runs,
-        wickets: liveBw.wickets,
-        maidens: liveBw.maidens || 0,
-        econ: econ,
+        if (isLegal) bowlerDeliveriesMap[bName].balls++;
+        bowlerDeliveriesMap[bName].runs += runsConceded;
+        if (isBowlerWkt) bowlerDeliveriesMap[bName].wickets++;
       });
-    });
+
+      Object.keys(bowlerDeliveriesMap).forEach(bName => {
+        const stats = bowlerDeliveriesMap[bName];
+        const ovStr = `${Math.floor(stats.balls / 6)}.${stats.balls % 6}`;
+        const econ = stats.balls > 0 ? ((stats.runs / stats.balls) * 6).toFixed(2) : '0.00';
+        bowlersMap.set(bName.toLowerCase(), {
+          name: bName,
+          style: 'Right-arm Fast Medium',
+          overs: ovStr,
+          balls: stats.balls,
+          runs: stats.runs,
+          wickets: stats.wickets,
+          maidens: 0,
+          econ,
+        });
+      });
+    } else {
+      // 2. Seed with static bowlers and activeMap
+      (staticBowling || []).forEach(bw => {
+        if (bw && bw.name) bowlersMap.set(String(bw.name).toLowerCase(), { ...bw });
+      });
+
+      const activeMap = forcedBowlersMap || liveBowlerStats;
+
+      Object.keys(activeMap).forEach(bName => {
+        const liveBw = activeMap[bName];
+        if (!liveBw) return;
+
+        const key = bName.toLowerCase();
+        const existing = bowlersMap.get(key) || {
+          name: bName,
+          style: 'Right-arm Fast Medium',
+          maidens: 0,
+          sectorBreakdown: [],
+          overDetails: [],
+        };
+
+        const ovStr = `${Math.floor((liveBw.balls || 0) / 6)}.${(liveBw.balls || 0) % 6}`;
+        const econ = (liveBw.balls || 0) > 0 ? (((liveBw.runs || 0) / liveBw.balls) * 6).toFixed(2) : '0.00';
+
+        bowlersMap.set(key, {
+          ...existing,
+          name: bName,
+          overs: ovStr,
+          balls: liveBw.balls || 0,
+          runs: liveBw.runs || 0,
+          wickets: liveBw.wickets || 0,
+          maidens: liveBw.maidens || 0,
+          econ: econ,
+        });
+      });
+    }
 
     // 3. Filter to bowlers who actually bowled
-    const list = Array.from(bowlersMap.values());
-    return list.filter(bw => {
+    let list = Array.from(bowlersMap.values()).filter(bw => {
+      const activeMap = forcedBowlersMap || liveBowlerStats;
       const liveBw = activeMap[bw.name];
       const hasLiveBalls = liveBw && (liveBw.balls > 0 || liveBw.runs > 0 || liveBw.wickets > 0);
       const hasOvers = bw.overs && bw.overs !== '0.0' && bw.overs !== '0';
       const hasFigures = bw.runs > 0 || bw.wickets > 0 || bw.maidens > 0;
-      const isCurrentBowler = !isForcedHistorical && isLiveMatchActive && bw.name === bowler;
+      const isCurrentBowler = !isForcedHistorical && isLiveMatchActive && (bw.name === (currentBowlerName || bowler));
       return hasLiveBalls || hasOvers || hasFigures || isCurrentBowler;
     });
+
+    // 4. MATHEMATICAL RECONCILIATION:
+    // A. Reconcile total bowler balls so sum of bowler balls === totalInningsBalls
+    if (list.length > 0 && totalInningsBalls > 0) {
+      const sumBowlerBalls = list.reduce((acc, b) => acc + (Number(b.balls) || 0), 0);
+      if (sumBowlerBalls > totalInningsBalls) {
+        let excess = sumBowlerBalls - totalInningsBalls;
+        for (let i = list.length - 1; i >= 0 && excess > 0; i--) {
+          const canDeduct = Math.min(excess, list[i].balls);
+          list[i].balls -= canDeduct;
+          excess -= canDeduct;
+          list[i].overs = `${Math.floor(list[i].balls / 6)}.${list[i].balls % 6}`;
+          list[i].econ = list[i].balls > 0 ? (((list[i].runs || 0) / list[i].balls) * 6).toFixed(2) : '0.00';
+        }
+      }
+    }
+
+    // B. Reconcile total bowler wickets so sum of bowler wickets <= totalInningsWickets
+    if (list.length > 0) {
+      const sumBowlerWkts = list.reduce((acc, b) => acc + (Number(b.wickets) || 0), 0);
+      if (sumBowlerWkts > totalInningsWickets) {
+        let excessWkts = sumBowlerWkts - totalInningsWickets;
+        for (let i = list.length - 1; i >= 0 && excessWkts > 0; i--) {
+          const canDeduct = Math.min(excessWkts, list[i].wickets);
+          list[i].wickets -= canDeduct;
+          excessWkts -= canDeduct;
+        }
+      }
+    }
+
+    return list;
   };
 
   const isLiveMatchActive = currentMatchData?.status === 'live';
@@ -8772,7 +8871,17 @@ function CricketAddaMain() {
       balls,
       crr,
       batting: dynamicBattingList,
-      bowling: getDynamicBowling(baseInning.bowling || [], activeBowlersMap, !isLiveNow),
+      bowling: getDynamicBowling(
+        baseInning.bowling || [],
+        activeBowlersMap,
+        !isLiveNow,
+        historyStack,
+        inningNum,
+        runs,
+        wickets,
+        balls,
+        isTargetActive ? (match.currentBowler || bowler) : mLive?.currentBowler
+      ),
       extras: finalExtras,
       fow: dynamicFow,
     };
