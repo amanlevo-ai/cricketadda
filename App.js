@@ -1596,7 +1596,7 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
 
     let matchDrops = 0;
     if (m.matchDroppedCatches && Array.isArray(m.matchDroppedCatches)) {
-      matchDrops = m.matchDroppedCatches.length;
+      matchDrops = (m?.matchDroppedCatches?.length || 0);
     } else if (m.id === activeMId && currentDroppedCatches && Array.isArray(currentDroppedCatches)) {
       matchDrops = currentDroppedCatches.length;
     }
@@ -8129,7 +8129,7 @@ function CricketAddaMain() {
     // 3. If there are live deliveries bowled by this bowler during this match
     if (bowlerLiveActions.length > 0) {
       const lastStaticOver = oversList.length > 0 ? oversList[oversList.length - 1] : null;
-      let staticBallCountInLastOver = lastStaticOver ? lastStaticOver.balls.length : 6;
+      let staticBallCountInLastOver = lastStaticOver && Array.isArray(lastStaticOver.balls) ? lastStaticOver.balls.length : 6;
 
       let actionIdx = 0;
       if (lastStaticOver && staticBallCountInLastOver < 6) {
@@ -8149,7 +8149,7 @@ function CricketAddaMain() {
           });
         });
 
-        const updatedBallsCount = lastStaticOver.balls.length;
+        const updatedBallsCount = (lastStaticOver?.balls?.length || 0);
         const overMatchNumber = lastStaticOver.overNum || oversList.length;
         lastStaticOver.matchOver = updatedBallsCount >= 6
           ? `${lastStaticOver.matchOver.split('(')[0].trim() || `Over ${overMatchNumber}`} (${overMatchNumber - 1}.1 - ${overMatchNumber}.0)`
@@ -8193,10 +8193,10 @@ function CricketAddaMain() {
     if (oversList.length === 0 || currentBallsInOversList < totalLiveBalls) {
       if (oversList.length > 0) {
         const lastOver = oversList[oversList.length - 1];
-        while (lastOver.balls.length < 6 && (oversList.reduce((a, o) => a + o.balls.length, 0)) < totalLiveBalls) {
+        while ((lastOver?.balls?.length || 0) < 6 && (oversList.reduce((a, o) => a + (o?.balls?.length || 0), 0)) < totalLiveBalls) {
           lastOver.balls.push({ val: '0', isWkt: false });
         }
-        const ovBallsLen = lastOver.balls.length;
+        const ovBallsLen = (lastOver?.balls?.length || 0);
         lastOver.matchOver = ovBallsLen >= 6
           ? `${lastOver.matchOver.split('(')[0].trim()} (${lastOver.overNum - 1}.1 - ${lastOver.overNum}.0)`
           : `${lastOver.matchOver.split('(')[0].trim()} (${lastOver.overNum - 1}.1 - ${lastOver.overNum - 1}.${ovBallsLen})`;
@@ -8577,7 +8577,7 @@ function CricketAddaMain() {
     (Object.keys(matchesDb).length > 0 && currentMatchData && currentMatchData.id && currentMatchData.id !== 'match_new') ||
     isLiveMatchActive ||
     (currentMatchData && (
-      (currentMatchData.innings1?.batting && currentMatchData.innings1.batting.length > 0) ||
+      (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0) ||
       (currentMatchData.innings1?.runs > 0) ||
       (currentMatchData.innings2?.runs > 0) ||
       (currentMatchData.liveState?.liveRuns > 0) ||
@@ -8833,7 +8833,7 @@ function CricketAddaMain() {
   const selectTeamForSlot = (slot, team) => {
     if (!team) return;
     Keyboard.dismiss();
-    const defaultXI = (team.squad || []);
+    const defaultXI = Array.isArray(team?.squad) ? team.squad : [];
     const defaultCap = team.captain || defaultXI[0]?.name || '';
     const defaultWk = team.wicketkeeper || defaultXI.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
 
@@ -8866,11 +8866,11 @@ function CricketAddaMain() {
   const selectMatchupPair = (teamA, teamB) => {
     if (!teamA || !teamB) return;
     Keyboard.dismiss();
-    const defaultXI_A = (teamA.squad || []);
+    const defaultXI_A = Array.isArray(teamA?.squad) ? teamA.squad : [];
     const defaultCap_A = teamA.captain || defaultXI_A[0]?.name || '';
     const defaultWk_A = teamA.wicketkeeper || defaultXI_A.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
 
-    const defaultXI_B = (teamB.squad || []);
+    const defaultXI_B = Array.isArray(teamB?.squad) ? teamB.squad : [];
     const defaultCap_B = teamB.captain || defaultXI_B[0]?.name || '';
     const defaultWk_B = teamB.wicketkeeper || defaultXI_B.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
 
@@ -10004,7 +10004,7 @@ function CricketAddaMain() {
 
     const cleanPhone = newTeamPlayerPhone.replace(/[^0-9]/g, '');
     const newPlayerObj = {
-      id: `p_cust_${Date.now()}_${team.squad.length + 1}`,
+      id: `p_cust_${Date.now()}_${(team?.squad?.length || 0) + 1}`,
       name: cleanName,
       phone: cleanPhone,
       role: newTeamPlayerRole,
@@ -12531,15 +12531,10 @@ function CricketAddaMain() {
                       theme={currentTheme}
                       size="md"
                     />
-                    <View style={{ flex: 1, minWidth: 0, marginLeft: 7 }}>
-                      <Text style={[styles.scorerTeamName, { color: currentTheme.isLight ? '#065f46' : '#ffffff', fontSize: 14, fontWeight: '900' }]} numberOfLines={1}>
+                    <View style={{ flex: 1, minWidth: 0, marginLeft: 7, justifyContent: 'center' }}>
+                      <Text style={[styles.scorerTeamName, { color: currentTheme.isLight ? '#065f46' : '#ffffff', fontSize: 15, fontWeight: '900' }]} numberOfLines={1}>
                         {battingTeamName}
                       </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <View style={{ backgroundColor: currentTheme.isLight ? '#10b981' : '#059669', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.4 }}>🏏 BATTING • ✏️ SQUAD</Text>
-                        </View>
-                      </View>
                     </View>
                   </TouchableOpacity>
 
@@ -12560,15 +12555,10 @@ function CricketAddaMain() {
                     activeOpacity={0.75}
                     onPress={() => handleEditTeamAndSquadFromScorer('bowling')}
                   >
-                    <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end', marginRight: 7 }}>
-                      <Text style={[styles.scorerOppTeamName, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 13.5, fontWeight: '800' }]} numberOfLines={1}>
+                    <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end', marginRight: 7, justifyContent: 'center' }}>
+                      <Text style={[styles.scorerOppTeamName, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 14.5, fontWeight: '800' }]} numberOfLines={1}>
                         {bowlingTeamName}
                       </Text>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                        <View style={{ backgroundColor: currentTheme.isLight ? '#0284c7' : '#0369a1', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '800', letterSpacing: 0.4 }}>🎯 OPPONENT • ✏️ SQUAD</Text>
-                        </View>
-                      </View>
                     </View>
                     <TeamFlagBadge
                       flag={bowlingTeamFlag}
@@ -19960,7 +19950,7 @@ function CricketAddaMain() {
                       </View>
                       <Text style={[styles.teamCardClub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>{t.club} • {t.city}</Text>
                       <Text style={[styles.teamCardCaptain, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-                        Captain: <Text style={{ color: currentTheme.primary, fontWeight: 'bold' }}>{t.captain}</Text> | Squad: {t.squad.length} players
+                        Captain: <Text style={{ color: currentTheme.primary, fontWeight: 'bold' }}>{t.captain || 'Captain'}</Text> | Squad: {(t?.squad?.length || 0)} players
                       </Text>
                     </View>
                   </TouchableOpacity>
