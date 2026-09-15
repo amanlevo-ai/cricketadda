@@ -1078,11 +1078,11 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
 
   // 1. Resolve Innings 1 Batting
   let inn1Batting = [];
-  if (liveDataInnings1?.batting && liveDataInnings1.batting.length > 0) {
+  if (Array.isArray(liveDataInnings1?.batting) && liveDataInnings1.batting.length > 0) {
     inn1Batting = liveDataInnings1.batting;
   } else if (Array.isArray(inn1.batting) && inn1.batting.some(b => (b.runs || 0) > 0 || (b.balls || 0) > 0)) {
     inn1Batting = inn1.batting;
-  } else if (mLive.firstInningsSummary?.batting && mLive.firstInningsSummary.batting.length > 0) {
+  } else if (Array.isArray(mLive.firstInningsSummary?.batting) && mLive.firstInningsSummary.batting.length > 0) {
     inn1Batting = mLive.firstInningsSummary.batting;
   } else if (mLive.liveBatters && (mLive.currentInnings === 1 || !mLive.firstInningsSummary)) {
     inn1Batting = Object.keys(mLive.liveBatters).map(name => ({
@@ -1095,11 +1095,11 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
 
   // 2. Resolve Innings 1 Bowling
   let inn1Bowling = [];
-  if (liveDataInnings1?.bowling && liveDataInnings1.bowling.length > 0) {
+  if (Array.isArray(liveDataInnings1?.bowling) && liveDataInnings1.bowling.length > 0) {
     inn1Bowling = liveDataInnings1.bowling;
   } else if (Array.isArray(inn1.bowling) && inn1.bowling.some(bw => (bw.runs || 0) > 0 || (bw.wickets || 0) > 0 || (bw.balls || 0) > 0)) {
     inn1Bowling = inn1.bowling;
-  } else if (mLive.firstInningsSummary?.bowling && mLive.firstInningsSummary.bowling.length > 0) {
+  } else if (Array.isArray(mLive.firstInningsSummary?.bowling) && mLive.firstInningsSummary.bowling.length > 0) {
     inn1Bowling = mLive.firstInningsSummary.bowling;
   } else if (mLive.liveBowlerStats && (mLive.currentInnings === 1 || !mLive.firstInningsSummary)) {
     inn1Bowling = Object.keys(mLive.liveBowlerStats).map(name => {
@@ -1118,7 +1118,7 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
 
   // 3. Resolve Innings 2 Batting
   let inn2Batting = [];
-  if (liveDataInnings2?.batting && liveDataInnings2.batting.length > 0) {
+  if (Array.isArray(liveDataInnings2?.batting) && liveDataInnings2.batting.length > 0) {
     inn2Batting = liveDataInnings2.batting;
   } else if (Array.isArray(inn2.batting) && inn2.batting.some(b => (b.runs || 0) > 0 || (b.balls || 0) > 0)) {
     inn2Batting = inn2.batting;
@@ -1133,7 +1133,7 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
 
   // 4. Resolve Innings 2 Bowling
   let inn2Bowling = [];
-  if (liveDataInnings2?.bowling && liveDataInnings2.bowling.length > 0) {
+  if (Array.isArray(liveDataInnings2?.bowling) && liveDataInnings2.bowling.length > 0) {
     inn2Bowling = liveDataInnings2.bowling;
   } else if (Array.isArray(inn2.bowling) && inn2.bowling.some(bw => (bw.runs || 0) > 0 || (bw.wickets || 0) > 0 || (bw.balls || 0) > 0)) {
     inn2Bowling = inn2.bowling;
@@ -7160,7 +7160,7 @@ function CricketAddaMain() {
       return;
     }
 
-    const myCreatedTeams = registeredTeams.filter(isCreatedByMe);
+    const myCreatedTeams = (registeredTeams || []).filter(t => t && ((t.isCustomCreated && (t.createdByEmail === (userProfile?.email || authEmail) || t.createdById === userProfile?.id || t.captain === userProfile?.name)) || !!t.isCustomCreated));
     if (myCreatedTeams.length > 0) {
       const targetTeam = myCreatedTeams[0];
       openNewTeamModal('teamA', '', targetTeam);
@@ -9994,7 +9994,7 @@ function CricketAddaMain() {
       showAppToast('Please enter a player name', '⚠️', 'error');
       return;
     }
-    if (team.squad.some(p => {
+    if (Array.isArray(team?.squad) && team.squad.some(p => {
       const pn = typeof p === 'string' ? p : p.name;
       return pn.toLowerCase().trim() === cleanName.toLowerCase();
     })) {
@@ -11138,7 +11138,7 @@ function CricketAddaMain() {
               onPress={() => setMatchFilter('live')}
             >
               <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, matchFilter === 'live' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                🔴 Live ({Object.values(matchesDb).filter(m => m.status === 'live').length})
+                🔴 Live ({Object.values(matchesDb || {}).filter(m => m && m.status === "live").length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -11146,7 +11146,7 @@ function CricketAddaMain() {
               onPress={() => setMatchFilter('recent')}
             >
               <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, matchFilter === 'recent' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                📋 Completed ({Object.values(matchesDb).filter(m => m.status === 'completed' || m.status === 'abandoned').length})
+                📋 Completed ({Object.values(matchesDb || {}).filter(m => m && (m.status === "completed" || m.status === "abandoned")).length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -11269,8 +11269,8 @@ function CricketAddaMain() {
                         <View style={[styles.liveScoresBox, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
                           <View style={styles.teamScoreRow}>
                             <View style={styles.teamNameWithFlag}>
-                              <Text style={styles.flagIcon}>{m.flagA || m.innings1.flag}</Text>
-                              <Text style={[styles.teamTitle, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings1.team}</Text>
+                              <Text style={styles.flagIcon}>{m.flagA || m.innings1?.flag || '🦁'}</Text>
+                              <Text style={[styles.teamTitle, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings1?.team || m.teamA || 'Team A'}</Text>
                             </View>
                             <View style={styles.scoreNumberCol}>
                               <Text style={styles.liveBigRuns}>
@@ -11284,8 +11284,8 @@ function CricketAddaMain() {
 
                           <View style={[styles.teamScoreRow, { opacity: inn2HasStarted ? 1 : 0.6, marginTop: 6 }]}>
                             <View style={styles.teamNameWithFlag}>
-                              <Text style={styles.flagIcon}>{m.flagB || m.innings2.flag}</Text>
-                              <Text style={[styles.teamTitle, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings2.team}</Text>
+                              <Text style={styles.flagIcon}>{m.flagB || m.innings2?.flag || '⚡'}</Text>
+                              <Text style={[styles.teamTitle, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings2?.team || m.teamB || 'Team B'}</Text>
                             </View>
                             {inn2HasStarted ? (
                               <View style={styles.scoreNumberCol}>
@@ -11357,7 +11357,7 @@ function CricketAddaMain() {
             <View>
               <View style={styles.sectionHeaderRow}>
                 <Text style={[styles.sectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>
-                  📋 Completed Matches ({Object.values(matchesDb).filter(m => m.status === 'completed' || m.status === 'abandoned').length})
+                  📋 Completed Matches ({Object.values(matchesDb || {}).filter(m => m && (m.status === "completed" || m.status === "abandoned")).length})
                 </Text>
                 <Text style={[styles.subHeadingNote, currentTheme.isLight && { color: '#64748b' }]}>Official Tournaments</Text>
               </View>
@@ -11394,12 +11394,12 @@ function CricketAddaMain() {
 
                         <View style={[styles.recentScoresBox, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
                           <View style={styles.recentScoreLine}>
-                            <Text style={[styles.recentTeamName, currentTheme.isLight && { color: '#0f172a' }]}>{m.flagA} {m.innings1.team}</Text>
-                            <Text style={[styles.recentScoreVal, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings1.runs}/{m.innings1.wickets} ({m.innings1.overs} ov)</Text>
+                            <Text style={[styles.recentTeamName, currentTheme.isLight && { color: '#0f172a' }]}>{m.flagA || m.innings1?.flag || '🦁'} {m.innings1?.team || m.teamA || 'Team A'}</Text>
+                            <Text style={[styles.recentScoreVal, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings1?.runs ?? 0}/{m.innings1?.wickets ?? 0} ({m.innings1?.overs || '0.0'} ov)</Text>
                           </View>
                           <View style={styles.recentScoreLine}>
-                            <Text style={[styles.recentTeamName, currentTheme.isLight && { color: '#0f172a' }]}>{m.flagB} {m.innings2.team}</Text>
-                            <Text style={[styles.recentScoreVal, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings2.runs}/{m.innings2.wickets} ({m.innings2.overs} ov)</Text>
+                            <Text style={[styles.recentTeamName, currentTheme.isLight && { color: '#0f172a' }]}>{m.flagB || m.innings2?.flag || '⚡'} {m.innings2?.team || m.teamB || 'Team B'}</Text>
+                            <Text style={[styles.recentScoreVal, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings2?.runs ?? 0}/{m.innings2?.wickets ?? 0} ({m.innings2?.overs || '0.0'} ov)</Text>
                           </View>
                         </View>
 
@@ -11419,7 +11419,7 @@ function CricketAddaMain() {
                             <View style={{ marginVertical: 6, gap: 4 }}>
                               {pomText ? (
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                  <PlayerAvatar name={pomText.split(' ')[0]} size={22} borderColor="#f59e0b" />
+                                  <PlayerAvatar name={typeof pomText === 'string' ? pomText.split(' ')[0] : 'Player'} size={22} borderColor="#f59e0b" />
                                   <Text style={[styles.pomText, currentTheme.isLight && { color: '#475569' }]} numberOfLines={1}>
                                     👑 <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>POM:</Text> <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#fff', fontWeight: 'bold' }}>{pomText}</Text>
                                   </Text>
@@ -11920,7 +11920,7 @@ function CricketAddaMain() {
 
                       {/* Squad Members Roster */}
                       <View style={{ gap: 6, marginTop: 4 }}>
-                        {t.squad && t.squad.length > 0 ? (
+                        {Array.isArray(t?.squad) && t.squad.length > 0 ? (
                           t.squad.map((p, pIdx) => {
                             const pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
                             const cleanPName = pName.replace(' (c)', '').replace(' (wk)', '').trim();
