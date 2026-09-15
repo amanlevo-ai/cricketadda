@@ -19,6 +19,7 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
   Linking,
+  Vibration,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -1034,6 +1035,11 @@ const CELEBRATION_MESSAGES = {
   four_cut: [
     { title: '🏏 SURGICAL LATE CUT!', sub: 'Deft touch! Guided expertly between backward point and short third man!', emoji: '🏏', tag: 'LATE CUT' },
     { title: '🪄 SLICED TO THE ROPE!', sub: 'Opened the face of the bat at the last second! Beats the diving fielder!', emoji: '🪄', tag: 'DELICATE CUT' },
+  ],
+  no_ball: [
+    { title: '🚨 NO BALL! FREE HIT!', sub: 'Bowler oversteps the crease! Siren sounds & next delivery is a Free Hit!', emoji: '🚨', tag: 'FREE HIT' },
+    { title: '⚡ FREE HIT SIGNALLED!', sub: 'Overstepping penalty! Batter has full license to swing freely on the next ball!', emoji: '⚡', tag: 'FREE HIT' },
+    { title: '📢 SIREN SOUNDS: NO BALL!', sub: 'Front foot well over the line! 1 run added and Free Hit incoming!', emoji: '📢', tag: 'FREE HIT' },
   ],
   four: [
     { title: '⚡ CRACKING FOUR!', sub: 'Pierces the gap with surgical precision! Brilliant stroke!', emoji: '⚡', tag: 'FOUR RUNS' },
@@ -4821,6 +4827,74 @@ function CricketAddaMain() {
   ]);
 
 
+    const playCelebrationAudio = (type = 'boundary') => {
+    try {
+      if (!soundEffectsEnabled) return;
+      if (typeof window !== 'undefined') {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        if (AudioContextClass) {
+          const ctx = new AudioContextClass();
+          if (ctx.state === 'suspended') {
+            ctx.resume().catch(() => {});
+          }
+          const duration = 2.2;
+          const sampleRate = ctx.sampleRate || 44100;
+          const frameCount = Math.floor(sampleRate * duration);
+          const audioBuffer = ctx.createBuffer(1, frameCount, sampleRate);
+          const channelData = audioBuffer.getChannelData(0);
+
+          // Stadium clapping bursts synthesis (300 overlapping applause claps)
+          const numClaps = 300;
+          for (let c = 0; c < numClaps; c++) {
+            const startTime = Math.pow(Math.random(), 0.7) * (duration - 0.2);
+            const startSample = Math.floor(startTime * sampleRate);
+            const decay = 0.025 + Math.random() * 0.045;
+            const clapLength = Math.floor(decay * sampleRate);
+            const amp = 0.25 + Math.random() * 0.65;
+
+            for (let i = 0; i < clapLength && (startSample + i) < frameCount; i++) {
+              const p = i / clapLength;
+              const env = Math.exp(-p * 7) * (1 - Math.exp(-p * 25));
+              const white = Math.random() * 2 - 1;
+              channelData[startSample + i] += white * env * amp * 0.35;
+            }
+          }
+
+          // Stadium crowd cheering harmonic resonance swell
+          for (let i = 0; i < frameCount; i++) {
+            const t = i / sampleRate;
+            const swell = Math.sin((t / duration) * Math.PI);
+            const cheer = (
+              Math.sin(2 * Math.PI * 440 * t) * 0.08 +
+              Math.sin(2 * Math.PI * 554 * t) * 0.06 +
+              Math.sin(2 * Math.PI * 659 * t) * 0.05 +
+              (Math.random() * 2 - 1) * 0.12
+            ) * swell * 0.35;
+            channelData[i] += cheer;
+          }
+
+          const source = ctx.createBufferSource();
+          source.buffer = audioBuffer;
+
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.value = 1500;
+          filter.Q.value = 0.85;
+
+          const gainNode = ctx.createGain();
+          gainNode.gain.setValueAtTime(0.85, ctx.currentTime);
+          gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+
+          source.connect(filter);
+          filter.connect(gainNode);
+          gainNode.connect(ctx.destination);
+
+          source.start(ctx.currentTime);
+        }
+      }
+    } catch (err) {}
+  };
+
   const triggerCelebration = (type, playerName, runsOrWktVal, forceShow = false, teamFlag = null, teamName = null) => {
     // 1. NEVER trigger celebration for the person who is scoring
     if (isOfficialScorer) {
@@ -4881,6 +4955,10 @@ function CricketAddaMain() {
       mainColor = '#ef4444';
       glowColor = '#f87171';
       bgGradient = ['#7f1d1d', '#2b0707'];
+    } else if (type === 'no_ball' || type === 'noBall') {
+      mainColor = '#f97316';
+      glowColor = '#fb923c';
+      bgGradient = ['#7c2d12', '#431407'];
     }
 
     if (celebrationTimerRef.current) {
@@ -4892,6 +4970,25 @@ function CricketAddaMain() {
       celebrationLoopRef.current.loopSparkles?.stop();
       celebrationLoopRef.current.loopGlow?.stop();
     }
+
+    // 1. Sensory Haptic Vibration feedback on viewer mobile device
+    if (Vibration && typeof Vibration.vibrate === 'function') {
+      try {
+        if (type.startsWith('six') || type === 'six') {
+          Vibration.vibrate([0, 150, 60, 150, 60, 200]);
+        } else if (type.startsWith('four') || type === 'four') {
+          Vibration.vibrate([0, 100, 50, 120]);
+        } else if (type === 'no_ball' || type === 'noBall') {
+          Vibration.vibrate([0, 80, 50, 80, 50, 150]);
+        } else {
+          // Wickets
+          Vibration.vibrate([0, 200, 80, 280]);
+        }
+      } catch (e) {}
+    }
+
+    // 2. Play realistic stadium clapping and crowd cheering sound
+    playCelebrationAudio(type);
 
     setCelebrationData({
       visible: true,
@@ -5970,6 +6067,23 @@ function CricketAddaMain() {
       const actualDismissal = customDismissalType || dismissalType || 'bowled';
       const dismissedName = dismissedPlayerName || (outBatter === 'striker' ? striker : nonStriker);
       celebrationEvent = { id: Date.now(), type: actualDismissal, player: dismissedName, runs: 'OUT', teamFlag: battingTeamFlag, teamName: battingTeamName };
+    } else if (extraType === 'noBall') {
+      celebrationEvent = { id: Date.now(), type: 'no_ball', player: striker, runs: 'FREE HIT', teamFlag: battingTeamFlag, teamName: battingTeamName };
+    }
+
+    // Sensory vibration & audio for official scorer when recording boundaries, wickets, or no balls
+    if (celebrationEvent) {
+      if (Vibration && typeof Vibration.vibrate === 'function') {
+        try {
+          if (celebrationEvent.type === 'no_ball') Vibration.vibrate([0, 80, 40, 80]);
+          else if (runs === 6) Vibration.vibrate([0, 100, 50, 120]);
+          else if (runs === 4) Vibration.vibrate([0, 80, 40, 80]);
+          else if (isWkt) Vibration.vibrate([0, 120, 50, 160]);
+        } catch (e) {}
+      }
+      if (soundEffectsEnabled) {
+        playCelebrationAudio(celebrationEvent.type);
+      }
     }
 
     // 6. Generate and append real-time text commentary
@@ -19438,6 +19552,8 @@ function CricketAddaMain() {
                   ? '⚡ LIGHTNING STUMPED! ⚡'
                   : celebrationData.type === 'hit_wicket'
                   ? '⛔ HIT WICKET! ⛔'
+                  : celebrationData.type === 'no_ball' || celebrationData.type === 'noBall'
+                  ? '🚨 NO BALL • FREE HIT! 🚨'
                   : celebrationData.runsOrWkt === '6'
                   ? '💥 6 • MAXIMUM! 💥'
                   : celebrationData.runsOrWkt === '4'
