@@ -985,6 +985,18 @@ const APP_THEMES = [
 // ============================================================================
 // DYNAMIC CELEBRATORY PRAISE & SPARKLE COMMENTARY DATASET (BOUNDARIES & WICKETS)
 // ============================================================================
+function formatBowlerStyle(style) {
+  if (!style) return 'RA Medium';
+  const s = String(style).trim();
+  if (s.includes('Right-arm Fast Medium') || s.includes('Right-arm Fast')) return 'RA Fast';
+  if (s.includes('Right-arm Medium')) return 'RA Medium';
+  if (s.includes('Right-arm Spin') || s.includes('Right-arm Off') || s.includes('Right-arm Leg')) return 'RA Spin';
+  if (s.includes('Left-arm Fast Medium') || s.includes('Left-arm Fast')) return 'LA Fast';
+  if (s.includes('Left-arm Medium')) return 'LA Medium';
+  if (s.includes('Left-arm Spin') || s.includes('Left-arm Orthodox') || s.includes('Left-arm Chinaman')) return 'LA Spin';
+  return s;
+}
+
 const CELEBRATION_MESSAGES = {
   six_stadium: [
     { title: '🚀 MONSTER STADIUM SIX!', sub: 'Dispatched into orbit! That is clean out of the stadium roof (108m)!', emoji: '🚀', tag: '108 METERS' },
@@ -5875,6 +5887,7 @@ function CricketAddaMain() {
           currentStriker: nextStriker,
           currentNonStriker: nextNonStriker,
           currentBowler: bowler,
+          scoringHistory: [...scoringHistory, snapshot],
           firstInningsSummary,
           lastOverStats,
         },
@@ -6960,10 +6973,15 @@ function CricketAddaMain() {
     const extraRunsOnWkt = dismissalType === 'run_out' ? runOutRunsCompleted : 0;
     recordBall(extraRunsOnWkt, 'none', 0, true, null, dismissalType, currentDismissed, finalFielder);
 
-    // Initialize the incoming batsman's score card entry with 0 runs, 0 balls
+    // Explicitly record dismissal description on the dismissed batter and init incoming batter
     setLiveBatters(prev => ({
       ...prev,
-      [candidateIncoming]: prev[candidateIncoming] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0 },
+      [currentDismissed]: {
+        ...(prev[currentDismissed] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0 }),
+        dismissal: dismissalDesc,
+        isNotOut: false,
+      },
+      [candidateIncoming]: prev[candidateIncoming] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0, dismissal: 'batting *', isNotOut: true },
     }));
 
     // Update match state so the dismissed batter is replaced by candidateIncoming
@@ -7530,26 +7548,37 @@ function CricketAddaMain() {
     return `${total} (b ${byes}, lb ${legByes}, w ${wides}, nb ${noBalls})`;
   };
 
-  const calculateFOWFromHistory = (history, inningNum, fallbackFow) => {
-    if (!Array.isArray(history) || history.length === 0) {
-      return fallbackFow || 'Yet to fall';
-    }
-    const wkts = history.filter(h => h.isWkt && (h.innings || 1) === inningNum);
-    if (wkts.length === 0) {
-      return fallbackFow || 'Yet to fall';
+  const calculateFOWFromHistory = (history, inningNum, fallbackFow, currentWickets = 0, currentRuns = 0, currentOvers = '0.0', battingList = []) => {
+    if (Array.isArray(history) && history.length > 0) {
+      const wkts = history.filter(h => h.isWkt && (h.innings || 1) === inningNum);
+      if (wkts.length > 0) {
+        return wkts.map((w, idx) => {
+          const wNum = idx + 1;
+          const wRuns = w.liveRuns !== undefined ? w.liveRuns : 0;
+          const wBalls = w.liveBalls !== undefined ? w.liveBalls : 0;
+          const wOv = `${Math.floor(wBalls / 6)}.${wBalls % 6} ov`;
+          const pName = w.dismissedPlayerName || w.striker || 'Batter';
+          return `${wNum}-${wRuns} (${pName}, ${wOv})`;
+        }).join(', ');
+      }
     }
 
-    return wkts.map((w, idx) => {
-      const wNum = idx + 1;
-      const wRuns = w.liveRuns !== undefined ? w.liveRuns : 0;
-      const wBalls = w.liveBalls !== undefined ? w.liveBalls : 0;
-      const wOv = `${Math.floor(wBalls / 6)}.${wBalls % 6} ov`;
-      const pName = w.dismissedPlayerName || w.striker || 'Batter';
-      return `${wNum}-${wRuns} (${pName}, ${wOv})`;
-    }).join(', ');
+    if (fallbackFow && fallbackFow !== 'Yet to fall') {
+      return fallbackFow;
+    }
+
+    if (currentWickets > 0) {
+      const dismissedBatters = (battingList || []).filter(b => !b.isNotOut && b.dismissal !== 'yet to bat' && ((b.runs || 0) > 0 || (b.balls || 0) > 0 || (b.dismissal && b.dismissal !== 'batting *')));
+      if (dismissedBatters.length > 0) {
+        return dismissedBatters.map((b, idx) => `${idx + 1}-${currentRuns} (${b.name}, ${currentOvers} ov)`).join(', ');
+      }
+      return `1-${currentRuns} (Batter #1, ${currentOvers} ov)`;
+    }
+
+    return 'Yet to fall';
   };
 
-  const getDynamicBatting = (staticBatting, forcedBattersMap = null, isForcedHistorical = false) => {
+  const getDynamicBatting = (staticBatting, forcedBattersMap = null, isForcedHistorical = false, activeStriker = null, activeNonStriker = null) => {
     const battersMap = new Map();
 
     (staticBatting || []).forEach(b => {
@@ -7557,6 +7586,8 @@ function CricketAddaMain() {
     });
 
     const activeMap = forcedBattersMap || liveBatters;
+    const curSt = activeStriker || match.currentStriker || striker;
+    const curNonSt = activeNonStriker || match.currentNonStriker || nonStriker;
 
     Object.keys(activeMap).forEach(bName => {
       const liveB = activeMap[bName];
@@ -7577,23 +7608,48 @@ function CricketAddaMain() {
         triples: 0,
       };
 
-      const sr = liveB.balls > 0 ? ((liveB.runs / liveB.balls) * 100).toFixed(2) : '-';
-      const isCurrentlyBatting = !isForcedHistorical && (bName === striker || bName === nonStriker);
+      const sr = (liveB.balls || 0) > 0 ? (((liveB.runs || 0) / liveB.balls) * 100).toFixed(2) : '-';
+      const isCurrentlyBatting = !isForcedHistorical && (
+        (curSt && bName.trim().toLowerCase() === curSt.trim().toLowerCase()) ||
+        (curNonSt && bName.trim().toLowerCase() === curNonSt.trim().toLowerCase())
+      );
+
+      let finalDismissal = existing.dismissal;
+      let finalIsNotOut = existing.isNotOut;
+
+      if (isCurrentlyBatting) {
+        finalDismissal = 'batting *';
+        finalIsNotOut = true;
+      } else {
+        if (liveB.dismissal && liveB.dismissal !== 'batting *') {
+          finalDismissal = liveB.dismissal;
+          finalIsNotOut = false;
+        } else if (existing.dismissal && existing.dismissal !== 'batting *') {
+          finalDismissal = existing.dismissal;
+          finalIsNotOut = false;
+        } else if ((liveB.balls || 0) > 0 || (liveB.runs || 0) > 0) {
+          finalDismissal = 'c & b Bowler';
+          finalIsNotOut = false;
+        } else {
+          finalDismissal = 'yet to bat';
+          finalIsNotOut = false;
+        }
+      }
 
       battersMap.set(key, {
         ...existing,
         name: bName,
-        runs: liveB.runs,
-        balls: liveB.balls,
-        fours: liveB.fours,
-        sixes: liveB.sixes,
+        runs: liveB.runs || 0,
+        balls: liveB.balls || 0,
+        fours: liveB.fours || 0,
+        sixes: liveB.sixes || 0,
         dots: liveB.dots !== undefined ? liveB.dots : existing.dots,
         singles: liveB.singles !== undefined ? liveB.singles : existing.singles,
         doubles: liveB.doubles !== undefined ? liveB.doubles : existing.doubles,
         triples: liveB.triples !== undefined ? liveB.triples : existing.triples,
         sr: sr,
-        isNotOut: isCurrentlyBatting ? true : existing.isNotOut,
-        dismissal: isCurrentlyBatting ? 'batting *' : existing.dismissal,
+        isNotOut: finalIsNotOut,
+        dismissal: finalDismissal,
       });
     });
 
@@ -7735,9 +7791,24 @@ function CricketAddaMain() {
     const maxOv = baseInning.maxOvers || targetMatch.overs || 20;
     const crr = balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00';
 
-    const historyStack = isTargetActive && scoringHistory.length > 0 ? scoringHistory : (mLive?.scoringHistory || []);
+    const historyStack = isTargetActive && scoringHistory.length > 0 ? scoringHistory : (mLive?.scoringHistory || targetMatch.scoringHistory || []);
+    const dynamicBattingList = getDynamicBatting(
+      baseInning.batting || [],
+      activeBattersMap,
+      !isLiveNow,
+      isTargetActive ? (match.currentStriker || striker) : mLive?.currentStriker,
+      isTargetActive ? (match.currentNonStriker || nonStriker) : mLive?.currentNonStriker
+    );
     const dynamicExtras = calculateExtrasFromHistory(historyStack, inningNum, baseInning.extras);
-    const dynamicFow = calculateFOWFromHistory(historyStack, inningNum, baseInning.fow);
+    const dynamicFow = calculateFOWFromHistory(historyStack, inningNum, baseInning.fow, wickets, runs, overs, dynamicBattingList);
+
+    // Reconcile mathematical total score and extras
+    const totalBatterRuns = (dynamicBattingList || []).reduce((acc, b) => acc + Number(b.runs || 0), 0);
+    let finalExtras = dynamicExtras;
+    if (runs > totalBatterRuns && typeof dynamicExtras === 'string' && dynamicExtras.startsWith('0 (')) {
+      const extraDiff = runs - totalBatterRuns;
+      finalExtras = `${extraDiff} (b 0, lb 0, w ${extraDiff}, nb 0)`;
+    }
 
     return {
       ...baseInning,
@@ -7748,9 +7819,9 @@ function CricketAddaMain() {
       overs,
       balls,
       crr,
-      batting: getDynamicBatting(baseInning.batting || [], activeBattersMap, !isLiveNow),
+      batting: dynamicBattingList,
       bowling: getDynamicBowling(baseInning.bowling || [], activeBowlersMap, !isLiveNow),
-      extras: dynamicExtras,
+      extras: finalExtras,
       fow: dynamicFow,
     };
   }, [activeMatchId, liveRuns, liveWickets, liveBalls, liveBatters, liveBowlerStats, currentInnings, scoringHistory, firstInningsSummary, oversStr, crr]);
@@ -12850,7 +12921,7 @@ function CricketAddaMain() {
                       <PlayerAvatar name={bw.name} size={32} borderColor="#38bdf8" />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.bowlerNameText, currentTheme.isLight && { color: '#0f172a' }]}>{bw.name}</Text>
-                        <Text style={[styles.dismissalText, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{bw.style || 'Right-arm Medium'}</Text>
+                        <Text style={[styles.dismissalText, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{formatBowlerStyle(bw.style)}</Text>
                       </View>
                     </View>
                     <Text style={[styles.tdText, currentTheme.isLight && { color: '#475569' }, { flex: 0.7, textAlign: 'right' }]}>{bw.overs}</Text>
