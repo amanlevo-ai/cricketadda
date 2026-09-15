@@ -9762,21 +9762,33 @@ function CricketAddaMain() {
       const targetTeamId = editingTeamId;
       let updatedTeamObj = null;
 
+      const currentEditingTeam = registeredTeams.find(t => t.id === targetTeamId);
+      const isOwner = isCreatedByMe(currentEditingTeam);
+
       setRegisteredTeams(prev => {
         const updated = prev.map(t => {
           if (t.id === targetTeamId) {
-            updatedTeamObj = {
-              ...t,
-              name: cleanName,
-              shortName: cleanName.slice(0, 3).toUpperCase(),
-              flag: newTeamFlag || t.flag || '🦁',
-              logo: finalTeamLogo,
-              logoUri: finalTeamLogo,
-              city: newTeamCity.trim() || t.city || 'Local City',
-              captain: captainPlayer?.name || t.captain || userProfile?.name || `${cleanName} Captain`,
-              wicketkeeper: wkPlayer?.name || t.wicketkeeper || 'Wicketkeeper',
-              squad: finalSquad,
-            };
+            if (isOwner) {
+              // Full update for owner
+              updatedTeamObj = {
+                ...t,
+                name: cleanName,
+                shortName: cleanName.slice(0, 3).toUpperCase(),
+                flag: newTeamFlag || t.flag || '🦁',
+                logo: finalTeamLogo,
+                logoUri: finalTeamLogo,
+                city: newTeamCity.trim() || t.city || 'Local City',
+                captain: captainPlayer?.name || t.captain || userProfile?.name || `${cleanName} Captain`,
+                wicketkeeper: wkPlayer?.name || t.wicketkeeper || 'Wicketkeeper',
+                squad: finalSquad,
+              };
+            } else {
+              // Opponent team: update ONLY the squad lineup, preserve original name, branding, and creator info
+              updatedTeamObj = {
+                ...t,
+                squad: finalSquad,
+              };
+            }
             return updatedTeamObj;
           }
           return t;
@@ -9920,8 +9932,12 @@ function CricketAddaMain() {
       setEditingTeamId(null);
       setTeamSearchQuery('');
 
-      Alert.alert('Team Updated ✅', `Team "${cleanName}" (${(finalSquad || []).length} players) updated successfully!`);
-      showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) updated!`, '🏏');
+      if (isOwner) {
+        Alert.alert('Team Updated ✅', `Team "${cleanName}" (${(finalSquad || []).length} players) updated successfully!`);
+      } else {
+        Alert.alert('Squad Updated ✅', `Opponent squad "${currentEditingTeam?.name || cleanName}" (${(finalSquad || []).length} players) updated for match!`);
+      }
+      showAppToast(`Squad (${(finalSquad || []).length} players) updated for match!`, '🏏');
       return;
     }
 
@@ -16759,227 +16775,290 @@ function CricketAddaMain() {
       <Modal visible={newTeamModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
-            <View style={styles.photoPickerHeader}>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.photoPickerTitle, { color: '#10b981' }]}>
-                  {editingTeamId ? `🏏 Edit Team & Squad: ${newTeamName || ''}` : '🏏 Create Your Team'}
-                </Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11.5, marginTop: 2 }}>
-                  {editingTeamId ? 'Update details, mascot flag, and squad roster (max 20 players)' : 'Enter team name & add teammates (max 20 players)'}
-                </Text>
-              </View>
-              {(newTeamName || '').trim().length > 0 && (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#06201a',
-                    borderColor: '#10b981',
-                    borderWidth: 1.2,
-                    paddingVertical: 5,
-                    paddingHorizontal: 9,
-                    borderRadius: 8,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    marginRight: 6,
-                    gap: 4,
-                  }}
-                  onPress={() => {
-                    openTeamQrCode({
-                      id: editingTeamId || `custom_team_${Date.now()}`,
-                      name: newTeamName.trim(),
-                      flag: newTeamFlag || '🦁',
-                      city: newTeamCity.trim() || 'Local Ground',
-                      squad: newTeamSquad,
-                    });
-                  }}
-                >
-                  <Text style={{ fontSize: 12 }}>🪪</Text>
-                  <Text style={{ color: '#10b981', fontSize: 11, fontWeight: 'bold' }}>Team QR</Text>
-                </TouchableOpacity>
-              )}
-              <TouchableOpacity style={styles.closeRoundBtn} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
-                <Text style={styles.closeRoundBtnText}>✕</Text>
-              </TouchableOpacity>
-            </View>
+            {(() => {
+              const activeEditingTeam = editingTeamId ? registeredTeams.find(t => t.id === editingTeamId) : null;
+              const isEditingOpponentTeam = Boolean(editingTeamId && !isCreatedByMe(activeEditingTeam));
 
-            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-              {/* 1. TEAM DETAILS */}
-              <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>🏷️ 1. TEAM DETAILS:</Text>
-              <View style={styles.wizardInputBox}>
-                <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>
-                  Team Name <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>* (Mandatory)</Text>:
-                </Text>
-                <TextInput
-                  style={[
-                    styles.wizardTextInput,
-                    currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' },
-                    (!newTeamName || !newTeamName.trim()) && { borderColor: '#f59e0b' },
-                    registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && { borderColor: '#ef4444', borderWidth: 1.5 }
-                  ]}
-                  value={newTeamName}
-                  onChangeText={setNewTeamName}
-                  placeholder="e.g. Mumbai Super Kings (Mandatory)"
-                  placeholderTextColor="#94a3b8"
-                />
-              </View>
-
-              {(!newTeamName || !newTeamName.trim()) && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
-                  <Text style={{ fontSize: 12 }}>⚠️</Text>
-                  <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '600' }}>
-                    Team name is mandatory before adding players or saving.
-                  </Text>
-                </View>
-              )}
-
-              {registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && (
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
-                  <Text style={{ fontSize: 13 }}>⚠️</Text>
-                  <Text style={{ color: '#ef4444', fontSize: 11.5, fontWeight: 'bold' }}>
-                    Team name "{newTeamName.trim()}" is already taken. Please choose a unique name.
-                  </Text>
-                </View>
-              )}
-
-              <View style={styles.wizardInputBox}>
-                <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>City / Club (Optional):</Text>
-                <TextInput
-                  style={[styles.wizardTextInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }]}
-                  value={newTeamCity}
-                  onChangeText={setNewTeamCity}
-                  placeholder="e.g. Wankhede / Mumbai"
-                  placeholderTextColor="#94a3b8"
-                />
-              </View>
-
-              {/* CUSTOM TEAM PICTURE / LOGO & MASCOT */}
-              <Text style={[styles.inputFieldLabel, { marginTop: 8 }, currentTheme.isLight && { color: '#475569' }]}>Team Picture & Mascot:</Text>
-              <View style={{
-                backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a101d',
-                borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
-                borderWidth: 1,
-                borderRadius: 14,
-                padding: 12,
-                marginVertical: 6,
-              }}>
-                {/* Top Row: Live Preview Avatar + Direct URL Text Input */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                  <View style={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: 12,
-                    backgroundColor: currentTheme.isLight ? '#ffffff' : '#162235',
-                    borderWidth: 1.5,
-                    borderColor: currentTheme.primary,
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    overflow: 'hidden',
-                  }}>
-                    {(newTeamCustomLogoUrl || newTeamLogo) ? (
-                      <Image
-                        key={newTeamCustomLogoUrl || newTeamLogo}
-                        source={{ uri: newTeamCustomLogoUrl || newTeamLogo }}
-                        style={{ width: '100%', height: '100%' }}
-                        resizeMode="cover"
-                      />
-                    ) : (
-                      <Text style={{ fontSize: 26 }}>{newTeamFlag || '🦁'}</Text>
+              return (
+                <>
+                  <View style={styles.photoPickerHeader}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.photoPickerTitle, { color: isEditingOpponentTeam ? '#38bdf8' : '#10b981' }]}>
+                        {isEditingOpponentTeam
+                          ? `🔒 Manage Opponent Squad: ${newTeamName || ''}`
+                          : editingTeamId
+                          ? `🏏 Edit Team & Squad: ${newTeamName || ''}`
+                          : '🏏 Create Your Team'}
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 11.5, marginTop: 2 }}>
+                        {isEditingOpponentTeam
+                          ? 'Opponent Team: Add or remove players for this match. Team branding is locked.'
+                          : editingTeamId
+                          ? 'Update details, mascot flag, and squad roster (max 20 players)'
+                          : 'Enter team name & add teammates (max 20 players)'}
+                      </Text>
+                    </View>
+                    {(newTeamName || '').trim().length > 0 && (
+                      <TouchableOpacity
+                        style={{
+                          backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#06201a',
+                          borderColor: '#10b981',
+                          borderWidth: 1.2,
+                          paddingVertical: 5,
+                          paddingHorizontal: 9,
+                          borderRadius: 8,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          marginRight: 6,
+                          gap: 4,
+                        }}
+                        onPress={() => {
+                          openTeamQrCode({
+                            id: editingTeamId || `custom_team_${Date.now()}`,
+                            name: newTeamName.trim(),
+                            flag: newTeamFlag || '🦁',
+                            city: newTeamCity.trim() || 'Local Ground',
+                            squad: newTeamSquad,
+                          });
+                        }}
+                      >
+                        <Text style={{ fontSize: 12 }}>🪪</Text>
+                        <Text style={{ color: '#10b981', fontSize: 11, fontWeight: 'bold' }}>Team QR</Text>
+                      </TouchableOpacity>
                     )}
-                  </View>
-
-                  <View style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
-                    borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                    borderWidth: 1,
-                    borderRadius: 10,
-                    paddingHorizontal: 10,
-                    height: 44,
-                  }}>
-                    <Text style={{ fontSize: 13, marginRight: 6 }}>🔗</Text>
-                    <TextInput
-                      style={{
-                        flex: 1,
-                        fontSize: 12,
-                        color: currentTheme.isLight ? '#0f172a' : '#ffffff',
-                        paddingVertical: 0,
-                      }}
-                      value={newTeamCustomLogoUrl || (typeof newTeamLogo === 'string' && newTeamLogo.startsWith('http') ? newTeamLogo : '')}
-                      onChangeText={t => {
-                        setNewTeamCustomLogoUrl(t);
-                        setNewTeamLogo(t.trim() || null);
-                      }}
-                      placeholder="Paste image URL (https://...)"
-                      placeholderTextColor="#64748b"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                    />
-                  </View>
-                </View>
-
-                {/* Action Buttons: Gallery & Camera */}
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0369a1',
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                    }}
-                    onPress={pickTeamLogoFromGallery}
-                  >
-                    <Text style={{ fontSize: 13 }}>🖼️</Text>
-                    <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
-                      From Gallery
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={{
-                      flex: 1,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 6,
-                      backgroundColor: currentTheme.isLight ? '#dcfce7' : '#059669',
-                      paddingVertical: 8,
-                      borderRadius: 8,
-                    }}
-                    onPress={takeTeamLogoWithCamera}
-                  >
-                    <Text style={{ fontSize: 13 }}>📸</Text>
-                    <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
-                      From Camera
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Team Mascot / Emoji Flag Selector */}
-                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginTop: 2, marginBottom: 4 }}>
-                  Or Choose Mascot Flag:
-                </Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                  {['🦁', '⚡', '👑', '🌊', '🦅', '🏏', '🔥', '🛡️', '⚔️', '⭐', '🐯', '🐂', '🐺', '🏆'].map(flg => (
-                    <TouchableOpacity
-                      key={flg}
-                      style={[
-                        styles.teamFlagSelectChip,
-                        newTeamFlag === flg && styles.teamFlagSelectChipActive,
-                      ]}
-                      onPress={() => {
-                        setNewTeamFlag(flg);
-                      }}
-                    >
-                      <Text style={{ fontSize: 20 }}>{flg}</Text>
+                    <TouchableOpacity style={styles.closeRoundBtn} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
+                      <Text style={styles.closeRoundBtnText}>✕</Text>
                     </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
+                  </View>
+
+                  <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
+                    {/* 1. TEAM DETAILS */}
+                    {isEditingOpponentTeam ? (
+                      <View style={{
+                        backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111c2e',
+                        borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                        borderWidth: 1.5,
+                        borderRadius: 14,
+                        padding: 12,
+                        marginBottom: 12,
+                      }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                          <View style={{
+                            width: 46,
+                            height: 46,
+                            borderRadius: 12,
+                            backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+                            borderWidth: 1,
+                            borderColor: currentTheme.isLight ? '#e2e8f0' : '#334155',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                          }}>
+                            {(newTeamCustomLogoUrl || newTeamLogo) ? (
+                              <Image source={{ uri: newTeamCustomLogoUrl || newTeamLogo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                            ) : (
+                              <Text style={{ fontSize: 26 }}>{newTeamFlag || '🦁'}</Text>
+                            )}
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                              <Text style={{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }}>
+                                {newTeamName}
+                              </Text>
+                              <View style={{ backgroundColor: 'rgba(239, 68, 68, 0.12)', borderColor: '#ef4444', borderWidth: 1, paddingHorizontal: 6, paddingVertical: 1, borderRadius: 5 }}>
+                                <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: 'bold' }}>🔒 Opponent Team</Text>
+                              </View>
+                            </View>
+                            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 2 }}>
+                              📍 {newTeamCity || 'Opponent Ground'} • Captain: {newTeamSquad.find(p => p.isCaptain)?.name || 'Captain'}
+                            </Text>
+                          </View>
+                        </View>
+                        <Text style={{ color: '#0284c7', fontSize: 10.5, fontWeight: '600', marginTop: 8 }}>
+                          ℹ️ Only squad players can be added or removed for this match. Team branding belongs to opponent.
+                        </Text>
+                      </View>
+                    ) : (
+                      <>
+                        <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>🏷️ 1. TEAM DETAILS:</Text>
+                        <View style={styles.wizardInputBox}>
+                          <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>
+                            Team Name <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>* (Mandatory)</Text>:
+                          </Text>
+                          <TextInput
+                            style={[
+                              styles.wizardTextInput,
+                              currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' },
+                              (!newTeamName || !newTeamName.trim()) && { borderColor: '#f59e0b' },
+                              registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && { borderColor: '#ef4444', borderWidth: 1.5 }
+                            ]}
+                            value={newTeamName}
+                            onChangeText={setNewTeamName}
+                            placeholder="e.g. Mumbai Super Kings (Mandatory)"
+                            placeholderTextColor="#94a3b8"
+                          />
+                        </View>
+
+                        {(!newTeamName || !newTeamName.trim()) && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
+                            <Text style={{ fontSize: 12 }}>⚠️</Text>
+                            <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '600' }}>
+                              Team name is mandatory before adding players or saving.
+                            </Text>
+                          </View>
+                        )}
+
+                        {registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
+                            <Text style={{ fontSize: 13 }}>⚠️</Text>
+                            <Text style={{ color: '#ef4444', fontSize: 11.5, fontWeight: 'bold' }}>
+                              Team name "{newTeamName.trim()}" is already taken. Please choose a unique name.
+                            </Text>
+                          </View>
+                        )}
+
+                        <View style={styles.wizardInputBox}>
+                          <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>City / Club (Optional):</Text>
+                          <TextInput
+                            style={[styles.wizardTextInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }]}
+                            value={newTeamCity}
+                            onChangeText={setNewTeamCity}
+                            placeholder="e.g. Wankhede / Mumbai"
+                            placeholderTextColor="#94a3b8"
+                          />
+                        </View>
+
+                        {/* CUSTOM TEAM PICTURE / LOGO & MASCOT */}
+                        <Text style={[styles.inputFieldLabel, { marginTop: 8 }, currentTheme.isLight && { color: '#475569' }]}>Team Picture & Mascot:</Text>
+                        <View style={{
+                          backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a101d',
+                          borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                          borderWidth: 1,
+                          borderRadius: 14,
+                          padding: 12,
+                          marginVertical: 6,
+                        }}>
+                          {/* Top Row: Live Preview Avatar + Direct URL Text Input */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                            <View style={{
+                              width: 48,
+                              height: 48,
+                              borderRadius: 12,
+                              backgroundColor: currentTheme.isLight ? '#ffffff' : '#162235',
+                              borderWidth: 1.5,
+                              borderColor: currentTheme.primary,
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              overflow: 'hidden',
+                            }}>
+                              {(newTeamCustomLogoUrl || newTeamLogo) ? (
+                                <Image
+                                  key={newTeamCustomLogoUrl || newTeamLogo}
+                                  source={{ uri: newTeamCustomLogoUrl || newTeamLogo }}
+                                  style={{ width: '100%', height: '100%' }}
+                                  resizeMode="cover"
+                                />
+                              ) : (
+                                <Text style={{ fontSize: 26 }}>{newTeamFlag || '🦁'}</Text>
+                              )}
+                            </View>
+
+                            <View style={{
+                              flex: 1,
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+                              borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                              borderWidth: 1,
+                              borderRadius: 10,
+                              paddingHorizontal: 10,
+                              height: 44,
+                            }}>
+                              <Text style={{ fontSize: 13, marginRight: 6 }}>🔗</Text>
+                              <TextInput
+                                style={{
+                                  flex: 1,
+                                  fontSize: 12,
+                                  color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                                  paddingVertical: 0,
+                                }}
+                                value={newTeamCustomLogoUrl || (typeof newTeamLogo === 'string' && newTeamLogo.startsWith('http') ? newTeamLogo : '')}
+                                onChangeText={t => {
+                                  setNewTeamCustomLogoUrl(t);
+                                  setNewTeamLogo(t.trim() || null);
+                                }}
+                                placeholder="Paste image URL (https://...)"
+                                placeholderTextColor="#64748b"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                              />
+                            </View>
+                          </View>
+
+                          {/* Action Buttons: Gallery & Camera */}
+                          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                            <TouchableOpacity
+                              style={{
+                                flex: 1,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 6,
+                                backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0369a1',
+                                paddingVertical: 8,
+                                borderRadius: 8,
+                              }}
+                              onPress={pickTeamLogoFromGallery}
+                            >
+                              <Text style={{ fontSize: 13 }}>🖼️</Text>
+                              <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
+                                From Gallery
+                              </Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity
+                              style={{
+                                flex: 1,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 6,
+                                backgroundColor: currentTheme.isLight ? '#dcfce7' : '#059669',
+                                paddingVertical: 8,
+                                borderRadius: 8,
+                              }}
+                              onPress={takeTeamLogoWithCamera}
+                            >
+                              <Text style={{ fontSize: 13 }}>📸</Text>
+                              <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
+                                From Camera
+                              </Text>
+                            </TouchableOpacity>
+                          </View>
+
+                          {/* Team Mascot / Emoji Flag Selector */}
+                          <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginTop: 2, marginBottom: 4 }}>
+                            Or Choose Mascot Flag:
+                          </Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                            {['🦁', '⚡', '👑', '🌊', '🦅', '🏏', '🔥', '🛡️', '⚔️', '⭐', '🐯', '🐂', '🐺', '🏆'].map(flg => (
+                              <TouchableOpacity
+                                key={flg}
+                                style={[
+                                  styles.teamFlagSelectChip,
+                                  newTeamFlag === flg && styles.teamFlagSelectChipActive,
+                                ]}
+                                onPress={() => {
+                                  setNewTeamFlag(flg);
+                                }}
+                              >
+                                <Text style={{ fontSize: 20 }}>{flg}</Text>
+                              </TouchableOpacity>
+                            ))}
+                          </ScrollView>
+                        </View>
+                      </>
+                    )}
 
               {/* 2. ADD PLAYERS TO SQUAD (MAX 20) */}
               <View style={styles.squadBuilderHeaderRow}>
@@ -17619,15 +17698,22 @@ function CricketAddaMain() {
                   <Text style={[styles.skipBtnText, currentTheme.isLight && { color: '#475569' }]}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
-                  style={[styles.confirmBtn, { backgroundColor: '#10b981' }]}
+                  style={[styles.confirmBtn, { backgroundColor: isEditingOpponentTeam ? '#0284c7' : '#10b981' }]}
                   onPress={handleSaveNewTeamWithSquad}
                 >
                   <Text style={[styles.confirmBtnText, { color: '#ffffff' }]}>
-                    {editingTeamId ? `💾 Update Team & Squad (${(newTeamSquad || []).length} Pl)` : `💾 Save Team & Squad (${(newTeamSquad || []).length} Pl)`}
+                    {isEditingOpponentTeam
+                      ? `💾 Update Opponent Squad (${(newTeamSquad || []).length} Pl)`
+                      : editingTeamId
+                      ? `💾 Update Team & Squad (${(newTeamSquad || []).length} Pl)`
+                      : `💾 Save Team & Squad (${(newTeamSquad || []).length} Pl)`}
                   </Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
+                </>
+              );
+            })()}
           </View>
         </View>
       </Modal>
