@@ -5449,6 +5449,70 @@ function CricketAddaMain() {
     };
   }, [activeMatchId, isOfficialScorer]);
 
+    const getPlayerAvatarUri = useCallback((playerName) => {
+    if (!playerName) return null;
+    const clean = String(playerName).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+    
+    // 1. Current user profile
+    const userClean = (userProfile?.name || authName || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+    if (userClean && (clean === userClean || clean.includes(userClean) || userClean.includes(clean))) {
+      if (userProfile?.avatarUri) return userProfile.avatarUri;
+    }
+
+    // 2. Check registered teams and squads
+    if (Array.isArray(registeredTeams)) {
+      for (const team of registeredTeams) {
+        if (Array.isArray(team?.squad)) {
+          for (const p of team.squad) {
+            const pName = typeof p === 'string' ? p : p?.name;
+            if (pName) {
+              const pClean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+              if (pClean === clean || pClean.includes(clean) || clean.includes(pClean)) {
+                if (typeof p === 'object' && p?.avatarUri) return p.avatarUri;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 3. Check currentMatchData players
+    const matchPlayers = [
+      ...(currentMatchData?.innings1?.batting || []),
+      ...(currentMatchData?.innings2?.batting || []),
+      ...(currentMatchData?.innings1?.bowling || []),
+      ...(currentMatchData?.innings2?.bowling || []),
+      ...(currentMatchData?.myPlayingXI || []),
+      ...(currentMatchData?.oppPlayingXI || []),
+    ];
+    for (const p of matchPlayers) {
+      const pName = typeof p === 'string' ? p : p?.name;
+      if (pName) {
+        const pClean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+        if (pClean === clean || pClean.includes(clean) || clean.includes(pClean)) {
+          if (typeof p === 'object' && p?.avatarUri) return p.avatarUri;
+        }
+      }
+    }
+
+    // 4. Check usersDb
+    if (Array.isArray(usersDb)) {
+      for (const u of usersDb) {
+        const uName = (u?.name || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+        if (uName && (uName === clean || uName.includes(clean) || clean.includes(uName))) {
+          if (u?.avatarUri) return u.avatarUri;
+        }
+      }
+    }
+
+    // 5. Check hardcoded PLAYER_AVATARS
+    const origClean = String(playerName).replace(/\s*\([^)]*\)/g, '').trim();
+    if (PLAYER_AVATARS[origClean]) return PLAYER_AVATARS[origClean];
+    if (PLAYER_AVATARS[playerName]) return PLAYER_AVATARS[playerName];
+
+    return null;
+  }, [userProfile, authName, registeredTeams, currentMatchData, usersDb]);
+
   let striker = match.currentStriker || (currentMatchData?.innings1?.batting?.[0]?.name) || 'Rohit Sharma (c)';
   let nonStriker = match.currentNonStriker || (currentMatchData?.innings1?.batting?.[1]?.name) || 'Hardik Pandya';
   let bowler = match.currentBowler || (currentMatchData?.innings1?.bowling?.[0]?.name) || 'Mitchell Starc';
@@ -12297,7 +12361,7 @@ function CricketAddaMain() {
           <View style={[styles.playersCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
             <View style={styles.batterCol}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <PlayerAvatar name={striker} size={36} customUri={striker.includes(userProfile.name) ? userProfile.avatarUri : null} />
+                <PlayerAvatar name={striker} size={36} customUri={getPlayerAvatarUri(striker)} />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.batterName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
                     ★ {striker} <Text style={[styles.onStrikeTag, { color: currentTheme.primary }]}>(Striker)</Text>
@@ -12309,7 +12373,7 @@ function CricketAddaMain() {
               <View style={[styles.divider, { backgroundColor: currentTheme.cardBorder }]} />
 
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <PlayerAvatar name={nonStriker} size={32} borderColor="#64748b" />
+                <PlayerAvatar name={nonStriker} size={32} customUri={getPlayerAvatarUri(nonStriker)} borderColor="#64748b" />
                 <View style={{ flex: 1 }}>
                   <Text style={[styles.batterNameInactive, { color: currentTheme.isLight ? '#475569' : '#94a3b8' }]}>
                     ○ {nonStriker} <Text style={[styles.nonStrikeTag, { color: currentTheme.isLight ? '#64748b' : '#64748b' }]}>(Non-Striker)</Text>
@@ -12324,7 +12388,7 @@ function CricketAddaMain() {
               activeOpacity={isOfficialScorer ? 0.7 : 1}
               onPress={isOfficialScorer ? () => setChangeBowlerModalVisible(true) : undefined}
             >
-              <PlayerAvatar name={bowler} size={36} borderColor="#38bdf8" />
+              <PlayerAvatar name={bowler} size={36} customUri={getPlayerAvatarUri(bowler)} borderColor="#38bdf8" />
               <View style={{ alignItems: 'flex-end', marginTop: 4 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                   <RealisticCricketLeatherBall size={12} />
@@ -12361,10 +12425,30 @@ function CricketAddaMain() {
                 <TouchableOpacity
                   style={styles.toolBtn}
                   onPress={() => {
-                    const temp = striker;
-                    striker = nonStriker;
-                    nonStriker = temp;
-                    setMatch(prev => ({ ...prev, currentStriker: striker, currentNonStriker: nonStriker }));
+                    const nextSt = match.currentNonStriker || nonStriker;
+                    const nextNst = match.currentStriker || striker;
+                    setMatch(prev => ({ ...prev, currentStriker: nextSt, currentNonStriker: nextNst }));
+                    setMatchesDb(prev => {
+                      const cur = prev[activeMatchId] || {};
+                      const updated = {
+                        ...cur,
+                        liveState: {
+                          ...(cur.liveState || {}),
+                          currentStriker: nextSt,
+                          currentNonStriker: nextNst,
+                        },
+                        lastUpdatedAt: Date.now(),
+                      };
+                      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...prev, [activeMatchId]: updated })).catch(() => {});
+                      return { ...prev, [activeMatchId]: updated };
+                    });
+                    broadcastMatchState({
+                      match: {
+                        ...match,
+                        currentStriker: nextSt,
+                        currentNonStriker: nextNst,
+                      },
+                    });
                   }}
                 >
                   <Text style={styles.toolBtnText}>⇄ Strike</Text>
@@ -15294,7 +15378,7 @@ function CricketAddaMain() {
                   ]}
                   onPress={() => setOutBatter('striker')}
                 >
-                  <PlayerAvatar name={striker} size={26} customUri={striker.includes(userProfile.name) ? userProfile.avatarUri : null} borderColor={outBatter === 'striker' ? '#ef4444' : '#475569'} />
+                  <PlayerAvatar name={striker} size={26} customUri={getPlayerAvatarUri(striker)} borderColor={outBatter === 'striker' ? '#ef4444' : '#475569'} />
                   <View style={{ flex: 1, marginLeft: 6 }}>
                     <Text style={[styles.outBatterName, outBatter === 'striker' && { color: '#fca5a5' }]} numberOfLines={1}>
                       ★ {striker}
@@ -15310,7 +15394,7 @@ function CricketAddaMain() {
                   ]}
                   onPress={() => setOutBatter('nonStriker')}
                 >
-                  <PlayerAvatar name={nonStriker} size={26} borderColor={outBatter === 'nonStriker' ? '#ef4444' : '#475569'} />
+                  <PlayerAvatar name={nonStriker} size={26} customUri={getPlayerAvatarUri(nonStriker)} borderColor={outBatter === 'nonStriker' ? '#ef4444' : '#475569'} />
                   <View style={{ flex: 1, marginLeft: 6 }}>
                     <Text style={[styles.outBatterName, outBatter === 'nonStriker' && { color: '#fca5a5' }]} numberOfLines={1}>
                       ○ {nonStriker}
@@ -15551,7 +15635,7 @@ function CricketAddaMain() {
 
               {/* Batter Given Life Banner */}
               <View style={styles.dropBatterHeroCard}>
-                <PlayerAvatar name={striker} size={42} customUri={striker.includes(userProfile.name) ? userProfile.avatarUri : null} borderColor="#34d399" />
+                <PlayerAvatar name={striker} size={42} customUri={getPlayerAvatarUri(striker)} borderColor="#34d399" />
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={styles.dropBatterHeroName}>★ {striker} <Text style={{ color: '#34d399', fontSize: 11 }}>(Given a Life!)</Text></Text>
                   <Text style={styles.dropBatterHeroSub}>Current Over: {oversStr} • Bowler: {bowler}</Text>
