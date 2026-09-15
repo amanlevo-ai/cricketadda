@@ -1543,6 +1543,305 @@ const MATCH_DATABASE = {};
 
 // USER'S COMPLETE PERSONAL MATCH HISTORY & CAREER STATS
 // ============================================================================
+// ============================================================================
+// REAL-TIME CAREER STATS & MATCH-BY-MATCH HISTORY RECALCULATION ENGINE
+// ============================================================================
+const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, currentLiveMatch, currentLiveBatters, currentLiveBowlers, currentDroppedCatches) => {
+  const userName = (userProf?.name || '').trim().toLowerCase();
+  const allMatches = Object.values(matchesDatabase || {});
+  
+  let mergedMatches = [...allMatches];
+  if (activeMId && currentLiveMatch && !mergedMatches.some(m => m.id === activeMId)) {
+    mergedMatches.unshift({
+      ...currentLiveMatch,
+      id: activeMId,
+      status: 'live',
+      liveState: {
+        liveBatters: currentLiveBatters,
+        liveBowlerStats: currentLiveBowlers,
+        matchDroppedCatches: currentDroppedCatches,
+      }
+    });
+  }
+
+  let matchesPlayed = mergedMatches.length;
+  let wins = 0;
+  let losses = 0;
+  let potmCount = 0;
+
+  let totalRuns = 0;
+  let totalBallsFaced = 0;
+  let totalFours = 0;
+  let totalSixes = 0;
+  let totalBattingDots = 0;
+  let totalDucks = 0;
+  let totalGoldenDucks = 0;
+  let totalSilverDucks = 0;
+  let totalHundreds = 0;
+  let totalFifties = 0;
+  let highestScore = 0;
+  let highestScoreNotOut = false;
+  let totalInningsBatted = 0;
+  let totalDismissals = 0;
+
+  let totalWickets = 0;
+  let totalBallsBowled = 0;
+  let totalRunsConceded = 0;
+  let totalBowlingDots = 0;
+  let bestWickets = 0;
+  let bestRunsConceded = 999;
+
+  let totalCatches = 0;
+  let totalDroppedCatches = 0;
+  let totalRunOuts = 0;
+  let totalDirectHits = 0;
+  let totalStumpings = 0;
+
+  const historyList = [];
+
+  mergedMatches.forEach(m => {
+    if (!m) return;
+    
+    if (m.result && (m.result.toLowerCase().includes('won') || m.status === 'completed')) {
+      if (m.result.toLowerCase().includes('won')) wins++;
+      else losses++;
+    }
+
+    const inn1Batters = Array.isArray(m.innings1?.batting) ? m.innings1.batting : (m.innings1?.batting && typeof m.innings1.batting === 'object' ? Object.values(m.innings1.batting) : []);
+    const inn2Batters = Array.isArray(m.innings2?.batting) ? m.innings2.batting : (m.innings2?.batting && typeof m.innings2.batting === 'object' ? Object.values(m.innings2.batting) : []);
+    
+    let liveBatObj = m.liveState?.liveBatters || {};
+    if (m.id === activeMId && currentLiveBatters) {
+      liveBatObj = { ...liveBatObj, ...currentLiveBatters };
+    }
+    const liveBatList = Object.entries(liveBatObj).map(([name, b]) => ({ name, ...b }));
+
+    const allMatchBatters = [...inn1Batters, ...inn2Batters, ...liveBatList];
+
+    let userBat = null;
+    if (userName) {
+      userBat = allMatchBatters.find(b => b.name && (b.name.toLowerCase() === userName || b.name.toLowerCase().includes(userName) || userName.includes(b.name.toLowerCase())));
+    }
+    if (!userBat && allMatchBatters.length > 0) {
+      userBat = allMatchBatters.sort((a, b) => (Number(b.runs) || 0) - (Number(a.runs) || 0))[0];
+    }
+
+    const inn1Bowlers = Array.isArray(m.innings1?.bowling) ? m.innings1.bowling : (m.innings1?.bowling && typeof m.innings1.bowling === 'object' ? Object.values(m.innings1.bowling) : []);
+    const inn2Bowlers = Array.isArray(m.innings2?.bowling) ? m.innings2.bowling : (m.innings2?.bowling && typeof m.innings2.bowling === 'object' ? Object.values(m.innings2.bowling) : []);
+    
+    let liveBowlObj = m.liveState?.liveBowlerStats || {};
+    if (m.id === activeMId && currentLiveBowlers) {
+      liveBowlObj = { ...liveBowlObj, ...currentLiveBowlers };
+    }
+    const liveBowlList = Object.entries(liveBowlObj).map(([name, b]) => ({ name, ...b }));
+
+    const allMatchBowlers = [...inn1Bowlers, ...inn2Bowlers, ...liveBowlList];
+
+    let userBowl = null;
+    if (userName) {
+      userBowl = allMatchBowlers.find(b => b.name && (b.name.toLowerCase() === userName || b.name.toLowerCase().includes(userName) || userName.includes(b.name.toLowerCase())));
+    }
+    if (!userBowl && allMatchBowlers.length > 0) {
+      userBowl = allMatchBowlers.sort((a, b) => (Number(b.wickets) || 0) - (Number(a.wickets) || 0))[0];
+    }
+
+    let bRuns = 0;
+    let bBalls = 0;
+    let bFours = 0;
+    let bSixes = 0;
+    let bDots = 0;
+    let bNotOut = false;
+    let bDismissal = 'not out';
+
+    if (userBat) {
+      bRuns = Number(userBat.runs || 0);
+      bBalls = Number(userBat.balls || 0);
+      bFours = Number(userBat.fours || 0);
+      bSixes = Number(userBat.sixes || 0);
+      bDots = Number(userBat.dots || 0);
+      bNotOut = Boolean(userBat.isNotOut || (userBat.dismissal && userBat.dismissal.includes('not out')) || (userBat.dismissal && userBat.dismissal.includes('*')));
+      bDismissal = userBat.dismissal || (bNotOut ? 'not out' : 'out');
+
+      if (bBalls > 0 || bRuns > 0) {
+        totalInningsBatted++;
+        totalRuns += bRuns;
+        totalBallsFaced += bBalls;
+        totalFours += bFours;
+        totalSixes += bSixes;
+        totalBattingDots += bDots;
+
+        if (!bNotOut) {
+          totalDismissals++;
+          if (bRuns === 0) {
+            totalDucks++;
+            if (bBalls === 1) totalGoldenDucks++;
+            else if (bBalls === 2) totalSilverDucks++;
+          }
+        }
+
+        if (bRuns >= 100) totalHundreds++;
+        else if (bRuns >= 50) totalFifties++;
+
+        if (bRuns > highestScore) {
+          highestScore = bRuns;
+          highestScoreNotOut = bNotOut;
+        }
+      }
+    }
+
+    let wWkts = 0;
+    let wRuns = 0;
+    let wBalls = 0;
+    let wDots = 0;
+    let wOvers = '0.0';
+
+    if (userBowl) {
+      wWkts = Number(userBowl.wickets || 0);
+      wRuns = Number(userBowl.runs || 0);
+      wDots = Number(userBowl.dots || userBowl.dotBalls || 0);
+      
+      if (userBowl.overs) {
+        const [ov, b] = String(userBowl.overs).split('.').map(Number);
+        wBalls = (ov || 0) * 6 + (b || 0);
+      } else if (userBowl.balls) {
+        wBalls = Number(userBowl.balls);
+      }
+      wOvers = `${Math.floor(wBalls / 6)}.${wBalls % 6}`;
+
+      if (wBalls > 0) {
+        totalWickets += wWkts;
+        totalBallsBowled += wBalls;
+        totalRunsConceded += wRuns;
+        totalBowlingDots += wDots;
+
+        if (wWkts > bestWickets || (wWkts === bestWickets && wRuns < bestRunsConceded)) {
+          bestWickets = wWkts;
+          bestRunsConceded = wRuns;
+        }
+      }
+    }
+
+    let matchDrops = 0;
+    if (m.matchDroppedCatches && Array.isArray(m.matchDroppedCatches)) {
+      matchDrops = m.matchDroppedCatches.length;
+    } else if (m.id === activeMId && currentDroppedCatches && Array.isArray(currentDroppedCatches)) {
+      matchDrops = currentDroppedCatches.length;
+    }
+    totalDroppedCatches += matchDrops;
+
+    const isPotm = Boolean(m.potm === userBat?.name || m.potm === userProf?.name || (bRuns >= 50 && wWkts >= 2));
+    if (isPotm) potmCount++;
+
+    const isDuckMatch = bRuns === 0 && bBalls > 0 && !bNotOut;
+    const duckLabel = bBalls === 1 ? '🦆 Golden Duck' : bBalls === 2 ? '🦆 Silver Duck' : '🦆 Duck';
+
+    const bSr = bBalls > 0 ? ((bRuns / bBalls) * 100).toFixed(1) : '0.00';
+    const wEcon = wBalls > 0 ? ((wRuns / wBalls) * 6).toFixed(2) : '0.00';
+
+    historyList.push({
+      id: m.id || `hist_${Date.now()}_${Math.random()}`,
+      matchId: m.id,
+      title: m.title || `${m.teamA || m.innings1?.team || 'Team A'} vs ${m.teamB || m.innings2?.team || 'Team B'}`,
+      tournament: m.tournament || 'Cricket Adda',
+      venue: m.venue || 'PCA Stadium',
+      date: m.dateTime || m.date || 'Today',
+      status: m.status || 'completed',
+      matchOutcome: m.result || (m.status === 'live' ? `🔴 LIVE: ${m.teamA || m.innings1?.team || 'Team 1'} ${m.innings1?.runs || 0}/${m.innings1?.wickets || 0} (${m.innings1?.overs || '0.0'} ov)` : 'Match Concluded'),
+      userBatting: {
+        name: userBat?.name || userProf?.name || 'Batter',
+        runs: bRuns,
+        balls: bBalls,
+        fours: bFours,
+        sixes: bSixes,
+        sr: bSr,
+        dots: bDots,
+        notOut: bNotOut,
+      },
+      userBowling: {
+        name: userBowl?.name || userProf?.name || 'Bowler',
+        wickets: wWkts,
+        runs: wRuns,
+        overs: wOvers,
+        econ: wEcon,
+        dots: wDots,
+      },
+      userFielding: {
+        desc: `${totalCatches} Catches${matchDrops > 0 ? ` • ${matchDrops} Drops` : ''}`,
+      },
+      isPotm,
+      potmBadge: '🌟 Player of the Match',
+      isDuckMatch,
+      duckLabel,
+    });
+  });
+
+  const battingAvg = totalDismissals > 0 ? (totalRuns / totalDismissals).toFixed(2) : totalRuns.toFixed(2);
+  const battingSr = totalBallsFaced > 0 ? ((totalRuns / totalBallsFaced) * 100).toFixed(2) : '0.00';
+  const battingDotPct = totalBallsFaced > 0 ? ((totalBattingDots / totalBallsFaced) * 100).toFixed(1) + '%' : '0.0%';
+
+  const bowlingOversStr = `${Math.floor(totalBallsBowled / 6)}.${totalBallsBowled % 6}`;
+  const bowlingEcon = totalBallsBowled > 0 ? ((totalRunsConceded / totalBallsBowled) * 6).toFixed(2) : '0.00';
+  const bowlingAvg = totalWickets > 0 ? (totalRunsConceded / totalWickets).toFixed(2) : '0.00';
+  const bowlingDotPct = totalBallsBowled > 0 ? ((totalBowlingDots / totalBallsBowled) * 100).toFixed(1) + '%' : '0.0%';
+  const bestBowlingStr = bestWickets > 0 ? `${bestWickets}/${bestRunsConceded}` : '0/0';
+
+  const totalFieldingChances = totalCatches + totalDroppedCatches;
+  const catchEfficiency = totalFieldingChances > 0 ? (((totalCatches) / totalFieldingChances) * 100).toFixed(1) + '%' : '100.0%';
+  const dropRate = totalFieldingChances > 0 ? (((totalDroppedCatches) / totalFieldingChances) * 100).toFixed(1) + '%' : '0.0%';
+
+  const winRateStr = matchesPlayed > 0 ? ((wins / matchesPlayed) * 100).toFixed(0) + '%' : '0%';
+
+  return {
+    matchOverview: {
+      matchesPlayed,
+      wins,
+      losses,
+      winRate: winRateStr,
+      potmCount,
+    },
+    careerStats: {
+      batting: {
+        runs: totalRuns,
+        avg: battingAvg,
+        sr: battingSr,
+        highScore: highestScore > 0 ? `${highestScore}${highestScoreNotOut ? '*' : ''}` : '0',
+        hundreds: totalHundreds,
+        fifties: totalFifties,
+        fours: totalFours,
+        sixes: totalSixes,
+        ballsFaced: totalBallsFaced,
+        dotBallsFaced: totalBattingDots,
+        dotPct: battingDotPct,
+        ducks: totalDucks,
+        goldenDucks: totalGoldenDucks,
+        silverDucks: totalSilverDucks,
+      },
+      bowling: {
+        wickets: totalWickets,
+        econ: bowlingEcon,
+        avg: bowlingAvg,
+        best: bestBowlingStr,
+        oversBowled: bowlingOversStr,
+        runsConceded: totalRunsConceded,
+        dotBallsBowled: totalBowlingDots,
+        dotPct: bowlingDotPct,
+      },
+      fielding: {
+        catches: totalCatches,
+        droppedCatches: totalDroppedCatches,
+        totalChances: totalFieldingChances,
+        catchEfficiency,
+        dropRate,
+        runOuts: totalRunOuts,
+        directHits: totalDirectHits,
+        stumpings: totalStumpings,
+      },
+      totalDotsTillNow: totalBattingDots + totalBowlingDots,
+    },
+    matchHistoryList: historyList,
+  };
+};
+
 const USER_CAREER_DATA = {
   matchOverview: {
     matchesPlayed: 0,
@@ -3470,6 +3769,33 @@ function CricketAddaMain() {
   const [scorecardTab, setScorecardTab] = useState('scorecard'); // 'scorecard' | 'mvp'
   const [mvpInfoModalVisible, setMvpInfoModalVisible] = useState(false);
   const currentMatchData = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb)[0] || EMPTY_MATCH_TEMPLATE;
+
+  // Real-time dynamic career & match history computation
+  const activeUserCareerData = useMemo(() => {
+    return computeCareerDataFromMatches(
+      userProfile,
+      matchesDb,
+      activeMatchId,
+      currentMatchData,
+      liveBatters,
+      liveBowlerStats,
+      matchDroppedCatches
+    );
+  }, [userProfile, matchesDb, activeMatchId, currentMatchData, liveBatters, liveBowlerStats, matchDroppedCatches]);
+
+  const filteredMatchHistoryList = useMemo(() => {
+    const list = activeUserCareerData.matchHistoryList || [];
+    if (statsFilter === 'batting') {
+      return list.filter(h => (h.userBatting?.balls || 0) > 0 || (h.userBatting?.runs || 0) > 0);
+    }
+    if (statsFilter === 'bowling') {
+      return list.filter(h => (h.userBowling?.overs && h.userBowling.overs !== '0.0') || (h.userBowling?.wickets || 0) > 0);
+    }
+    if (statsFilter === 'dots') {
+      return list.filter(h => (h.userBatting?.dots || 0) > 0 || (h.userBowling?.dots || 0) > 0 || h.isDuckMatch);
+    }
+    return list;
+  }, [activeUserCareerData.matchHistoryList, statsFilter]);
   const [userProfile, setUserProfile] = useState({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
   const [userCareerData, setUserCareerData] = useState(USER_CAREER_DATA);
 
@@ -13957,9 +14283,9 @@ function CricketAddaMain() {
 
               <Text style={[styles.profileRoleText, currentTheme.isLight && { color: '#0284c7' }]}>{userProfile.role}</Text>
               <Text style={[styles.profileSummaryText, currentTheme.isLight && { color: '#64748b' }]}>
-                {(userCareerData.matchOverview?.matchesPlayed ?? userCareerData.profile?.matchesPlayed ?? 0) === 0
+                {(activeUserCareerData.matchOverview?.matchesPlayed ?? 0) === 0
                   ? '0 Matches • 0 Wins (0%) • Fresh Player Profile 🌟'
-                  : `${userCareerData.matchOverview?.matchesPlayed ?? userCareerData.profile?.matchesPlayed} Matches • ${userCareerData.matchOverview?.wins ?? userCareerData.profile?.wins} Wins (${userCareerData.matchOverview?.winRate ?? userCareerData.profile?.winRate}) • ${userCareerData.matchOverview?.potmCount ?? userCareerData.profile?.potmCount}x POTM 🌟`}
+                  : `${activeUserCareerData.matchOverview?.matchesPlayed} Matches • ${activeUserCareerData.matchOverview?.wins} Wins (${activeUserCareerData.matchOverview?.winRate}) • ${activeUserCareerData.matchOverview?.potmCount}x POTM 🌟`}
               </Text>
             </View>
           </View>
@@ -14057,20 +14383,20 @@ function CricketAddaMain() {
             </Text>
           </TouchableOpacity>
 
-          {/* 6-Stat Box Grid */}
+          {/* 8-Stat Box Grid with Separated Run Outs & Boundaries */}
           <View style={styles.statsGridRow}>
             <View style={[styles.statBox, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}>
-              <Text style={[styles.statBoxLabel, currentTheme.isLight && { color: '#64748b' }]}>RUNS</Text>
-              <Text style={[styles.statBoxBigRuns, currentTheme.isLight && { color: '#0f172a' }]}>{userCareerData.careerStats.batting.runs}</Text>
-              <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>Avg: {userCareerData.careerStats.batting.avg} • SR: {userCareerData.careerStats.batting.sr}</Text>
-              <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>HS: {userCareerData.careerStats.batting.highScore} ({userCareerData.careerStats.batting.hundreds || 0}x100, {userCareerData.careerStats.batting.fifties || 0}x50)</Text>
+              <Text style={[styles.statBoxLabel, currentTheme.isLight && { color: '#64748b' }]}>🏏 RUNS</Text>
+              <Text style={[styles.statBoxBigRuns, currentTheme.isLight && { color: '#0f172a' }]}>{activeUserCareerData.careerStats.batting.runs}</Text>
+              <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>Avg: {activeUserCareerData.careerStats.batting.avg} • SR: {activeUserCareerData.careerStats.batting.sr}</Text>
+              <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>HS: {activeUserCareerData.careerStats.batting.highScore} ({activeUserCareerData.careerStats.batting.hundreds || 0}x100, {activeUserCareerData.careerStats.batting.fifties || 0}x50)</Text>
             </View>
 
             <View style={[styles.statBox, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}>
-              <Text style={[styles.statBoxLabel, currentTheme.isLight && { color: '#64748b' }]}>WICKETS</Text>
-              <Text style={[styles.statBoxBigRuns, { color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }]}>{userCareerData.careerStats.bowling.wickets}</Text>
-              <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>Econ: {userCareerData.careerStats.bowling.econ} • BBI: {userCareerData.careerStats.bowling.best}</Text>
-              <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>{userCareerData.careerStats.bowling.oversBowled} Overs • {userCareerData.careerStats.bowling.dotBallsBowled} Dots</Text>
+              <Text style={[styles.statBoxLabel, currentTheme.isLight && { color: '#64748b' }]}>🎯 WICKETS</Text>
+              <Text style={[styles.statBoxBigRuns, { color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }]}>{activeUserCareerData.careerStats.bowling.wickets}</Text>
+              <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>Econ: {activeUserCareerData.careerStats.bowling.econ} • BBI: {activeUserCareerData.careerStats.bowling.best}</Text>
+              <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>{activeUserCareerData.careerStats.bowling.oversBowled} Overs • {activeUserCareerData.careerStats.bowling.dotBallsBowled} Dots</Text>
             </View>
           </View>
 
@@ -14079,52 +14405,88 @@ function CricketAddaMain() {
             <View style={[styles.statBox, currentTheme.isLight && { backgroundColor: '#ffffff' }, { borderColor: '#38bdf8', borderWidth: 1.2 }]}>
               <Text style={[styles.statBoxLabel, { color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }]}>⚪ DOT BALLS TILL NOW</Text>
               <Text style={[styles.statBoxBigRuns, { color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }]}>
-                {userCareerData.careerStats.totalDotsTillNow}
+                {activeUserCareerData.careerStats.totalDotsTillNow}
               </Text>
               <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>
-                Batting: {userCareerData.careerStats.batting.dotBallsFaced} • Bowling: {userCareerData.careerStats.bowling.dotBallsBowled}
+                Batting: {activeUserCareerData.careerStats.batting.dotBallsFaced} • Bowling: {activeUserCareerData.careerStats.bowling.dotBallsBowled}
               </Text>
               <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>
-                {userCareerData.careerStats.batting.dotPct} Batting Dots • {userCareerData.careerStats.bowling.dotPct} Bowling
+                {activeUserCareerData.careerStats.batting.dotPct} Batting Dots • {activeUserCareerData.careerStats.bowling.dotPct} Bowling
               </Text>
             </View>
 
             <View style={[styles.statBox, currentTheme.isLight && { backgroundColor: '#ffffff' }, { borderColor: '#f87171', borderWidth: 1.2 }]}>
               <Text style={[styles.statBoxLabel, { color: '#ef4444' }]}>🦆 DUCKS COUNT</Text>
               <Text style={[styles.statBoxBigRuns, { color: '#ef4444' }]}>
-                {userCareerData.careerStats.batting.ducks}
+                {activeUserCareerData.careerStats.batting.ducks}
               </Text>
               <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>
-                {userCareerData.careerStats.batting.goldenDucks}x Golden Duck (0 off 1st ball)
+                {activeUserCareerData.careerStats.batting.goldenDucks}x Golden Duck (0 off 1st ball)
               </Text>
               <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>
-                {userCareerData.careerStats.batting.silverDucks}x Silver Duck • {Math.max(0, (userCareerData.matchOverview?.matchesPlayed ?? userCareerData.profile?.matchesPlayed ?? 0) - (userCareerData.careerStats.batting.ducks || 0))} Non-Duck Innings
+                {activeUserCareerData.careerStats.batting.silverDucks}x Silver Duck • {Math.max(0, (activeUserCareerData.matchOverview?.matchesPlayed ?? 0) - (activeUserCareerData.careerStats.batting.ducks || 0))} Non-Duck Innings
               </Text>
             </View>
           </View>
 
-          {/* Dedicated Dropped Catches & Fielding Row */}
+          {/* Dedicated Dropped Catches & Fielding Row (SEPARATE FROM BOUNDARIES) */}
           <View style={[styles.statsGridRow, { marginTop: 8 }]}>
             <View style={[styles.statBox, currentTheme.isLight && { backgroundColor: '#ffffff' }, { borderColor: '#f59e0b', borderWidth: 1.2 }]}>
               <Text style={[styles.statBoxLabel, { color: '#d97706' }]}>🧤 DROPPED CATCHES</Text>
               <Text style={[styles.statBoxBigRuns, { color: '#d97706' }]}>
-                {userCareerData.careerStats.fielding.droppedCatches} <Text style={{ fontSize: 13, color: '#ef4444' }}>Drops</Text>
+                {activeUserCareerData.careerStats.fielding.droppedCatches} <Text style={{ fontSize: 13, color: '#ef4444' }}>Drops</Text>
               </Text>
               <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>
-                {userCareerData.careerStats.fielding.catches} Catches Taken • {userCareerData.careerStats.fielding.catchEfficiency} Efficiency
+                {activeUserCareerData.careerStats.fielding.catches} Catches Taken • {activeUserCareerData.careerStats.fielding.catchEfficiency} Efficiency
               </Text>
               <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>
-                {userCareerData.careerStats.fielding.totalChances} Total Chances • {userCareerData.careerStats.fielding.dropRate} Drop Rate
+                {activeUserCareerData.careerStats.fielding.totalChances} Total Chances • {activeUserCareerData.careerStats.fielding.dropRate} Drop Rate
               </Text>
             </View>
 
-            <View style={[styles.statBox, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}>
-              <Text style={[styles.statBoxLabel, currentTheme.isLight && { color: '#64748b' }]}>RUN OUTS & BOUNDARIES</Text>
+            {/* DEDICATED RUN OUTS & DIRECT HITS BLOCK */}
+            <View style={[styles.statBox, currentTheme.isLight && { backgroundColor: '#ffffff' }, { borderColor: '#ec4899', borderWidth: 1.2 }]}>
+              <Text style={[styles.statBoxLabel, { color: '#db2777' }]}>🎯 RUN OUTS & DIRECT HITS</Text>
               <Text style={[styles.statBoxBigRuns, { color: '#db2777' }]}>
-                {userCareerData.careerStats.fielding.runOuts} <Text style={{ fontSize: 12, color: '#64748b' }}>RO</Text> • {(userCareerData.careerStats.batting.fours || 0) + (userCareerData.careerStats.batting.sixes || 0)} <Text style={{ fontSize: 12, color: '#64748b' }}>Bnd</Text>
+                {activeUserCareerData.careerStats.fielding.runOuts} <Text style={{ fontSize: 13, color: '#64748b' }}>Run Outs</Text>
               </Text>
-              <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>{userCareerData.careerStats.fielding.directHits} Direct Hits • {userCareerData.careerStats.batting.fours || 0}x 4s</Text>
-              <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>{userCareerData.careerStats.batting.sixes || 0}x 6s ({((userCareerData.careerStats.batting.fours || 0) * 4) + ((userCareerData.careerStats.batting.sixes || 0) * 6)} Boundary Runs)</Text>
+              <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>
+                {activeUserCareerData.careerStats.fielding.directHits} Direct Hits • {activeUserCareerData.careerStats.fielding.stumpings || 0} Stumpings
+              </Text>
+              <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>
+                Fielding Dismissals & Stumps Hits
+              </Text>
+            </View>
+          </View>
+
+          {/* DEDICATED BOUNDARIES & MILESTONES ROW */}
+          <View style={[styles.statsGridRow, { marginTop: 8 }]}>
+            {/* DEDICATED BOUNDARIES (4s & 6s) BLOCK */}
+            <View style={[styles.statBox, currentTheme.isLight && { backgroundColor: '#ffffff' }, { borderColor: '#8b5cf6', borderWidth: 1.2 }]}>
+              <Text style={[styles.statBoxLabel, { color: '#7c3aed' }]}>💥 BOUNDARIES (4s & 6s)</Text>
+              <Text style={[styles.statBoxBigRuns, { color: '#7c3aed' }]}>
+                {(activeUserCareerData.careerStats.batting.fours || 0) + (activeUserCareerData.careerStats.batting.sixes || 0)} <Text style={{ fontSize: 13, color: '#64748b' }}>Boundaries</Text>
+              </Text>
+              <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>
+                {activeUserCareerData.careerStats.batting.fours || 0}x Fours (4s) • {activeUserCareerData.careerStats.batting.sixes || 0}x Sixes (6s)
+              </Text>
+              <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>
+                {((activeUserCareerData.careerStats.batting.fours || 0) * 4) + ((activeUserCareerData.careerStats.batting.sixes || 0) * 6)} Runs from Boundaries
+              </Text>
+            </View>
+
+            {/* DEDICATED MILESTONES (50s & 100s) BLOCK */}
+            <View style={[styles.statBox, currentTheme.isLight && { backgroundColor: '#ffffff' }, { borderColor: '#10b981', borderWidth: 1.2 }]}>
+              <Text style={[styles.statBoxLabel, { color: '#059669' }]}>🏆 MILESTONES & 50s/100s</Text>
+              <Text style={[styles.statBoxBigRuns, { color: '#10b981' }]}>
+                {(activeUserCareerData.careerStats.batting.hundreds || 0) + (activeUserCareerData.careerStats.batting.fifties || 0)} <Text style={{ fontSize: 13, color: '#64748b' }}>Milestones</Text>
+              </Text>
+              <Text style={[styles.statBoxSub, currentTheme.isLight && { color: '#334155' }]}>
+                {activeUserCareerData.careerStats.batting.hundreds || 0}x 100s (Centuries) • {activeUserCareerData.careerStats.batting.fifties || 0}x 50s (Fifties)
+              </Text>
+              <Text style={[styles.statBoxDetail, currentTheme.isLight && { color: '#64748b' }]}>
+                Career Best Score: {activeUserCareerData.careerStats.batting.highScore}
+              </Text>
             </View>
           </View>
 
@@ -14135,7 +14497,7 @@ function CricketAddaMain() {
               onPress={() => setStatsFilter('all')}
             >
               <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, statsFilter === 'all' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                All ({(userCareerData.matchHistoryList || []).length})
+                All ({(activeUserCareerData.matchHistoryList || []).length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -14143,7 +14505,7 @@ function CricketAddaMain() {
               onPress={() => setStatsFilter('batting')}
             >
               <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, statsFilter === 'batting' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                🏏 Batting
+                🏏 Batting ({(activeUserCareerData.matchHistoryList || []).filter(h => (h.userBatting?.balls || 0) > 0 || (h.userBatting?.runs || 0) > 0).length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -14151,7 +14513,7 @@ function CricketAddaMain() {
               onPress={() => setStatsFilter('bowling')}
             >
               <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, statsFilter === 'bowling' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                🎯 Wickets
+                🎯 Wickets ({(activeUserCareerData.matchHistoryList || []).filter(h => (h.userBowling?.overs && h.userBowling.overs !== '0.0') || (h.userBowling?.wickets || 0) > 0).length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -14159,31 +14521,35 @@ function CricketAddaMain() {
               onPress={() => setStatsFilter('dots')}
             >
               <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, statsFilter === 'dots' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                ⚪ Dots/Ducks
+                ⚪ Dots/Ducks ({(activeUserCareerData.matchHistoryList || []).filter(h => (h.userBatting?.dots || 0) > 0 || (h.userBowling?.dots || 0) > 0 || h.isDuckMatch).length})
               </Text>
             </TouchableOpacity>
           </View>
 
           <Text style={[styles.sectionHeading, currentTheme.isLight && { color: '#0f172a' }, { marginVertical: 10 }]}>📜 Match-by-Match History & Scores</Text>
 
-          {(!userCareerData.matchHistoryList || userCareerData.matchHistoryList.length === 0) ? (
+          {(!filteredMatchHistoryList || filteredMatchHistoryList.length === 0) ? (
             <View style={[styles.historyCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { alignItems: 'center', paddingVertical: 24, paddingHorizontal: 16 }]}>
               <Text style={{ fontSize: 36, marginBottom: 8 }}>🏏</Text>
               <Text style={[{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 6 }]}>
-                No Matches Recorded Yet
+                {statsFilter === 'all' ? 'No Matches Recorded Yet' : `No ${statsFilter} matches found`}
               </Text>
               <Text style={[{ fontSize: 12, color: currentTheme.isLight ? '#64748b' : '#94a3b8', textAlign: 'center', lineHeight: 18, marginBottom: 14 }]}>
-                You are a fresh player! Once you participate in or score live matches, your personal batting scores, bowling spells, dots, wagon wheels, and POTM badges will automatically appear here.
+                {statsFilter === 'all'
+                  ? 'Once you participate in or score live matches, your personal batting scores, bowling spells, dots, wagon wheels, and POTM badges will automatically appear here.'
+                  : 'Try selecting the "All" filter to view your complete match history.'}
               </Text>
               <TouchableOpacity
                 style={{ backgroundColor: currentTheme.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
-                onPress={() => setActiveTab('home')}
+                onPress={() => statsFilter === 'all' ? setActiveTab('home') : setStatsFilter('all')}
               >
-                <Text style={{ color: currentTheme.primaryText, fontWeight: 'bold', fontSize: 12 }}>🏏 Start / View Matches</Text>
+                <Text style={{ color: currentTheme.primaryText, fontWeight: 'bold', fontSize: 12 }}>
+                  {statsFilter === 'all' ? '🏏 Start / View Matches' : 'View All Matches'}
+                </Text>
               </TouchableOpacity>
             </View>
           ) : (
-            userCareerData.matchHistoryList.map(h => (
+            filteredMatchHistoryList.map(h => (
               <View key={h.id} style={[styles.historyCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}>
                 <View style={styles.recentTopRow}>
                   <Text style={[styles.recentTournText, currentTheme.isLight && { color: '#64748b' }]}>{h.tournament}</Text>
@@ -14196,7 +14562,7 @@ function CricketAddaMain() {
                 <View style={[styles.contributionBox, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
                   {(statsFilter === 'all' || statsFilter === 'batting') && (
                     <View style={styles.contribRow}>
-                      <Text style={[styles.contribIcon, currentTheme.isLight && { color: '#475569' }]}>🏏 Batting:</Text>
+                      <Text style={[styles.contribIcon, currentTheme.isLight && { color: '#475569' }]}>🏏 Batting ({h.userBatting?.name || 'Batter'}):</Text>
                       <Text style={[styles.contribValue, currentTheme.isLight && { color: '#0f172a' }]}>
                         <Text style={{ color: '#10b981', fontWeight: '900' }}>{h.userBatting?.runs || 0}{h.userBatting?.notOut ? '*' : ''}</Text> ({h.userBatting?.balls || 0}b) • {h.userBatting?.fours || 0}x4 {h.userBatting?.sixes || 0}x6 • SR: {h.userBatting?.sr || '0.00'}
                       </Text>
@@ -14207,7 +14573,7 @@ function CricketAddaMain() {
                     <View style={styles.contribRow}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                         <RealisticCricketLeatherBall size={12} />
-                        <Text style={[styles.contribIcon, currentTheme.isLight && { color: '#475569' }]}>Bowling:</Text>
+                        <Text style={[styles.contribIcon, currentTheme.isLight && { color: '#475569' }]}>Bowling ({h.userBowling?.name || 'Bowler'}):</Text>
                       </View>
                       <Text style={[styles.contribValue, currentTheme.isLight && { color: '#0f172a' }]}>
                         <Text style={{ color: '#0284c7', fontWeight: '900' }}>{h.userBowling?.wickets || 0}/{h.userBowling?.runs || 0}</Text> ({h.userBowling?.overs || '0.0'} ov) • Econ: {h.userBowling?.econ || '0.00'}
