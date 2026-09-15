@@ -3741,37 +3741,12 @@ function CricketAddaMain() {
   const [scorecardTab, setScorecardTab] = useState('scorecard'); // 'scorecard' | 'mvp'
   const [mvpInfoModalVisible, setMvpInfoModalVisible] = useState(false);
   const currentMatchData = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb || {})[0] || EMPTY_MATCH_TEMPLATE;
-
-  // Real-time dynamic career & match history computation
-  const activeUserCareerData = useMemo(() => {
-    return computeCareerDataFromMatches(
-      userProfile,
-      matchesDb,
-      activeMatchId,
-      currentMatchData,
-      liveBatters,
-      liveBowlerStats,
-      matchDroppedCatches
-    );
-  }, [userProfile, matchesDb, activeMatchId, currentMatchData, liveBatters, liveBowlerStats, matchDroppedCatches]);
-
-  const filteredMatchHistoryList = useMemo(() => {
-    const list = activeUserCareerData.matchHistoryList || [];
-    if (statsFilter === 'batting') {
-      return list.filter(h => (h.userBatting?.balls || 0) > 0 || (h.userBatting?.runs || 0) > 0);
-    }
-    if (statsFilter === 'bowling') {
-      return list.filter(h => (h.userBowling?.overs && h.userBowling.overs !== '0.0') || (h.userBowling?.wickets || 0) > 0);
-    }
-    if (statsFilter === 'dots') {
-      return list.filter(h => (h.userBatting?.dots || 0) > 0 || (h.userBowling?.dots || 0) > 0 || h.isDuckMatch);
-    }
-    return list;
-  }, [activeUserCareerData.matchHistoryList, statsFilter]);
-  const [userProfile, setUserProfile] = useState({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
+    const [userProfile, setUserProfile] = useState({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
   const [userCareerData, setUserCareerData] = useState(USER_CAREER_DATA);
+  const [liveCommentaryList, setLiveCommentaryList] = useState([]);
+  const [liveBatters, setLiveBatters] = useState({});
+  const [liveBowlerStats, setLiveBowlerStats] = useState({});
 
-  // Interactive "About CricketAdda & Developer" Modal State
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [aboutActiveTab, setAboutActiveTab] = useState('developer'); // 'developer' | 'tech' | 'features'
 
@@ -5573,22 +5548,43 @@ function CricketAddaMain() {
     ? firstInningsSummary.target
     : (currentMatchData?.innings1?.runs ? currentMatchData.innings1.runs + 1 : 0);
 
-    const maxWicketsForSquad = Math.max(1, (activeBattingSquad.length > 0 ? (activeBattingSquad || []).length - 1 : 10));
-  const isFirstInningsFinished = currentInnings === 1 && (liveBalls >= maxLegalBalls || liveWickets >= maxWicketsForSquad);
-  const isSecondInningsFinished = currentInnings === 2 && (
-    (targetRuns > 0 && liveRuns >= targetRuns) ||
-    liveBalls >= maxLegalBalls ||
-    liveWickets >= maxWicketsForSquad
-  );
-  const isCurrentInningsOver = isFirstInningsFinished || isSecondInningsFinished;
 
-  // Live Ball-by-Ball Text Commentary State
-  const [liveCommentaryList, setLiveCommentaryList] = useState([]);
 
-  // Live Dynamic Batters & Bowler Stats State
-  const [liveBatters, setLiveBatters] = useState({});
 
-  const [liveBowlerStats, setLiveBowlerStats] = useState({});
+
+  // Real-time dynamic career & match history computation
+  const activeUserCareerData = useMemo(() => {
+    const defaultStats = (userCareerData && userCareerData.careerStats) ? userCareerData : USER_CAREER_DATA;
+    try {
+      const computed = computeCareerDataFromMatches(
+        userProfile || { name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null },
+        matchesDb || {},
+        activeMatchId,
+        currentMatchData,
+        liveBatters || {},
+        liveBowlerStats || {},
+        matchDroppedCatches || []
+      );
+      return computed || defaultStats;
+    } catch (e) {
+      return defaultStats;
+    }
+  }, [userProfile, matchesDb, activeMatchId, currentMatchData, liveBatters, liveBowlerStats, matchDroppedCatches, userCareerData]);
+
+  const filteredMatchHistoryList = useMemo(() => {
+    const list = activeUserCareerData?.matchHistoryList || [];
+    if (statsFilter === 'batting') {
+      return list.filter(h => (h?.userBatting?.balls || 0) > 0 || (h?.userBatting?.runs || 0) > 0);
+    }
+    if (statsFilter === 'bowling') {
+      return list.filter(h => (h?.userBowling?.overs && h?.userBowling?.overs !== '0.0') || (h?.userBowling?.wickets || 0) > 0);
+    }
+    if (statsFilter === 'dots') {
+      return list.filter(h => (h?.userBatting?.dots || 0) > 0 || (h?.userBowling?.dots || 0) > 0 || h?.isDuckMatch);
+    }
+    return list;
+  }, [activeUserCareerData, statsFilter]);
+
 
   // ============================================================================
   // MULTI-USER REAL-TIME DUAL-CHANNEL SYNC ENGINE (PC <-> PHONE INSTANT SYNC)
@@ -5775,6 +5771,15 @@ function CricketAddaMain() {
       return [];
     }
   })();
+
+  const maxWicketsForSquad = Math.max(1, ((activeBattingSquad || []).length > 0 ? (activeBattingSquad || []).length - 1 : 10));
+  const isFirstInningsFinished = currentInnings === 1 && (liveBalls >= maxLegalBalls || liveWickets >= maxWicketsForSquad);
+  const isSecondInningsFinished = currentInnings === 2 && (
+    (targetRuns > 0 && liveRuns >= targetRuns) ||
+    liveBalls >= maxLegalBalls ||
+    liveWickets >= maxWicketsForSquad
+  );
+  const isCurrentInningsOver = isFirstInningsFinished || isSecondInningsFinished;
 
   // All Playing XI players of the opposition fielding/bowling team eligible to bowl
   const activeOppBowlers = (() => {
@@ -9116,7 +9121,7 @@ function CricketAddaMain() {
       setShowTeamLogoUrlInput(false);
       setNewTeamCity(teamToEdit.city || teamToEdit.homeGround || '');
 
-      const formattedSquad = Array.isArray(teamToEdit.squad) && teamToEdi(t?.squad || []).length > 0
+      const formattedSquad = Array.isArray(teamToEdit.squad) && (teamToEdit.squad || []).length > 0
         ? teamToEdit.squad.map((p, idx) => {
             if (typeof p === 'string') {
               const cleanName = p.replace(' (c)', '').replace(' (wk)', '').trim();
