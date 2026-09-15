@@ -72,43 +72,72 @@ export async function checkFirebaseConnectivity(timeoutMs = 3500) {
  * Completely wipes all cloud database records on Firebase RTDB for a 100% fresh start
  */
 export async function wipeAllFirebaseData() {
+  // ...
+}
+
+/**
+ * Wipes matches, matches_db, teams, and resets career stats on cloud Firebase RTDB,
+ * while strictly PRESERVING all user accounts and profiles.
+ */
+export async function wipeFirebaseMatchesTeamsAndStats() {
   if (!isFirebaseConfigured()) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    await Promise.all([
-      fetch(`${baseUrl}/matches.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }),
-      fetch(`${baseUrl}/matches_db.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
-      }),
-      fetch(`${baseUrl}/teams.json`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([]),
-      }),
+    
+    // Fetch users to reset their careerStats and createdTeams while preserving their profiles
+    const resUsers = await fetch(`${baseUrl}/users.json`);
+    const users = await resUsers.json();
+    let cleanedUsers = [];
+    if (Array.isArray(users)) {
+      cleanedUsers = users.map(u => ({
+        ...u,
+        createdTeams: [],
+        careerStats: {
+          matchOverview: { matchesPlayed: 0, wins: 0, losses: 0, winRate: '0%', potmCount: 0 },
+          careerStats: {
+            batting: { runs: 0, avg: '0.00', sr: '0.00', highScore: '0', hundreds: 0, fifties: 0, fours: 0, sixes: 0, ballsFaced: 0, dotBallsFaced: 0, dotPct: '0.0%', ducks: 0, goldenDucks: 0, silverDucks: 0 },
+            bowling: { wickets: 0, econ: '0.00', avg: '0.00', best: '0/0', oversBowled: '0.0', runsConceded: 0, dotBallsBowled: 0, dotPct: '0.0%' },
+            fielding: { catches: 0, droppedCatches: 0, totalChances: 0, catchEfficiency: '100.0%', dropRate: '0.0%', runOuts: 0, directHits: 0, stumpings: 0 },
+            totalDotsTillNow: 0,
+          },
+          matchHistoryList: [],
+        },
+        matchHistoryList: [],
+      }));
+    }
+
+    const usersByEmail = {};
+    cleanedUsers.forEach(u => {
+      if (u && u.email) {
+        const safeKey = u.email.replace(/\./g, '_').replace(/@/g, '_at_');
+        usersByEmail[safeKey] = u;
+      }
+    });
+
+        await Promise.all([
+      fetch(`${baseUrl}/matches.json`, { method: 'DELETE' }),
+      fetch(`${baseUrl}/matches_db.json`, { method: 'DELETE' }),
+      fetch(`${baseUrl}/teams.json`, { method: 'DELETE' }),
+      fetch(`${baseUrl}/registered_players.json`, { method: 'DELETE' }),
       fetch(`${baseUrl}/users.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify([]),
+        body: JSON.stringify(cleanedUsers),
       }),
-      fetch(`${baseUrl}/ping.json`, {
+      fetch(`${baseUrl}/users_by_email.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ resetAt: Date.now(), status: 'clean_fresh_start' }),
+        body: JSON.stringify(usersByEmail),
       }),
     ]);
-    console.log('[FirebaseSync] 🧹 All cloud database records wiped successfully');
+    console.log('[FirebaseSync] 🧹 Matches, teams & stats wiped from Firebase; user profiles preserved.');
     return true;
   } catch (err) {
     console.log('[FirebaseSync] Wipe error:', err.message);
     return false;
   }
 }
+
 
 // ============================================================================
 // OFFLINE SYNC QUEUE MANAGEMENT

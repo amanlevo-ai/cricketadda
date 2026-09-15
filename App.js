@@ -30,6 +30,7 @@ import {
   isFirebaseConfigured,
   checkFirebaseConnectivity,
   wipeAllFirebaseData,
+  wipeFirebaseMatchesTeamsAndStats,
   syncMatchToFirebase,
   subscribeToFirebaseMatch,
   syncMatchesDbToFirebase,
@@ -4103,6 +4104,9 @@ function CricketAddaMain() {
               ]);
             } catch (e) {}
 
+            if (isFirebaseConfigured()) {
+              wipeFirebaseMatchesTeamsAndStats().catch(() => {});
+            }
             showAppToast('Clean Test Mode: Teams, matches & stats reset! Profile preserved.', '🧹');
           },
         },
@@ -4664,11 +4668,9 @@ function CricketAddaMain() {
         // Live Cloud Sync: Fetch cloud database state in background
         if (isFirebaseConfigured()) {
           fetchFirebaseTeams().then(cloudTeams => {
-            if (Array.isArray(cloudTeams) && cloudTeams.length > 0) {
-              const cleanTeams = cloudTeams.filter(Boolean);
-              setRegisteredTeams(cleanTeams);
-              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(cleanTeams)).catch(() => {});
-            }
+            const cleanTeams = Array.isArray(cloudTeams) ? cloudTeams.filter(Boolean) : [];
+            setRegisteredTeams(cleanTeams);
+            AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(cleanTeams)).catch(() => {});
           }).catch(() => {});
 
           fetchFirebaseUsers().then(cloudUsers => {
@@ -4680,27 +4682,9 @@ function CricketAddaMain() {
           }).catch(() => {});
 
           fetchFirebaseMatchesDb().then(cloudDb => {
-            if (cloudDb && typeof cloudDb === 'object') {
-              setMatchesDb(prev => {
-                const merged = { ...cloudDb };
-                // Keep local in-flight or offline edits without overwriting
-                Object.keys(prev).forEach(mId => {
-                  const localMatch = prev[mId];
-                  const cloudMatch = cloudDb[mId];
-                  if (!cloudMatch) {
-                    merged[mId] = localMatch;
-                  } else {
-                    const localTime = localMatch.lastUpdatedAt || localMatch.lastSyncedAt || 0;
-                    const cloudTime = cloudMatch.lastUpdatedAt || cloudMatch.lastSyncedAt || 0;
-                    if (localTime >= cloudTime || localMatch.status === 'live') {
-                      merged[mId] = { ...cloudMatch, ...localMatch };
-                    }
-                  }
-                });
-                AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(merged)).catch(() => {});
-                return merged;
-              });
-            }
+            const cleanMatches = (cloudDb && typeof cloudDb === 'object') ? cloudDb : {};
+            setMatchesDb(cleanMatches);
+            AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(cleanMatches)).catch(() => {});
           }).catch(() => {});
         }
       } catch (e) {}
