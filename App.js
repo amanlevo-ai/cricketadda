@@ -12651,7 +12651,7 @@ function CricketAddaMain() {
               </View>
             ) : (
               <View style={styles.commentaryListWrap}>
-                {liveCommentaryList.slice(0, 15).map((item, idx) => {
+                {liveCommentaryList.map((item, idx) => {
                   if (item.isOverEnd) {
                     return (
                       <View key={`comm_feed_over_${item.id || 'ov'}_${idx}`} style={[styles.commentaryOverEndCard, { backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#1e1b4b', borderColor: currentTheme.isLight ? '#86efac' : '#6366f1' }]}>
