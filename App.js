@@ -5003,51 +5003,197 @@ function CricketAddaMain() {
   ]);
 
 
-    const playCelebrationAudio = (type = 'boundary') => {
+    // ============================================================================
+  // STADIUM CLAPPING & CROWD CHEERING NATIVE AUDIO ENGINE (EXPO-AV & WEB AUDIO)
+  // ============================================================================
+  const celebrationSoundRef = useRef(null);
+
+  const generateCelebrationWavBase64 = (type = 'boundary') => {
+    function writeString(view, offset, string) {
+      for (let i = 0; i < string.length; i++) {
+        view.setUint8(offset + i, string.charCodeAt(i));
+      }
+    }
+
+    const sampleRate = 22050; // 22.05 kHz for crisp, lightweight, fast-loading audio
+    const isGrand = type === 'century' || type === 'five_wicket_haul';
+    const isMedium = type === 'fifty' || type === 'three_wicket_haul' || (type && type.startsWith('six')) || type === 'six';
+    const isWkt = type === 'bowled' || type === 'caught' || type === 'lbw' || type === 'run_out' || type === 'stumped' || type === 'hit_wicket' || type === 'wicket';
+
+    const duration = isGrand ? 3.2 : isMedium ? 2.6 : isWkt ? 2.4 : 2.0;
+    const numSamples = Math.floor(sampleRate * duration);
+    const dataSize = numSamples * 2; // 16-bit mono
+    const buffer = new ArrayBuffer(44 + dataSize);
+    const view = new DataView(buffer);
+
+    // RIFF Chunk Header
+    writeString(view, 0, 'RIFF');
+    view.setUint32(4, 36 + dataSize, true);
+    writeString(view, 8, 'WAVE');
+
+    // fmt Subchunk
+    writeString(view, 12, 'fmt ');
+    view.setUint32(16, 16, true);
+    view.setUint16(20, 1, true); // PCM Format
+    view.setUint16(22, 1, true); // Mono Channel
+    view.setUint32(24, sampleRate, true);
+    view.setUint32(28, sampleRate * 2, true); // Byte Rate
+    view.setUint16(32, 2, true); // Block Align
+    view.setUint16(34, 16, true); // 16-bit PCM
+
+    // data Subchunk
+    writeString(view, 36, 'data');
+    view.setUint32(40, dataSize, true);
+
+    // 1. Generate realistic stadium applause claps (staggered burst distribution)
+    const numClaps = isGrand ? 420 : isMedium ? 320 : 250;
+    const clapStarts = [];
+    for (let c = 0; c < numClaps; c++) {
+      clapStarts.push({
+        start: Math.floor(Math.pow(Math.random(), 0.55) * (numSamples - 2500)),
+        decay: 0.02 + Math.random() * 0.045,
+        amp: 0.25 + Math.random() * 0.75,
+      });
+    }
+
+    // 2. Synthesize audio samples (cheering swell, stadium roar resonance, fanfare harmonics, and clapping bursts)
+    for (let i = 0; i < numSamples; i++) {
+      const t = i / sampleRate;
+      const progress = i / numSamples;
+      const swell = Math.sin(progress * Math.PI);
+
+      // Stadium cheer harmonic resonance frequencies (Chords: G-major / C-major celebration fanfare)
+      const f1 = isGrand ? 523.25 : isWkt ? 440.0 : 392.0;
+      const f2 = isGrand ? 659.25 : isWkt ? 554.37 : 523.25;
+      const f3 = isGrand ? 783.99 : isWkt ? 659.25 : 659.25;
+
+      let cheer = (
+        Math.sin(2 * Math.PI * f1 * t) * 0.10 +
+        Math.sin(2 * Math.PI * f2 * t) * 0.08 +
+        Math.sin(2 * Math.PI * f3 * t) * 0.06 +
+        (Math.random() * 2 - 1) * 0.20 // Stadium ambient atmospheric air roar
+      ) * swell * 0.65;
+
+      // Overlapping clapping bursts
+      let claps = 0;
+      for (let c = 0; c < clapStarts.length; c++) {
+        const cs = clapStarts[c];
+        if (i >= cs.start) {
+          const offset = i - cs.start;
+          const p = offset / (cs.decay * sampleRate);
+          if (p <= 1.0) {
+            const env = Math.exp(-p * 6.5) * (1 - Math.exp(-p * 22));
+            const whiteNoise = Math.random() * 2 - 1;
+            claps += whiteNoise * env * cs.amp * 0.45;
+          }
+        }
+      }
+
+      let sample = (cheer + claps);
+      sample = Math.max(-1, Math.min(1, sample));
+      view.setInt16(44 + i * 2, sample < 0 ? sample * 0x8000 : sample * 0x7FFF, true);
+    }
+
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    const b64 = typeof btoa === 'function' ? btoa(binary) : (typeof Buffer !== 'undefined' ? Buffer.from(binary, 'binary').toString('base64') : '');
+    return 'data:audio/wav;base64,' + b64;
+  };
+
+  const playCelebrationAudio = async (type = 'boundary') => {
     try {
       if (!soundEffectsEnabled) return;
+
+      // 1. Mobile Native Audio (Android & iOS) via expo-av
+      let ExpoAudio = null;
+      try {
+        ExpoAudio = require('expo-av').Audio;
+      } catch (e) {}
+
+      if (ExpoAudio && typeof ExpoAudio.Sound === 'function') {
+        try {
+          await ExpoAudio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            staysActiveInBackground: false,
+            shouldDuckAndroid: true,
+          });
+
+          const wavUri = generateCelebrationWavBase64(type);
+
+          if (celebrationSoundRef.current) {
+            try {
+              await celebrationSoundRef.current.stopAsync();
+              await celebrationSoundRef.current.unloadAsync();
+            } catch (e) {}
+            celebrationSoundRef.current = null;
+          }
+
+          const { sound } = await ExpoAudio.Sound.createAsync(
+            { uri: wavUri },
+            { shouldPlay: true, volume: 1.0 }
+          );
+          celebrationSoundRef.current = sound;
+          sound.setOnPlaybackStatusUpdate(status => {
+            if (status.didJustFinish) {
+              sound.unloadAsync().catch(() => {});
+              if (celebrationSoundRef.current === sound) {
+                celebrationSoundRef.current = null;
+              }
+            }
+          });
+          return;
+        } catch (expoErr) {
+          // Fall back to Web Audio API if expo-av encounters an issue
+        }
+      }
+
+      // 2. Web Browser Fallback via Web Audio API
       if (typeof window !== 'undefined') {
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         if (AudioContextClass) {
           const ctx = new AudioContextClass();
           if (ctx.state === 'suspended') {
-            ctx.resume().catch(() => {});
+            ctx.resume();
           }
+
           const isMilestoneGrand = type === 'century' || type === 'five_wicket_haul';
-          const isMilestoneMedium = type === 'fifty' || type === 'three_wicket_haul';
-          const duration = isMilestoneGrand ? 3.2 : isMilestoneMedium ? 2.6 : 2.2;
+          const isMilestoneMedium = type === 'fifty' || type === 'three_wicket_haul' || (type && type.startsWith('six'));
+          const duration = isMilestoneGrand ? 3.2 : isMilestoneMedium ? 2.6 : 2.0;
+
           const sampleRate = ctx.sampleRate || 44100;
           const frameCount = Math.floor(sampleRate * duration);
           const audioBuffer = ctx.createBuffer(1, frameCount, sampleRate);
           const channelData = audioBuffer.getChannelData(0);
 
-          // Stadium clapping bursts synthesis (300 to 500 overlapping applause claps for standing ovation)
-          const numClaps = isMilestoneGrand ? 500 : isMilestoneMedium ? 380 : 300;
+          const numClaps = isMilestoneGrand ? 450 : isMilestoneMedium ? 350 : 250;
           for (let c = 0; c < numClaps; c++) {
-            const startTime = Math.pow(Math.random(), 0.7) * (duration - 0.2);
+            const startTime = Math.pow(Math.random(), 0.6) * (duration - 0.2);
             const startSample = Math.floor(startTime * sampleRate);
             const decay = 0.025 + Math.random() * 0.045;
             const clapLength = Math.floor(decay * sampleRate);
-            const amp = 0.25 + Math.random() * 0.65;
+            const amp = 0.3 + Math.random() * 0.7;
 
             for (let i = 0; i < clapLength && (startSample + i) < frameCount; i++) {
               const p = i / clapLength;
               const env = Math.exp(-p * 7) * (1 - Math.exp(-p * 25));
               const white = Math.random() * 2 - 1;
-              channelData[startSample + i] += white * env * amp * 0.35;
+              channelData[startSample + i] += white * env * amp * 0.40;
             }
           }
 
-          // Stadium crowd cheering harmonic resonance swell
           for (let i = 0; i < frameCount; i++) {
             const t = i / sampleRate;
             const swell = Math.sin((t / duration) * Math.PI);
             const cheer = (
-              Math.sin(2 * Math.PI * 440 * t) * 0.08 +
-              Math.sin(2 * Math.PI * 554 * t) * 0.06 +
+              Math.sin(2 * Math.PI * 440 * t) * 0.09 +
+              Math.sin(2 * Math.PI * 554 * t) * 0.07 +
               Math.sin(2 * Math.PI * 659 * t) * 0.05 +
-              (Math.random() * 2 - 1) * 0.12
-            ) * swell * 0.35;
+              (Math.random() * 2 - 1) * 0.15
+            ) * swell * 0.45;
             channelData[i] += cheer;
           }
 
@@ -5060,7 +5206,7 @@ function CricketAddaMain() {
           filter.Q.value = 0.85;
 
           const gainNode = ctx.createGain();
-          gainNode.gain.setValueAtTime(0.85, ctx.currentTime);
+          gainNode.gain.setValueAtTime(0.95, ctx.currentTime);
           gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
 
           source.connect(filter);
