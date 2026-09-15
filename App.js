@@ -10056,27 +10056,38 @@ function CricketAddaMain() {
   // Helper to determine if a team was created by the current user (Owner/Captain)
   const isCreatedByMe = (team) => {
     if (!team || !isAuthenticated) return false;
-    if (!team.isCustomCreated && !String(team.id || '').startsWith('custom_')) return false;
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
     const uId = userProfile?.id;
     const uName = (userProfile?.name || '').toLowerCase().trim();
 
-    // 1. Check direct team creator tags
-    if (uEmail && team.createdByEmail && team.createdByEmail.toLowerCase() === uEmail) return true;
-    if (uId && team.createdById && team.createdById === uId) return true;
-    if (uName && team.createdBy && team.createdBy.toLowerCase().trim() === uName) return true;
-    if (uName && team.captain && team.captain.toLowerCase().trim() === uName) return true;
+    // 1. If team has explicit createdByEmail tag, it must match current user's email
+    if (team.createdByEmail) {
+      return uEmail ? team.createdByEmail.toLowerCase().trim() === uEmail : false;
+    }
 
-    // 2. Check usersDb createdTeams array
+    // 2. If team has explicit createdById tag, it must match current user's id
+    if (team.createdById) {
+      return uId ? team.createdById === uId : false;
+    }
+
+    // 3. Check usersDb createdTeams array for the logged-in user
     if (uEmail && Array.isArray(usersDb)) {
       const currentUser = usersDb.find(u => u && u.email && u.email.toLowerCase() === uEmail);
-      if (currentUser && Array.isArray(currentUser.createdTeams) && currentUser.createdTeams.some(t => t && t.id === team.id)) {
+      if (currentUser && Array.isArray(currentUser.createdTeams) && currentUser.createdTeams.some(t => t && (t.id === team.id || (t.name && team.name && t.name.trim().toLowerCase() === team.name.trim().toLowerCase())))) {
         return true;
       }
     }
 
-    // 3. Fallback: custom-created teams in active user session
-    return !!team.isCustomCreated;
+    // 4. Check createdBy / captain name tag ONLY if explicitly matches user profile name
+    if (uName && team.createdBy && team.createdBy.toLowerCase().trim() === uName) {
+      return true;
+    }
+    if (uName && team.captain && team.captain.toLowerCase().trim() === uName && team.isCustomCreated) {
+      return true;
+    }
+
+    // Default: Opponent or other user's team is NOT created by me
+    return false;
   };
 
   // Helper to determine if current user is playing in a team's squad
@@ -11713,7 +11724,7 @@ function CricketAddaMain() {
             <View style={[styles.teamsMetricRow, { borderTopColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }]}>
               <View style={styles.teamsMetricItem}>
                 <Text style={[styles.teamsMetricNum, { color: '#10b981' }]}>
-                  {userVisibleTeams.filter(isCreatedByMe).length}
+                  {(registeredTeams || []).filter(isCreatedByMe).length}
                 </Text>
                 <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>My Created</Text>
               </View>
@@ -11722,7 +11733,7 @@ function CricketAddaMain() {
 
               <View style={styles.teamsMetricItem}>
                 <Text style={[styles.teamsMetricNum, { color: '#0284c7' }]}>
-                  {userVisibleTeams.filter(t => !isCreatedByMe(t) && isPlayingInTeam(t)).length}
+                  {(registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t)).length}
                 </Text>
                 <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>I Play For</Text>
               </View>
@@ -11731,7 +11742,7 @@ function CricketAddaMain() {
 
               <View style={styles.teamsMetricItem}>
                 <Text style={[styles.teamsMetricNum, { color: '#f59e0b' }]}>
-                  {(userVisibleTeams || []).length}
+                  {(registeredTeams || []).length}
                 </Text>
                 <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Total Clubs</Text>
               </View>
@@ -11773,7 +11784,7 @@ function CricketAddaMain() {
                   teamFilterTab === 'created' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)
                 ]}
               >
-                👑 My Created ({userVisibleTeams.filter(isCreatedByMe).length})
+                👑 My Created ({(registeredTeams || []).filter(isCreatedByMe).length})
               </Text>
             </TouchableOpacity>
 
@@ -11792,7 +11803,7 @@ function CricketAddaMain() {
                   teamFilterTab === 'playing' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)
                 ]}
               >
-                🤝 Teams I Play For ({userVisibleTeams.filter(t => !isCreatedByMe(t) && isPlayingInTeam(t)).length})
+                🤝 Teams I Play For ({(registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t)).length})
               </Text>
             </TouchableOpacity>
 
@@ -11811,7 +11822,7 @@ function CricketAddaMain() {
                   teamFilterTab === 'all' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)
                 ]}
               >
-                🌐 All Clubs ({(userVisibleTeams || []).length})
+                🌐 All Clubs ({(registeredTeams || []).length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -11986,7 +11997,7 @@ function CricketAddaMain() {
                             : currentTheme.isLight ? '#64748b' : '#94a3b8',
                         }}
                       >
-                        {isOwner ? '👑 Created by You' : isMember ? '👤 Playing Member' : '🔒 Tournament Team'}
+                        {isOwner ? '👑 Created by You' : isMember ? '👤 Playing Member' : '🔒 Opponent Club'}
                       </Text>
                     </View>
                   </View>
