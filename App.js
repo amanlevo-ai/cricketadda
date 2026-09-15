@@ -1171,15 +1171,88 @@ const calculateDLS = (
 // ICC-STANDARD MATCH AWARDS & MVP (MOST VALUABLE PLAYER) ENGINE
 // Computes Player of the Match, Best Batter, Best Bowler, and MVP Leaderboard
 // ============================================================================
-function calculateMatchAwardsAndMVP(matchData) {
+function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveDataInnings2 = null) {
   if (!matchData) return null;
 
   const inn1 = matchData.innings1 || {};
   const inn2 = matchData.innings2 || {};
-  const inn1Batting = Array.isArray(inn1.batting) ? inn1.batting : [];
-  const inn1Bowling = Array.isArray(inn1.bowling) ? inn1.bowling : [];
-  const inn2Batting = Array.isArray(inn2.batting) ? inn2.batting : [];
-  const inn2Bowling = Array.isArray(inn2.bowling) ? inn2.bowling : [];
+  const mLive = matchData.liveState || {};
+
+  // 1. Resolve Innings 1 Batting
+  let inn1Batting = [];
+  if (liveDataInnings1?.batting && liveDataInnings1.batting.length > 0) {
+    inn1Batting = liveDataInnings1.batting;
+  } else if (Array.isArray(inn1.batting) && inn1.batting.some(b => (b.runs || 0) > 0 || (b.balls || 0) > 0)) {
+    inn1Batting = inn1.batting;
+  } else if (mLive.firstInningsSummary?.batting && mLive.firstInningsSummary.batting.length > 0) {
+    inn1Batting = mLive.firstInningsSummary.batting;
+  } else if (mLive.liveBatters && (mLive.currentInnings === 1 || !mLive.firstInningsSummary)) {
+    inn1Batting = Object.keys(mLive.liveBatters).map(name => ({
+      name,
+      ...mLive.liveBatters[name],
+    }));
+  } else if (Array.isArray(inn1.batting)) {
+    inn1Batting = inn1.batting;
+  }
+
+  // 2. Resolve Innings 1 Bowling
+  let inn1Bowling = [];
+  if (liveDataInnings1?.bowling && liveDataInnings1.bowling.length > 0) {
+    inn1Bowling = liveDataInnings1.bowling;
+  } else if (Array.isArray(inn1.bowling) && inn1.bowling.some(bw => (bw.runs || 0) > 0 || (bw.wickets || 0) > 0 || (bw.balls || 0) > 0)) {
+    inn1Bowling = inn1.bowling;
+  } else if (mLive.firstInningsSummary?.bowling && mLive.firstInningsSummary.bowling.length > 0) {
+    inn1Bowling = mLive.firstInningsSummary.bowling;
+  } else if (mLive.liveBowlerStats && (mLive.currentInnings === 1 || !mLive.firstInningsSummary)) {
+    inn1Bowling = Object.keys(mLive.liveBowlerStats).map(name => {
+      const bw = mLive.liveBowlerStats[name];
+      const balls = bw.balls || 0;
+      return {
+        name,
+        ...bw,
+        overs: `${Math.floor(balls / 6)}.${balls % 6}`,
+        econ: balls > 0 ? ((bw.runs / balls) * 6).toFixed(2) : '0.00',
+      };
+    });
+  } else if (Array.isArray(inn1.bowling)) {
+    inn1Bowling = inn1.bowling;
+  }
+
+  // 3. Resolve Innings 2 Batting
+  let inn2Batting = [];
+  if (liveDataInnings2?.batting && liveDataInnings2.batting.length > 0) {
+    inn2Batting = liveDataInnings2.batting;
+  } else if (Array.isArray(inn2.batting) && inn2.batting.some(b => (b.runs || 0) > 0 || (b.balls || 0) > 0)) {
+    inn2Batting = inn2.batting;
+  } else if (mLive.liveBatters && mLive.currentInnings === 2) {
+    inn2Batting = Object.keys(mLive.liveBatters).map(name => ({
+      name,
+      ...mLive.liveBatters[name],
+    }));
+  } else if (Array.isArray(inn2.batting)) {
+    inn2Batting = inn2.batting;
+  }
+
+  // 4. Resolve Innings 2 Bowling
+  let inn2Bowling = [];
+  if (liveDataInnings2?.bowling && liveDataInnings2.bowling.length > 0) {
+    inn2Bowling = liveDataInnings2.bowling;
+  } else if (Array.isArray(inn2.bowling) && inn2.bowling.some(bw => (bw.runs || 0) > 0 || (bw.wickets || 0) > 0 || (bw.balls || 0) > 0)) {
+    inn2Bowling = inn2.bowling;
+  } else if (mLive.liveBowlerStats && mLive.currentInnings === 2) {
+    inn2Bowling = Object.keys(mLive.liveBowlerStats).map(name => {
+      const bw = mLive.liveBowlerStats[name];
+      const balls = bw.balls || 0;
+      return {
+        name,
+        ...bw,
+        overs: `${Math.floor(balls / 6)}.${balls % 6}`,
+        econ: balls > 0 ? ((bw.runs / balls) * 6).toFixed(2) : '0.00',
+      };
+    });
+  } else if (Array.isArray(inn2.bowling)) {
+    inn2Bowling = inn2.bowling;
+  }
 
   const inn1Team = inn1.team || matchData.teamA || 'Team 1';
   const inn2Team = inn2.team || matchData.teamB || 'Team 2';
@@ -12660,7 +12733,7 @@ function CricketAddaMain() {
                 );
                 if (!isMatchCompleted) return null;
 
-                const awards = calculateMatchAwardsAndMVP(currentMatchData);
+                const awards = calculateMatchAwardsAndMVP(currentMatchData, inn1ScorecardData, inn2ScorecardData);
                 if (!awards) return null;
                 const pom = awards.pomPlayer;
                 const bestBat = awards.bestBatter;
@@ -12969,7 +13042,7 @@ function CricketAddaMain() {
           {/* TAB 2: ⭐ DEDICATED MVP RANKINGS LIST (Matching Design)   */}
           {/* ========================================================= */}
           {scorecardTab === 'mvp' && (() => {
-            const awards = calculateMatchAwardsAndMVP(currentMatchData);
+            const awards = calculateMatchAwardsAndMVP(currentMatchData, inn1ScorecardData, inn2ScorecardData);
             const leaderboard = awards?.mvpLeaderboard || [];
 
             return (
