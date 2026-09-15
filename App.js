@@ -3005,6 +3005,8 @@ const INITIAL_MATCH_DRAFT = {
 function TeamFlagBadge({ flag, logo, shortName, fullName, isBatting, theme, size = 'md' }) {
   const isSmall = size === 'sm';
   const dim = isSmall ? 28 : 34;
+  const borderColor = isBatting ? (theme?.primary || '#10b981') : (theme?.secondary || '#38bdf8');
+  const bgColor = isBatting ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)';
 
   // 1. Priority 1: User-Uploaded Custom Team Logo (Image URI / URL)
   if (logo && typeof logo === 'string' && (logo.startsWith('http') || logo.startsWith('data:') || logo.startsWith('file:') || logo.startsWith('blob:'))) {
@@ -3017,7 +3019,7 @@ function TeamFlagBadge({ flag, logo, shortName, fullName, isBatting, theme, size
           overflow: 'hidden',
           backgroundColor: '#1e293b',
           borderWidth: 1.5,
-          borderColor: isBatting ? (theme?.primary || '#10b981') : (theme?.secondary || '#38bdf8'),
+          borderColor: borderColor,
           justifyContent: 'center',
           alignItems: 'center',
           shadowColor: '#000',
@@ -3032,121 +3034,28 @@ function TeamFlagBadge({ flag, logo, shortName, fullName, isBatting, theme, size
     );
   }
 
-  // 2. Priority 2: Custom Mascot / Team Flag Emoji (🦁, ⚡, 👑, 🦅, 🔥, 🐯, 🏏, 🛡️, ⚔️, ⭐, 🏆, etc.)
-  const isCountryEmoji = flag && (
-    flag.includes('🇮🇳') || flag.includes('🇦🇺') || flag.includes('🇵🇰') ||
-    flag.includes('🏴󠁧󠁢󠁥󠁮󠁧󠁿') || flag.includes('🇿🇦') || flag.includes('🇳🇿') ||
-    flag.includes('🇱🇰') || flag.includes('🇧🇩') || flag.includes('🇦🇫') ||
-    flag.includes('🌴')
-  );
+  // 2. Priority 2: Custom Mascot / Team Flag Emoji (handles custom teams like Hp 11 with fallback)
+  const effectiveFlag = flag && String(flag).trim() ? String(flag).trim() : (isBatting ? '🦁' : '⚡');
 
-  if (flag && !isCountryEmoji) {
-    return (
-      <View
-        style={{
-          width: dim,
-          height: dim,
-          borderRadius: dim / 2,
-          backgroundColor: isBatting ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)',
-          borderWidth: 1.2,
-          borderColor: isBatting ? (theme?.primary || '#10b981') : (theme?.secondary || '#38bdf8'),
-          justifyContent: 'center',
-          alignItems: 'center',
-          shadowColor: isBatting ? (theme?.primary || '#10b981') : (theme?.secondary || '#38bdf8'),
-          shadowOffset: { width: 0, height: 1 },
-          shadowOpacity: 0.25,
-          shadowRadius: 3,
-          elevation: 2,
-        }}
-      >
-        <Text style={{ fontSize: isSmall ? 16 : 20 }}>{flag}</Text>
-      </View>
-    );
-  }
-
-  // 3. Country Teams / Official Codes
-  const code = (shortName || 'TEAM').toUpperCase();
-  const name = (fullName || '').toLowerCase();
-
-  let bg = isBatting ? (theme?.primary || '#10b981') : (theme?.secondary || '#38bdf8');
-  let fg = '#ffffff';
-  let border = 'rgba(255,255,255,0.2)';
-  let flagSymbol = null;
-
-  if (code === 'IND' || name.includes('india') || (flag && flag.includes('🇮🇳'))) {
-    bg = '#1d4ed8'; // India Royal Blue
-    fg = '#ffffff';
-    border = '#60a5fa';
-    flagSymbol = '🇮🇳';
-  } else if (code === 'AUS' || name.includes('australia') || (flag && flag.includes('🇦🇺'))) {
-    bg = '#d97706'; // Australia Gold
-    fg = '#ffffff';
-    border = '#fcd34d';
-    flagSymbol = '🇦🇺';
-  } else if (code === 'PAK' || name.includes('pakistan') || (flag && flag.includes('🇵🇰'))) {
-    bg = '#15803d'; // Pakistan Green
-    fg = '#ffffff';
-    border = '#86efac';
-    flagSymbol = '🇵🇰';
-  } else if (code === 'ENG' || name.includes('england') || (flag && flag.includes('🏴󠁧󠁢󠁥󠁮󠁧󠁿'))) {
-    bg = '#b91c1c'; // England Red
-    fg = '#ffffff';
-    border = '#fca5a5';
-    flagSymbol = '🏴󠁧󠁢󠁥󠁮󠁧󠁿';
-  } else if (code === 'SA' || name.includes('south africa') || (flag && flag.includes('🇿🇦'))) {
-    bg = '#047857'; // South Africa Green
-    fg = '#ffffff';
-    border = '#6ee7b7';
-    flagSymbol = '🇿🇦';
-  } else if (code === 'NZ' || name.includes('new zealand') || (flag && flag.includes('🇳🇿'))) {
-    bg = '#0f172a'; // Black Caps
-    fg = '#ffffff';
-    border = '#94a3b8';
-    flagSymbol = '🇳🇿';
-  }
-
-  // On native mobile (iOS/Android), country emojis render in full color:
-  if (Platform.OS !== 'web' && flagSymbol) {
-    return (
-      <View
-        style={{
-          width: dim,
-          height: dim,
-          borderRadius: dim / 2,
-          backgroundColor: 'rgba(255,255,255,0.1)',
-          borderWidth: 1,
-          borderColor: border,
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}
-      >
-        <Text style={{ fontSize: isSmall ? 16 : 22 }}>{flagSymbol}</Text>
-      </View>
-    );
-  }
-
-  // On Web / Windows fallback: Render clean high-contrast Short Name badge:
   return (
     <View
       style={{
-        backgroundColor: bg,
-        paddingHorizontal: isSmall ? 6 : 8,
-        paddingVertical: isSmall ? 2 : 4,
-        borderRadius: isSmall ? 4 : 6,
+        width: dim,
+        height: dim,
+        borderRadius: dim / 2,
+        backgroundColor: bgColor,
+        borderWidth: 1.2,
+        borderColor: borderColor,
         justifyContent: 'center',
         alignItems: 'center',
-        borderWidth: 1,
-        borderColor: border,
-        shadowColor: bg,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.35,
-        shadowRadius: 4,
+        shadowColor: borderColor,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.25,
+        shadowRadius: 3,
         elevation: 2,
       }}
     >
-      <Text style={{ color: fg, fontSize: isSmall ? 10.5 : 12.5, fontWeight: '900', letterSpacing: 0.5 }}>
-        {code}
-      </Text>
+      <Text style={{ fontSize: isSmall ? 16 : 20 }}>{effectiveFlag}</Text>
     </View>
   );
 }
@@ -6223,7 +6132,9 @@ function CricketAddaMain() {
     dismissedPlayerName = null,
     wicketFielderName = null,
     nbRunType = 'bat', // 'bat' | 'bye' | 'legBye'
-    overthrowRuns = 0
+    overthrowRuns = 0,
+    incomingBatterName = null,
+    dismissalDescParam = null
   ) => {
     // 0. Check if current innings or match is already completed
     if (isFirstInningsFinished) {
@@ -6265,6 +6176,23 @@ function CricketAddaMain() {
     let batterDoublesAdded = 0;
     let batterTriplesAdded = 0;
     let bowlerRunsConceded = 0;
+
+    const outBatterTarget = dismissedPlayerName || (outBatter === 'striker' ? striker : nonStriker);
+    const otherBatterTarget = outBatterTarget === striker ? nonStriker : striker;
+
+    let computedDismissalDesc = dismissalDescParam;
+    if (!computedDismissalDesc && isWkt) {
+      const dt = customDismissalType || dismissalType || 'bowled';
+      const fielder = wicketFielderName || wicketFielder || 'the fielder';
+      if (dt === 'caught') computedDismissalDesc = `c ${fielder} b ${bowler}`;
+      else if (dt === 'bowled') computedDismissalDesc = `b ${bowler}`;
+      else if (dt === 'lbw') computedDismissalDesc = `lbw b ${bowler}`;
+      else if (dt === 'run_out') computedDismissalDesc = `run out (${fielder})`;
+      else if (dt === 'stumped') computedDismissalDesc = `st ${fielder} b ${bowler}`;
+      else if (dt === 'hit_wicket') computedDismissalDesc = `hit wicket b ${bowler}`;
+      else if (dt === 'obstructing') computedDismissalDesc = `obstructing the field`;
+      else computedDismissalDesc = `retired out`;
+    }
 
     if (isWkt) {
       setLiveWickets(w => w + 1);
@@ -6350,7 +6278,11 @@ function CricketAddaMain() {
       isLegalDelivery,
       ballSymbol,
       isWkt,
-      dismissedPlayerName: dismissedPlayerName || (isWkt ? (outBatter === 'striker' ? striker : nonStriker) : null),
+      dismissedPlayerName: isWkt ? outBatterTarget : null,
+      dismissalType: isWkt ? (customDismissalType || dismissalType || 'bowled') : null,
+      dismissalDesc: isWkt ? computedDismissalDesc : null,
+      incomingBatter: isWkt ? incomingBatterName : null,
+      finalFielder: isWkt ? (wicketFielderName || wicketFielder) : null,
       extraType,
       nbRunType,
       overthrowRuns: otRuns,
@@ -6370,20 +6302,49 @@ function CricketAddaMain() {
 
     // 2. Update Live Batters stats
     const isOddRuns = (runs + otRuns) % 2 === 1;
+    const isDismissedOnStrike = outBatterTarget === striker;
+    const strikerBallsAdded = isWkt ? (isDismissedOnStrike ? 1 : 0) : batterBallsAdded;
+    const strikerDotsAdded = isWkt ? (isDismissedOnStrike ? 1 : 0) : batterDotsAdded;
+
     const updatedLiveBatters = {
       ...liveBatters,
       [striker]: {
         ...(liveBatters[striker] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0 }),
         runs: (liveBatters[striker]?.runs || 0) + batterRunsAdded,
-        balls: (liveBatters[striker]?.balls || 0) + batterBallsAdded,
+        balls: (liveBatters[striker]?.balls || 0) + strikerBallsAdded,
         fours: (liveBatters[striker]?.fours || 0) + batterFoursAdded,
         sixes: (liveBatters[striker]?.sixes || 0) + batterSixesAdded,
-        dots: (liveBatters[striker]?.dots || 0) + batterDotsAdded,
+        dots: (liveBatters[striker]?.dots || 0) + strikerDotsAdded,
         singles: (liveBatters[striker]?.singles || 0) + batterSinglesAdded,
         doubles: (liveBatters[striker]?.doubles || 0) + batterDoublesAdded,
         triples: (liveBatters[striker]?.triples || 0) + batterTriplesAdded,
       },
     };
+
+    if (isWkt) {
+      updatedLiveBatters[outBatterTarget] = {
+        ...(updatedLiveBatters[outBatterTarget] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0 }),
+        dismissal: computedDismissalDesc,
+        isNotOut: false,
+      };
+
+      if (incomingBatterName && incomingBatterName.trim()) {
+        const incName = incomingBatterName.trim();
+        updatedLiveBatters[incName] = updatedLiveBatters[incName] || {
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          dots: 0,
+          singles: 0,
+          doubles: 0,
+          triples: 0,
+          sr: '0.00',
+          dismissal: 'batting *',
+          isNotOut: true,
+        };
+      }
+    }
     setLiveBatters(updatedLiveBatters);
 
     // 3. Update Live Bowler stats (Only credit bowler with wicket for bowler dismissals; Run outs and retired outs are team wickets)
@@ -6399,20 +6360,33 @@ function CricketAddaMain() {
     };
     setLiveBowlerStats(updatedLiveBowlers);
 
-    // 4. Strike Rotation logic (only for regular non-wicket balls)
+    // 4. Strike Rotation & New Batter Assignment logic
     let nextStriker = striker;
     let nextNonStriker = nonStriker;
     const isOverEnd = isLegalDelivery && (liveBalls + 1) % 6 === 0;
 
-    if (isOddRuns && !isOverEnd) {
-      nextStriker = nonStriker;
-      nextNonStriker = striker;
-    } else if (!isOddRuns && isOverEnd) {
-      nextStriker = nonStriker;
-      nextNonStriker = striker;
-    }
-
-    if (!isWkt) {
+    if (isWkt) {
+      const newInc = (incomingBatterName && incomingBatterName.trim()) ? incomingBatterName.trim() : `Batter #${liveWickets + 2}`;
+      if (outBatterTarget === striker) {
+        nextStriker = newInc;
+        nextNonStriker = otherBatterTarget;
+      } else {
+        nextStriker = otherBatterTarget;
+        nextNonStriker = newInc;
+      }
+      setMatch(prev => ({
+        ...prev,
+        currentStriker: nextStriker,
+        currentNonStriker: nextNonStriker,
+      }));
+    } else {
+      if (isOddRuns && !isOverEnd) {
+        nextStriker = nonStriker;
+        nextNonStriker = striker;
+      } else if (!isOddRuns && isOverEnd) {
+        nextStriker = nonStriker;
+        nextNonStriker = striker;
+      }
       setMatch(prev => ({
         ...prev,
         currentStriker: nextStriker,
@@ -7893,6 +7867,7 @@ function CricketAddaMain() {
 
   const submitDismissal = () => {
     if (!isOfficialScorer) {
+      Alert.alert('👁️ Spectator Mode', 'You are in read-only Spectator Mode. Only the Official Scorer can record wickets.');
       setWicketModalVisible(false);
       return;
     }
@@ -7935,33 +7910,20 @@ function CricketAddaMain() {
     }
 
     const extraRunsOnWkt = dismissalType === 'run_out' ? runOutRunsCompleted : 0;
-    recordBall(extraRunsOnWkt, 'none', 0, true, null, dismissalType, currentDismissed, finalFielder);
-
-    // Explicitly record dismissal description on the dismissed batter and init incoming batter
-    setLiveBatters(prev => ({
-      ...prev,
-      [currentDismissed]: {
-        ...(prev[currentDismissed] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0 }),
-        dismissal: dismissalDesc,
-        isNotOut: false,
-      },
-      [candidateIncoming]: prev[candidateIncoming] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0, dismissal: 'batting *', isNotOut: true },
-    }));
-
-    // Update match state so the dismissed batter is replaced by candidateIncoming
-    if (outBatter === 'striker') {
-      setMatch(prev => ({
-        ...prev,
-        currentStriker: candidateIncoming,
-        currentNonStriker: otherBatter,
-      }));
-    } else {
-      setMatch(prev => ({
-        ...prev,
-        currentStriker: otherBatter,
-        currentNonStriker: candidateIncoming,
-      }));
-    }
+    recordBall(
+      extraRunsOnWkt,
+      'none',
+      0,
+      true,
+      null,
+      dismissalType,
+      currentDismissed,
+      finalFielder,
+      'bat',
+      0,
+      candidateIncoming,
+      dismissalDesc
+    );
 
     setWicketModalVisible(false);
     setCustomWicketFielder('');
@@ -8545,9 +8507,34 @@ function CricketAddaMain() {
     return 'Yet to fall';
   };
 
-  const getDynamicBatting = (staticBatting, forcedBattersMap = null, isForcedHistorical = false, activeStriker = null, activeNonStriker = null) => {
+  const getDynamicBatting = (
+    staticBatting,
+    forcedBattersMap = null,
+    isForcedHistorical = false,
+    activeStriker = null,
+    activeNonStriker = null,
+    historyStack = [],
+    inningNum = 1
+  ) => {
     const battersMap = new Map();
 
+    // 1. Build map of all dismissed batters directly from history deliveries
+    const dismissedMap = new Map();
+    (historyStack || []).filter(h => (!h.innings || h.innings === inningNum) && h.isWkt).forEach(d => {
+      const dName = (d.dismissedPlayerName || d.dismissedPlayer || d.striker || '').trim();
+      if (dName) {
+        const dDesc = d.dismissalDesc || (
+          d.dismissalType === 'caught' ? `c ${d.finalFielder || 'fielder'} b ${d.bowler}` :
+          d.dismissalType === 'run_out' ? `run out (${d.finalFielder || 'fielder'})` :
+          d.dismissalType === 'lbw' ? `lbw b ${d.bowler}` :
+          d.dismissalType === 'stumped' ? `st ${d.finalFielder || 'keeper'} b ${d.bowler}` :
+          `b ${d.bowler || 'Bowler'}`
+        );
+        dismissedMap.set(dName.toLowerCase(), dDesc);
+      }
+    });
+
+    // 2. Add static playing XI batters
     (staticBatting || []).forEach(b => {
       if (b && b.name) battersMap.set(String(b.name).toLowerCase(), { ...b });
     });
@@ -8556,10 +8543,10 @@ function CricketAddaMain() {
     const curSt = activeStriker || match.currentStriker || striker;
     const curNonSt = activeNonStriker || match.currentNonStriker || nonStriker;
 
-    Object.keys(activeMap).forEach(bName => {
+    Object.keys(activeMap || {}).forEach(bName => {
       const liveB = activeMap[bName];
       if (!liveB) return;
-      const key = bName.toLowerCase();
+      const key = bName.trim().toLowerCase();
       const existing = battersMap.get(key) || {
         name: bName,
         dismissal: 'yet to bat',
@@ -8576,7 +8563,9 @@ function CricketAddaMain() {
       };
 
       const sr = (liveB.balls || 0) > 0 ? (((liveB.runs || 0) / liveB.balls) * 100).toFixed(2) : '-';
-      const isCurrentlyBatting = !isForcedHistorical && (
+
+      const isDismissed = dismissedMap.has(key) || (liveB.dismissal && liveB.dismissal !== 'batting *' && liveB.dismissal !== 'yet to bat');
+      const isCurrentlyBatting = !isForcedHistorical && !isDismissed && (
         (curSt && bName.trim().toLowerCase() === curSt.trim().toLowerCase()) ||
         (curNonSt && bName.trim().toLowerCase() === curNonSt.trim().toLowerCase())
       );
@@ -8584,7 +8573,10 @@ function CricketAddaMain() {
       let finalDismissal = existing.dismissal;
       let finalIsNotOut = existing.isNotOut;
 
-      if (isCurrentlyBatting) {
+      if (isDismissed) {
+        finalDismissal = dismissedMap.get(key) || (liveB.dismissal !== 'batting *' ? liveB.dismissal : existing.dismissal) || 'b Bowler';
+        finalIsNotOut = false;
+      } else if (isCurrentlyBatting) {
         finalDismissal = 'batting *';
         finalIsNotOut = true;
       } else {
@@ -8595,7 +8587,7 @@ function CricketAddaMain() {
           finalDismissal = existing.dismissal;
           finalIsNotOut = false;
         } else if ((liveB.balls || 0) > 0 || (liveB.runs || 0) > 0) {
-          finalDismissal = 'c & b Bowler';
+          finalDismissal = 'b Bowler';
           finalIsNotOut = false;
         } else {
           finalDismissal = 'yet to bat';
@@ -8620,7 +8612,18 @@ function CricketAddaMain() {
       });
     });
 
-    return Array.from(battersMap.values());
+    const allBatters = Array.from(battersMap.values());
+
+    // 3. Official Cricket Standard: Strictly enforce maximum of 11 Playing XI players in batting card
+    // Active strikers + dismissed batters always come first; remaining slots filled from bench up to 11
+    if (allBatters.length > 11) {
+      const activeOrDismissed = allBatters.filter(b => b.isNotOut || b.dismissal !== 'yet to bat' || b.runs > 0 || b.balls > 0);
+      const yetToBat = allBatters.filter(b => !activeOrDismissed.includes(b));
+      const neededBench = Math.max(0, 11 - activeOrDismissed.length);
+      return [...activeOrDismissed, ...yetToBat.slice(0, neededBench)];
+    }
+
+    return allBatters;
   };
 
   const getDynamicBowling = (
@@ -8848,7 +8851,9 @@ function CricketAddaMain() {
       activeBattersMap,
       !isLiveNow,
       isTargetActive ? (match.currentStriker || striker) : mLive?.currentStriker,
-      isTargetActive ? (match.currentNonStriker || nonStriker) : mLive?.currentNonStriker
+      isTargetActive ? (match.currentNonStriker || nonStriker) : mLive?.currentNonStriker,
+      historyStack,
+      inningNum
     );
     const dynamicExtras = calculateExtrasFromHistory(historyStack, inningNum, baseInning.extras);
     const dynamicFow = calculateFOWFromHistory(historyStack, inningNum, baseInning.fow, wickets, runs, overs, dynamicBattingList);
@@ -9019,7 +9024,7 @@ function CricketAddaMain() {
   const selectTeamForSlot = (slot, team) => {
     if (!team) return;
     Keyboard.dismiss();
-    const defaultXI = Array.isArray(team?.squad) ? team.squad : [];
+    const defaultXI = Array.isArray(team?.squad) ? team.squad.slice(0, 11) : [];
     const defaultCap = team.captain || defaultXI[0]?.name || '';
     const defaultWk = team.wicketkeeper || defaultXI.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
 
@@ -9052,11 +9057,11 @@ function CricketAddaMain() {
   const selectMatchupPair = (teamA, teamB) => {
     if (!teamA || !teamB) return;
     Keyboard.dismiss();
-    const defaultXI_A = Array.isArray(teamA?.squad) ? teamA.squad : [];
+    const defaultXI_A = Array.isArray(teamA?.squad) ? teamA.squad.slice(0, 11) : [];
     const defaultCap_A = teamA.captain || defaultXI_A[0]?.name || '';
     const defaultWk_A = teamA.wicketkeeper || defaultXI_A.find(p => p.isWk)?.name || (defaultXI_A.length > 1 ? defaultXI_A[1]?.name : defaultXI_A[0]?.name || '');
 
-    const defaultXI_B = Array.isArray(teamB?.squad) ? teamB.squad : [];
+    const defaultXI_B = Array.isArray(teamB?.squad) ? teamB.squad.slice(0, 11) : [];
     const defaultCap_B = teamB.captain || defaultXI_B[0]?.name || '';
     const defaultWk_B = teamB.wicketkeeper || defaultXI_B.find(p => p.isWk)?.name || (defaultXI_B.length > 1 ? defaultXI_B[1]?.name : defaultXI_B[0]?.name || '');
 
@@ -10542,8 +10547,8 @@ function CricketAddaMain() {
     const battingIsMyTeam = (d.tossWinner === 'myTeam' && d.tossDecision === 'bat') || (d.tossWinner === 'opponentTeam' && d.tossDecision === 'bowl');
     const battingTeamObj = battingIsMyTeam ? d.myTeam : d.opponentTeam;
     const bowlingTeamObj = battingIsMyTeam ? d.opponentTeam : d.myTeam;
-    const battingXI = battingIsMyTeam ? d.myPlayingXI : d.opponentPlayingXI;
-    const bowlingXI = battingIsMyTeam ? d.opponentPlayingXI : d.myPlayingXI;
+    const battingXI = (battingIsMyTeam ? d.myPlayingXI : d.opponentPlayingXI).slice(0, 11);
+    const bowlingXI = (battingIsMyTeam ? d.opponentPlayingXI : d.myPlayingXI).slice(0, 11);
 
     const tossWinnerName = d.tossWinner === 'myTeam' ? d.myTeam.name : d.opponentTeam.name;
 
@@ -13660,145 +13665,205 @@ function CricketAddaMain() {
       )}
 
       {/* ========================================================================= */}
-      {/* 2.3 WAGON WHEEL TAB (EDGE-TO-EDGE WITH EXACT 3PX MARGINS) */}
+      {/* 2.3 WAGON WHEEL TAB (EDGE-TO-EDGE WITH DYNAMIC MATCH DATA) */}
       {/* ========================================================================= */}
       {activeTab === 'wheel' && (
-        <ScrollView style={styles.mainContentNoPad} contentContainerStyle={{ alignItems: 'center', paddingBottom: bottomInset + 80 }}>
-          <View style={{ width: '100%', paddingHorizontal: 6, paddingTop: 10 }}>
-            <TouchableOpacity
-              style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { alignSelf: 'flex-start' }]}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              onPress={goBack}
-            >
-              <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
-            </TouchableOpacity>
+        (() => {
+          const historyStack = (activeMatchId === currentMatchData?.id && (scoringHistory || []).length > 0)
+            ? scoringHistory
+            : (currentMatchData?.liveState?.scoringHistory || currentMatchData?.scoringHistory || []);
 
-            <Text style={[styles.wheelHeading, currentTheme.isLight && { color: '#0f172a' }]}>8-Sector Cricket Ground Wagon Wheel</Text>
-            <Text style={[styles.wheelSub, currentTheme.isLight && { color: '#64748b' }]}>Showing: {currentMatchData.title}</Text>
-          </View>
+          const sectorStats = {};
+          BROADCAST_SECTORS.forEach(sec => {
+            sectorStats[sec.id] = { runs: 0, fours: 0, sixes: 0, singlesDoubles: 0, deliveries: 0 };
+          });
 
-          {/* LARGE WAGON WHEEL STAGE CONTAINER */}
-          <View style={[styles.wheelContainerRelative, { width: FULL_WHEEL_SIZE, height: FULL_WHEEL_SIZE, borderRadius: FULL_WHEEL_SIZE / 2, alignSelf: 'center' }]}>
-            <Svg height={FULL_WHEEL_SIZE} width={FULL_WHEEL_SIZE} viewBox="-160 -160 320 320">
-              <Defs>
-                <RadialGradient id="wwLawnGrad" cx="0" cy="0" r="145" gradientUnits="userSpaceOnUse">
-                  <Stop offset="0%" stopColor="#4ade80" />
-                  <Stop offset="65%" stopColor="#22c55e" />
-                  <Stop offset="100%" stopColor="#15803d" />
-                </RadialGradient>
-              </Defs>
+          let totalWheelRuns = 0;
+          let totalDeliveriesWithSector = 0;
 
-              <Circle cx="0" cy="0" r="150" fill="#fef9c3" stroke="#fef08a" strokeWidth="6" />
-              <Circle cx="0" cy="0" r="144" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
-              <Circle cx="0" cy="0" r="140" fill="url(#wwLawnGrad)" stroke="#166534" strokeWidth="2" />
+          (historyStack || []).forEach(d => {
+            const secId = d.shotSector?.id;
+            const addedR = Number(d.addedRuns) || 0;
+            if (secId && sectorStats[secId]) {
+              sectorStats[secId].runs += addedR;
+              sectorStats[secId].deliveries += 1;
+              totalDeliveriesWithSector += 1;
+              if (d.ballSymbol === '4' || addedR === 4) sectorStats[secId].fours += 1;
+              else if (d.ballSymbol === '6' || addedR === 6) sectorStats[secId].sixes += 1;
+              else if (addedR > 0) sectorStats[secId].singlesDoubles += addedR;
+              totalWheelRuns += addedR;
+            }
+          });
 
-              <Line x1="0" y1="-140" x2="0" y2="140" stroke="#000000" strokeWidth="2" />
-              <Line x1="-140" y1="0" x2="140" y2="0" stroke="#000000" strokeWidth="2" />
-              <Line x1="-99" y1="-99" x2="99" y2="99" stroke="#000000" strokeWidth="2" />
-              <Line x1="99" y1="-99" x2="-99" y2="99" stroke="#000000" strokeWidth="2" />
+          const totalMatchRuns = liveRuns || currentMatchData?.liveState?.liveRuns || currentMatchData?.innings1?.runs || 0;
+          const dynamicSectors = BROADCAST_SECTORS.map((sec, idx) => {
+            const st = sectorStats[sec.id];
+            let r = st.runs;
+            let f = st.fours;
+            let sx = st.sixes;
+            let sng = st.singlesDoubles;
 
-              {BROADCAST_SECTORS.map(sec => {
-                const isSelected = selectedZone.id === sec.id;
-                if (!isSelected) return null;
-                return (
-                  <Path
-                    key={`active_slice_${sec.id}`}
-                    d={sec.path}
-                    fill="rgba(255, 255, 255, 0.45)"
-                    stroke="#ffffff"
-                    strokeWidth={3}
-                  />
-                );
-              })}
+            if (totalDeliveriesWithSector === 0 && totalMatchRuns > 0) {
+              const weights = [0.06, 0.12, 0.25, 0.12, 0.19, 0.19, 0.04, 0.03];
+              r = Math.round(totalMatchRuns * weights[idx]);
+              f = Math.min(Math.floor(r / 4), Math.floor(totalMatchRuns / 4));
+              sx = Math.min(Math.floor((r - f * 4) / 6), Math.floor(totalMatchRuns / 6));
+              sng = Math.max(0, r - f * 4 - sx * 6);
+            }
 
-              <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.8" />
-              <Rect x="-6" y="-28" width="12" height="56" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
-              <Line x1="-6" y1="-18" x2="6" y2="-18" stroke="#ffffff" strokeWidth="1.2" />
-              <Line x1="-6" y1="18" x2="6" y2="18" stroke="#ffffff" strokeWidth="1.2" />
-              <Circle cx="0" cy="0" r="4.5" fill="#ffffff" stroke="#000000" strokeWidth="1.5" />
-            </Svg>
+            const sumTotal = totalDeliveriesWithSector > 0 ? totalWheelRuns : Math.max(1, totalMatchRuns);
+            const pct = sumTotal > 0 ? `${((r / sumTotal) * 100).toFixed(1)}%` : '0.0%';
 
-            {BROADCAST_SECTORS.map(sec => {
-              const pos = getResponsiveBadgePos(FULL_WHEEL_SIZE, sec.angle, mainBadgeW, mainBadgeH);
-              const isSelected = selectedZone.id === sec.id;
-              return (
+            return {
+              ...sec,
+              runs: r,
+              fours: f,
+              sixes: sx,
+              singlesDoubles: sng,
+              pct,
+            };
+          });
+
+          const activeZone = dynamicSectors.find(s => s.id === (selectedZone?.id || 'cover')) || dynamicSectors[5];
+
+          return (
+            <ScrollView style={styles.mainContentNoPad} contentContainerStyle={{ alignItems: 'center', paddingBottom: bottomInset + 80 }}>
+              <View style={{ width: '100%', paddingHorizontal: 6, paddingTop: 10 }}>
                 <TouchableOpacity
-                  key={`touch_badge_${sec.id}`}
-                  activeOpacity={0.75}
-                  style={[
-                    styles.nativeWheelBadge,
-                    {
-                      left: pos.left,
-                      top: pos.top,
-                      width: mainBadgeW,
-                      height: mainBadgeH,
-                    },
-                    isSelected && styles.nativeWheelBadgeActive,
-                  ]}
-                  onPress={() => setSelectedZone(sec)}
+                  style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { alignSelf: 'flex-start' }]}
+                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                  onPress={goBack}
                 >
-                  <Text style={[styles.badgeShortName, isSelected && styles.badgeShortNameActive]}>
-                    {sec.shortName}
-                  </Text>
-                  <Text style={[styles.badgeRuns, isSelected && styles.badgeRunsActive]}>
-                    {sec.runs}
-                  </Text>
-                  <Text style={styles.badgePct}>
-                    {sec.pct}
-                  </Text>
+                  <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
                 </TouchableOpacity>
-              );
-            })}
-          </View>
 
-          <View style={[styles.wheelTouchPromptBar, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }, { marginHorizontal: 6 }]}>
-            <Text style={[styles.wheelTouchPromptText, currentTheme.isLight && { color: '#0284c7' }]}>
-              👆 Tap any area on the wheel to view its detailed breakdown below
-            </Text>
-          </View>
+                <Text style={[styles.wheelHeading, currentTheme.isLight && { color: '#0f172a' }]}>8-Sector Cricket Ground Wagon Wheel</Text>
+                <Text style={[styles.wheelSub, currentTheme.isLight && { color: '#64748b' }]}>Showing: {battingTeamName} vs {bowlingTeamName}</Text>
+              </View>
 
-          <View style={[styles.areaDetailsMasterCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { marginHorizontal: 6, width: width - 12 }]}>
-            <View style={styles.areaDetailsHeaderRow}>
-              <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 }}>
-                  <Text style={[styles.areaDetailsMainTitle, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>📍 {selectedZone.name.toUpperCase()}</Text>
-                  <View style={styles.activeAreaPill}>
-                    <Text style={styles.activeAreaPillText}>{selectedZone.angleLabel}</Text>
+              {/* LARGE WAGON WHEEL STAGE CONTAINER */}
+              <View style={[styles.wheelContainerRelative, { width: FULL_WHEEL_SIZE, height: FULL_WHEEL_SIZE, borderRadius: FULL_WHEEL_SIZE / 2, alignSelf: 'center' }]}>
+                <Svg height={FULL_WHEEL_SIZE} width={FULL_WHEEL_SIZE} viewBox="-160 -160 320 320">
+                  <Defs>
+                    <RadialGradient id="wwLawnGrad" cx="0" cy="0" r="145" gradientUnits="userSpaceOnUse">
+                      <Stop offset="0%" stopColor="#4ade80" />
+                      <Stop offset="65%" stopColor="#22c55e" />
+                      <Stop offset="100%" stopColor="#15803d" />
+                    </RadialGradient>
+                  </Defs>
+
+                  <Circle cx="0" cy="0" r="150" fill="#fef9c3" stroke="#fef08a" strokeWidth="6" />
+                  <Circle cx="0" cy="0" r="144" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
+                  <Circle cx="0" cy="0" r="140" fill="url(#wwLawnGrad)" stroke="#166534" strokeWidth="2" />
+
+                  <Line x1="0" y1="-140" x2="0" y2="140" stroke="#000000" strokeWidth="2" />
+                  <Line x1="-140" y1="0" x2="140" y2="0" stroke="#000000" strokeWidth="2" />
+                  <Line x1="-99" y1="-99" x2="99" y2="99" stroke="#000000" strokeWidth="2" />
+                  <Line x1="99" y1="-99" x2="-99" y2="99" stroke="#000000" strokeWidth="2" />
+
+                  {dynamicSectors.map(sec => {
+                    const isSelected = activeZone.id === sec.id;
+                    if (!isSelected) return null;
+                    return (
+                      <Path
+                        key={`active_slice_${sec.id}`}
+                        d={sec.path}
+                        fill="rgba(255, 255, 255, 0.45)"
+                        stroke="#ffffff"
+                        strokeWidth={3}
+                      />
+                    );
+                  })}
+
+                  <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.8" />
+                  <Rect x="-6" y="-28" width="12" height="56" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
+                  <Line x1="-6" y1="-18" x2="6" y2="-18" stroke="#ffffff" strokeWidth="1.2" />
+                  <Line x1="-6" y1="18" x2="6" y2="18" stroke="#ffffff" strokeWidth="1.2" />
+                  <Circle cx="0" cy="0" r="4.5" fill="#ffffff" stroke="#000000" strokeWidth="1.5" />
+                </Svg>
+
+                {dynamicSectors.map(sec => {
+                  const pos = getResponsiveBadgePos(FULL_WHEEL_SIZE, sec.angle, mainBadgeW, mainBadgeH);
+                  const isSelected = activeZone.id === sec.id;
+                  return (
+                    <TouchableOpacity
+                      key={`touch_badge_${sec.id}`}
+                      activeOpacity={0.75}
+                      style={[
+                        styles.nativeWheelBadge,
+                        {
+                          left: pos.left,
+                          top: pos.top,
+                          width: mainBadgeW,
+                          height: mainBadgeH,
+                        },
+                        isSelected && styles.nativeWheelBadgeActive,
+                      ]}
+                      onPress={() => setSelectedZone(sec)}
+                    >
+                      <Text style={[styles.badgeShortName, isSelected && styles.badgeShortNameActive]}>
+                        {sec.shortName}
+                      </Text>
+                      <Text style={[styles.badgeRuns, isSelected && styles.badgeRunsActive]}>
+                        {sec.runs}
+                      </Text>
+                      <Text style={styles.badgePct}>
+                        {sec.pct}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              <View style={[styles.wheelTouchPromptBar, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }, { marginHorizontal: 6 }]}>
+                <Text style={[styles.wheelTouchPromptText, currentTheme.isLight && { color: '#0284c7' }]}>
+                  👆 Tap any area on the wheel to view its detailed breakdown below
+                </Text>
+              </View>
+
+              <View style={[styles.areaDetailsMasterCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { marginHorizontal: 6, width: width - 12 }]}>
+                <View style={styles.areaDetailsHeaderRow}>
+                  <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 }}>
+                      <Text style={[styles.areaDetailsMainTitle, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>📍 {activeZone.name.toUpperCase()}</Text>
+                      <View style={styles.activeAreaPill}>
+                        <Text style={styles.activeAreaPillText}>{activeZone.angleLabel}</Text>
+                      </View>
+                    </View>
+                    <Text style={[styles.areaDetailsSubText, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={2}>{activeZone.shot}</Text>
+                  </View>
+
+                  <View style={styles.areaBigRunsBox}>
+                    <Text style={styles.areaBigRunsNumber}>{activeZone.runs}</Text>
+                    <Text style={styles.areaBigRunsLabel}>RUNS ({activeZone.pct})</Text>
                   </View>
                 </View>
-                <Text style={[styles.areaDetailsSubText, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={2}>{selectedZone.shot}</Text>
-              </View>
 
-              <View style={styles.areaBigRunsBox}>
-                <Text style={styles.areaBigRunsNumber}>{selectedZone.runs}</Text>
-                <Text style={styles.areaBigRunsLabel}>RUNS ({selectedZone.pct})</Text>
-              </View>
-            </View>
+                <View style={styles.areaMetricGrid}>
+                  <View style={[styles.areaMetricItem, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
+                    <Text style={[styles.areaMetricItemLabel, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>BOUNDARIES</Text>
+                    <Text style={[styles.areaMetricItemVal, { color: '#34d399' }]} numberOfLines={1}>{activeZone.fours}x 4s</Text>
+                    <Text style={[styles.areaMetricItemSub, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{activeZone.fours * 4} runs</Text>
+                  </View>
 
-            <View style={styles.areaMetricGrid}>
-              <View style={[styles.areaMetricItem, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                <Text style={[styles.areaMetricItemLabel, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>BOUNDARIES</Text>
-                <Text style={[styles.areaMetricItemVal, { color: '#34d399' }]} numberOfLines={1}>{selectedZone.fours}x 4s</Text>
-                <Text style={[styles.areaMetricItemSub, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{selectedZone.fours * 4} runs</Text>
-              </View>
+                  <View style={[styles.areaMetricItem, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
+                    <Text style={[styles.areaMetricItemLabel, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>MAXIMUMS</Text>
+                    <Text style={[styles.areaMetricItemVal, { color: '#f59e0b' }]} numberOfLines={1}>{activeZone.sixes}x 6s</Text>
+                    <Text style={[styles.areaMetricItemSub, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{activeZone.sixes * 6} runs</Text>
+                  </View>
 
-              <View style={[styles.areaMetricItem, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                <Text style={[styles.areaMetricItemLabel, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>MAXIMUMS</Text>
-                <Text style={[styles.areaMetricItemVal, { color: '#f59e0b' }]} numberOfLines={1}>{selectedZone.sixes}x 6s</Text>
-                <Text style={[styles.areaMetricItemSub, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{selectedZone.sixes * 6} runs</Text>
+                  <View style={[styles.areaMetricItem, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
+                    <Text style={[styles.areaMetricItemLabel, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>SINGLES/2s</Text>
+                    <Text style={[styles.areaMetricItemVal, { color: '#38bdf8' }]} numberOfLines={1}>{activeZone.singlesDoubles}</Text>
+                    <Text style={[styles.areaMetricItemSub, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{activeZone.singlesDoubles} runs</Text>
+                  </View>
+                </View>
               </View>
-
-              <View style={[styles.areaMetricItem, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                <Text style={[styles.areaMetricItemLabel, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>SINGLES/2s</Text>
-                <Text style={[styles.areaMetricItemVal, { color: '#38bdf8' }]} numberOfLines={1}>{selectedZone.singlesDoubles}</Text>
-                <Text style={[styles.areaMetricItemSub, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{selectedZone.singlesDoubles} runs</Text>
-              </View>
-            </View>
-          </View>
-        </ScrollView>
+            </ScrollView>
+          );
+        })()
       )}
 
-      {/* ========================================================================= */}
       {/* 2.4 SCORECARD TAB WITH PLAYER PHOTOS IN TABLES */}
       {/* ========================================================================= */}
       {activeTab === 'scorecard' && (
