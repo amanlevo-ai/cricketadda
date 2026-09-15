@@ -2707,7 +2707,7 @@ const INITIAL_MATCH_DRAFT = {
   myTeam: null, // Team A (Empty by default for + circle)
   opponentTeam: null, // Team B (Empty by default for + circle)
   title: '',
-  tournament: 'CricketAdda Premier League',
+  tournament: 'Cricket Adda',
   ground: 'PCA Stadium, Mohali',
   dateTime: 'Today, 03:30 PM',
   format: 'T20',
@@ -3289,7 +3289,7 @@ const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 days inactivity limit (2,
 const EMPTY_MATCH_TEMPLATE = {
   id: 'match_new',
   title: 'Live Match',
-  tournament: 'CricketAdda Premier Match',
+  tournament: 'Cricket Adda',
   venue: 'Cricket Stadium',
   status: 'setup',
   teamA: 'Team 1',
@@ -17849,7 +17849,7 @@ function CricketAddaMain() {
                   </Text>
                 </View>
                 <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900', textAlign: 'center' }}>
-                  {currentMatchData.tournament || 'Tournament Match'}
+                  Cricket Adda
                 </Text>
                 <Text style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', marginTop: 2 }}>
                   Select the official reason to call off or abandon this live match
