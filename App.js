@@ -7276,6 +7276,10 @@ function CricketAddaMain() {
   };
 
   const handleAddPlayerToCaptainSquad = (nameToAdd = null) => {
+    if (!captainEditTeamName || !captainEditTeamName.trim()) {
+      Alert.alert('Team Name Required', 'Team name is mandatory. Please enter a team name before adding players.');
+      return;
+    }
     const rawName = typeof nameToAdd === 'string' && nameToAdd.trim() ? nameToAdd : captainNewPlayerName;
     if (!rawName || !rawName.trim()) {
       Alert.alert('Player Name Required', 'Please enter a player name to add to the team.');
@@ -9370,19 +9374,23 @@ function CricketAddaMain() {
   };
 
   const handleAddFoundPlayerByPhone = () => {
+    if (!newTeamName || !newTeamName.trim()) {
+      Alert.alert('Team Name Required', 'Team name is mandatory. Please enter a Team Name before adding players to the squad.');
+      return;
+    }
     if (!playerPhoneSearchResult) return;
     const targetName = (playerPhoneSearchResult.name || newPlayerNameInput || '').trim();
     if (!targetName) {
-      showAppToast('Please enter the player\'s full name', '⚠️', 'error');
+      Alert.alert('Player Name Required', 'Please enter the player\'s full name.');
       return;
     }
     if ((newTeamSquad || []).length >= 20) {
-      showAppToast('Squad limit reached (20/20)', '⚠️', 'error');
+      Alert.alert('Squad Full', 'Squad limit reached (20/20 max players).');
       return;
     }
     const targetPhone = (playerPhoneSearchResult.phone || playerPhoneInput || '').replace(/[^0-9]/g, '');
     if (newTeamSquad.some(p => p.name.toLowerCase() === targetName.toLowerCase() || (targetPhone && p.phone === targetPhone))) {
-      showAppToast(`"${targetName}" is already in the squad`, '⚠️', 'error');
+      Alert.alert('Duplicate Player', `"${targetName}" is already in the squad.`);
       return;
     }
     const targetRole = playerPhoneSearchResult.role || newPlayerRoleInput || 'BAT';
@@ -9425,22 +9433,26 @@ function CricketAddaMain() {
   };
 
   const handleAddNewPlayerWithPhone = () => {
+    if (!newTeamName || !newTeamName.trim()) {
+      Alert.alert('Team Name Required', 'Team name is mandatory. Please enter a Team Name before adding players to the squad.');
+      return;
+    }
     if (!newPlayerNameInput || !newPlayerNameInput.trim()) {
-      showAppToast('Please enter your teammate\'s name', '⚠️', 'error');
+      Alert.alert('Player Name Required', 'Please enter your teammate\'s name.');
       return;
     }
     const cleanPhone = playerPhoneInput.trim().replace(/[^0-9]/g, '');
     if (cleanPhone && (cleanPhone || '').length < 10) {
-      showAppToast('Please enter a full 10-digit mobile number, or leave it blank', '⚠️', 'error');
+      Alert.alert('Invalid Mobile Number', 'Please enter a full 10-digit mobile number, or leave it blank.');
       return;
     }
     if ((newTeamSquad || []).length >= 20) {
-      showAppToast('Squad limit reached (20/20)', '⚠️', 'error');
+      Alert.alert('Squad Full', 'Squad limit reached (20/20 max players).');
       return;
     }
     const cleanName = newPlayerNameInput.trim();
     if (newTeamSquad.some(p => p.name.toLowerCase() === cleanName.toLowerCase())) {
-      showAppToast(`"${cleanName}" is already in the squad`, '⚠️', 'error');
+      Alert.alert('Duplicate Player', `"${cleanName}" is already in the squad.`);
       return;
     }
 
@@ -9483,8 +9495,12 @@ function CricketAddaMain() {
   };
 
   const handleAddScannedPlayerToSquad = (playerData) => {
+    if (!newTeamName || !newTeamName.trim()) {
+      Alert.alert('Team Name Required', 'Team name is mandatory. Please enter a Team Name before adding players to the squad.');
+      return;
+    }
     if ((newTeamSquad || []).length >= 20) {
-      showAppToast('Squad full (20/20 max)', '⚠️', 'error');
+      Alert.alert('Squad Full', 'Squad full (20/20 max players).');
       return;
     }
     const pName = playerData.name || 'Scanned Player';
@@ -9492,7 +9508,7 @@ function CricketAddaMain() {
     const pRole = (playerData.role && (playerData.role.includes('BOWL') ? 'BOWL' : playerData.role.includes('WK') ? 'WK' : playerData.role.includes('ALL') ? 'ALL' : 'BAT')) || 'BAT';
     
     if (newTeamSquad.some(p => p.name.toLowerCase() === pName.toLowerCase() || (pPhone && p.phone === pPhone))) {
-      showAppToast(`"${pName}" is already in your team squad`, '⚠️', 'error');
+      Alert.alert('Duplicate Player', `"${pName}" is already in your team squad.`);
       return;
     }
 
@@ -9534,17 +9550,21 @@ function CricketAddaMain() {
   };
 
   const handleAddPlayerToNewTeamSquad = () => {
+    if (!newTeamName || !newTeamName.trim()) {
+      Alert.alert('Team Name Required', 'Team name is mandatory. Please enter a Team Name before adding players to the squad.');
+      return;
+    }
     if (!newPlayerNameInput || !newPlayerNameInput.trim()) {
-      showAppToast('Please enter a player name', '⚠️', 'error');
+      Alert.alert('Player Name Required', 'Please enter a player name.');
       return;
     }
     if ((newTeamSquad || []).length >= 20) {
-      showAppToast('Squad limit reached (20/20)', '⚠️', 'error');
+      Alert.alert('Squad Full', 'Squad limit reached (20/20 max players).');
       return;
     }
     const cleanPlayerName = newPlayerNameInput.trim();
     if (newTeamSquad.some(p => p.name.toLowerCase() === cleanPlayerName.toLowerCase())) {
-      showAppToast(`"${cleanPlayerName}" is already in the squad`, '⚠️', 'error');
+      Alert.alert('Duplicate Player', `"${cleanPlayerName}" is already in the squad.`);
       return;
     }
 
@@ -9591,13 +9611,17 @@ function CricketAddaMain() {
   };
 
   const handleAutofillRemainingPlayers = () => {
+    if (!newTeamName || !newTeamName.trim()) {
+      Alert.alert('Team Name Required', 'Team name is mandatory. Please enter a Team Name first before autofilling players.');
+      return;
+    }
     const currentCount = (newTeamSquad || []).length;
     if (currentCount >= 20) {
-      showAppToast('Squad already has 20 players', 'ℹ️');
+      Alert.alert('Squad Full', 'Squad already has 20 players.');
       return;
     }
     const targetCount = Math.max(11, Math.min(20, currentCount < 11 ? 11 : currentCount + 5));
-    const teamBaseName = newTeamName.trim() || 'Team';
+    const teamBaseName = newTeamName.trim();
     const newItems = [];
     for (let i = currentCount; i < targetCount; i++) {
       const role = i < 5 ? 'BAT' : i < 8 ? 'ALL' : i === 8 ? 'WK' : 'BOWL';
@@ -9617,7 +9641,7 @@ function CricketAddaMain() {
 
   const handleSaveNewTeamWithSquad = () => {
     if (!newTeamName || !newTeamName.trim()) {
-      showAppToast('Please enter a name for your team', '⚠️', 'error');
+      Alert.alert('Team Name Required', 'Team name is mandatory. Please enter a name for your team before saving.');
       return;
     }
     const cleanName = newTeamName.trim();
@@ -9628,7 +9652,7 @@ function CricketAddaMain() {
       t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === cleanName.toLowerCase()
     );
     if (isDuplicate) {
-      showAppToast(`Team "${cleanName}" already exists. Please choose a unique name.`, '⚠️', 'error');
+      Alert.alert('Duplicate Team Name', `Team "${cleanName}" already exists. Please choose a unique name.`);
       return;
     }
 
@@ -9814,7 +9838,8 @@ function CricketAddaMain() {
       setEditingTeamId(null);
       setTeamSearchQuery('');
 
-      showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) updated for match!`, '🏏');
+      Alert.alert('Team Updated ✅', `Team "${cleanName}" (${(finalSquad || []).length} players) updated successfully!`);
+      showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) updated!`, '🏏');
       return;
     }
 
@@ -9939,7 +9964,8 @@ function CricketAddaMain() {
     setEditingTeamId(null);
     setTeamSearchQuery('');
 
-    showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) saved for match!`, '🏏');
+    Alert.alert('Team Saved ✅', `Team "${cleanName}" (${(finalSquad || []).length} players) created and saved successfully!`);
+    showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) saved!`, '🏏');
   };
 
   // Helper to determine if a team was created by the current user (Owner/Captain)
@@ -16634,19 +16660,31 @@ function CricketAddaMain() {
               {/* 1. TEAM DETAILS */}
               <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>🏷️ 1. TEAM DETAILS:</Text>
               <View style={styles.wizardInputBox}>
-                <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>Team Name:</Text>
+                <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>
+                  Team Name <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>* (Mandatory)</Text>:
+                </Text>
                 <TextInput
                   style={[
                     styles.wizardTextInput,
                     currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' },
+                    (!newTeamName || !newTeamName.trim()) && { borderColor: '#f59e0b' },
                     registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && { borderColor: '#ef4444', borderWidth: 1.5 }
                   ]}
                   value={newTeamName}
                   onChangeText={setNewTeamName}
-                  placeholder="e.g. Mumbai Super Kings"
+                  placeholder="e.g. Mumbai Super Kings (Mandatory)"
                   placeholderTextColor="#94a3b8"
                 />
               </View>
+
+              {(!newTeamName || !newTeamName.trim()) && (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
+                  <Text style={{ fontSize: 12 }}>⚠️</Text>
+                  <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '600' }}>
+                    Team name is mandatory before adding players or saving.
+                  </Text>
+                </View>
+              )}
 
               {registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && (
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
@@ -17440,7 +17478,7 @@ function CricketAddaMain() {
                   onPress={handleSaveNewTeamWithSquad}
                 >
                   <Text style={[styles.confirmBtnText, { color: '#ffffff' }]}>
-                    {editingTeamId ? `💾 Update Team & Squad (${Math.max(1, (newTeamSquad || []).length)} Pl)` : `💾 Save Team & Squad (${Math.max(11, (newTeamSquad || []).length)} Pl)`}
+                    {editingTeamId ? `💾 Update Team & Squad (${(newTeamSquad || []).length} Pl)` : `💾 Save Team & Squad (${(newTeamSquad || []).length} Pl)`}
                   </Text>
                 </TouchableOpacity>
               </View>
