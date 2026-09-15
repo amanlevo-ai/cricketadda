@@ -36,6 +36,7 @@ import {
   syncMatchesDbToFirebase,
   fetchFirebaseMatchesDb,
   syncTeamsToFirebase,
+  syncSingleTeamToFirebase,
   fetchFirebaseTeams,
   syncUsersToFirebase,
   syncSingleUserProfileToFirebase,
@@ -4779,6 +4780,41 @@ function CricketAddaMain() {
     }
   }, [isAuthenticated, activeTab]);
 
+  // Live Cloud Refresh: Automatically pull newly registered opponent teams & manual squads from cloud when entering Teams tab or Match Setup
+  useEffect(() => {
+    if (isFirebaseConfigured() && (activeTab === 'teams' || wizardVisible)) {
+      fetchFirebaseTeams().then(cloudTeams => {
+        if (Array.isArray(cloudTeams) && (cloudTeams || []).length > 0) {
+          const cleanTeams = cloudTeams.filter(Boolean);
+          setRegisteredTeams(prev => {
+            const currentMap = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
+            let hasNew = false;
+            cleanTeams.forEach(ct => {
+              if (!ct || !ct.name) return;
+              const key = String(ct.id || ct.name).toLowerCase();
+              if (!currentMap.has(key)) {
+                currentMap.set(key, ct);
+                hasNew = true;
+              } else {
+                const existing = currentMap.get(key);
+                if (Array.isArray(ct.squad) && (ct.squad || []).length > (existing?.squad?.length || 0)) {
+                  currentMap.set(key, { ...existing, ...ct });
+                  hasNew = true;
+                }
+              }
+            });
+            if (hasNew) {
+              const updated = Array.from(currentMap.values());
+              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
+              return updated;
+            }
+            return prev;
+          });
+        }
+      }).catch(() => {});
+    }
+  }, [activeTab, wizardVisible]);
+
   // Live Cloud Database Auto-Sync: Automatically sync teams to Cloud
   useEffect(() => {
     if (isFirebaseConfigured() && Array.isArray(registeredTeams) && (registeredTeams || []).length > 0) {
@@ -6801,25 +6837,48 @@ function CricketAddaMain() {
   // QR CODE PASSPORT & SCORING RIGHTS TRANSFER HANDLERS
   const openTeamQrCode = (team) => {
     if (!team) return;
+    const cleanSquad = Array.isArray(team.squad) ? team.squad.map((p, pIdx) => {
+      const pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
+      const isCap = Boolean((typeof p === 'object' && p.isCaptain) || pIdx === 0 || pName.includes('(c)') || pName === team.captain);
+      const isWk = Boolean((typeof p === 'object' && (p.isWk || p.role === 'WK')) || pName.includes('(wk)') || pName === team.wicketkeeper);
+      const pRole = typeof p === 'object' && p.role ? p.role : (isCap ? 'BAT' : isWk ? 'WK' : 'BAT');
+      return {
+        id: typeof p === 'object' && p.id ? p.id : `p_${Date.now()}_${pIdx}`,
+        name: pName.replace(' (c)', '').replace(' (wk)', '').trim(),
+        role: pRole,
+        phone: typeof p === 'object' ? (p.phone || '') : '',
+        jersey: typeof p === 'object' ? (p.jersey || '') : '',
+        battingStyle: typeof p === 'object' ? (p.battingStyle || 'Right Hand Bat') : 'Right Hand Bat',
+        bowlingStyle: typeof p === 'object' ? (p.bowlingStyle || 'Right Arm Medium') : 'Right Arm Medium',
+        isCaptain: isCap,
+        isViceCaptain: Boolean(typeof p === 'object' ? p.isViceCaptain : pIdx === 1),
+        isWk: isWk,
+        avatarUri: typeof p === 'object' ? (p.avatarUri || null) : null,
+      };
+    }) : [];
+
     const payload = JSON.stringify({
       type: 'team',
-      id: team.id,
+      id: team.id || `team_${Date.now()}`,
       name: team.name,
       shortName: team.shortName || team.name.slice(0, 3).toUpperCase(),
-      flag: team.flag || '🏏',
-      city: team.city || 'Home City',
-      captain: team.captain,
-      wicketkeeper: team.wicketkeeper,
-      squadCount: (team.squad || []).length,
+      flag: team.flag || '🦁',
+      logo: team.logo || team.logoUri || null,
+      city: team.city || team.homeGround || 'Local Ground',
+      captain: team.captain || (cleanSquad[0]?.name) || 'Captain',
+      wicketkeeper: team.wicketkeeper || (cleanSquad.find(p => p.isWk)?.name) || 'Wicketkeeper',
+      squad: cleanSquad,
+      squadCount: (cleanSquad || []).length,
     });
+
     setQrDisplayData({
       type: 'team',
-      title: `${team.flag} ${team.name}`,
-      subtitle: `Official Team Passport • ${team.city || 'Club'}`,
+      title: `${team.flag || '🦁'} ${team.name}`,
+      subtitle: `Official Team Passport • ${team.city || 'Club'} • ${(cleanSquad || []).length} Players`,
       payload,
-      emoji: team.flag || '🏏',
-      teamFlag: team.flag || '🏏',
-      meta: team,
+      emoji: team.flag || '🦁',
+      teamFlag: team.flag || '🦁',
+      meta: { ...team, squad: cleanSquad },
     });
     setQrDisplayModalVisible(true);
   };
@@ -6965,19 +7024,39 @@ function CricketAddaMain() {
         return;
       }
 
-      if (qrScanPurpose === 'add_team_a' || qrScanPurpose === 'add_team_b') {
-        const slot = qrScanPurpose === 'add_team_a' ? 'teamA' : 'teamB';
-        const teamObj = registeredTeams.find(t => t.id === data.id || t.name.toLowerCase() === (data.name || '').toLowerCase()) || {
-          id: data.id || `scanned_team_${Date.now()}`,
-          name: data.name || 'Scanned Team',
-          shortName: data.shortName || 'SCN',
-          flag: data.flag || '🦁',
-          city: data.city || 'Scanned City',
-          squad: data.squad || [],
+      if (qrScanPurpose === 'add_team_a' || qrScanPurpose === 'add_team_b' || data.type === 'team') {
+        const slot = qrScanPurpose === 'add_team_b' ? 'teamB' : (qrScanPurpose === 'add_team_a' ? 'teamA' : 'teamB');
+        const existingLocal = registeredTeams.find(t => t.id === data.id || (t.name && t.name.toLowerCase() === (data.name || '').toLowerCase()));
+        const cleanSquad = (Array.isArray(data.squad) && (data.squad || []).length > 0) ? data.squad : (existingLocal?.squad || []);
+        const teamObj = {
+          id: data.id || existingLocal?.id || `scanned_team_${Date.now()}`,
+          name: data.name || existingLocal?.name || 'Scanned Team',
+          shortName: data.shortName || (data.name ? data.name.slice(0, 3).toUpperCase() : 'SCN'),
+          flag: data.flag || existingLocal?.flag || '🦁',
+          logo: data.logo || existingLocal?.logo || null,
+          logoUri: data.logo || existingLocal?.logoUri || null,
+          city: data.city || existingLocal?.city || 'Scanned City',
+          captain: data.captain || existingLocal?.captain || (cleanSquad[0]?.name) || 'Captain',
+          wicketkeeper: data.wicketkeeper || existingLocal?.wicketkeeper || 'Wicketkeeper',
+          squad: cleanSquad,
+          isCustomCreated: true,
         };
-        selectTeamForSlot(slot, teamObj);
+
+        // Save to registeredTeams so it is instantly available across app
+        setRegisteredTeams(prev => {
+          const exists = prev.some(t => t.id === teamObj.id || (t.name && t.name.toLowerCase() === teamObj.name.toLowerCase()));
+          const updated = exists ? prev.map(t => (t.id === teamObj.id || (t.name && t.name.toLowerCase() === teamObj.name.toLowerCase())) ? { ...t, ...teamObj, squad: cleanSquad } : t) : [teamObj, ...prev];
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
+          return updated;
+        });
+
+        if (wizardVisible && typeof selectTeamForSlot === 'function') {
+          selectTeamForSlot(slot, teamObj);
+        }
+
         setUniversalQrScannerVisible(false);
-        showAppToast(`${teamObj.flag} ${teamObj.name} added via QR Scan!`, '✅');
+        showAppToast(`${teamObj.flag} ${teamObj.name} (${(cleanSquad || []).length} players) added via QR!`, '✅');
+        Alert.alert('Team Added ✅', `"${teamObj.name}" with ${(cleanSquad || []).length} squad players added successfully via QR Pass!`);
         return;
       }
 
@@ -9703,6 +9782,9 @@ function CricketAddaMain() {
           return t;
         });
         AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
+        if (isFirebaseConfigured() && updatedTeamObj) {
+          syncSingleTeamToFirebase(updatedTeamObj);
+        }
         return updated;
       });
 
@@ -9870,6 +9952,9 @@ function CricketAddaMain() {
     setRegisteredTeams(prev => {
       const updated = [newTeamObj, ...prev];
       AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
+      if (isFirebaseConfigured()) {
+        syncSingleTeamToFirebase(newTeamObj);
+      }
       return updated;
     });
 
@@ -11733,21 +11818,24 @@ function CricketAddaMain() {
 
           {/* Teams List */}
           {(() => {
-            let list = userVisibleTeams;
+            let list = registeredTeams;
             if (teamFilterTab === 'created') {
-              list = userVisibleTeams.filter(isCreatedByMe);
+              list = (registeredTeams || []).filter(isCreatedByMe);
             } else if (teamFilterTab === 'playing') {
-              list = userVisibleTeams.filter(t => !isCreatedByMe(t) && isPlayingInTeam(t));
+              list = (registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t));
+            } else {
+              list = registeredTeams || [];
             }
 
             if (teamSearchText.trim()) {
               const q = teamSearchText.toLowerCase().trim();
-              list = list.filter(t => {
+              // Search across all registered and opponent teams
+              list = (registeredTeams || []).filter(t => {
                 const matchName = (t.name || '').toLowerCase().includes(q);
                 const matchCap = (t.captain || '').toLowerCase().includes(q);
                 const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
                 const matchSquad = Array.isArray(t.squad) && t.squad.some(p => {
-                  const pn = typeof p === 'string' ? p : p.name;
+                  const pn = typeof p === 'string' ? p : (p.name || '');
                   return (pn || '').toLowerCase().includes(q);
                 });
                 return matchName || matchCap || matchCity || matchSquad;
@@ -11985,8 +12073,28 @@ function CricketAddaMain() {
                     >
                       <Text style={{ fontSize: 14 }}>👥</Text>
                       <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800', letterSpacing: 0.2 }}>
-                        View Your Team ➔
+                        {isOwner ? 'Edit Team & Squad ➔' : 'View Team & Squad ➔'}
                       </Text>
+                    </TouchableOpacity>
+
+                    {/* Team QR Code Button */}
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#06201a',
+                        borderColor: '#10b981',
+                        borderWidth: 1.2,
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        borderRadius: 10,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 4,
+                      }}
+                      onPress={() => openTeamQrCode(t)}
+                    >
+                      <Text style={{ fontSize: 14 }}>🪪</Text>
+                      <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '800' }}>Team QR</Text>
                     </TouchableOpacity>
 
                     {/* Delete button (only when 0 matches played) */}
@@ -16645,12 +16753,38 @@ function CricketAddaMain() {
                 <Text style={[styles.photoPickerTitle, { color: '#10b981' }]}>
                   {editingTeamId ? `🏏 Edit Team & Squad: ${newTeamName || ''}` : '🏏 Create Your Team'}
                 </Text>
-                {editingTeamId ? (
-                  <Text style={{ color: '#94a3b8', fontSize: 11.5, marginTop: 2 }}>
-                    Update team details, mascot flag, and manage squad roster (max 20 players)
-                  </Text>
-                ) : null}
+                <Text style={{ color: '#94a3b8', fontSize: 11.5, marginTop: 2 }}>
+                  {editingTeamId ? 'Update details, mascot flag, and squad roster (max 20 players)' : 'Enter team name & add teammates (max 20 players)'}
+                </Text>
               </View>
+              {(newTeamName || '').trim().length > 0 && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#06201a',
+                    borderColor: '#10b981',
+                    borderWidth: 1.2,
+                    paddingVertical: 5,
+                    paddingHorizontal: 9,
+                    borderRadius: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    marginRight: 6,
+                    gap: 4,
+                  }}
+                  onPress={() => {
+                    openTeamQrCode({
+                      id: editingTeamId || `custom_team_${Date.now()}`,
+                      name: newTeamName.trim(),
+                      flag: newTeamFlag || '🦁',
+                      city: newTeamCity.trim() || 'Local Ground',
+                      squad: newTeamSquad,
+                    });
+                  }}
+                >
+                  <Text style={{ fontSize: 12 }}>🪪</Text>
+                  <Text style={{ color: '#10b981', fontSize: 11, fontWeight: 'bold' }}>Team QR</Text>
+                </TouchableOpacity>
+              )}
               <TouchableOpacity style={styles.closeRoundBtn} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
                 <Text style={styles.closeRoundBtnText}>✕</Text>
               </TouchableOpacity>
@@ -19086,10 +19220,18 @@ function CricketAddaMain() {
                       )}
 
                       <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-                        {registeredTeams.filter(t =>
-                          t.name.toLowerCase().includes(teamSearchQuery.toLowerCase()) ||
-                          t.city.toLowerCase().includes(teamSearchQuery.toLowerCase())
-                        ).map(t => {
+                        {(registeredTeams || []).filter(t => {
+                          const q = (teamSearchQuery || '').toLowerCase().trim();
+                          if (!q) return true;
+                          const matchName = (t.name || '').toLowerCase().includes(q);
+                          const matchCap = (t.captain || '').toLowerCase().includes(q);
+                          const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
+                          const matchSquad = Array.isArray(t.squad) && t.squad.some(p => {
+                            const pn = typeof p === 'string' ? p : (p.name || '');
+                            return (pn || '').toLowerCase().includes(q);
+                          });
+                          return matchName || matchCap || matchCity || matchSquad;
+                        }).map(t => {
                           const isSelected = matchDraft.myTeam?.id === t.id;
                           return (
                             <TouchableOpacity
@@ -19252,10 +19394,18 @@ function CricketAddaMain() {
                       )}
 
                       <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-                        {registeredTeams.filter(t =>
-                          t.name.toLowerCase().includes(teamSearchQuery.toLowerCase()) ||
-                          t.city.toLowerCase().includes(teamSearchQuery.toLowerCase())
-                        ).map(t => {
+                        {(registeredTeams || []).filter(t => {
+                          const q = (teamSearchQuery || '').toLowerCase().trim();
+                          if (!q) return true;
+                          const matchName = (t.name || '').toLowerCase().includes(q);
+                          const matchCap = (t.captain || '').toLowerCase().includes(q);
+                          const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
+                          const matchSquad = Array.isArray(t.squad) && t.squad.some(p => {
+                            const pn = typeof p === 'string' ? p : (p.name || '');
+                            return (pn || '').toLowerCase().includes(q);
+                          });
+                          return matchName || matchCap || matchCity || matchSquad;
+                        }).map(t => {
                           const isSelected = matchDraft.opponentTeam?.id === t.id;
                           return (
                             <TouchableOpacity
@@ -20046,19 +20196,54 @@ function CricketAddaMain() {
               Showing only verified teams registered in your app
             </Text>
 
+            {/* Quick QR Scanner Button */}
+            <TouchableOpacity
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#064e3b',
+                borderColor: '#10b981',
+                borderWidth: 1.5,
+                borderRadius: 10,
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                marginTop: 8,
+                marginBottom: 10,
+                gap: 8,
+              }}
+              onPress={() => {
+                setTeamPickerModalVisible(false);
+                openUniversalQrScanner(targetTeamSlot === 'teamA' ? 'add_team_a' : 'add_team_b');
+              }}
+            >
+              <Text style={{ fontSize: 16 }}>📷</Text>
+              <Text style={{ color: currentTheme.isLight ? '#047857' : '#6ee7b7', fontWeight: '900', fontSize: 13 }}>
+                Scan Opponent Team QR Pass ⚡
+              </Text>
+            </TouchableOpacity>
+
             <TextInput
-              style={[styles.wizardTextInput, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a', borderColor: currentTheme.cardBorder, color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginVertical: 10 }]}
+              style={[styles.wizardTextInput, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a', borderColor: currentTheme.cardBorder, color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 10 }]}
               value={teamSearchQuery}
               onChangeText={setTeamSearchQuery}
-              placeholder="Search registered team or city..."
+              placeholder="Search opponent team, captain, city or player..."
               placeholderTextColor="#64748b"
             />
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-              {REGISTERED_APP_TEAMS.filter(t =>
-                t.name.toLowerCase().includes(teamSearchQuery.toLowerCase()) ||
-                t.city.toLowerCase().includes(teamSearchQuery.toLowerCase())
-              ).map(t => {
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} keyboardShouldPersistTaps="always">
+              {(registeredTeams || []).filter(t => {
+                const q = (teamSearchQuery || '').toLowerCase().trim();
+                if (!q) return true;
+                const matchName = (t.name || '').toLowerCase().includes(q);
+                const matchCap = (t.captain || '').toLowerCase().includes(q);
+                const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
+                const matchSquad = Array.isArray(t.squad) && t.squad.some(p => {
+                  const pn = typeof p === 'string' ? p : (p.name || '');
+                  return (pn || '').toLowerCase().includes(q);
+                });
+                return matchName || matchCap || matchCity || matchSquad;
+              }).map(t => {
                 const isSelected =
                   (targetTeamSlot === 'teamA' && matchDraft.myTeam?.id === t.id) ||
                   (targetTeamSlot === 'teamB' && matchDraft.opponentTeam?.id === t.id);

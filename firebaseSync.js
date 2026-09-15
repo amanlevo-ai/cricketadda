@@ -246,16 +246,80 @@ export async function syncTeamsToFirebaseDirect(teams) {
   if (!isFirebaseConfigured() || !Array.isArray(teams)) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const url = `${baseUrl}/teams.json`;
-    const res = await fetch(url, {
+    const cleanTeams = teams.filter(Boolean);
+
+    // 1. Fetch current cloud teams to merge so other devices' teams are never overwritten
+    let mergedTeams = [...cleanTeams];
+    try {
+      const cloudRes = await fetch(`${baseUrl}/teams.json`);
+      if (cloudRes.ok) {
+        const cloudData = await cloudRes.json();
+        const rawCloudList = Array.isArray(cloudData) ? cloudData : (cloudData && typeof cloudData === 'object' ? Object.values(cloudData) : []);
+        const existingCloudList = rawCloudList.filter(Boolean);
+        existingCloudList.forEach(ct => {
+          if (!ct || !ct.name) return;
+          const ctId = String(ct.id || ct.name).toLowerCase();
+          const ctName = String(ct.name).trim().toLowerCase();
+          const alreadyInList = mergedTeams.some(mt => {
+            if (!mt) return false;
+            const mtId = String(mt.id || mt.name).toLowerCase();
+            const mtName = String(mt.name).trim().toLowerCase();
+            return (ctId && mtId && ctId === mtId) || (ctName && mtName && ctName === mtName);
+          });
+          if (!alreadyInList) {
+            mergedTeams.push(ct);
+          }
+        });
+      }
+    } catch (mergeErr) {}
+
+    // 2. Save full merged list so no team is ever lost
+    await fetch(`${baseUrl}/teams.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(teams),
+      body: JSON.stringify(mergedTeams.filter(Boolean)),
     });
-    return res.ok;
+
+    // 3. Index each team individually by team ID for instant direct lookup
+    cleanTeams.forEach(t => {
+      if (!t || !t.id) return;
+      fetch(`${baseUrl}/teams_index/${t.id}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(t),
+      }).catch(() => {});
+    });
+
+    return true;
   } catch (e) {
     return false;
   }
+}
+
+export async function syncSingleTeamToFirebaseDirect(team) {
+  if (!isFirebaseConfigured() || !team || !team.name) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const teamId = team.id || `custom_team_${Date.now()}`;
+    // Direct index put
+    fetch(`${baseUrl}/teams_index/${teamId}.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(team),
+    }).catch(() => {});
+    // Merge into main teams list
+    return await syncTeamsToFirebaseDirect([team]);
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function syncSingleTeamToFirebase(team) {
+  const success = await syncSingleTeamToFirebaseDirect(team);
+  if (!success) {
+    await enqueueOfflineSync('syncSingleTeam', team);
+  }
+  return success;
 }
 
 export async function syncUsersToFirebaseDirect(users) {
