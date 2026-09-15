@@ -4473,6 +4473,7 @@ function CricketAddaMain() {
                 if (ls.currentInnings) setCurrentInnings(ls.currentInnings);
                 if (ls.firstInningsSummary) setFirstInningsSummary(ls.firstInningsSummary);
                 if (ls.lastOverStats) setLastOverStats(ls.lastOverStats);
+                if (Array.isArray(ls.liveCommentaryList)) setLiveCommentaryList(ls.liveCommentaryList);
               }
               return merged;
             });
@@ -5859,6 +5860,7 @@ function CricketAddaMain() {
       innings: currentInnings,
       team: battingTeamName,
       scoredBy: activeScorer.name,
+      liveCommentaryList: [...liveCommentaryList],
     };
     setScoringHistory(prev => [...prev, snapshot]);
 
@@ -5928,49 +5930,6 @@ function CricketAddaMain() {
     const nextThisOver = prevLegalCount >= 6 ? [ballSymbol] : [...liveThisOver, ballSymbol];
     setLiveThisOver(nextThisOver);
 
-    // 5.1 Persist in-flight live state to matches database & storage
-    const nextBallsForDb = liveBalls + (isLegalDelivery ? 1 : 0);
-    const nextRunsForDb = liveRuns + addedRuns;
-    const nextWktsForDb = liveWickets + (isWkt ? 1 : 0);
-    const oversFormatted = `${Math.floor(nextBallsForDb / 6)}.${nextBallsForDb % 6}`;
-    setMatchesDb(prev => {
-      const cur = prev[activeMatchId] || {};
-      const updatedMatch = {
-        ...cur,
-        innings1: {
-          ...(cur.innings1 || {}),
-          runs: currentInnings === 1 ? nextRunsForDb : (cur.innings1?.runs || 0),
-          wickets: currentInnings === 1 ? nextWktsForDb : (cur.innings1?.wickets || 0),
-          overs: currentInnings === 1 ? oversFormatted : (cur.innings1?.overs || '0.0'),
-        },
-        innings2: {
-          ...(cur.innings2 || {}),
-          runs: currentInnings === 2 ? nextRunsForDb : (cur.innings2?.runs || 0),
-          wickets: currentInnings === 2 ? nextWktsForDb : (cur.innings2?.wickets || 0),
-          overs: currentInnings === 2 ? oversFormatted : (cur.innings2?.overs || '0.0'),
-        },
-        liveState: {
-          currentInnings,
-          liveRuns: nextRunsForDb,
-          liveWickets: nextWktsForDb,
-          liveBalls: nextBallsForDb,
-          liveThisOver: nextThisOver,
-          liveBatters: updatedLiveBatters,
-          liveBowlerStats: updatedLiveBowlers,
-          currentStriker: nextStriker,
-          currentNonStriker: nextNonStriker,
-          currentBowler: bowler,
-          scoringHistory: [...scoringHistory, snapshot],
-          firstInningsSummary,
-          lastOverStats,
-        },
-        lastUpdatedAt: Date.now(),
-      };
-      const updatedDb = { ...prev, [activeMatchId]: updatedMatch };
-      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
-      return updatedDb;
-    });
-
     // 5.5 Trigger Attractive Live Celebration Pop-Up for 4s, 6s, and Wickets
     let celebrationEvent = null;
     if (runs === 6 && !isWkt) {
@@ -6029,7 +5988,52 @@ function CricketAddaMain() {
       finalFielderVal,
       otRuns
     );
-    setLiveCommentaryList(prev => [...newCommEntries, ...prev]);
+    const updatedCommentaryList = [...newCommEntries, ...liveCommentaryList];
+    setLiveCommentaryList(updatedCommentaryList);
+
+    // 5.1 Persist in-flight live state to matches database & storage
+    const nextBallsForDb = liveBalls + (isLegalDelivery ? 1 : 0);
+    const nextRunsForDb = liveRuns + addedRuns;
+    const nextWktsForDb = liveWickets + (isWkt ? 1 : 0);
+    const oversFormatted = `${Math.floor(nextBallsForDb / 6)}.${nextBallsForDb % 6}`;
+    setMatchesDb(prev => {
+      const cur = prev[activeMatchId] || {};
+      const updatedMatch = {
+        ...cur,
+        innings1: {
+          ...(cur.innings1 || {}),
+          runs: currentInnings === 1 ? nextRunsForDb : (cur.innings1?.runs || 0),
+          wickets: currentInnings === 1 ? nextWktsForDb : (cur.innings1?.wickets || 0),
+          overs: currentInnings === 1 ? oversFormatted : (cur.innings1?.overs || '0.0'),
+        },
+        innings2: {
+          ...(cur.innings2 || {}),
+          runs: currentInnings === 2 ? nextRunsForDb : (cur.innings2?.runs || 0),
+          wickets: currentInnings === 2 ? nextWktsForDb : (cur.innings2?.wickets || 0),
+          overs: currentInnings === 2 ? oversFormatted : (cur.innings2?.overs || '0.0'),
+        },
+        liveState: {
+          currentInnings,
+          liveRuns: nextRunsForDb,
+          liveWickets: nextWktsForDb,
+          liveBalls: nextBallsForDb,
+          liveThisOver: nextThisOver,
+          liveBatters: updatedLiveBatters,
+          liveBowlerStats: updatedLiveBowlers,
+          currentStriker: nextStriker,
+          currentNonStriker: nextNonStriker,
+          currentBowler: bowler,
+          scoringHistory: [...scoringHistory, snapshot],
+          liveCommentaryList: updatedCommentaryList,
+          firstInningsSummary,
+          lastOverStats,
+        },
+        lastUpdatedAt: Date.now(),
+      };
+      const updatedDb = { ...prev, [activeMatchId]: updatedMatch };
+      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
+      return updatedDb;
+    });
 
     const nextBalls = liveBalls + (isLegalDelivery ? 1 : 0);
     const nextRuns = liveRuns + addedRuns;
@@ -6788,9 +6792,53 @@ function CricketAddaMain() {
         });
       }
 
-      // Revert commentary
-      const updatedComm = liveCommentaryList.filter(c => !c.id.includes('comm_inn1_end_') && !c.id.includes('comm_match_end_')).slice(1);
+      // Revert commentary to exact snapshot before this delivery
+      const updatedComm = Array.isArray(lastAction.liveCommentaryList)
+        ? lastAction.liveCommentaryList
+        : liveCommentaryList.filter(c => !c.id.includes('comm_inn1_end_') && !c.id.includes('comm_match_end_')).slice(1);
       setLiveCommentaryList(updatedComm);
+
+      // Update persistent matches database with rolled-back state
+      const remainingHistory = scoringHistory.slice(0, -1);
+      setMatchesDb(prev => {
+        const cur = prev[activeMatchId] || {};
+        const oversFormatted = `${Math.floor(lastAction.liveBalls / 6)}.${lastAction.liveBalls % 6}`;
+        const updatedMatch = {
+          ...cur,
+          innings1: {
+            ...(cur.innings1 || {}),
+            runs: currentInnings === 1 ? lastAction.liveRuns : (cur.innings1?.runs || 0),
+            wickets: currentInnings === 1 ? lastAction.liveWickets : (cur.innings1?.wickets || 0),
+            overs: currentInnings === 1 ? oversFormatted : (cur.innings1?.overs || '0.0'),
+          },
+          innings2: {
+            ...(cur.innings2 || {}),
+            runs: currentInnings === 2 ? lastAction.liveRuns : (cur.innings2?.runs || 0),
+            wickets: currentInnings === 2 ? lastAction.liveWickets : (cur.innings2?.wickets || 0),
+            overs: currentInnings === 2 ? oversFormatted : (cur.innings2?.overs || '0.0'),
+          },
+          liveState: {
+            currentInnings,
+            liveRuns: lastAction.liveRuns,
+            liveWickets: lastAction.liveWickets,
+            liveBalls: lastAction.liveBalls,
+            liveThisOver: lastAction.liveThisOver,
+            liveBatters: lastAction.liveBatters || liveBatters,
+            liveBowlerStats: lastAction.liveBowlerStats || liveBowlerStats,
+            currentStriker: lastAction.striker,
+            currentNonStriker: lastAction.nonStriker,
+            currentBowler: lastAction.bowler,
+            scoringHistory: remainingHistory,
+            liveCommentaryList: updatedComm,
+            firstInningsSummary,
+            lastOverStats: cur.liveState?.lastOverStats || null,
+          },
+          lastUpdatedAt: Date.now(),
+        };
+        const updatedDb = { ...prev, [activeMatchId]: updatedMatch };
+        AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
+        return updatedDb;
+      });
 
       // Broadcast undo state live to Cloud & PC Spectators
       broadcastMatchState({
@@ -7145,6 +7193,8 @@ function CricketAddaMain() {
       liveWickets,
       liveBalls,
       liveThisOver: [...liveThisOver],
+      liveBatters: JSON.parse(JSON.stringify(liveBatters)),
+      liveBowlerStats: JSON.parse(JSON.stringify(liveBowlerStats)),
       striker,
       nonStriker,
       bowler,
@@ -7155,6 +7205,7 @@ function CricketAddaMain() {
       dropFielder: finalFielder,
       dropRuns: dropRuns,
       dropEventId: newDropEvent.id,
+      liveCommentaryList: [...liveCommentaryList],
     };
     setScoringHistory(prev => [...prev, dropSnapshot]);
 
@@ -9534,6 +9585,7 @@ function CricketAddaMain() {
       if (ls.currentInnings) setCurrentInnings(ls.currentInnings);
       if (ls.firstInningsSummary) setFirstInningsSummary(ls.firstInningsSummary);
       if (ls.lastOverStats) setLastOverStats(ls.lastOverStats);
+      if (Array.isArray(ls.liveCommentaryList)) setLiveCommentaryList(ls.liveCommentaryList);
       setMatch(prev => ({
         ...prev,
         title: targetMatch.title,
