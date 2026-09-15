@@ -222,6 +222,9 @@ function PlayerAvatar({ name, customUri = null, size = 34, borderColor = '#10b98
 
 // Universal Cross-Platform Live QR Camera Component (Web + Native Android / iOS)
 function UniversalLiveQrCameraView({ onScan, isLocked, active, cameraPermission, requestCameraPermission }) {
+  const _document = typeof document !== 'undefined' ? document : null;
+  const _navigator = typeof navigator !== 'undefined' ? navigator : null;
+  const _FileReader = typeof FileReader !== 'undefined' ? FileReader : null;
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const animFrameRef = useRef(null);
@@ -255,7 +258,7 @@ function UniversalLiveQrCameraView({ onScan, isLocked, active, cameraPermission,
 
       const scanWebFrames = () => {
         if (!canvasRef.current && typeof document !== 'undefined') {
-          canvasRef.current = document.createElement('canvas');
+          if (_document) { canvasRef.current = _document.createElement('canvas'); }
         }
         const canvas = canvasRef.current;
         if (!canvas) return;
@@ -292,7 +295,7 @@ function UniversalLiveQrCameraView({ onScan, isLocked, active, cameraPermission,
         stopCurrentStream();
 
         try {
-          if (!navigator?.mediaDevices || !navigator?.mediaDevices?.getUserMedia) {
+          if (!_navigator?.mediaDevices || !_navigator?.mediaDevices?.getUserMedia) {
             setWebError('Camera not supported in this browser context (HTTPS or localhost required)');
             setCameraLoading(false);
             return;
@@ -301,7 +304,7 @@ function UniversalLiveQrCameraView({ onScan, isLocked, active, cameraPermission,
           let mediaStream = null;
           try {
             // Attempt with facingMode constraint
-            mediaStream = await navigator.mediaDevices.getUserMedia({
+            mediaStream = await _navigator.mediaDevices.getUserMedia({
               video: {
                 facingMode: facingMode === 'environment' ? { ideal: 'environment' } : 'user',
                 width: { ideal: 640 },
@@ -312,7 +315,7 @@ function UniversalLiveQrCameraView({ onScan, isLocked, active, cameraPermission,
           } catch (firstErr) {
             try {
               // Fallback to basic video constraint for laptops/webcams
-              mediaStream = await navigator.mediaDevices.getUserMedia({
+              mediaStream = await _navigator.mediaDevices.getUserMedia({
                 video: true,
                 audio: false,
               });
@@ -381,12 +384,12 @@ function UniversalLiveQrCameraView({ onScan, isLocked, active, cameraPermission,
   const handleScanImageFile = (e) => {
     const file = e?.target?.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
+    if (!_FileReader) return; const reader = new _FileReader();
     reader.onload = (event) => {
       if (typeof window !== 'undefined') {
         const img = new window.Image();
         img.onload = () => {
-          const canvas = document.createElement('canvas');
+          if (!_document) return; const canvas = _document.createElement('canvas');
           canvas.width = img.width;
           canvas.height = img.height;
           const ctx = canvas.getContext('2d');
@@ -429,8 +432,8 @@ function UniversalLiveQrCameraView({ onScan, isLocked, active, cameraPermission,
                 borderRadius: 8,
               }}
               onPress={() => {
-                if (navigator?.mediaDevices?.getUserMedia) {
-                  navigator.mediaDevices.getUserMedia({ video: true }).then(s => {
+                if (_navigator?.mediaDevices?.getUserMedia) {
+                  _navigator.mediaDevices.getUserMedia({ video: true }).then(s => {
                     setWebError(null);
                     s.getTracks().forEach(t => t.stop());
                   }).catch(() => {});
@@ -761,6 +764,101 @@ const OPPOSITION_FIELDERS = [];
 const OPPOSITION_BOWLERS = [];
 
 const BENCH_BATTERS = [];
+
+
+const FIELDING_POSITIONS = [
+  'Wicketkeeper',
+  'Slip',
+  'Point',
+  'Cover',
+  'Extra Cover',
+  'Mid-off',
+  'Mid-on',
+  'Deep Midwicket',
+  'Long-on',
+  'Long-off',
+  'Square Leg',
+  'Fine Leg',
+  'Gully',
+  'Third Man',
+];
+
+const DISMISSAL_TYPES = [
+  { id: 'caught', name: 'Caught', isCaughtIcon: true, needsFielder: true, code: 'c' },
+  { id: 'bowled', name: 'Bowled', isBowledIcon: true, needsFielder: false, code: 'b' },
+  { id: 'lbw', name: 'LBW', isLbwIcon: true, needsFielder: false, code: 'lbw b' },
+  { id: 'run_out', name: 'Run Out', isRunOutIcon: true, needsFielder: true, code: 'run out' },
+  { id: 'stumped', name: 'Stumped', isStumpedIcon: true, needsFielder: true, code: 'st' },
+  { id: 'hit_wicket', name: 'Hit Wkt', isHitWicketIcon: true, needsFielder: false, code: 'hit wicket b' },
+  { id: 'obstructing', name: 'Obstruct', icon: '🖐️', needsFielder: false, code: 'obstructing field' },
+  { id: 'retired', name: 'Retired', icon: '⏱️', needsFielder: false, code: 'retired out' },
+];
+
+const CANCEL_MATCH_REASONS = [
+  {
+    id: 'rain_wet_outfield',
+    icon: '🌧️',
+    title: 'Rain / Wet Outfield',
+    sub: 'Continuous rainfall or waterlogged outfield preventing play (No Result)',
+    defaultResult: 'Match Abandoned due to Rain (No Result)',
+  },
+  {
+    id: 'player_injured',
+    icon: '🩹',
+    title: 'Player Injured / Medical Emergency',
+    sub: 'Critical player injury or team unable to field minimum players safely',
+    defaultResult: 'Match Called Off due to Player Injury / Medical Emergency',
+  },
+  {
+    id: 'bad_light',
+    icon: '💡',
+    title: 'Bad Light / Visibility Issue',
+    sub: 'Deteriorating natural daylight or stadium floodlight electrical blackout',
+    defaultResult: 'Match Called Off due to Bad Light (No Result)',
+  },
+  {
+    id: 'unfit_pitch',
+    icon: '🏟️',
+    title: 'Dangerous / Unplayable Pitch',
+    sub: 'Hazardous pitch surface condition with excessive variable bounce',
+    defaultResult: 'Match Abandoned due to Unsafe Pitch (No Result)',
+  },
+  {
+    id: 'team_forfeit',
+    icon: '🤝',
+    title: 'Team Forfeit / Walkover',
+    sub: 'Opponent team conceded or withdrew from the match',
+    defaultResult: 'Match Awarded on Forfeiture / Walkover',
+  },
+  {
+    id: 'ground_curfew',
+    icon: '⏰',
+    title: 'Match Time Limit / Curfew Reached',
+    sub: 'Allocated ground hours expired before minimum required overs bowled',
+    defaultResult: 'Match Abandoned due to Time Limit (No Result)',
+  },
+  {
+    id: 'severe_weather',
+    icon: '🌪️',
+    title: 'Severe Storm / Natural Hazard',
+    sub: 'Extreme storm, lightning risk, dense fog, or environmental hazard',
+    defaultResult: 'Match Abandoned due to Severe Weather (No Result)',
+  },
+  {
+    id: 'mutual_agreement',
+    icon: '🚫',
+    title: 'Mutual Agreement / Officials Call',
+    sub: 'Both team captains and match umpires mutually agreed to call off play',
+    defaultResult: 'Match Cancelled by Mutual Agreement',
+  },
+  {
+    id: 'custom_reason',
+    icon: '✏️',
+    title: 'Other / Custom Reason',
+    sub: 'Enter specific custom tournament reason below',
+    defaultResult: 'Match Cancelled: Custom Reason',
+  },
+];
 
 const APP_THEMES = [
   {
@@ -5680,7 +5778,7 @@ function CricketAddaMain() {
 
   // All Playing XI players of the opposition fielding/bowling team eligible to bowl
   const activeOppBowlers = (() => {
-    if (match.fieldingSquad && match.fieldingSquad.length > 0) return match.fieldingSquad;
+    if (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0) return currentMatchData.fieldingSquad;
     if (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0) return currentMatchData.fieldingSquad;
     if (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0) {
       return currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name);
@@ -5716,8 +5814,8 @@ function CricketAddaMain() {
 
   // Exact designated wicketkeeper of the fielding team
   const activeOppWicketkeeper = (() => {
-    if (match.fieldingWicketkeeper) return match.fieldingWicketkeeper;
-    if (match.oppWicketkeeper) return match.oppWicketkeeper;
+    if (currentMatchData?.fieldingWicketkeeper) return currentMatchData.fieldingWicketkeeper;
+    if (currentMatchData?.oppWicketkeeper) return currentMatchData.oppWicketkeeper;
     if (currentMatchData?.fieldingWicketkeeper) return currentMatchData.fieldingWicketkeeper;
     if (currentMatchData?.oppWicketkeeper) return currentMatchData.oppWicketkeeper;
     if (matchDraft?.oppWicketkeeper && matchDraft.oppWicketkeeper.trim()) return matchDraft.oppWicketkeeper;
@@ -5811,8 +5909,8 @@ function CricketAddaMain() {
         // 2. Set Opening Batters for 2nd Innings
     const team2Batters = (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0)
       ? currentMatchData.innings2.batting.map(b => b.name)
-      : (match.fieldingSquad && match.fieldingSquad.length > 0)
-      ? match.fieldingSquad
+      : (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0)
+      ? currentMatchData.fieldingSquad
       : (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0)
       ? currentMatchData.innings1.bowling.map(b => b.name)
       : (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0)
@@ -7035,7 +7133,7 @@ function CricketAddaMain() {
         scorerName: playerName,
       };
       setMatchesDb(prev => ({ ...prev, [activeMatchId]: updatedMatch }));
-      saveMatchesDb({ ...matchesDb, [activeMatchId]: updatedMatch });
+      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...matchesDb, [activeMatchId]: updatedMatch })).catch(() => {});
     }
 
     const transferComm = {
@@ -8868,11 +8966,11 @@ function CricketAddaMain() {
     Keyboard.dismiss();
     const defaultXI_A = Array.isArray(teamA?.squad) ? teamA.squad : [];
     const defaultCap_A = teamA.captain || defaultXI_A[0]?.name || '';
-    const defaultWk_A = teamA.wicketkeeper || defaultXI_A.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
+    const defaultWk_A = teamA.wicketkeeper || defaultXI_A.find(p => p.isWk)?.name || (defaultXI_A.length > 1 ? defaultXI_A[1]?.name : defaultXI_A[0]?.name || '');
 
     const defaultXI_B = Array.isArray(teamB?.squad) ? teamB.squad : [];
     const defaultCap_B = teamB.captain || defaultXI_B[0]?.name || '';
-    const defaultWk_B = teamB.wicketkeeper || defaultXI_B.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
+    const defaultWk_B = teamB.wicketkeeper || defaultXI_B.find(p => p.isWk)?.name || (defaultXI_B.length > 1 ? defaultXI_B[1]?.name : defaultXI_B[0]?.name || '');
 
     updateDraft({
       myTeam: teamA,
@@ -9273,7 +9371,7 @@ function CricketAddaMain() {
       showAppToast('Please enter the player\'s full name', '⚠️', 'error');
       return;
     }
-    if (newTeamSquad.length >= 20) {
+    if ((newTeamSquad || []).length >= 20) {
       showAppToast('Squad limit reached (20/20)', '⚠️', 'error');
       return;
     }
@@ -9331,7 +9429,7 @@ function CricketAddaMain() {
       showAppToast('Please enter a full 10-digit mobile number, or leave it blank', '⚠️', 'error');
       return;
     }
-    if (newTeamSquad.length >= 20) {
+    if ((newTeamSquad || []).length >= 20) {
       showAppToast('Squad limit reached (20/20)', '⚠️', 'error');
       return;
     }
@@ -9380,7 +9478,7 @@ function CricketAddaMain() {
   };
 
   const handleAddScannedPlayerToSquad = (playerData) => {
-    if (newTeamSquad.length >= 20) {
+    if ((newTeamSquad || []).length >= 20) {
       showAppToast('Squad full (20/20 max)', '⚠️', 'error');
       return;
     }
@@ -9435,7 +9533,7 @@ function CricketAddaMain() {
       showAppToast('Please enter a player name', '⚠️', 'error');
       return;
     }
-    if (newTeamSquad.length >= 20) {
+    if ((newTeamSquad || []).length >= 20) {
       showAppToast('Squad limit reached (20/20)', '⚠️', 'error');
       return;
     }
@@ -11130,7 +11228,7 @@ function CricketAddaMain() {
               onPress={() => setMatchFilter('all')}
             >
               <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, matchFilter === 'all' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                All Matches ({Object.keys(matchesDb).length})
+                All Matches ({Object.keys(matchesDb || {}).length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -11166,7 +11264,7 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
 
-              {Object.keys(matchesDb).filter(id => matchesDb[id]?.status === 'live').length === 0 ? (
+              {Object.keys(matchesDb || {}).filter(id => matchesDb?.[id]?.status === 'live').length === 0 ? (
                 <View style={{
                   backgroundColor: currentTheme.cardBg,
                   borderColor: currentTheme.cardBorder,
@@ -11362,7 +11460,7 @@ function CricketAddaMain() {
                 <Text style={[styles.subHeadingNote, currentTheme.isLight && { color: '#64748b' }]}>Official Tournaments</Text>
               </View>
 
-              {Object.keys(matchesDb).filter(id => matchesDb[id]?.status === 'completed' || matchesDb[id]?.status === 'abandoned').length === 0 ? (
+              {Object.keys(matchesDb || {}).filter(id => matchesDb?.[id]?.status === 'completed' || matchesDb?.[id]?.status === 'abandoned').length === 0 ? (
                 <View style={{
                   backgroundColor: currentTheme.cardBg,
                   borderColor: currentTheme.cardBorder,
@@ -12831,7 +12929,7 @@ function CricketAddaMain() {
                   style={styles.pendingBowlerBanner}
                   onPress={() => {
                     const eligible = activeOppBowlers.filter(b => b !== bowler);
-                    if (eligible.length > 0) setNextBowler(eligible[0]);
+                    if (Array.isArray(eligible) && eligible.length > 0) setNextBowler(eligible[0]);
                     setChangeBowlerModalVisible(true);
                   }}
                 >
@@ -13000,7 +13098,7 @@ function CricketAddaMain() {
                   onPress={() => {
                     if (needsNewBowler) {
                       const eligible = activeOppBowlers.filter(b => b !== bowler);
-                      if (eligible.length > 0) setNextBowler(eligible[0]);
+                      if (Array.isArray(eligible) && eligible.length > 0) setNextBowler(eligible[0]);
                       setChangeBowlerModalVisible(true);
                       Alert.alert('🔴 Select Next Bowler', 'Over completed. Please select next bowler first.');
                       return;
@@ -13028,7 +13126,7 @@ function CricketAddaMain() {
                   onPress={() => {
                     if (needsNewBowler) {
                       const eligible = activeOppBowlers.filter(b => b !== bowler);
-                      if (eligible.length > 0) setNextBowler(eligible[0]);
+                      if (Array.isArray(eligible) && eligible.length > 0) setNextBowler(eligible[0]);
                       setChangeBowlerModalVisible(true);
                       Alert.alert('🔴 Select Next Bowler', 'Over completed. Please select next bowler first.');
                       return;
@@ -13044,13 +13142,13 @@ function CricketAddaMain() {
                   onPress={() => {
                     if (needsNewBowler) {
                       const eligible = activeOppBowlers.filter(b => b !== bowler);
-                      if (eligible.length > 0) setNextBowler(eligible[0]);
+                      if (Array.isArray(eligible) && eligible.length > 0) setNextBowler(eligible[0]);
                       setChangeBowlerModalVisible(true);
                       Alert.alert('🔴 Select Next Bowler', 'Over completed. Please select next bowler first.');
                       return;
                     }
                     const eligibleBatters = activeBenchBatters.filter(b => b !== striker && b !== nonStriker);
-                    if (eligibleBatters.length > 0) {
+                    if (Array.isArray(eligibleBatters) && eligibleBatters.length > 0) {
                       setIncomingBatter(eligibleBatters[0]);
                     }
                     setCustomIncomingBatter('');
@@ -13707,7 +13805,7 @@ function CricketAddaMain() {
                           🏆 MATCH AWARDS & MVP
                         </Text>
                       </View>
-                      {topMvp.length > 0 && (
+                      {(topMvp || []).length > 0 && (
                         <TouchableOpacity
                           style={{
                             backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
@@ -14016,7 +14114,7 @@ function CricketAddaMain() {
                   </TouchableOpacity>
                 </View>
 
-                {leaderboard.length === 0 ? (
+                {(!leaderboard || leaderboard.length === 0) ? (
                   <View style={[styles.mvpListCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0' }, { alignItems: 'center', paddingVertical: 32, paddingHorizontal: 16 }]}>
                     <Text style={{ fontSize: 36, marginBottom: 8 }}>⭐</Text>
                     <Text style={{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 4 }}>
@@ -14057,7 +14155,7 @@ function CricketAddaMain() {
                           style={[
                             styles.mvpRowContainer,
                             currentTheme.isLight ? { borderBottomColor: '#f1f5f9' } : { borderBottomColor: '#1e293b' },
-                            idx === leaderboard.length - 1 && { borderBottomWidth: 0 },
+                            idx === (leaderboard || []).length - 1 && { borderBottomWidth: 0 },
                           ]}
                         >
                           {/* 1. Left: Rank Number */}
@@ -16697,9 +16795,9 @@ function CricketAddaMain() {
 
               {/* 2. ADD PLAYERS TO SQUAD (MAX 20) */}
               <View style={styles.squadBuilderHeaderRow}>
-                <Text style={styles.pickerSectionHeading}>👥 2. ADD PLAYERS ({newTeamSquad.length}/20):</Text>
-                <Text style={[styles.squadLimitBadge, newTeamSquad.length >= 20 && { color: '#ef4444' }]}>
-                  {newTeamSquad.length >= 20 ? 'Max 20 Reached' : `${20 - newTeamSquad.length} slots left`}
+                <Text style={styles.pickerSectionHeading}>👥 2. ADD PLAYERS ({(newTeamSquad || []).length}/20):</Text>
+                <Text style={[styles.squadLimitBadge, (newTeamSquad || []).length >= 20 && { color: '#ef4444' }]}>
+                  {(newTeamSquad || []).length >= 20 ? 'Max 20 Reached' : `${20 - (newTeamSquad || []).length} slots left`}
                 </Text>
               </View>
 
@@ -17241,9 +17339,9 @@ function CricketAddaMain() {
                       style={[
                         styles.addPlayerMiniSubmitBtn,
                         { height: 42, paddingHorizontal: 16 },
-                        newTeamSquad.length >= 20 && { opacity: 0.5 },
+                        (newTeamSquad || []).length >= 20 && { opacity: 0.5 },
                       ]}
-                      disabled={newTeamSquad.length >= 20}
+                      disabled={(newTeamSquad || []).length >= 20}
                       onPress={handleAddPlayerToNewTeamSquad}
                     >
                       <Text style={styles.addPlayerMiniSubmitText}>➕ Add</Text>
@@ -17255,9 +17353,9 @@ function CricketAddaMain() {
               {/* SQUAD LIST (MAX 20) */}
               <View style={{ marginTop: 12 }}>
                 <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>
-                  📋 SQUAD ROSTER ({newTeamSquad.length} Players):
+                  📋 SQUAD ROSTER ({(newTeamSquad || []).length} Players):
                 </Text>
-                {newTeamSquad.length === 0 ? (
+                {(!newTeamSquad || newTeamSquad.length === 0) ? (
                   <View style={[styles.squadEmptyPrompt, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
                     <Text style={{ fontSize: 20, marginBottom: 4 }}>👥</Text>
                     <Text style={[styles.squadEmptyPromptText, currentTheme.isLight && { color: '#0f172a' }]}>No custom players added yet.</Text>
@@ -17337,7 +17435,7 @@ function CricketAddaMain() {
                   onPress={handleSaveNewTeamWithSquad}
                 >
                   <Text style={[styles.confirmBtnText, { color: '#ffffff' }]}>
-                    {editingTeamId ? `💾 Update Team & Squad (${Math.max(1, newTeamSquad.length)} Pl)` : `💾 Save Team & Squad (${Math.max(11, newTeamSquad.length)} Pl)`}
+                    {editingTeamId ? `💾 Update Team & Squad (${Math.max(1, (newTeamSquad || []).length)} Pl)` : `💾 Save Team & Squad (${Math.max(11, (newTeamSquad || []).length)} Pl)`}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -17646,7 +17744,7 @@ function CricketAddaMain() {
                           );
                           return;
                         }
-                        if (isPrev && activeOppBowlers.length > 1) {
+                        if (isPrev && (activeOppBowlers || []).length > 1) {
                           Alert.alert(
                             '🚫 Consecutive Overs Not Allowed',
                             `• ${b} bowled the previous over.\n• Under cricket rules, a bowler cannot bowl two consecutive overs.\n• Please select a different bowler.`
@@ -18014,7 +18112,7 @@ function CricketAddaMain() {
                     </View>
 
                     {/* 3. MVP LEADERBOARD TOP 5 LIST */}
-                    {topMvp.length > 0 && (
+                    {(topMvp || []).length > 0 && (
                       <View style={{ backgroundColor: '#082f49', borderRadius: 10, padding: 10, borderWidth: 1, borderColor: '#0369a1' }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                           <Text style={{ color: '#bae6fd', fontSize: 11, fontWeight: '900' }}>
@@ -18920,7 +19018,7 @@ function CricketAddaMain() {
                           placeholderTextColor="#64748b"
                           autoFocus={true}
                         />
-                        {teamSearchQuery.length > 0 ? (
+                        {(teamSearchQuery || '').length > 0 ? (
                           <TouchableOpacity onPress={() => setTeamSearchQuery('')}>
                             <Text style={{ color: '#94a3b8', fontSize: 13 }}>✕</Text>
                           </TouchableOpacity>
@@ -18928,7 +19026,7 @@ function CricketAddaMain() {
                       </View>
 
                       {/* 1-Tap Create & Select Custom Team when typed */}
-                      {teamSearchQuery.trim().length > 0 && !registeredTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
+                      {(teamSearchQuery || '').trim().length > 0 && !registeredTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
                         <TouchableOpacity
                           style={styles.dropdownAddNewTeamBtn}
                           onPress={() => handleAddNewCustomTeam('teamA', teamSearchQuery)}
@@ -19086,7 +19184,7 @@ function CricketAddaMain() {
                           placeholderTextColor="#64748b"
                           autoFocus={true}
                         />
-                        {teamSearchQuery.length > 0 ? (
+                        {(teamSearchQuery || '').length > 0 ? (
                           <TouchableOpacity onPress={() => setTeamSearchQuery('')}>
                             <Text style={{ color: '#94a3b8', fontSize: 13 }}>✕</Text>
                           </TouchableOpacity>
@@ -19094,7 +19192,7 @@ function CricketAddaMain() {
                       </View>
 
                       {/* 1-Tap Create & Select Custom Team when typed */}
-                      {teamSearchQuery.trim().length > 0 && !registeredTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
+                      {(teamSearchQuery || '').trim().length > 0 && !registeredTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
                         <TouchableOpacity
                           style={styles.dropdownAddNewTeamBtn}
                           onPress={() => handleAddNewCustomTeam('teamB', teamSearchQuery)}
@@ -19514,7 +19612,7 @@ function CricketAddaMain() {
                   <View style={[styles.teamSetupCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Text style={[styles.teamSetupHeader, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-                        {matchDraft.myTeam?.flag} {matchDraft.myTeam?.name} (Playing XI: {matchDraft.myPlayingXI?.length}/11)
+                        {matchDraft.myTeam?.flag} {matchDraft.myTeam?.name} (Playing XI: {matchDraft.myPlayingXI?.length || 0}/11)
                       </Text>
                       <TouchableOpacity
                         style={[styles.addGuestMiniBtn, { backgroundColor: currentTheme.primary }]}
@@ -19629,7 +19727,7 @@ function CricketAddaMain() {
                   <View style={[styles.teamSetupCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder, marginTop: 12 }]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
                       <Text style={[styles.teamSetupHeader, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-                        {matchDraft.opponentTeam?.flag} {matchDraft.opponentTeam?.name} (Playing XI: {matchDraft.opponentPlayingXI?.length}/11)
+                        {matchDraft.opponentTeam?.flag} {matchDraft.opponentTeam?.name} (Playing XI: {matchDraft.opponentPlayingXI?.length || 0}/11)
                       </Text>
                       <TouchableOpacity
                         style={[styles.addGuestMiniBtn, { backgroundColor: currentTheme.primary }]}
@@ -20382,7 +20480,7 @@ function CricketAddaMain() {
               <View style={{ marginTop: 4, paddingTop: 14, borderTopWidth: 1, borderTopColor: currentTheme.isLight ? '#e2e8f0' : '#334155' }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                   <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#0f172a' }, { fontSize: 13 }]}>
-                    4. Team Players ({captainSquadList.length}):
+                    4. Team Players ({(captainSquadList || []).length}):
                   </Text>
                 </View>
 
@@ -20410,7 +20508,7 @@ function CricketAddaMain() {
                   />
 
                   {/* Autofill Suggestions Dropdown Chips */}
-                  {filteredPlayerSuggestions.length > 0 && (
+                  {(filteredPlayerSuggestions || []).length > 0 && (
                     <View style={{
                       backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
                       borderRadius: 8,
@@ -20698,7 +20796,7 @@ function CricketAddaMain() {
                     flexDirection: 'row',
                     alignItems: 'center',
                     backgroundColor: '#0f172a',
-                    borderColor: transferPhoneInput.length === 10 ? '#38bdf8' : '#334155',
+                    borderColor: (transferPhoneInput || '').length === 10 ? '#38bdf8' : '#334155',
                     borderWidth: 1.2,
                     borderRadius: 10,
                     paddingHorizontal: 12,
@@ -20720,7 +20818,7 @@ function CricketAddaMain() {
                       value={transferPhoneInput}
                       onChangeText={handleTransferPhoneChange}
                     />
-                    {transferPhoneInput.length > 0 && (
+                    {(transferPhoneInput || '').length > 0 && (
                       <TouchableOpacity
                         onPress={() => handleTransferPhoneChange('')}
                         style={{ padding: 4 }}
@@ -20863,7 +20961,7 @@ function CricketAddaMain() {
                 )}
 
                 {/* Unregistered Phone Number State (Allow custom name entry) */}
-                {!transferPhoneSearching && transferPhoneNotFound && transferPhoneInput.length === 10 && (
+                {!transferPhoneSearching && transferPhoneNotFound && (transferPhoneInput || '').length === 10 && (
                   <View style={{
                     backgroundColor: '#1e1e24',
                     borderColor: '#f59e0b',
@@ -20970,7 +21068,7 @@ function CricketAddaMain() {
                 )}
 
                 {/* Helper / Info Card */}
-                {transferPhoneInput.length < 10 && (
+                {(transferPhoneInput || '').length < 10 && (
                   <View style={{
                     backgroundColor: '#0f172a',
                     borderColor: '#1e293b',
@@ -21000,7 +21098,7 @@ function CricketAddaMain() {
                       🏏 {battingTeamFlag} {battingTeamName} Squad
                     </Text>
                     <Text style={{ color: '#34d399', fontSize: 10, fontWeight: 'bold' }}>
-                      {activeBattingSquad.length} Players
+                      {(activeBattingSquad || []).length} Players
                     </Text>
                   </View>
                   {activeBattingSquad.map((pName, idx) => {
@@ -21067,7 +21165,7 @@ function CricketAddaMain() {
                       ⚡ {bowlingTeamFlag} {bowlingTeamName} Squad
                     </Text>
                     <Text style={{ color: '#818cf8', fontSize: 10, fontWeight: 'bold' }}>
-                      {activeOppBowlers.length} Players
+                      {(activeOppBowlers || []).length} Players
                     </Text>
                   </View>
                   {activeOppBowlers.map((pName, idx) => {
