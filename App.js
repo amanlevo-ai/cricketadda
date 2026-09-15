@@ -999,6 +999,25 @@ function formatBowlerStyle(style) {
 }
 
 const CELEBRATION_MESSAGES = {
+  century: [
+    { title: '👑 MAGNIFICENT CENTURY! 💯', sub: 'Bat raised to a standing ovation! A masterclass hundred of sheer perfection and brilliance!', emoji: '💯', tag: 'MAJESTIC 100' },
+    { title: '🌟 SENSATIONAL HUNDRED! 💯', sub: 'Reaches the coveted 3-figure mark in style! What an extraordinary innings!', emoji: '👑', tag: 'CENTURY MILESTONE' },
+    { title: '🔥 HISTORIC T20 CENTURY! 💯', sub: 'Pulls off his helmet and roars to the crowd! A truly memorable batting masterclass!', emoji: '🔥', tag: '100 RUNS' },
+  ],
+  fifty: [
+    { title: '👑 GLORIOUS HALF-CENTURY! ⭐', sub: 'Helmet raised to thunderous applause! A commanding fifty powering the team forward!', emoji: '⭐', tag: 'SMASHING 50' },
+    { title: '🔥 ROARING FIFTY! ⚡', sub: 'Fifty up in blistering fashion! Crisp strokeplay and immense authority!', emoji: '🔥', tag: 'HALF CENTURY' },
+    { title: '💎 MASTERFUL 50! 🏏', sub: 'Paces the innings brilliantly to reach a well-deserved fifty milestone!', emoji: '💎', tag: '50 RUNS' },
+  ],
+  five_wicket_haul: [
+    { title: '🏆 HISTORIC 5-WICKET HAUL! 🖐️', sub: 'Raises the ball to thunderous applause! A sensational 5-wicket fifer destroying the opposition!', emoji: '🖐️', tag: '5-WKT FIFER' },
+    { title: '🔥 UNSTOPPABLE 5-WKT MASTERCLASS! 🏆', sub: 'Five scalps in the bag! A lethal, match-winning bowling spell of the highest order!', emoji: '🔥', tag: '5-WICKET HAUL' },
+  ],
+  three_wicket_haul: [
+    { title: '⚡ SENSATIONAL 3-WICKET HAUL! 🎯', sub: 'A devastating spell! Third wicket claimed to rip through the batting lineup!', emoji: '🎯', tag: '3-WKT HAUL' },
+    { title: '🔥 DEADLY 3-WICKET SPELL! ⚡', sub: 'Three crucial wickets in the match! Changing the game with every delivery!', emoji: '🔥', tag: '3 WICKETS' },
+  ],
+
   six_stadium: [
     { title: '🚀 MONSTER STADIUM SIX!', sub: 'Dispatched into orbit! That is clean out of the stadium roof (108m)!', emoji: '🚀', tag: '108 METERS' },
     { title: '💥 OUT OF THE PARK!', sub: 'Smoked into the top tier! What a monstrous strike!', emoji: '💥', tag: 'OUT OF PARK' },
@@ -4837,14 +4856,16 @@ function CricketAddaMain() {
           if (ctx.state === 'suspended') {
             ctx.resume().catch(() => {});
           }
-          const duration = 2.2;
+          const isMilestoneGrand = type === 'century' || type === 'five_wicket_haul';
+          const isMilestoneMedium = type === 'fifty' || type === 'three_wicket_haul';
+          const duration = isMilestoneGrand ? 3.2 : isMilestoneMedium ? 2.6 : 2.2;
           const sampleRate = ctx.sampleRate || 44100;
           const frameCount = Math.floor(sampleRate * duration);
           const audioBuffer = ctx.createBuffer(1, frameCount, sampleRate);
           const channelData = audioBuffer.getChannelData(0);
 
-          // Stadium clapping bursts synthesis (300 overlapping applause claps)
-          const numClaps = 300;
+          // Stadium clapping bursts synthesis (300 to 500 overlapping applause claps for standing ovation)
+          const numClaps = isMilestoneGrand ? 500 : isMilestoneMedium ? 380 : 300;
           for (let c = 0; c < numClaps; c++) {
             const startTime = Math.pow(Math.random(), 0.7) * (duration - 0.2);
             const startSample = Math.floor(startTime * sampleRate);
@@ -4915,7 +4936,23 @@ function CricketAddaMain() {
     let glowColor = '#fbbf24';
     let bgGradient = ['#4c1d95', '#1e1b4b'];
 
-    if (type.startsWith('four') || type === 'four') {
+    if (type === 'century') {
+      mainColor = '#eab308';
+      glowColor = '#fde047';
+      bgGradient = ['#713f12', '#3f1a04'];
+    } else if (type === 'five_wicket_haul') {
+      mainColor = '#dc2626';
+      glowColor = '#f87171';
+      bgGradient = ['#7f1d1d', '#450a0a'];
+    } else if (type === 'fifty') {
+      mainColor = '#10b981';
+      glowColor = '#34d399';
+      bgGradient = ['#064e3b', '#022c22'];
+    } else if (type === 'three_wicket_haul') {
+      mainColor = '#8b5cf6';
+      glowColor = '#c084fc';
+      bgGradient = ['#4c1d95', '#2e1065'];
+    } else if (type.startsWith('four') || type === 'four') {
       mainColor = '#10b981';
       glowColor = '#34d399';
       bgGradient = ['#064e3b', '#06201a'];
@@ -4974,7 +5011,15 @@ function CricketAddaMain() {
     // 1. Sensory Haptic Vibration feedback on viewer mobile device
     if (Vibration && typeof Vibration.vibrate === 'function') {
       try {
-        if (type.startsWith('six') || type === 'six') {
+        if (type === 'century') {
+          Vibration.vibrate([0, 200, 70, 200, 70, 350]);
+        } else if (type === 'five_wicket_haul') {
+          Vibration.vibrate([0, 250, 80, 250, 80, 400]);
+        } else if (type === 'fifty') {
+          Vibration.vibrate([0, 160, 60, 220]);
+        } else if (type === 'three_wicket_haul') {
+          Vibration.vibrate([0, 180, 70, 250]);
+        } else if (type.startsWith('six') || type === 'six') {
           Vibration.vibrate([0, 150, 60, 150, 60, 200]);
         } else if (type.startsWith('four') || type === 'four') {
           Vibration.vibrate([0, 100, 50, 120]);
@@ -6033,9 +6078,66 @@ function CricketAddaMain() {
     const nextThisOver = prevLegalCount >= 6 ? [ballSymbol] : [...liveThisOver, ballSymbol];
     setLiveThisOver(nextThisOver);
 
-    // 5.5 Trigger Attractive Live Celebration Pop-Up for 4s, 6s, and Wickets
+    // 5.5 Trigger Attractive Live Celebration Pop-Up for Milestones (50s, 100s, 3-Wkt, 5-Wkt), 4s, 6s, and Wickets
+    const priorBatterRuns = liveBatters[striker]?.runs || 0;
+    const newBatterRuns = (liveBatters[striker]?.runs || 0) + batterRunsAdded;
+    const newBatterBalls = (liveBatters[striker]?.balls || 0) + batterBallsAdded;
+
+    const priorBowlerWkts = liveBowlerStats[bowler]?.wickets || 0;
+    const newBowlerWkts = priorBowlerWkts + (isWkt ? 1 : 0);
+
     let celebrationEvent = null;
-    if (runs === 6 && !isWkt) {
+
+    // 1. Century Milestone (100 Runs)
+    if (priorBatterRuns < 100 && newBatterRuns >= 100) {
+      celebrationEvent = {
+        id: Date.now(),
+        type: 'century',
+        player: striker,
+        runs: `${newBatterRuns}* (${newBatterBalls})`,
+        milestoneRuns: newBatterRuns,
+        balls: newBatterBalls,
+        teamFlag: battingTeamFlag,
+        teamName: battingTeamName,
+      };
+    }
+    // 2. 5-Wicket Haul Milestone (5 Wickets Fifer)
+    else if (isWkt && priorBowlerWkts < 5 && newBowlerWkts >= 5) {
+      celebrationEvent = {
+        id: Date.now(),
+        type: 'five_wicket_haul',
+        player: bowler,
+        runs: `5-WKT FIFER (${newBowlerWkts} Wkts)`,
+        teamFlag: bowlingTeamFlag,
+        teamName: bowlingTeamName,
+      };
+    }
+    // 3. Half-Century Milestone (50 Runs)
+    else if (priorBatterRuns < 50 && newBatterRuns >= 50) {
+      celebrationEvent = {
+        id: Date.now(),
+        type: 'fifty',
+        player: striker,
+        runs: `${newBatterRuns}* (${newBatterBalls})`,
+        milestoneRuns: newBatterRuns,
+        balls: newBatterBalls,
+        teamFlag: battingTeamFlag,
+        teamName: battingTeamName,
+      };
+    }
+    // 4. 3-Wicket Haul Milestone (3 Wickets)
+    else if (isWkt && priorBowlerWkts < 3 && newBowlerWkts >= 3) {
+      celebrationEvent = {
+        id: Date.now(),
+        type: 'three_wicket_haul',
+        player: bowler,
+        runs: `3-WKT HAUL (${newBowlerWkts} Wkts)`,
+        teamFlag: bowlingTeamFlag,
+        teamName: bowlingTeamName,
+      };
+    }
+    // 5. Boundary Sixes
+    else if (runs === 6 && !isWkt) {
       let sixShotType = 'six_stadium';
       const sectorId = shotSector?.id;
       if (sectorId === 'mid_wicket') {
@@ -6049,7 +6151,9 @@ function CricketAddaMain() {
         sixShotType = pool[Math.floor(Math.random() * pool.length)];
       }
       celebrationEvent = { id: Date.now(), type: sixShotType, player: striker, runs: '6', teamFlag: battingTeamFlag, teamName: battingTeamName };
-    } else if (runs === 4 && !isWkt) {
+    }
+    // 6. Boundary Fours
+    else if (runs === 4 && !isWkt) {
       let fourShotType = 'four_drive';
       const sectorId = shotSector?.id;
       if (sectorId === 'cover' || sectorId === 'long_off' || sectorId === 'long_on') {
@@ -6063,19 +6167,27 @@ function CricketAddaMain() {
         fourShotType = pool[Math.floor(Math.random() * pool.length)];
       }
       celebrationEvent = { id: Date.now(), type: fourShotType, player: striker, runs: '4', teamFlag: battingTeamFlag, teamName: battingTeamName };
-    } else if (isWkt) {
+    }
+    // 7. Wickets
+    else if (isWkt) {
       const actualDismissal = customDismissalType || dismissalType || 'bowled';
       const dismissedName = dismissedPlayerName || (outBatter === 'striker' ? striker : nonStriker);
       celebrationEvent = { id: Date.now(), type: actualDismissal, player: dismissedName, runs: 'OUT', teamFlag: battingTeamFlag, teamName: battingTeamName };
-    } else if (extraType === 'noBall') {
+    }
+    // 8. No Ball / Free Hit
+    else if (extraType === 'noBall') {
       celebrationEvent = { id: Date.now(), type: 'no_ball', player: striker, runs: 'FREE HIT', teamFlag: battingTeamFlag, teamName: battingTeamName };
     }
 
-    // Sensory vibration & audio for official scorer when recording boundaries, wickets, or no balls
+    // Sensory vibration & audio for official scorer when recording milestones, boundaries, wickets, or no balls
     if (celebrationEvent) {
       if (Vibration && typeof Vibration.vibrate === 'function') {
         try {
-          if (celebrationEvent.type === 'no_ball') Vibration.vibrate([0, 80, 40, 80]);
+          if (celebrationEvent.type === 'century') Vibration.vibrate([0, 200, 70, 200, 70, 350]);
+          else if (celebrationEvent.type === 'five_wicket_haul') Vibration.vibrate([0, 250, 80, 250, 80, 400]);
+          else if (celebrationEvent.type === 'fifty') Vibration.vibrate([0, 160, 60, 220]);
+          else if (celebrationEvent.type === 'three_wicket_haul') Vibration.vibrate([0, 180, 70, 250]);
+          else if (celebrationEvent.type === 'no_ball') Vibration.vibrate([0, 80, 40, 80]);
           else if (runs === 6) Vibration.vibrate([0, 100, 50, 120]);
           else if (runs === 4) Vibration.vibrate([0, 80, 40, 80]);
           else if (isWkt) Vibration.vibrate([0, 120, 50, 160]);
@@ -19552,6 +19664,14 @@ function CricketAddaMain() {
                   ? '⚡ LIGHTNING STUMPED! ⚡'
                   : celebrationData.type === 'hit_wicket'
                   ? '⛔ HIT WICKET! ⛔'
+                  : celebrationData.type === 'century'
+                  ? '💯 MAGNIFICENT CENTURY! 💯'
+                  : celebrationData.type === 'fifty'
+                  ? '⭐ GLORIOUS FIFTY (50*) ⭐'
+                  : celebrationData.type === 'five_wicket_haul'
+                  ? '🖐️ 5-WICKET FIFER! 🏆'
+                  : celebrationData.type === 'three_wicket_haul'
+                  ? '🎯 3-WICKET HAUL! 🔥'
                   : celebrationData.type === 'no_ball' || celebrationData.type === 'noBall'
                   ? '🚨 NO BALL • FREE HIT! 🚨'
                   : celebrationData.runsOrWkt === '6'
