@@ -755,139 +755,11 @@ const BROADCAST_SECTORS = [
 
 const INITIAL_PLAYER_FIELDING_DB = {};
 
-const OPPOSITION_FIELDERS = [
-  'Mitchell Starc',
-  'Pat Cummins',
-  'Josh Hazlewood',
-  'Adam Zampa',
-  'Glenn Maxwell',
-  'Marcus Stoinis',
-  'Travis Head',
-  'David Warner',
-  'Mitchell Marsh (c)',
-  'Tim David',
-  'Josh Inglis (wk)',
-];
+const OPPOSITION_FIELDERS = [];
 
-const FIELDING_POSITIONS = [
-  'Wicketkeeper',
-  'Slip',
-  'Point',
-  'Cover',
-  'Extra Cover',
-  'Mid-off',
-  'Mid-on',
-  'Deep Midwicket',
-  'Long-on',
-  'Long-off',
-  'Square Leg',
-  'Fine Leg',
-  'Gully',
-  'Third Man',
-];
+const OPPOSITION_BOWLERS = [];
 
-const OPPOSITION_BOWLERS = [
-  'Pat Cummins (c)',
-  'Mitchell Starc',
-  'Josh Hazlewood',
-  'Adam Zampa',
-  'Glenn Maxwell',
-  'Marcus Stoinis',
-  'Travis Head',
-  'Cameron Green',
-];
-
-const DISMISSAL_TYPES = [
-  { id: 'caught', name: 'Caught', isCaughtIcon: true, needsFielder: true, code: 'c' },
-  { id: 'bowled', name: 'Bowled', isBowledIcon: true, needsFielder: false, code: 'b' },
-  { id: 'lbw', name: 'LBW', isLbwIcon: true, needsFielder: false, code: 'lbw b' },
-  { id: 'run_out', name: 'Run Out', isRunOutIcon: true, needsFielder: true, code: 'run out' },
-  { id: 'stumped', name: 'Stumped', isStumpedIcon: true, needsFielder: true, code: 'st' },
-  { id: 'hit_wicket', name: 'Hit Wkt', isHitWicketIcon: true, needsFielder: false, code: 'hit wicket b' },
-  { id: 'obstructing', name: 'Obstruct', icon: '🖐️', needsFielder: false, code: 'obstructing field' },
-  { id: 'retired', name: 'Retired', icon: '⏱️', needsFielder: false, code: 'retired out' },
-];
-
-const BENCH_BATTERS = [
-  'Suryakumar Yadav',
-  'Rishabh Pant (wk)',
-  'Sanju Samson',
-  'Shivam Dube',
-  'Axar Patel',
-  'Ravindra Jadeja',
-  'Washington Sundar',
-  'Kuldeep Yadav',
-  'Mohammed Shami',
-  'Jasprit Bumrah',
-  'Mohammed Siraj',
-  'Arshdeep Singh',
-];
-
-const CANCEL_MATCH_REASONS = [
-  {
-    id: 'rain_wet_outfield',
-    icon: '🌧️',
-    title: 'Rain / Wet Outfield',
-    sub: 'Continuous rainfall or waterlogged outfield preventing play (No Result)',
-    defaultResult: 'Match Abandoned due to Rain (No Result)',
-  },
-  {
-    id: 'player_injured',
-    icon: '🩹',
-    title: 'Player Injured / Medical Emergency',
-    sub: 'Critical player injury or team unable to field minimum players safely',
-    defaultResult: 'Match Called Off due to Player Injury / Medical Emergency',
-  },
-  {
-    id: 'bad_light',
-    icon: '💡',
-    title: 'Bad Light / Visibility Issue',
-    sub: 'Deteriorating natural daylight or stadium floodlight electrical blackout',
-    defaultResult: 'Match Called Off due to Bad Light (No Result)',
-  },
-  {
-    id: 'unfit_pitch',
-    icon: '🏟️',
-    title: 'Dangerous / Unplayable Pitch',
-    sub: 'Hazardous pitch surface condition with excessive variable bounce',
-    defaultResult: 'Match Abandoned due to Unsafe Pitch (No Result)',
-  },
-  {
-    id: 'team_forfeit',
-    icon: '🤝',
-    title: 'Team Forfeit / Walkover',
-    sub: 'Opponent team conceded or withdrew from the match',
-    defaultResult: 'Match Awarded on Forfeiture / Walkover',
-  },
-  {
-    id: 'ground_curfew',
-    icon: '⏰',
-    title: 'Match Time Limit / Curfew Reached',
-    sub: 'Allocated ground hours expired before minimum required overs bowled',
-    defaultResult: 'Match Abandoned due to Time Limit (No Result)',
-  },
-  {
-    id: 'severe_weather',
-    icon: '🌪️',
-    title: 'Severe Storm / Natural Hazard',
-    sub: 'Extreme storm, lightning risk, dense fog, or environmental hazard',
-    defaultResult: 'Match Abandoned due to Severe Weather (No Result)',
-  },
-  {
-    id: 'mutual_agreement',
-    icon: '🚫',
-    title: 'Mutual Agreement / Officials Call',
-    sub: 'Both team captains and match umpires mutually agreed to call off play',
-    defaultResult: 'Match Cancelled by Mutual Agreement',
-  },
-  {
-    id: 'custom_reason',
-    icon: '✏️',
-    title: 'Other / Custom Reason',
-    sub: 'Enter specific custom tournament reason below',
-    defaultResult: 'Match Cancelled: Custom Reason',
-  },
-];
+const BENCH_BATTERS = [];
 
 const APP_THEMES = [
   {
@@ -4210,7 +4082,7 @@ function CricketAddaMain() {
   const [captainNewPlayerName, setCaptainNewPlayerName] = useState('');
   const [captainSquadList, setCaptainSquadList] = useState([]);
 
-  const allAvailablePlayersMaster = useMemo(() => {
+    const allAvailablePlayersMaster = useMemo(() => {
     const names = new Set();
     registeredTeams.forEach(t => {
       if (Array.isArray(t.squad)) {
@@ -4220,19 +4092,11 @@ function CricketAddaMain() {
         });
       }
     });
-    [
-      'Rohit Sharma', 'Virat Kohli', 'MS Dhoni', 'Hardik Pandya', 'Rishabh Pant',
-      'Suryakumar Yadav', 'Jasprit Bumrah', 'Ravindra Jadeja', 'KL Rahul', 'Shubman Gill',
-      'Shreyas Iyer', 'Kuldeep Yadav', 'Mohammed Siraj', 'Mohammed Shami', 'Axar Patel',
-      'Sanju Samson', 'Ishan Kishan', 'Yuzvendra Chahal', 'Washington Sundar', 'Arshdeep Singh',
-      'Rinku Singh', 'Yashasvi Jaiswal', 'Shivam Dube', 'Ruturaj Gaikwad', 'Tilak Varma',
-      'Travis Head', 'David Warner', 'Mitchell Marsh', 'Glenn Maxwell', 'Marcus Stoinis',
-      'Pat Cummins', 'Mitchell Starc', 'Josh Hazlewood', 'Adam Zampa', 'Steve Smith',
-      'Babar Azam', 'Shaheen Afridi', 'Mohammad Rizwan', 'Jos Buttler', 'Ben Stokes',
-      'Rashid Khan', 'Kane Williamson', 'Trent Boult', 'Quinton de Kock', 'Kagiso Rabada'
-    ].forEach(n => names.add(n));
+    registeredPlayers.forEach(p => {
+      if (p && p.name) names.add(p.name.replace(' (c)', '').replace(' (wk)', '').trim());
+    });
     return Array.from(names);
-  }, [registeredTeams]);
+  }, [registeredTeams, registeredPlayers]);
 
   const filteredPlayerSuggestions = useMemo(() => {
     if (!captainNewPlayerName || !captainNewPlayerName.trim()) return [];
@@ -4687,7 +4551,7 @@ function CricketAddaMain() {
   // Change Bowler modal state
   const [changeBowlerModalVisible, setChangeBowlerModalVisible] = useState(false);
   const [needsNewBowler, setNeedsNewBowler] = useState(false);
-  const [nextBowler, setNextBowler] = useState('Pat Cummins (c)');
+  const [nextBowler, setNextBowler] = useState('');
   const [customNextBowler, setCustomNextBowler] = useState('');
   const [swapBattersOnOverEnd, setSwapBattersOnOverEnd] = useState(true);
 
@@ -4949,17 +4813,17 @@ function CricketAddaMain() {
   const [wicketModalVisible, setWicketModalVisible] = useState(false);
   const [dismissalType, setDismissalType] = useState('caught');
   const [outBatter, setOutBatter] = useState('striker'); // 'striker' | 'nonStriker'
-  const [wicketFielder, setWicketFielder] = useState('Glenn Maxwell');
+  const [wicketFielder, setWicketFielder] = useState('');
   const [customWicketFielder, setCustomWicketFielder] = useState('');
   const [runOutRunsCompleted, setRunOutRunsCompleted] = useState(0);
-  const [incomingBatter, setIncomingBatter] = useState('Suryakumar Yadav');
+  const [incomingBatter, setIncomingBatter] = useState('');
   const [customIncomingBatter, setCustomIncomingBatter] = useState('');
 
   // Drop Catch modal & Fielding Database state
   const [commentaryModalVisible, setCommentaryModalVisible] = useState(false);
   const [dropCatchModalVisible, setDropCatchModalVisible] = useState(false);
   const [dropToastNotification, setDropToastNotification] = useState(null);
-  const [dropFielder, setDropFielder] = useState('Glenn Maxwell');
+  const [dropFielder, setDropFielder] = useState('');
   const [customFielderInput, setCustomFielderInput] = useState('');
   const [dropPosition, setDropPosition] = useState('Point');
   const [dropRuns, setDropRuns] = useState(1);
@@ -5019,7 +4883,7 @@ function CricketAddaMain() {
   // Innings Management State & Modals
   const [currentInnings, setCurrentInnings] = useState(1); // 1: First Innings, 2: Second Innings
   const [firstInningsSummary, setFirstInningsSummary] = useState(null);
-  const [lastOverStats, setLastOverStats] = useState({ bowler: 'Mitchell Starc', runs: 6, wickets: 0 });
+  const [lastOverStats, setLastOverStats] = useState(null);
   const [inningsBreakModalVisible, setInningsBreakModalVisible] = useState(false);
   const [matchCompletedModalVisible, setMatchCompletedModalVisible] = useState(false);
   const [matchResultText, setMatchResultText] = useState('');
@@ -5045,7 +4909,7 @@ function CricketAddaMain() {
     sub: 'Dispatched into orbit! That is clean out of the stadium!',
     emoji: '🚀',
     tag: 'COLOSSAL SIX',
-    player: 'Rohit Sharma (c)',
+    player: '',
     runsOrWkt: '6',
     mainColor: '#f59e0b',
     glowColor: '#fbbf24',
@@ -5669,11 +5533,12 @@ function CricketAddaMain() {
     ? firstInningsSummary.target
     : (currentMatchData?.innings1?.runs ? currentMatchData.innings1.runs + 1 : 0);
 
-  const isFirstInningsFinished = currentInnings === 1 && (liveBalls >= maxLegalBalls || liveWickets >= 10);
+    const maxWicketsForSquad = Math.max(1, (activeBattingSquad.length > 0 ? activeBattingSquad.length - 1 : 10));
+  const isFirstInningsFinished = currentInnings === 1 && (liveBalls >= maxLegalBalls || liveWickets >= maxWicketsForSquad);
   const isSecondInningsFinished = currentInnings === 2 && (
     (targetRuns > 0 && liveRuns >= targetRuns) ||
     liveBalls >= maxLegalBalls ||
-    liveWickets >= 10
+    liveWickets >= maxWicketsForSquad
   );
   const isCurrentInningsOver = isFirstInningsFinished || isSecondInningsFinished;
 
@@ -5846,9 +5711,30 @@ function CricketAddaMain() {
     return null;
   }, [userProfile, authName, registeredTeams, currentMatchData, usersDb]);
 
-  let striker = match.currentStriker || (currentMatchData?.innings1?.batting?.[0]?.name) || 'Rohit Sharma (c)';
-  let nonStriker = match.currentNonStriker || (currentMatchData?.innings1?.batting?.[1]?.name) || 'Hardik Pandya';
-  let bowler = match.currentBowler || (currentMatchData?.innings1?.bowling?.[0]?.name) || 'Mitchell Starc';
+  // All Playing XI players of the active batting team
+  const activeBattingSquad = (() => {
+    if (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0) {
+      return currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
+    }
+    const registeredBatTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === battingTeamName.toLowerCase().trim());
+    if (registeredBatTeam && Array.isArray(registeredBatTeam.squad) && registeredBatTeam.squad.length > 0) {
+      return registeredBatTeam.squad.map(p => typeof p === 'string' ? p : p.name);
+    }
+    if (currentInnings === 1) {
+      if (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0) {
+        return currentMatchData.innings1.batting.map(b => b.name);
+      }
+      return [];
+    } else {
+      if (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0) {
+        return currentMatchData.innings2.batting.map(b => b.name);
+      }
+      if (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0) {
+        return currentMatchData.innings1.bowling.map(b => b.name);
+      }
+      return [];
+    }
+  })();
 
   // All Playing XI players of the opposition fielding/bowling team eligible to bowl
   const activeOppBowlers = (() => {
@@ -5868,7 +5754,7 @@ function CricketAddaMain() {
       if (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0) {
         return currentMatchData.innings2.batting.map(b => b.name);
       }
-      return OPPOSITION_FIELDERS;
+      return [];
     } else {
       if (currentMatchData?.innings2?.bowling && currentMatchData.innings2.bowling.length > 0) {
         return currentMatchData.innings2.bowling.map(b => b.name);
@@ -5876,49 +5762,25 @@ function CricketAddaMain() {
       if (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0) {
         return currentMatchData.innings1.batting.map(b => b.name);
       }
-      return ['Jasprit Bumrah', 'Mohammed Siraj', 'Kuldeep Yadav', 'Ravindra Jadeja', 'Hardik Pandya', 'Axar Patel', 'Shivam Dube', 'Rohit Sharma (c)', 'Virat Kohli', 'Suryakumar Yadav', 'Rishabh Pant (wk)'];
+      return [];
     }
   })();
+
+  let striker = match.currentStriker || (currentMatchData?.innings1?.batting?.[0]?.name) || (activeBattingSquad[0] || 'Striker');
+  let nonStriker = match.currentNonStriker || (currentMatchData?.innings1?.batting?.[1]?.name) || (activeBattingSquad[1] || activeBattingSquad[0] || 'Non-Striker');
+  let bowler = match.currentBowler || (currentMatchData?.innings1?.bowling?.[0]?.name) || (activeOppBowlers[0] || 'Bowler');
 
   const activeOppFielders = activeOppBowlers;
 
-  // All Playing XI players of the active batting team
-  const activeBattingSquad = (() => {
-    if (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0) {
-      return currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
-    }
-    const registeredBatTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === battingTeamName.toLowerCase().trim());
-    if (registeredBatTeam && Array.isArray(registeredBatTeam.squad) && registeredBatTeam.squad.length > 0) {
-      return registeredBatTeam.squad.map(p => typeof p === 'string' ? p : p.name);
-    }
-    if (currentInnings === 1) {
-      if (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0) {
-        return currentMatchData.innings1.batting.map(b => b.name);
-      }
-      return ['Rohit Sharma (c)', 'Virat Kohli', 'Rishabh Pant (wk)', 'Suryakumar Yadav', 'Hardik Pandya', 'Shivam Dube', 'Axar Patel', 'Ravindra Jadeja', 'Kuldeep Yadav', 'Jasprit Bumrah', 'Mohammed Siraj'];
-    } else {
-      if (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0) {
-        return currentMatchData.innings2.batting.map(b => b.name);
-      }
-      if (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0) {
-        return currentMatchData.innings1.bowling.map(b => b.name);
-      }
-      return OPPOSITION_FIELDERS;
-    }
-  })();
-
   // Exact designated wicketkeeper of the fielding team
   const activeOppWicketkeeper = (() => {
-    if (currentInnings === 1) {
-      if (match.fieldingWicketkeeper) return match.fieldingWicketkeeper;
-      if (match.oppWicketkeeper) return match.oppWicketkeeper;
-      if (currentMatchData?.fieldingWicketkeeper) return currentMatchData.fieldingWicketkeeper;
-      if (currentMatchData?.oppWicketkeeper) return currentMatchData.oppWicketkeeper;
-      if (matchDraft?.oppWicketkeeper && matchDraft.oppWicketkeeper.trim()) return matchDraft.oppWicketkeeper;
-      return 'Josh Inglis (wk)';
-    } else {
-      return 'Rishabh Pant (wk)';
-    }
+    if (match.fieldingWicketkeeper) return match.fieldingWicketkeeper;
+    if (match.oppWicketkeeper) return match.oppWicketkeeper;
+    if (currentMatchData?.fieldingWicketkeeper) return currentMatchData.fieldingWicketkeeper;
+    if (currentMatchData?.oppWicketkeeper) return currentMatchData.oppWicketkeeper;
+    if (matchDraft?.oppWicketkeeper && matchDraft.oppWicketkeeper.trim()) return matchDraft.oppWicketkeeper;
+    if (activeOppBowlers.length > 0) return activeOppBowlers[0];
+    return 'Wicketkeeper';
   })();
 
   const activeBenchBatters = (() => {
@@ -6004,18 +5866,28 @@ function CricketAddaMain() {
     setSelectedExtraType(null);
     setNeedsNewBowler(false);
 
-    // 2. Set Opening Batters for 2nd Innings
+        // 2. Set Opening Batters for 2nd Innings
     const team2Batters = (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0)
       ? currentMatchData.innings2.batting.map(b => b.name)
-      : ['David Warner', 'Travis Head', 'Mitchell Marsh (c)', 'Glenn Maxwell', 'Marcus Stoinis', 'Tim David', 'Josh Inglis (wk)', 'Pat Cummins (c)', 'Mitchell Starc', 'Adam Zampa', 'Josh Hazlewood'];
+      : (match.fieldingSquad && match.fieldingSquad.length > 0)
+      ? match.fieldingSquad
+      : (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0)
+      ? currentMatchData.innings1.bowling.map(b => b.name)
+      : (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0)
+      ? currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name)
+      : [];
 
     const team1Bowlers = (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0)
       ? currentMatchData.innings1.bowling.map(b => b.name)
-      : ['Jasprit Bumrah', 'Mohammed Shami', 'Mohammed Siraj', 'Kuldeep Yadav', 'Ravindra Jadeja', 'Hardik Pandya'];
+      : (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0)
+      ? currentMatchData.innings1.batting.map(b => b.name)
+      : (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0)
+      ? currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name)
+      : [];
 
-    const newStriker = team2Batters[0] || 'David Warner';
-    const newNonStriker = team2Batters[1] || 'Travis Head';
-    const newBowler = team1Bowlers[0] || 'Jasprit Bumrah';
+    const newStriker = team2Batters[0] || 'Striker 1';
+    const newNonStriker = team2Batters[1] || team2Batters[0] || 'Striker 2';
+    const newBowler = team1Bowlers[0] || 'Opening Bowler';
 
     setMatch(prev => ({
       ...prev,
@@ -7056,7 +6928,7 @@ function CricketAddaMain() {
           shortName: data.shortName || 'SCN',
           flag: data.flag || '🦁',
           city: data.city || 'Scanned City',
-          squad: data.squad || Array.from({ length: 11 }, (_, i) => ({ id: `p_${i+1}`, name: `Player ${i+1}`, role: 'BAT' })),
+          squad: data.squad || [],
         };
         selectTeamForSlot(slot, teamObj);
         setUniversalQrScannerVisible(false);
@@ -9019,9 +8891,9 @@ function CricketAddaMain() {
   const selectTeamForSlot = (slot, team) => {
     if (!team) return;
     Keyboard.dismiss();
-    const defaultXI = (team.squad || []).slice(0, 11);
-    const defaultCap = team.captain || defaultXI[0]?.name || 'Captain';
-    const defaultWk = team.wicketkeeper || defaultXI.find(p => p.isWk)?.name || defaultXI[1]?.name || 'Keeper';
+    const defaultXI = (team.squad || []);
+    const defaultCap = team.captain || defaultXI[0]?.name || '';
+    const defaultWk = team.wicketkeeper || defaultXI.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
 
     if (slot === 'teamA') {
       updateDraft({
@@ -9052,13 +8924,13 @@ function CricketAddaMain() {
   const selectMatchupPair = (teamA, teamB) => {
     if (!teamA || !teamB) return;
     Keyboard.dismiss();
-    const defaultXI_A = (teamA.squad || []).slice(0, 11);
-    const defaultCap_A = teamA.captain || defaultXI_A[0]?.name || 'Captain';
-    const defaultWk_A = teamA.wicketkeeper || defaultXI_A.find(p => p.isWk)?.name || defaultXI_A[1]?.name || 'Keeper';
+    const defaultXI_A = (teamA.squad || []);
+    const defaultCap_A = teamA.captain || defaultXI_A[0]?.name || '';
+    const defaultWk_A = teamA.wicketkeeper || defaultXI_A.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
 
-    const defaultXI_B = (teamB.squad || []).slice(0, 11);
-    const defaultCap_B = teamB.captain || defaultXI_B[0]?.name || 'Captain';
-    const defaultWk_B = teamB.wicketkeeper || defaultXI_B.find(p => p.isWk)?.name || defaultXI_B[1]?.name || 'Keeper';
+    const defaultXI_B = (teamB.squad || []);
+    const defaultCap_B = teamB.captain || defaultXI_B[0]?.name || '';
+    const defaultWk_B = teamB.wicketkeeper || defaultXI_B.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
 
     updateDraft({
       myTeam: teamA,
@@ -10313,14 +10185,17 @@ function CricketAddaMain() {
       return;
     }
 
-    const cleanFlag = flag && flag.trim() ? flag.trim() : teamKey === 'myTeam' ? '🦁' : '⚡';
-    const customSquad = Array.from({ length: 11 }, (_, i) => ({
-      id: `cust_${teamKey}_${i + 1}`,
-      name: `${cleanName} Player ${i + 1}`,
-      role: i < 5 ? 'BAT' : i < 8 ? 'ALL' : 'BOWL',
-      isCaptain: i === 0,
-      isWk: i === 1,
-    }));
+        const cleanFlag = flag && flag.trim() ? flag.trim() : teamKey === 'myTeam' ? '🦁' : '⚡';
+    const customSquad = [
+      {
+        id: `p_cap_${Date.now()}`,
+        name: userProfile.name || `${cleanName} Captain`,
+        role: 'BAT',
+        isCaptain: true,
+        isWk: false,
+        phone: userProfile.phone || '',
+      }
+    ];
 
     const customTeamObj = {
       id: `custom_${teamKey}_${Date.now()}`,
@@ -10330,8 +10205,8 @@ function CricketAddaMain() {
       club: '',
       city: 'Local Ground',
       homeGround: 'Local Stadium',
-      captain: `${cleanName} Player 1`,
-      wicketkeeper: `${cleanName} Player 2`,
+      captain: userProfile.name || `${cleanName} Captain`,
+      wicketkeeper: '',
       squad: customSquad,
     };
 
@@ -10705,36 +10580,6 @@ function CricketAddaMain() {
         lastOverBowler: ls.lastOverBowler || prev.lastOverBowler,
         fieldingSquad: targetMatch.fieldingSquad || prev.fieldingSquad || [],
       }));
-    } else if (matchId === 'match_final_2026') {
-      if (liveBalls === 0 && liveRuns === 0) {
-        setCurrentInnings(1);
-        setFirstInningsSummary(null);
-        setLiveRuns(178);
-        setLiveWickets(4);
-        setLiveBalls(104);
-        setLiveThisOver(['4', '1']);
-        setMatch(prev => ({
-          ...prev,
-          title: targetMatch.title,
-          status: 'live',
-          overs: 20,
-          currentStriker: 'Rohit Sharma (c)',
-          currentNonStriker: 'Hardik Pandya',
-          currentBowler: 'Mitchell Starc',
-          previousBowler: null,
-        }));
-      }
-      setLiveBatters({
-        'Rohit Sharma (c)': { runs: 64, balls: 38, fours: 6, sixes: 3, dots: 11 },
-        'Hardik Pandya': { runs: 22, balls: 11, fours: 1, sixes: 2, dots: 2 },
-      });
-      setLiveBowlerStats({
-        'Mitchell Starc': { balls: 20, maidens: 0, runs: 34, wickets: 2 },
-        'Pat Cummins': { balls: 24, maidens: 0, runs: 38, wickets: 1 },
-        'Adam Zampa': { balls: 24, maidens: 0, runs: 32, wickets: 1 },
-        'Josh Hazlewood': { balls: 24, maidens: 0, runs: 34, wickets: 0 },
-        'Glenn Maxwell': { balls: 12, maidens: 0, runs: 31, wickets: 0 },
-      });
     } else {
       const inn1 = targetMatch.innings1 || {};
       const isInn1 = targetMatch.selectedInning !== 2;
