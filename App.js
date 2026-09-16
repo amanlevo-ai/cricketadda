@@ -5108,46 +5108,39 @@ function CricketAddaMain() {
     try {
       if (!soundEffectsEnabled) return;
 
-      // 1. Mobile Native Audio (Android & iOS) via expo-av
+      // 1. Mobile Native Audio (Android & iOS) via modern expo-audio
       let ExpoAudio = null;
       try {
-        ExpoAudio = require('expo-av').Audio;
+        ExpoAudio = require('expo-audio');
       } catch (e) {}
 
-      if (ExpoAudio && typeof ExpoAudio.Sound === 'function') {
+      if (ExpoAudio && typeof ExpoAudio.createAudioPlayer === 'function') {
         try {
-          await ExpoAudio.setAudioModeAsync({
-            playsInSilentModeIOS: true,
-            staysActiveInBackground: false,
-            shouldDuckAndroid: true,
-          });
+          if (typeof ExpoAudio.setAudioModeAsync === 'function') {
+            await ExpoAudio.setAudioModeAsync({
+              playsInSilentMode: true,
+            });
+          }
 
           const wavUri = generateCelebrationWavBase64(type);
 
           if (celebrationSoundRef.current) {
             try {
-              await celebrationSoundRef.current.stopAsync();
-              await celebrationSoundRef.current.unloadAsync();
+              if (typeof celebrationSoundRef.current.release === 'function') {
+                celebrationSoundRef.current.release();
+              }
             } catch (e) {}
             celebrationSoundRef.current = null;
           }
 
-          const { sound } = await ExpoAudio.Sound.createAsync(
-            { uri: wavUri },
-            { shouldPlay: true, volume: 1.0 }
-          );
-          celebrationSoundRef.current = sound;
-          sound.setOnPlaybackStatusUpdate(status => {
-            if (status.didJustFinish) {
-              sound.unloadAsync().catch(() => {});
-              if (celebrationSoundRef.current === sound) {
-                celebrationSoundRef.current = null;
-              }
-            }
-          });
+          const player = ExpoAudio.createAudioPlayer({ uri: wavUri });
+          celebrationSoundRef.current = player;
+          if (player && typeof player.play === 'function') {
+            player.play();
+          }
           return;
         } catch (expoErr) {
-          // Fall back to Web Audio API if expo-av encounters an issue
+          // Fall back to Web Audio API if expo-audio encounters an issue
         }
       }
 
