@@ -20,6 +20,7 @@ import {
   ActivityIndicator,
   Linking,
   Vibration,
+  AppState,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -4646,6 +4647,51 @@ function CricketAddaMain() {
               if (parsedMatches && typeof parsedMatches === 'object') setMatchesDb(parsedMatches);
             } catch (e) {}
           }
+          const storedPlayers = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_PLAYERS);
+          if (storedPlayers) {
+            try {
+              const parsedPlayers = JSON.parse(storedPlayers);
+              if (Array.isArray(parsedPlayers) && parsedPlayers.length > 0) setRegisteredPlayers(parsedPlayers);
+            } catch (e) {}
+          }
+        }
+
+        // 1. Session & Auth Restoration (Stay logged in unless inactive for 30+ days or app reinstalled)
+        const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+        const storedLastActive = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
+
+        if (storedProfile) {
+          try {
+            const parsedProfile = JSON.parse(storedProfile);
+            if (parsedProfile && (parsedProfile.name || parsedProfile.email || parsedProfile.phone)) {
+              const lastActiveMs = storedLastActive ? parseInt(storedLastActive, 10) : Date.now();
+              const nowMs = Date.now();
+              const isExpired = !isNaN(lastActiveMs) && (nowMs - lastActiveMs > THIRTY_DAYS_MS);
+
+              if (isExpired) {
+                // Inactive for 30+ days -> Automatically log out
+                console.log('[Auth] ⏱️ 30-day session expired due to inactivity. Logging out.');
+                await AsyncStorage.multiRemove([
+                  STORAGE_KEYS.USER_PROFILE,
+                  STORAGE_KEYS.LAST_ACTIVE_TIME,
+                ]);
+                setIsAuthenticated(false);
+              } else {
+                // Valid active session within 30 days!
+                setUserProfile(parsedProfile);
+                if (parsedProfile.email) setAuthEmail(parsedProfile.email);
+                if (parsedProfile.phone) setAuthPhone(parsedProfile.phone);
+                if (parsedProfile.name) setAuthName(parsedProfile.name);
+                if (parsedProfile.jersey) setAuthJersey(parsedProfile.jersey);
+                if (parsedProfile.role) setAuthRole(parsedProfile.role);
+                if (parsedProfile.battingStyle) setAuthBattingStyle(parsedProfile.battingStyle);
+                if (parsedProfile.bowlingStyle) setAuthBowlingStyle(parsedProfile.bowlingStyle);
+                setIsAuthenticated(true);
+                // Refresh heartbeat timestamp to now
+                await AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(nowMs));
+              }
+            }
+          } catch (e) {}
         }
 
         // Live Cloud Sync: Fetch cloud database state in background
@@ -4688,6 +4734,37 @@ function CricketAddaMain() {
       AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
     }
   }, [isAuthenticated, activeTab]);
+
+  // AppState Listener: Check 30-day inactivity limit and update heartbeat on app foreground
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState) => {
+      if (nextAppState === 'active' && isAuthenticated) {
+        const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+        const storedLastActive = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
+        if (storedProfile) {
+          const lastActiveMs = storedLastActive ? parseInt(storedLastActive, 10) : Date.now();
+          const nowMs = Date.now();
+          if (!isNaN(lastActiveMs) && (nowMs - lastActiveMs > THIRTY_DAYS_MS)) {
+            // Inactive for 30+ days -> Automatically log out
+            await AsyncStorage.multiRemove([
+              STORAGE_KEYS.USER_PROFILE,
+              STORAGE_KEYS.LAST_ACTIVE_TIME,
+            ]);
+            setIsAuthenticated(false);
+            showAppToast('Session expired after 30 days of inactivity. Please sign in again.', '⏱️');
+          } else {
+            // Still active within 30 days -> Update timestamp
+            await AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(nowMs)).catch(() => {});
+          }
+        }
+      }
+    };
+
+    const sub = AppState.addEventListener('change', handleAppStateChange);
+    return () => {
+      sub.remove();
+    };
+  }, [isAuthenticated]);
 
   // Live Cloud Refresh: Automatically pull newly registered opponent teams & manual squads from cloud when entering Teams tab or Match Setup
   useEffect(() => {
