@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CricketAdda PRO - Official Web Admin & Scorer Control Center</title>
+  <!-- Google Fonts Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0f9ff',
+              500: '#0284c7',
+              600: '#0369a1',
+              700: '#075985',
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+<body class="bg-[#090e17] text-slate-100 antialiased min-h-screen flex flex-col">
+
+  <!-- =====================================================================
+       TOP NAVIGATION & STATUS BAR
+       ===================================================================== -->
+  <header class="sticky top-0 z-40 bg-[#0f172a]/95 backdrop-blur-md border-b border-slate-800 shadow-lg">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+      
+      <!-- Brand Logo & Title -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-600 via-indigo-600 to-emerald-500 p-0.5 shadow-md shadow-sky-900/30">
+          <div class="w-full h-full bg-[#0b1329] rounded-[10px] flex items-center justify-center">
+            <span class="text-xl">🏏</span>
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="font-extrabold text-lg tracking-tight text-white flex items-center gap-1.5">
+              CricketAdda <span class="bg-gradient-to-r from-sky-400 to-emerald-400 bg-clip-text text-transparent">PRO</span>
+            </h1>
+            <span class="text-[10px] uppercase font-bold tracking-widest px-2 py-0.5 rounded-full bg-sky-950/80 text-sky-400 border border-sky-800/60">
+              Admin Suite
+            </span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-medium">Real-Time Tournament & Scorer Override System</p>
+        </div>
+      </div>
+
+      <!-- Cloud Connectivity Status Pill -->
+      <div class="hidden md:flex items-center gap-4">
+        <div id="cloud-status-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-300 shadow-inner">
+          <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 live-pulse"></span>
+          <span id="cloud-status-text" class="font-medium">Connecting to Cloud RTDB...</span>
+          <span id="cloud-latency-badge" class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">-- ms</span>
+        </div>
+      </div>
+
+      <!-- Actions: Refresh, New Match, Admin PIN -->
+      <div class="flex items-center gap-2 sm:gap-3">
+        <button id="btn-sync-now" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
+          <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+          <span>Sync Now</span>
+        </button>
+
+        <button id="btn-create-match" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-sky-950 transition">
+          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+          <span>New Match</span>
+        </button>
+
+        <button id="btn-auth-toggle" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Admin Security Settings">
+          <i data-lucide="shield-check" class="w-4 h-4 text-emerald-400"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Navigation Bar -->
+    <div class="border-t border-slate-800/60 bg-[#0b1329]/90">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex overflow-x-auto no-scrollbar">
+        <button data-tab="dashboard" class="nav-tab active flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 border-b-2 border-transparent">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+          <span>Dashboard</span>
+        </button>
+        <button data-tab="matches" class="nav-tab flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 border-b-2 border-transparent">
+          <i data-lucide="trophy" class="w-4 h-4"></i>
+          <span>Matches (<span id="matches-tab-count">0</span>)</span>
+        </button>
+        <button data-tab="editor" class="nav-tab flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 border-b-2 border-transparent">
+          <i data-lucide="edit-3" class="w-4 h-4 text-amber-400"></i>
+          <span>Scorer & Ball Editor</span>
+        </button>
+        <button data-tab="teams" class="nav-tab flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 border-b-2 border-transparent">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span>Teams & Squads</span>
+        </button>
+        <button data-tab="users" class="nav-tab flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 border-b-2 border-transparent">
+          <i data-lucide="user-check" class="w-4 h-4"></i>
+          <span>Players Directory</span>
+        </button>
+        <button data-tab="settings" class="nav-tab flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 border-b-2 border-transparent">
+          <i data-lucide="database" class="w-4 h-4"></i>
+          <span>Database & Cloud</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       MAIN VIEW CONTAINER
+       ===================================================================== -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+
+    <!-- 1. DASHBOARD VIEW -->
+    <section id="view-dashboard" class="tab-view space-y-6">
+      <!-- Quick Metric Cards -->
+      <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Live Matches</p>
+            <h3 id="stat-live-matches" class="text-2xl font-black text-emerald-400 mt-1">0</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Scoring in progress</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-emerald-950/60 border border-emerald-800/50 flex items-center justify-center text-emerald-400">
+            <i data-lucide="radio" class="w-6 h-6 live-pulse"></i>
+          </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Total Matches</p>
+            <h3 id="stat-total-matches" class="text-2xl font-black text-sky-400 mt-1">0</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">In database</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-sky-950/60 border border-sky-800/50 flex items-center justify-center text-sky-400">
+            <i data-lucide="calendar" class="w-6 h-6"></i>
+          </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Registered Players</p>
+            <h3 id="stat-registered-players" class="text-2xl font-black text-indigo-400 mt-1">0</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Cloud profiles</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-indigo-950/60 border border-indigo-800/50 flex items-center justify-center text-indigo-400">
+            <i data-lucide="users" class="w-6 h-6"></i>
+          </div>
+        </div>
+
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div>
+            <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider">Registered Teams</p>
+            <h3 id="stat-registered-teams" class="text-2xl font-black text-amber-400 mt-1">0</h3>
+            <p class="text-[11px] text-slate-400 mt-0.5">Tournament rosters</p>
+          </div>
+          <div class="w-12 h-12 rounded-xl bg-amber-950/60 border border-amber-800/50 flex items-center justify-center text-amber-400">
+            <i data-lucide="shield" class="w-6 h-6"></i>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Match Spotlight Banner -->
+      <div id="live-spotlight-container" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-red-500 live-pulse"></span>
+            <h2 class="text-base font-bold text-white tracking-tight">Active Live Matches Right Now</h2>
+          </div>
+          <span class="text-xs text-slate-400">Auto-syncing every 2s</span>
+        </div>
+        <div id="live-spotlight-cards" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <!-- Live cards injected dynamically -->
+          <div class="glass-panel p-6 rounded-xl border border-slate-800 text-center text-slate-400 text-sm">
+            No live matches active at the moment. Matches scored on mobile apps will appear here in real-time.
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Matches List -->
+      <div class="glass-panel rounded-xl border border-slate-800 p-5 space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+          <h3 class="font-bold text-sm text-slate-200 flex items-center gap-2">
+            <i data-lucide="clock" class="w-4 h-4 text-sky-400"></i>
+            <span>Recently Updated Matches</span>
+          </h3>
+          <button onclick="switchTab('matches')" class="text-xs text-sky-400 hover:text-sky-300 font-semibold">
+            View All Matches &rarr;
+          </button>
+        </div>
+        <div id="dashboard-recent-matches" class="divide-y divide-slate-800/60">
+          <p class="text-xs text-slate-400 py-4 text-center">Loading matches...</p>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- 2. MATCHES DIRECTORY VIEW -->
+    <section id="view-matches" class="tab-view hidden space-y-5">
+      <!-- Search & Filters Toolbar -->
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div class="relative w-full sm:w-80">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+          <input type="text" id="matches-search" placeholder="Search by team, tournament, venue, ID..." 
+                 class="form-input pl-9 text-xs">
+        </div>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto overflow-x-auto pb-1 sm:pb-0">
+          <button data-filter="all" class="match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-900/60 text-sky-300 border border-sky-700/60">All</button>
+          <button data-filter="live" class="match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">Live</button>
+          <button data-filter="inningsBreak" class="match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">Innings Break</button>
+          <button data-filter="completed" class="match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">Completed</button>
+          <button data-filter="setup" class="match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700">Setup</button>
+        </div>
+      </div>
+
+      <!-- Matches Grid / Table -->
+      <div id="matches-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Match cards rendered here -->
+      </div>
+    </section>
+
+
+    <!-- 3. DEEP SCORER & BALL-BY-BALL EDITOR VIEW -->
+    <section id="view-editor" class="tab-view hidden space-y-6">
+      
+      <!-- Match Selector Dropdown & Quick Status Bar -->
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3 flex-1 min-w-[280px]">
+          <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider whitespace-nowrap">Active Match:</span>
+          <select id="editor-match-select" class="form-input text-xs font-bold bg-[#0b1329] border-sky-800 text-sky-200">
+            <!-- Populated with matches -->
+          </select>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button id="btn-recalculate-match" class="btn-secondary text-xs" title="Cascades all balls and recomputes all stats">
+            <i data-lucide="calculator" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Auto-Recalculate Stats</span>
+          </button>
+          <button id="btn-save-match-cloud" class="btn-primary text-xs">
+            <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
+            <span>Push to Cloud Now</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Match Scoreboard Card (Interactive) -->
+      <div id="editor-scoreboard-card" class="glass-panel rounded-2xl border border-slate-800 overflow-hidden shadow-2xl">
+        <!-- Injected via JS -->
+      </div>
+
+      <!-- Quick Crease & Live State Editor -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <!-- Striker & Non-Striker Control -->
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🏏</span> Crease Batters
+            </h4>
+            <button id="btn-swap-batters" class="text-[11px] text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1">
+              <i data-lucide="arrow-left-right" class="w-3 h-3"></i>
+              <span>Swap Crease</span>
+            </button>
+          </div>
+          <div class="space-y-2">
+            <div>
+              <label class="text-[11px] text-slate-400 font-medium">Striker (*):</label>
+              <input type="text" id="editor-striker-input" class="form-input text-xs font-bold mt-1">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 font-medium">Non-Striker:</label>
+              <input type="text" id="editor-nonstriker-input" class="form-input text-xs font-bold mt-1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Current Bowler Control -->
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span>🎯</span> Active Bowler
+            </h4>
+            <span class="text-[10px] text-slate-400">Current Over</span>
+          </div>
+          <div class="space-y-2">
+            <div>
+              <label class="text-[11px] text-slate-400 font-medium">Bowler Name:</label>
+              <input type="text" id="editor-bowler-input" class="form-input text-xs font-bold mt-1">
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 font-medium">This Over Balls (comma separated):</label>
+              <input type="text" id="editor-thisover-input" class="form-input text-xs font-mono font-bold mt-1" placeholder="0, 1, 4, W, Wd, 6">
+            </div>
+          </div>
+        </div>
+
+        <!-- Innings, Target & Status Control -->
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
+              <span>⚙️</span> Match Status & Target
+            </h4>
+            <button id="btn-edit-match-meta" class="text-[11px] text-sky-400 hover:text-sky-300 font-bold">
+              Full Settings &rarr;
+            </button>
+          </div>
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="text-[11px] text-slate-400 font-medium">Current Innings:</label>
+              <select id="editor-innings-select" class="form-input text-xs font-bold mt-1">
+                <option value="1">1st Innings</option>
+                <option value="2">2nd Innings</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[11px] text-slate-400 font-medium">Target Score:</label>
+              <input type="number" id="editor-target-input" class="form-input text-xs font-bold mt-1" placeholder="e.g. 180">
+            </div>
+            <div class="col-span-2">
+              <label class="text-[11px] text-slate-400 font-medium">Match Status:</label>
+              <select id="editor-status-select" class="form-input text-xs font-bold mt-1">
+                <option value="setup">Setup</option>
+                <option value="in_progress">Live (In Progress)</option>
+                <option value="innings_break">Innings Break</option>
+                <option value="completed">Completed</option>
+                <option value="tied">Tied</option>
+                <option value="abandoned">Abandoned</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Deep Tabs: Ball-by-Ball Timeline vs Scorecard Overrides -->
+      <div class="border-b border-slate-800 flex items-center gap-4">
+        <button id="subtab-btn-balls" class="px-3 py-2 text-xs font-bold uppercase tracking-wider text-sky-400 border-b-2 border-sky-400">
+          Ball-by-Ball Timeline (<span id="balls-total-count">0</span>)
+        </button>
+        <button id="subtab-btn-scorecard" class="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 border-b-2 border-transparent">
+          Scorecard Overrides (Batting/Bowling)
+        </button>
+        <button id="subtab-btn-extras" class="px-3 py-2 text-xs font-bold uppercase tracking-wider text-slate-400 border-b-2 border-transparent">
+          Extras & FOW
+        </button>
+      </div>
+
+      <!-- Subtab 1: Ball-by-Ball Timeline & Live Editor -->
+      <div id="subtab-balls" class="space-y-4">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <h3 class="text-sm font-bold text-slate-200">Delivery Event Log</h3>
+            <span class="text-xs text-slate-400">Click any ball to edit runs, wickets, extras or batsman</span>
+          </div>
+          <button id="btn-insert-ball-prompt" class="btn-secondary text-xs">
+            <i data-lucide="plus" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>Insert Missed Ball</span>
+          </button>
+        </div>
+
+        <div id="editor-timeline-container" class="glass-panel rounded-xl border border-slate-800 overflow-hidden divide-y divide-slate-800/80 max-h-[600px] overflow-y-auto">
+          <!-- Ball rows rendered here -->
+        </div>
+      </div>
+
+      <!-- Subtab 2: Direct Scorecard Tables -->
+      <div id="subtab-scorecard" class="hidden space-y-6">
+        <!-- Batting Table Override -->
+        <div class="glass-panel rounded-xl border border-slate-800 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="user" class="w-4 h-4 text-sky-400"></i>
+              <span>Batting Scorecard Overrides</span>
+            </h4>
+            <button id="btn-add-batter-row" class="text-xs text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+              <span>Add Batter</span>
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="table-custom text-xs">
+              <thead>
+                <tr>
+                  <th>Batter Name</th>
+                  <th>Dismissal / Status</th>
+                  <th class="text-center">R</th>
+                  <th class="text-center">B</th>
+                  <th class="text-center">4s</th>
+                  <th class="text-center">6s</th>
+                  <th class="text-center">SR</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="editor-batting-table-body">
+                <!-- Batting rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Bowling Table Override -->
+        <div class="glass-panel rounded-xl border border-slate-800 p-4 space-y-3">
+          <div class="flex items-center justify-between">
+            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-2">
+              <i data-lucide="target" class="w-4 h-4 text-red-400"></i>
+              <span>Bowling Scorecard Overrides</span>
+            </h4>
+            <button id="btn-add-bowler-row" class="text-xs text-sky-400 hover:text-sky-300 font-bold flex items-center gap-1">
+              <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
+              <span>Add Bowler</span>
+            </button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="table-custom text-xs">
+              <thead>
+                <tr>
+                  <th>Bowler Name</th>
+                  <th class="text-center">Overs</th>
+                  <th class="text-center">M</th>
+                  <th class="text-center">R</th>
+                  <th class="text-center">W</th>
+                  <th class="text-center">Econ</th>
+                  <th class="text-center">Wd</th>
+                  <th class="text-center">Nb</th>
+                  <th class="text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="editor-bowling-table-body">
+                <!-- Bowling rows -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subtab 3: Extras & Fall of Wickets -->
+      <div id="subtab-extras" class="hidden grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Extras Control -->
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+          <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider border-b border-slate-800 pb-2">
+            Extras Breakdown
+          </h4>
+          <div class="grid grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="text-slate-400">Wides:</label>
+              <input type="number" id="override-extras-wides" class="form-input font-bold mt-1">
+            </div>
+            <div>
+              <label class="text-slate-400">No Balls:</label>
+              <input type="number" id="override-extras-noballs" class="form-input font-bold mt-1">
+            </div>
+            <div>
+              <label class="text-slate-400">Byes:</label>
+              <input type="number" id="override-extras-byes" class="form-input font-bold mt-1">
+            </div>
+            <div>
+              <label class="text-slate-400">Leg Byes:</label>
+              <input type="number" id="override-extras-legbyes" class="form-input font-bold mt-1">
+            </div>
+            <div class="col-span-2">
+              <label class="text-slate-400">Penalty Runs:</label>
+              <input type="number" id="override-extras-penalty" class="form-input font-bold mt-1">
+            </div>
+          </div>
+        </div>
+
+        <!-- Fall of Wickets Control -->
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+            <h4 class="text-xs font-bold text-slate-200 uppercase tracking-wider">Fall of Wickets (FOW)</h4>
+            <button id="btn-add-fow-row" class="text-xs text-sky-400 font-bold">+ Add Wicket Fall</button>
+          </div>
+          <div id="editor-fow-list" class="space-y-2 max-h-60 overflow-y-auto">
+            <!-- FOW entries -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+
+    <!-- 4. TEAMS & SQUADS VIEW -->
+    <section id="view-teams" class="tab-view hidden space-y-5">
+      <div class="flex items-center justify-between">
+        <div>
+          <h3 class="font-bold text-lg text-white">Registered Teams & Squad Rosters</h3>
+          <p class="text-xs text-slate-400">Manage team names, captains, and squad member lists</p>
+        </div>
+        <button id="btn-create-team" class="btn-primary text-xs">
+          <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+          <span>Create New Team</span>
+        </button>
+      </div>
+
+      <div id="teams-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <!-- Team cards rendered here -->
+      </div>
+    </section>
+
+
+    <!-- 5. PLAYERS DIRECTORY VIEW -->
+    <section id="view-users" class="tab-view hidden space-y-5">
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div>
+          <h3 class="font-bold text-base text-white">Registered Cloud Players</h3>
+          <p class="text-xs text-slate-400">All registered user profiles with verified phone numbers & careers</p>
+        </div>
+        <div class="relative w-full sm:w-72">
+          <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-3"></i>
+          <input type="text" id="users-search" placeholder="Search by name, phone, email..." class="form-input pl-9 text-xs">
+        </div>
+      </div>
+
+      <div class="glass-panel rounded-xl border border-slate-800 overflow-hidden">
+        <table class="table-custom text-xs">
+          <thead>
+            <tr>
+              <th>Player Name</th>
+              <th>Phone</th>
+              <th>Email</th>
+              <th>Role</th>
+              <th>Batting / Bowling</th>
+              <th class="text-right">Matches</th>
+            </tr>
+          </thead>
+          <tbody id="users-table-body">
+            <!-- Users list -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+
+    <!-- 6. DATABASE & CLOUD SETTINGS VIEW -->
+    <section id="view-settings" class="tab-view hidden space-y-6">
+      <!-- Database Connection Status -->
+      <div class="glass-panel p-5 rounded-xl border border-slate-800 space-y-4">
+        <h3 class="font-bold text-sm text-white flex items-center gap-2">
+          <i data-lucide="server" class="w-4 h-4 text-sky-400"></i>
+          <span>Firebase Realtime Database Configuration</span>
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+          <div>
+            <label class="text-slate-400 font-medium">Database URL:</label>
+            <input type="text" id="setting-db-url" class="form-input font-mono mt-1" readonly 
+                   value="https://cricketadda-live-default-rtdb.firebaseio.com">
+          </div>
+          <div>
+            <label class="text-slate-400 font-medium">Local WebSocket Sync Host (Optional):</label>
+            <input type="text" id="setting-ws-host" class="form-input font-mono mt-1" 
+                   value="http://127.0.0.1:8085">
+          </div>
+        </div>
+
+        <div class="flex items-center gap-3 pt-2">
+          <button id="btn-test-db-connection" class="btn-secondary text-xs">
+            <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>Test Connection Latency</span>
+          </button>
+          <button id="btn-export-full-db" class="btn-secondary text-xs">
+            <i data-lucide="download" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span>Backup All Matches JSON</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Raw JSON Match Inspector & Editor -->
+      <div class="glass-panel p-5 rounded-xl border border-slate-800 space-y-3">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-sm text-white flex items-center gap-2">
+            <i data-lucide="code" class="w-4 h-4 text-indigo-400"></i>
+            <span>Raw Match JSON Inspector & Live Patcher</span>
+          </h3>
+          <span class="text-xs text-slate-400">Inspect or hot-patch any match payload directly</span>
+        </div>
+        <textarea id="raw-json-editor" class="w-full h-80 bg-[#050811] border border-slate-800 rounded-xl p-3 font-mono text-xs text-emerald-400 leading-relaxed outline-none focus:border-sky-700"></textarea>
+        <div class="flex items-center justify-end gap-2">
+          <button id="btn-apply-raw-json" class="btn-primary text-xs">
+            <i data-lucide="check" class="w-3.5 h-3.5"></i>
+            <span>Apply Raw Changes to Cloud</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Emergency Danger Zone -->
+      <div class="glass-panel p-5 rounded-xl border border-red-900/50 bg-red-950/10 space-y-3">
+        <h3 class="font-bold text-sm text-red-400 flex items-center gap-2">
+          <i data-lucide="alert-triangle" class="w-4 h-4 text-red-500"></i>
+          <span>Admin Danger Zone</span>
+        </h3>
+        <p class="text-xs text-slate-400">
+          Emergency tools to wipe test matches from Firebase cloud while strictly preserving all user accounts and registered profiles.
+        </p>
+        <div>
+          <button id="btn-emergency-wipe-matches" class="btn-danger text-xs">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Clean All Matches from Cloud Database</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+
+  <!-- =====================================================================
+       MODALS
+       ===================================================================== -->
+
+  <!-- 1. EDIT BALL MODAL (The core scorer-correction tool) -->
+  <div id="modal-edit-ball" class="modal-overlay hidden">
+    <div class="modal-content max-w-xl w-full p-6 space-y-5">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-lg bg-sky-950 border border-sky-800 flex items-center justify-center font-black text-sky-400 text-sm">
+            ✏️
+          </span>
+          <div>
+            <h3 class="font-bold text-base text-white">Edit Ball Delivery</h3>
+            <p id="edit-ball-subheading" class="text-xs text-slate-400">Delivery 0.1 • Scored by official scorer</p>
+          </div>
+        </div>
+        <button class="modal-close text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-edit-ball" class="space-y-4 text-xs">
+        <input type="hidden" id="edit-ball-id">
+        <input type="hidden" id="edit-ball-index">
+
+        <!-- Runs Scored Selector -->
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1.5">Runs Off Bat / Delivery:</label>
+          <div class="grid grid-cols-7 gap-2" id="ball-runs-selector">
+            <button type="button" data-runs="0" class="btn-run-choice py-2 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-bold hover:bg-sky-900">0 (Dot)</button>
+            <button type="button" data-runs="1" class="btn-run-choice py-2 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-bold hover:bg-sky-900">1</button>
+            <button type="button" data-runs="2" class="btn-run-choice py-2 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-bold hover:bg-sky-900">2</button>
+            <button type="button" data-runs="3" class="btn-run-choice py-2 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-bold hover:bg-sky-900">3</button>
+            <button type="button" data-runs="4" class="btn-run-choice py-2 rounded-lg bg-emerald-950 text-emerald-300 border border-emerald-700 font-bold hover:bg-emerald-900">4 (Four)</button>
+            <button type="button" data-runs="6" class="btn-run-choice py-2 rounded-lg bg-purple-950 text-purple-300 border border-purple-700 font-bold hover:bg-purple-900">6 (Six)</button>
+            <button type="button" data-runs="custom" class="btn-run-choice py-2 rounded-lg bg-slate-800 text-slate-300 border border-slate-700 font-bold hover:bg-slate-700">Other</button>
+          </div>
+          <input type="number" id="edit-ball-runs-custom" class="form-input mt-2 hidden" placeholder="Enter custom runs (e.g. 5)">
+        </div>
+
+        <!-- Extra Type Selector -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Extra Delivery Type:</label>
+            <select id="edit-ball-extra-type" class="form-input">
+              <option value="none">None (Legal Delivery)</option>
+              <option value="wide">Wide (Wd)</option>
+              <option value="noBall">No Ball (Nb)</option>
+              <option value="bye">Bye (B)</option>
+              <option value="legBye">Leg Bye (Lb)</option>
+              <option value="penalty">Penalty Runs</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Overthrow Runs:</label>
+            <input type="number" id="edit-ball-overthrow" class="form-input" value="0" min="0" max="8">
+          </div>
+        </div>
+
+        <!-- Wicket Details -->
+        <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-3">
+          <div class="flex items-center justify-between">
+            <label class="flex items-center gap-2 cursor-pointer font-bold text-red-400">
+              <input type="checkbox" id="edit-ball-is-wkt" class="rounded bg-slate-900 border-slate-700 text-red-600 focus:ring-red-500 w-4 h-4">
+              <span>Wicket on this ball (Toggle Wicket / Overturn)</span>
+            </label>
+            <span class="text-[10px] text-slate-400">Uncheck to reverse out call</span>
+          </div>
+
+          <div id="wkt-fields-group" class="grid grid-cols-2 gap-3 hidden pt-1">
+            <div>
+              <label class="block text-slate-400 mb-1">Dismissal Type:</label>
+              <select id="edit-ball-wkt-type" class="form-input">
+                <option value="bowled">Bowled</option>
+                <option value="caught">Caught</option>
+                <option value="lbw">LBW</option>
+                <option value="run_out">Run Out</option>
+                <option value="stumped">Stumped</option>
+                <option value="hit_wicket">Hit Wicket</option>
+                <option value="retired">Retired Hurt</option>
+                <option value="obstructing">Obstructing Field</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Dismissed Batter:</label>
+              <input type="text" id="edit-ball-dismissed-player" class="form-input" placeholder="Batter name">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Fielder Involved (Catch/Run-out):</label>
+              <input type="text" id="edit-ball-fielder" class="form-input" placeholder="e.g. Jadeja">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Incoming Batter:</label>
+              <input type="text" id="edit-ball-incoming-player" class="form-input" placeholder="New batter at crease">
+            </div>
+          </div>
+        </div>
+
+        <!-- Batter & Bowler Assignment -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Striker (Faced Ball):</label>
+            <input type="text" id="edit-ball-striker" class="form-input font-bold">
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Bowler (Delivered Ball):</label>
+            <input type="text" id="edit-ball-bowler" class="form-input font-bold">
+          </div>
+        </div>
+
+        <!-- Commentary Note -->
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Commentary Description:</label>
+          <input type="text" id="edit-ball-commentary" class="form-input text-xs" placeholder="e.g. Starc to Rohit, FOUR! Driven through covers">
+        </div>
+
+        <!-- Actions -->
+        <div class="flex items-center justify-between border-t border-slate-800 pt-3">
+          <button type="button" id="btn-delete-ball" class="btn-danger text-xs">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Delete This Ball</span>
+          </button>
+          <div class="flex items-center gap-2">
+            <button type="button" class="modal-close btn-secondary text-xs">Cancel</button>
+            <button type="submit" class="btn-primary text-xs">
+              <i data-lucide="check" class="w-3.5 h-3.5"></i>
+              <span>Save & Recalculate</span>
+            </button>
+          </div>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- 2. CREATE NEW MATCH MODAL -->
+  <div id="modal-create-match" class="modal-overlay hidden">
+    <div class="modal-content max-w-lg w-full p-6 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-base text-white flex items-center gap-2">
+          <span>🏏</span> Create New Match
+        </h3>
+        <button class="modal-close text-slate-400 hover:text-white p-1">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-create-match" class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-300 font-semibold mb-1">Tournament / Series Name:</label>
+          <input type="text" id="new-match-tournament" class="form-input" value="Cricket Adda Premier League" required>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Team A (Home):</label>
+            <input type="text" id="new-match-team-a" class="form-input font-bold" value="India" required>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Team A Flag/Emoji:</label>
+            <input type="text" id="new-match-flag-a" class="form-input" value="🇮🇳">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Team B (Away):</label>
+            <input type="text" id="new-match-team-b" class="form-input font-bold" value="Australia" required>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Team B Flag/Emoji:</label>
+            <input type="text" id="new-match-flag-b" class="form-input" value="🇦🇺">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Total Overs:</label>
+            <input type="number" id="new-match-overs" class="form-input" value="20" min="1" max="50" required>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Venue / Ground:</label>
+            <input type="text" id="new-match-venue" class="form-input" value="Wankhede Stadium, Mumbai">
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Toss Winner:</label>
+            <select id="new-match-toss-winner" class="form-input">
+              <option value="teamA">Team A</option>
+              <option value="teamB">Team B</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-slate-300 font-semibold mb-1">Elected To:</label>
+            <select id="new-match-toss-decision" class="form-input">
+              <option value="bat">Bat First</option>
+              <option value="bowl">Bowl First</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
+          <button type="button" class="modal-close btn-secondary text-xs">Cancel</button>
+          <button type="submit" class="btn-primary text-xs">Create & Launch</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+
+  <!-- Toast Notification System -->
+  <div id="toast-container"></div>
+
+  <!-- Core Admin Logic -->
+  <script src="app.js"></script>
+</body>
+</html>

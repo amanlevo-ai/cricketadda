@@ -26,7 +26,8 @@
   "scripts": {
     "start": "expo start",
     "web": "expo start --web",
-    "build:web": "expo export -p web"
+    "build:web": "expo export -p web",
+    "admin": "node admin/server.js"
   },
   "private": true
 }
