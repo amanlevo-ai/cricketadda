@@ -12,7 +12,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest"></script>
-  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="styles.css?v=2.2">
   <script>
     tailwind.config = {
       darkMode: 'class',
@@ -121,7 +121,7 @@
     <section id="view-dashboard" class="tab-view space-y-6">
       <!-- Quick Metric Cards (Clickable) -->
       <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div onclick="switchTab('matches'); filterMatches('live');" class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between card-hover cursor-pointer group hover:border-emerald-500/50">
+        <div id="card-stat-live" onclick="switchTab('matches'); filterMatches('live');" class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between card-hover cursor-pointer group hover:border-emerald-500/50">
           <div>
             <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider group-hover:text-emerald-400 transition">Live Matches</p>
             <h3 id="stat-live-matches" class="text-2xl font-black text-emerald-400 mt-1">0</h3>
@@ -132,7 +132,7 @@
           </div>
         </div>
 
-        <div onclick="switchTab('matches'); filterMatches('all');" class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between card-hover cursor-pointer group hover:border-sky-500/50">
+        <div id="card-stat-total" onclick="switchTab('matches'); filterMatches('all');" class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between card-hover cursor-pointer group hover:border-sky-500/50">
           <div>
             <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider group-hover:text-sky-400 transition">Total Matches</p>
             <h3 id="stat-total-matches" class="text-2xl font-black text-sky-400 mt-1">0</h3>
@@ -143,7 +143,7 @@
           </div>
         </div>
 
-        <div onclick="switchTab('users');" class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between card-hover cursor-pointer group hover:border-indigo-500/50">
+        <div id="card-stat-players" onclick="switchTab('users');" class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between card-hover cursor-pointer group hover:border-indigo-500/50">
           <div>
             <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider group-hover:text-indigo-400 transition">Registered Players</p>
             <h3 id="stat-registered-players" class="text-2xl font-black text-indigo-400 mt-1">0</h3>
@@ -154,7 +154,7 @@
           </div>
         </div>
 
-        <div onclick="switchTab('teams');" class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between card-hover cursor-pointer group hover:border-amber-500/50">
+        <div id="card-stat-teams" onclick="switchTab('teams');" class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between card-hover cursor-pointer group hover:border-amber-500/50">
           <div>
             <p class="text-xs text-slate-400 font-semibold uppercase tracking-wider group-hover:text-amber-400 transition">Registered Teams</p>
             <h3 id="stat-registered-teams" class="text-2xl font-black text-amber-400 mt-1">0</h3>
@@ -751,6 +751,6 @@
   <div id="toast-container"></div>
 
   <!-- Core Admin Logic -->
-  <script src="app.js"></script>
+  <script src="app.js?v=2.2"></script>
 </body>
 </html>

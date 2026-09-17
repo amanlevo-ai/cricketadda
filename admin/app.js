@@ -110,10 +110,14 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function syncFromCloud(showNotification = false) {
   const startTime = performance.now();
   try {
-    const [matchesRes, teamsRes, usersRes] = await Promise.all([
+    const [matchesDbRes, matchesLiveRes, teamsRes, teamsIndexRes, usersRes, regPlayersRes, usersByEmailRes] = await Promise.allSettled([
       fetch(`${CONFIG.FIREBASE_URL}/matches_db.json?t=${Date.now()}`),
+      fetch(`${CONFIG.FIREBASE_URL}/matches.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/teams.json?t=${Date.now()}`),
+      fetch(`${CONFIG.FIREBASE_URL}/teams_index.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/users.json?t=${Date.now()}`),
+      fetch(`${CONFIG.FIREBASE_URL}/registered_players.json?t=${Date.now()}`),
+      fetch(`${CONFIG.FIREBASE_URL}/users_by_email.json?t=${Date.now()}`),
     ]);
 
     const latency = Math.round(performance.now() - startTime);
@@ -121,56 +125,120 @@ async function syncFromCloud(showNotification = false) {
     state.isOnline = true;
     updateCloudStatusPill(true, latency);
 
-    if (matchesRes.ok) {
-      const data = await matchesRes.json();
+    // 1. Process Matches DB
+    if (matchesDbRes.status === 'fulfilled' && matchesDbRes.value.ok) {
+      const data = await matchesDbRes.value.json();
       state.matchesDb = data && typeof data === 'object' ? data : {};
     }
 
-    // Also check active /matches node for any active live matches
-    try {
-      const liveRes = await fetch(`${CONFIG.FIREBASE_URL}/matches.json?t=${Date.now()}`);
-      if (liveRes.ok) {
-        const liveData = await liveRes.json();
-        if (liveData && typeof liveData === 'object') {
-          Object.entries(liveData).forEach(([mId, lMatch]) => {
-            if (lMatch && typeof lMatch === 'object') {
-              if (!state.matchesDb[mId]) {
-                state.matchesDb[mId] = lMatch.match || lMatch;
-              } else {
-                // Merge in-flight live state
-                state.matchesDb[mId] = {
-                  ...state.matchesDb[mId],
-                  ...(lMatch.match || {}),
-                  liveRuns: lMatch.liveRuns ?? state.matchesDb[mId].liveRuns,
-                  liveWickets: lMatch.liveWickets ?? state.matchesDb[mId].liveWickets,
-                  liveBalls: lMatch.liveBalls ?? state.matchesDb[mId].liveBalls,
-                  liveThisOver: lMatch.liveThisOver ?? state.matchesDb[mId].liveThisOver,
-                  activeScorer: lMatch.activeScorer ?? state.matchesDb[mId].activeScorer,
-                  currentInnings: lMatch.currentInnings ?? state.matchesDb[mId].currentInnings,
-                  firstInningsSummary: lMatch.firstInningsSummary ?? state.matchesDb[mId].firstInningsSummary,
-                  liveState: {
-                    ...(state.matchesDb[mId].liveState || {}),
-                    ...(lMatch.liveState || {}),
-                    scoringHistory: lMatch.match?.liveState?.scoringHistory || lMatch.scoringHistory || state.matchesDb[mId].liveState?.scoringHistory || [],
-                    liveCommentaryList: lMatch.liveCommentaryList || state.matchesDb[mId].liveState?.liveCommentaryList || [],
-                  }
-                };
-              }
+    // 2. Process Live In-Flight Matches (/matches)
+    if (matchesLiveRes.status === 'fulfilled' && matchesLiveRes.value.ok) {
+      const liveData = await matchesLiveRes.value.json();
+      if (liveData && typeof liveData === 'object') {
+        Object.entries(liveData).forEach(([mId, lMatch]) => {
+          if (lMatch && typeof lMatch === 'object') {
+            if (!state.matchesDb[mId]) {
+              state.matchesDb[mId] = lMatch.match || lMatch;
+            } else {
+              // Merge in-flight live state
+              state.matchesDb[mId] = {
+                ...state.matchesDb[mId],
+                ...(lMatch.match || {}),
+                liveRuns: lMatch.liveRuns ?? state.matchesDb[mId].liveRuns,
+                liveWickets: lMatch.liveWickets ?? state.matchesDb[mId].liveWickets,
+                liveBalls: lMatch.liveBalls ?? state.matchesDb[mId].liveBalls,
+                liveThisOver: lMatch.liveThisOver ?? state.matchesDb[mId].liveThisOver,
+                activeScorer: lMatch.activeScorer ?? state.matchesDb[mId].activeScorer,
+                currentInnings: lMatch.currentInnings ?? state.matchesDb[mId].currentInnings,
+                firstInningsSummary: lMatch.firstInningsSummary ?? state.matchesDb[mId].firstInningsSummary,
+                liveState: {
+                  ...(state.matchesDb[mId].liveState || {}),
+                  ...(lMatch.liveState || {}),
+                  scoringHistory: lMatch.match?.liveState?.scoringHistory || lMatch.scoringHistory || state.matchesDb[mId].liveState?.scoringHistory || [],
+                  liveCommentaryList: lMatch.liveCommentaryList || state.matchesDb[mId].liveState?.liveCommentaryList || [],
+                }
+              };
             }
-          });
+          }
+        });
+      }
+    }
+
+    // 3. Process Teams & Squads (Merge /teams.json AND /teams_index.json)
+    const teamMap = new Map();
+    function addTeam(t) {
+      if (!t || typeof t !== 'object') return;
+      const id = t.id || `team_${t.name || Date.now()}`;
+      if (!teamMap.has(id)) {
+        teamMap.set(id, t);
+      } else {
+        // Merge team details if existing has less squad info
+        const existing = teamMap.get(id);
+        const curSquad = Array.isArray(t.squad) ? t.squad : [];
+        const exSquad = Array.isArray(existing.squad) ? existing.squad : [];
+        if (curSquad.length > exSquad.length) {
+          teamMap.set(id, { ...existing, ...t });
         }
       }
-    } catch (e) {}
-
-    if (teamsRes.ok) {
-      const tData = await teamsRes.json();
-      state.teams = Array.isArray(tData) ? tData.filter(Boolean) : (tData && typeof tData === 'object' ? Object.values(tData) : []);
     }
 
-    if (usersRes.ok) {
-      const uData = await usersRes.json();
-      state.users = Array.isArray(uData) ? uData.filter(Boolean) : (uData && typeof uData === 'object' ? Object.values(uData) : []);
+    if (teamsRes.status === 'fulfilled' && teamsRes.value.ok) {
+      const tData = await teamsRes.value.json();
+      if (Array.isArray(tData)) tData.forEach(addTeam);
+      else if (tData && typeof tData === 'object') Object.values(tData).forEach(addTeam);
     }
+
+    if (teamsIndexRes.status === 'fulfilled' && teamsIndexRes.value.ok) {
+      const idxData = await teamsIndexRes.value.json();
+      if (idxData && typeof idxData === 'object') Object.values(idxData).forEach(addTeam);
+    }
+    state.teams = Array.from(teamMap.values());
+
+    // 4. Process Registered Players (Merge /users, /registered_players, /users_by_email)
+    const playerMap = new Map();
+    function ingestPlayer(raw) {
+      if (!raw || typeof raw !== 'object') return;
+      const prof = raw.profile || raw;
+      const name = (prof.name || raw.name || '').trim();
+      if (!name) return;
+
+      const cleanPhone = String(prof.phone || raw.phone || '').replace(/[^0-9]/g, '');
+      const cleanEmail = String(prof.email || raw.email || '').trim().toLowerCase();
+      // Deduplicate key priority: 10+ digit phone, then email, then lowercase name
+      const dedupeKey = cleanPhone && cleanPhone.length >= 10 ? cleanPhone : (cleanEmail || name.toLowerCase());
+
+      const existing = playerMap.get(dedupeKey) || {};
+      playerMap.set(dedupeKey, {
+        id: prof.id || raw.id || existing.id || `usr_${cleanPhone || Date.now()}`,
+        name: prof.name || raw.name || existing.name || 'Unnamed Player',
+        phone: cleanPhone || existing.phone || '',
+        email: cleanEmail || existing.email || '',
+        role: prof.role || raw.role || existing.role || 'Player',
+        battingStyle: prof.battingStyle || raw.battingStyle || existing.battingStyle || '',
+        bowlingStyle: prof.bowlingStyle || raw.bowlingStyle || existing.bowlingStyle || '',
+        jersey: prof.jersey || raw.jersey || existing.jersey || '',
+        avatarUri: prof.avatarUri || raw.avatarUri || existing.avatarUri || '',
+        matchesPlayed: raw.careerStats?.matchOverview?.matchesPlayed ?? raw.careerStats?.careerStats?.batting?.innings ?? existing.matchesPlayed ?? 0,
+        raw: raw,
+      });
+    }
+
+    if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
+      const uData = await usersRes.value.json();
+      if (Array.isArray(uData)) uData.forEach(ingestPlayer);
+      else if (uData && typeof uData === 'object') Object.values(uData).forEach(ingestPlayer);
+    }
+
+    if (regPlayersRes.status === 'fulfilled' && regPlayersRes.value.ok) {
+      const rpData = await regPlayersRes.value.json();
+      if (rpData && typeof rpData === 'object') Object.values(rpData).forEach(ingestPlayer);
+    }
+
+    if (usersByEmailRes.status === 'fulfilled' && usersByEmailRes.value.ok) {
+      const ubeData = await usersByEmailRes.value.json();
+      if (ubeData && typeof ubeData === 'object') Object.values(ubeData).forEach(ingestPlayer);
+    }
+    state.users = Array.from(playerMap.values());
 
     // Default active match if none selected
     const matchKeys = Object.keys(state.matchesDb);
@@ -180,7 +248,7 @@ async function syncFromCloud(showNotification = false) {
 
     renderAllViews();
     if (showNotification) {
-      showToast('Synced fresh data from database', 'success');
+      showToast(`Synced ${state.users.length} registered players & ${state.teams.length} teams`, 'success');
     }
   } catch (err) {
     state.isOnline = false;
@@ -287,26 +355,57 @@ function setupNavigation() {
   navTabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const target = tab.dataset.tab;
-      switchTab(target);
+      if (target) switchTab(target);
     });
   });
 }
 
 function switchTab(tabId) {
+  if (!tabId) return;
   state.currentTab = tabId;
+
   document.querySelectorAll('.nav-tab').forEach(t => {
-    t.classList.toggle('active', t.dataset.tab === tabId);
+    const isActive = t.dataset.tab === tabId;
+    t.classList.toggle('active', isActive);
+    if (isActive) {
+      t.classList.add('text-sky-400', 'border-sky-500');
+      t.classList.remove('text-slate-400', 'border-transparent');
+    } else {
+      t.classList.remove('text-sky-400', 'border-sky-500');
+      t.classList.add('text-slate-400', 'border-transparent');
+    }
   });
+
   document.querySelectorAll('.tab-view').forEach(view => {
     view.classList.toggle('hidden', view.id !== `view-${tabId}`);
   });
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
   renderAllViews();
 }
+// Export switchTab early for inline onclick handlers
+window.switchTab = switchTab;
 
 function setupEventListeners() {
   // Sync button
   document.getElementById('btn-sync-now')?.addEventListener('click', () => {
     syncFromCloud(true);
+  });
+
+  // Dashboard Metric Cards (Reliable click bindings)
+  document.getElementById('card-stat-live')?.addEventListener('click', () => {
+    switchTab('matches');
+    filterMatches('live');
+  });
+  document.getElementById('card-stat-total')?.addEventListener('click', () => {
+    switchTab('matches');
+    filterMatches('all');
+  });
+  document.getElementById('card-stat-players')?.addEventListener('click', () => {
+    switchTab('users');
+  });
+  document.getElementById('card-stat-teams')?.addEventListener('click', () => {
+    switchTab('teams');
   });
 
   // Create Match Button
@@ -936,6 +1035,8 @@ function renderEditorExtras(match) {
 // 4. TEAMS & SQUADS VIEW
 function renderTeamsView() {
   const container = document.getElementById('teams-grid');
+  if (!container) return;
+
   if (state.teams.length === 0) {
     container.innerHTML = `
       <div class="col-span-3 glass-panel p-8 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
@@ -955,15 +1056,18 @@ function renderTeamsView() {
           </div>
           <div>
             <h4 class="font-extrabold text-sm text-white">${t.name}</h4>
-            <p class="text-xs text-slate-400">${squad.length} Players in Squad</p>
+            <p class="text-xs text-slate-400">${squad.length} Players in Squad • ${t.captain ? `Cap: ${t.captain}` : 'Official Team'}</p>
           </div>
         </div>
 
         <div class="border-t border-slate-800/80 pt-2 space-y-1">
           <p class="text-[11px] text-slate-400 font-semibold uppercase">Roster Sample:</p>
           <div class="flex flex-wrap gap-1">
-            ${squad.slice(0, 6).map(p => `<span class="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300">${typeof p === 'string' ? p : p.name}</span>`).join('')}
-            ${squad.length > 6 ? `<span class="text-[10px] text-slate-400">+${squad.length - 6} more</span>` : ''}
+            ${squad.slice(0, 8).map(p => {
+              const pName = typeof p === 'string' ? p : (p.name || 'Player');
+              return `<span class="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 font-medium">${pName}</span>`;
+            }).join('')}
+            ${squad.length > 8 ? `<span class="text-[10px] text-slate-400 font-medium">+${squad.length - 8} more</span>` : ''}
           </div>
         </div>
       </div>
@@ -974,15 +1078,19 @@ function renderTeamsView() {
 // 5. USERS DIRECTORY VIEW
 function renderUsersView(query = '') {
   const tbody = document.getElementById('users-table-body');
+  if (!tbody) return;
+
   let list = [...state.users];
 
   if (query) {
+    const q = query.toLowerCase().trim();
     list = list.filter(u => {
-      const p = u.profile || u;
       return (
-        p.name?.toLowerCase().includes(query) ||
-        p.phone?.includes(query) ||
-        u.email?.toLowerCase().includes(query)
+        u.name?.toLowerCase().includes(q) ||
+        u.phone?.includes(q) ||
+        u.email?.toLowerCase().includes(q) ||
+        u.role?.toLowerCase().includes(q) ||
+        u.jersey?.toLowerCase().includes(q)
       );
     });
   }
@@ -993,30 +1101,31 @@ function renderUsersView(query = '') {
   }
 
   tbody.innerHTML = list.map(u => {
-    const p = u.profile || u;
-    const stats = u.careerStats?.matchOverview || {};
-    const roleText = p.role || 'Player';
-    const bowlingStyle = p.bowlingStyle && p.bowlingStyle !== 'None' ? p.bowlingStyle : '';
+    const roleText = u.role || 'Player';
+    const bowlingStyle = u.bowlingStyle && u.bowlingStyle !== 'None' ? u.bowlingStyle : '';
     let secondaryStyle = '';
     if (bowlingStyle && !roleText.toLowerCase().includes(bowlingStyle.toLowerCase())) {
       secondaryStyle = bowlingStyle;
     }
 
     return `
-      <tr>
-        <td class="font-bold text-white flex items-center gap-2">
-          <span>${p.jersey || ''}</span>
-          <span>${p.name || 'Unnamed Player'}</span>
+      <tr class="hover:bg-slate-800/40 transition">
+        <td class="font-bold text-white flex items-center gap-2.5">
+          ${u.avatarUri ? `<img src="${u.avatarUri}" class="w-7 h-7 rounded-full object-cover border border-slate-700 shadow-sm" onerror="this.style.display='none'">` : '<div class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs">🏏</div>'}
+          <div class="flex items-center gap-1.5">
+            ${u.jersey ? `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-mono text-[10px] font-bold">${u.jersey}</span>` : ''}
+            <span>${u.name || 'Unnamed Player'}</span>
+          </div>
         </td>
-        <td class="font-mono text-slate-300">${p.phone || '-'}</td>
-        <td class="text-slate-400">${u.email || '-'}</td>
+        <td class="font-mono text-slate-300">${u.phone ? `+91 ${u.phone.replace(/^91/, '')}` : '-'}</td>
+        <td class="text-slate-400 font-mono text-xs">${u.email || '-'}</td>
         <td>
           <div class="space-y-0.5">
-            <span class="inline-block px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-semibold text-[11px]">${roleText}</span>
+            <span class="inline-block px-2 py-0.5 rounded bg-slate-800/90 text-sky-400 font-semibold text-[11px]">${roleText}</span>
             ${secondaryStyle ? `<span class="block text-[10px] text-slate-400">${secondaryStyle}</span>` : ''}
           </div>
         </td>
-        <td class="text-right font-mono font-bold text-emerald-400">${stats.matchesPlayed ?? 0}</td>
+        <td class="text-right font-mono font-bold text-emerald-400">${u.matchesPlayed ?? 0}</td>
       </tr>
     `;
   }).join('');
