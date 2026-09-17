@@ -59,25 +59,20 @@
         </div>
       </div>
 
-      <!-- Cloud Connectivity Status Pill -->
+      <!-- Connectivity Status Pill -->
       <div class="hidden md:flex items-center gap-4">
         <div id="cloud-status-pill" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-slate-800 text-xs text-slate-300 shadow-inner">
           <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 live-pulse"></span>
-          <span id="cloud-status-text" class="font-medium">Connecting to Cloud RTDB...</span>
+          <span id="cloud-status-text" class="font-medium">Connecting to Database...</span>
           <span id="cloud-latency-badge" class="text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-slate-400 font-mono">-- ms</span>
         </div>
       </div>
 
-      <!-- Actions: Refresh, New Match, Admin PIN -->
+      <!-- Actions: Refresh, Admin PIN -->
       <div class="flex items-center gap-2 sm:gap-3">
         <button id="btn-sync-now" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold flex items-center gap-1.5 transition">
           <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
           <span>Sync Now</span>
-        </button>
-
-        <button id="btn-create-match" class="px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-500 hover:to-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md shadow-sky-950 transition">
-          <i data-lucide="plus-circle" class="w-3.5 h-3.5"></i>
-          <span>New Match</span>
         </button>
 
         <button id="btn-auth-toggle" class="p-2 rounded-lg bg-slate-800/80 hover:bg-slate-700 text-slate-300 border border-slate-700 transition" title="Admin Security Settings">
@@ -111,7 +106,7 @@
         </button>
         <button data-tab="settings" onclick="switchTab('settings')" class="nav-tab flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider text-slate-400 border-b-2 border-transparent">
           <i data-lucide="database" class="w-4 h-4"></i>
-          <span>Database & Cloud</span>
+          <span>Database & Settings</span>
         </button>
       </div>
     </div>
@@ -250,8 +245,8 @@
             <span>Auto-Recalculate Stats</span>
           </button>
           <button id="btn-save-match-cloud" class="btn-primary text-xs">
-            <i data-lucide="cloud-upload" class="w-3.5 h-3.5"></i>
-            <span>Push to Cloud Now</span>
+            <i data-lucide="check-circle" class="w-3.5 h-3.5"></i>
+            <span>Push Updates Live</span>
           </button>
         </div>
       </div>
@@ -512,7 +507,7 @@
     <section id="view-users" class="tab-view hidden space-y-5">
       <div class="glass-panel p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-3">
         <div>
-          <h3 class="font-bold text-base text-white">Registered Cloud Players</h3>
+          <h3 class="font-bold text-base text-white">Registered Players</h3>
           <p class="text-xs text-slate-400">All registered user profiles with verified phone numbers & careers</p>
         </div>
         <div class="relative w-full sm:w-72">
@@ -528,8 +523,7 @@
               <th>Player Name</th>
               <th>Phone</th>
               <th>Email</th>
-              <th>Role</th>
-              <th>Batting / Bowling</th>
+              <th>Playing Role & Style</th>
               <th class="text-right">Matches</th>
             </tr>
           </thead>
@@ -588,7 +582,7 @@
         <div class="flex items-center justify-end gap-2">
           <button id="btn-apply-raw-json" class="btn-primary text-xs">
             <i data-lucide="check" class="w-3.5 h-3.5"></i>
-            <span>Apply Raw Changes to Cloud</span>
+            <span>Apply Raw Changes Live</span>
           </button>
         </div>
       </div>
@@ -600,12 +594,12 @@
           <span>Admin Danger Zone</span>
         </h3>
         <p class="text-xs text-slate-400">
-          Emergency tools to wipe test matches from Firebase cloud while strictly preserving all user accounts and registered profiles.
+          Emergency tools to wipe test matches while strictly preserving all user accounts and registered profiles.
         </p>
         <div>
           <button id="btn-emergency-wipe-matches" class="btn-danger text-xs">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-            <span>Clean All Matches from Cloud Database</span>
+            <span>Clean All Matches from Database</span>
           </button>
         </div>
       </div>
@@ -750,81 +744,7 @@
   </div>
 
 
-  <!-- 2. CREATE NEW MATCH MODAL -->
-  <div id="modal-create-match" class="modal-overlay hidden">
-    <div class="modal-content max-w-lg w-full p-6 space-y-4">
-      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-        <h3 class="font-bold text-base text-white flex items-center gap-2">
-          <span>🏏</span> Create New Match
-        </h3>
-        <button class="modal-close text-slate-400 hover:text-white p-1">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
 
-      <form id="form-create-match" class="space-y-3 text-xs">
-        <div>
-          <label class="block text-slate-300 font-semibold mb-1">Tournament / Series Name:</label>
-          <input type="text" id="new-match-tournament" class="form-input" value="Cricket Adda Premier League" required>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Team A (Home):</label>
-            <input type="text" id="new-match-team-a" class="form-input font-bold" value="India" required>
-          </div>
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Team A Flag/Emoji:</label>
-            <input type="text" id="new-match-flag-a" class="form-input" value="🇮🇳">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Team B (Away):</label>
-            <input type="text" id="new-match-team-b" class="form-input font-bold" value="Australia" required>
-          </div>
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Team B Flag/Emoji:</label>
-            <input type="text" id="new-match-flag-b" class="form-input" value="🇦🇺">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Total Overs:</label>
-            <input type="number" id="new-match-overs" class="form-input" value="20" min="1" max="50" required>
-          </div>
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Venue / Ground:</label>
-            <input type="text" id="new-match-venue" class="form-input" value="Wankhede Stadium, Mumbai">
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Toss Winner:</label>
-            <select id="new-match-toss-winner" class="form-input">
-              <option value="teamA">Team A</option>
-              <option value="teamB">Team B</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-slate-300 font-semibold mb-1">Elected To:</label>
-            <select id="new-match-toss-decision" class="form-input">
-              <option value="bat">Bat First</option>
-              <option value="bowl">Bowl First</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="flex items-center justify-end gap-2 border-t border-slate-800 pt-3">
-          <button type="button" class="modal-close btn-secondary text-xs">Cancel</button>
-          <button type="submit" class="btn-primary text-xs">Create & Launch</button>
-        </div>
-      </form>
-    </div>
-  </div>
 
 
   <!-- Toast Notification System -->

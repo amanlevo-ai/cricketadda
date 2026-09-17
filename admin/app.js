@@ -180,14 +180,14 @@ async function syncFromCloud(showNotification = false) {
 
     renderAllViews();
     if (showNotification) {
-      showToast('Synced fresh data from Cloud RTDB', 'success');
+      showToast('Synced fresh data from database', 'success');
     }
   } catch (err) {
     state.isOnline = false;
     updateCloudStatusPill(false);
-    console.error('[CloudSync Error]', err);
+    console.error('[Sync Error]', err);
     if (showNotification) {
-      showToast('Cloud connection error: ' + err.message, 'error');
+      showToast('Connection error: ' + err.message, 'error');
     }
   }
 }
@@ -209,7 +209,7 @@ function updateCloudStatusPill(isOnline, latency = null) {
     pill.classList.remove('border-red-800/80', 'bg-red-950/20');
     pill.classList.add('border-slate-800', 'bg-slate-900');
     pill.querySelector('span').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 live-pulse';
-    text.textContent = 'Cloud RTDB Connected';
+    text.textContent = 'Database Connected';
     badge.textContent = latency ? `${latency} ms` : 'Online';
     badge.className = 'text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-emerald-400 font-mono';
   } else {
@@ -444,9 +444,6 @@ function setupEventListeners() {
   // Insert missed ball prompt
   document.getElementById('btn-insert-ball-prompt')?.addEventListener('click', handleInsertMissedBall);
 
-  // Create Match form
-  document.getElementById('form-create-match')?.addEventListener('submit', handleCreateMatchForm);
-
   // Add Batter / Bowler buttons
   document.getElementById('btn-add-batter-row')?.addEventListener('click', promptAddBatter);
   document.getElementById('btn-add-bowler-row')?.addEventListener('click', promptAddBowler);
@@ -484,7 +481,7 @@ function setupEventListeners() {
       const parsed = JSON.parse(rawText);
       if (parsed && parsed.id) {
         await pushMatchToCloud(parsed.id, parsed);
-        showToast('Raw JSON hot-patch successfully applied to Cloud!', 'success');
+        showToast('Raw JSON hot-patch successfully applied!', 'success');
       }
     } catch (err) {
       showToast('Invalid JSON: ' + err.message, 'error');
@@ -493,7 +490,7 @@ function setupEventListeners() {
 
   // Settings: Emergency wipe
   document.getElementById('btn-emergency-wipe-matches')?.addEventListener('click', async () => {
-    const confirmPrompt = prompt('Type "WIPE" to confirm deleting all matches from cloud:');
+    const confirmPrompt = prompt('Type "WIPE" to confirm deleting all matches from database:');
     if (confirmPrompt === 'WIPE') {
       try {
         await fetch(`${CONFIG.FIREBASE_URL}/matches_db.json`, { method: 'DELETE' });
@@ -501,7 +498,7 @@ function setupEventListeners() {
         state.matchesDb = {};
         state.activeMatchId = null;
         renderAllViews();
-        showToast('Matches wiped from cloud. User profiles were preserved.', 'warning');
+        showToast('Matches wiped from database. User profiles were preserved.', 'warning');
       } catch (e) {
         showToast('Wipe failed: ' + e.message, 'error');
       }
@@ -659,7 +656,7 @@ function renderMatchesView(query = '') {
   if (list.length === 0) {
     container.innerHTML = `
       <div class="col-span-3 glass-panel p-8 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
-        No matches match the selected filter. Click "New Match" above to start a match.
+        No matches match the selected filter. Matches scored on mobile will appear here.
       </div>
     `;
     return;
@@ -723,7 +720,7 @@ function renderEditorView() {
     const sb = document.getElementById('editor-scoreboard-card');
     if (sb) sb.innerHTML = `
       <div class="p-8 text-center text-slate-400 text-sm">
-        No match selected. Click "New Match" above to start a match or select one from the Matches tab.
+        No match selected. Select a match from the dropdown above or browse matches in the Matches tab.
       </div>
     `;
     const tl = document.getElementById('editor-timeline-container');
@@ -942,7 +939,7 @@ function renderTeamsView() {
   if (state.teams.length === 0) {
     container.innerHTML = `
       <div class="col-span-3 glass-panel p-8 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
-        No teams registered in the cloud database.
+        No teams registered in the database.
       </div>
     `;
     return;
@@ -991,13 +988,20 @@ function renderUsersView(query = '') {
   }
 
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" class="text-center text-slate-400 py-6">No players registered.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-400 py-6">No players registered.</td></tr>';
     return;
   }
 
   tbody.innerHTML = list.map(u => {
     const p = u.profile || u;
     const stats = u.careerStats?.matchOverview || {};
+    const roleText = p.role || 'Player';
+    const bowlingStyle = p.bowlingStyle && p.bowlingStyle !== 'None' ? p.bowlingStyle : '';
+    let secondaryStyle = '';
+    if (bowlingStyle && !roleText.toLowerCase().includes(bowlingStyle.toLowerCase())) {
+      secondaryStyle = bowlingStyle;
+    }
+
     return `
       <tr>
         <td class="font-bold text-white flex items-center gap-2">
@@ -1006,8 +1010,12 @@ function renderUsersView(query = '') {
         </td>
         <td class="font-mono text-slate-300">${p.phone || '-'}</td>
         <td class="text-slate-400">${u.email || '-'}</td>
-        <td><span class="px-2 py-0.5 rounded bg-slate-800 text-sky-400 text-[11px]">${p.role || 'Player'}</span></td>
-        <td class="text-slate-400 text-[11px]">${p.battingStyle || '-'} • ${p.bowlingStyle || '-'}</td>
+        <td>
+          <div class="space-y-0.5">
+            <span class="inline-block px-2 py-0.5 rounded bg-slate-800 text-sky-400 font-semibold text-[11px]">${roleText}</span>
+            ${secondaryStyle ? `<span class="block text-[10px] text-slate-400">${secondaryStyle}</span>` : ''}
+          </div>
+        </td>
         <td class="text-right font-mono font-bold text-emerald-400">${stats.matchesPlayed ?? 0}</td>
       </tr>
     `;
@@ -1421,74 +1429,7 @@ function removeFowRow(idx) {
   pushMatchToCloud(state.activeMatchId, match);
 }
 
-// Create New Match Handler
-async function handleCreateMatchForm(e) {
-  e.preventDefault();
 
-  const id = 'match_' + Date.now();
-  const teamA = document.getElementById('new-match-team-a').value;
-  const flagA = document.getElementById('new-match-flag-a').value || '🏏';
-  const teamB = document.getElementById('new-match-team-b').value;
-  const flagB = document.getElementById('new-match-flag-b').value || '🏏';
-  const tournament = document.getElementById('new-match-tournament').value;
-  const venue = document.getElementById('new-match-venue').value;
-  const maxOvers = Number(document.getElementById('new-match-overs').value) || 20;
-  const tossWinner = document.getElementById('new-match-toss-winner').value;
-  const tossDecision = document.getElementById('new-match-toss-decision').value;
-
-  const tossText = `${tossWinner === 'teamA' ? teamA : teamB} won toss & elected to ${tossDecision}`;
-
-  const newMatch = {
-    ...EMPTY_MATCH,
-    id,
-    teamA,
-    flagA,
-    teamB,
-    flagB,
-    tournament,
-    venue,
-    toss: tossText,
-    innings1: {
-      team: tossWinner === 'teamA' && tossDecision === 'bat' ? teamA : teamB,
-      flag: tossWinner === 'teamA' && tossDecision === 'bat' ? flagA : flagB,
-      runs: 0,
-      wickets: 0,
-      overs: '0.0',
-      maxOvers,
-      crr: '0.00',
-      batting: [],
-      bowling: [],
-      fallOfWickets: [],
-      extras: { total: 0, wides: 0, noBalls: 0, byes: 0, legByes: 0, penalty: 0 },
-    },
-    innings2: {
-      team: tossWinner === 'teamA' && tossDecision === 'bat' ? teamB : teamA,
-      flag: tossWinner === 'teamA' && tossDecision === 'bat' ? flagB : flagA,
-      runs: 0,
-      wickets: 0,
-      overs: '0.0',
-      maxOvers,
-      crr: '0.00',
-      batting: [],
-      bowling: [],
-      fallOfWickets: [],
-      extras: { total: 0, wides: 0, noBalls: 0, byes: 0, legByes: 0, penalty: 0 },
-    },
-    currentStriker: 'Batter 1',
-    currentNonStriker: 'Batter 2',
-    currentBowler: 'Bowler 1',
-    status: 'in_progress',
-    createdAt: Date.now(),
-  };
-
-  state.matchesDb[id] = newMatch;
-  state.activeMatchId = id;
-
-  closeAllModals();
-  await pushMatchToCloud(id, newMatch);
-  switchTab('editor');
-  showToast(`Created & launched ${teamA} vs ${teamB}!`, 'success');
-}
 
 function openMatchInEditor(matchId) {
   state.activeMatchId = matchId;
