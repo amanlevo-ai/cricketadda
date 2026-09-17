@@ -305,136 +305,154 @@ function switchTab(tabId) {
 
 function setupEventListeners() {
   // Sync button
-  document.getElementById('btn-sync-now').addEventListener('click', () => {
+  document.getElementById('btn-sync-now')?.addEventListener('click', () => {
     syncFromCloud(true);
   });
 
   // Create Match Button
-  document.getElementById('btn-create-match').addEventListener('click', () => {
+  document.getElementById('btn-create-match')?.addEventListener('click', () => {
     openModal('modal-create-match');
+  });
+
+  // Create Team Button in Teams View
+  document.getElementById('btn-create-team')?.addEventListener('click', () => {
+    const tName = prompt('Enter New Team Name:');
+    if (!tName) return;
+    const tFlag = prompt('Enter Team Flag/Emoji (e.g. 🇮🇳, 🇦🇺):', '🏏') || '🏏';
+    const newTeam = { id: 'team_' + Date.now(), name: tName, flag: tFlag, squad: [] };
+    state.teams.push(newTeam);
+    fetch(`${CONFIG.FIREBASE_URL}/teams.json`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(state.teams),
+    });
+    renderTeamsView();
+    showToast(`Team ${tName} registered!`, 'success');
+  });
+
+  // Admin Auth Toggle / Status Button
+  document.getElementById('btn-auth-toggle')?.addEventListener('click', () => {
+    showToast('Admin Session Active • Master Access Enabled', 'success');
   });
 
   // Modal close buttons
   document.querySelectorAll('.modal-close').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn?.addEventListener('click', () => {
       closeAllModals();
     });
   });
 
   // Match filter buttons in Matches view
   document.querySelectorAll('.match-filter-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      document.querySelectorAll('.match-filter-btn').forEach(b => {
-        b.className = 'match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700';
-      });
-      btn.className = 'match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-900/60 text-sky-300 border border-sky-700/60';
-      state.matchFilter = btn.dataset.filter;
-      renderMatchesView();
+    btn?.addEventListener('click', () => {
+      filterMatches(btn.dataset.filter);
     });
   });
 
   // Search input in Matches view
-  document.getElementById('matches-search').addEventListener('input', e => {
+  document.getElementById('matches-search')?.addEventListener('input', e => {
     renderMatchesView(e.target.value.toLowerCase());
   });
 
   // Search input in Users view
-  document.getElementById('users-search').addEventListener('input', e => {
+  document.getElementById('users-search')?.addEventListener('input', e => {
     renderUsersView(e.target.value.toLowerCase());
   });
 
   // Active match dropdown in Editor view
-  document.getElementById('editor-match-select').addEventListener('change', e => {
+  document.getElementById('editor-match-select')?.addEventListener('change', e => {
     state.activeMatchId = e.target.value;
     renderEditorView();
   });
 
   // Push to Cloud Now button in Editor
-  document.getElementById('btn-save-match-cloud').addEventListener('click', () => {
+  document.getElementById('btn-save-match-cloud')?.addEventListener('click', () => {
     pushMatchToCloud(state.activeMatchId);
   });
 
   // Auto Recalculate button in Editor
-  document.getElementById('btn-recalculate-match').addEventListener('click', () => {
+  document.getElementById('btn-recalculate-match')?.addEventListener('click', () => {
     recalculateActiveMatchStats();
   });
 
   // Swap Batters button
-  document.getElementById('btn-swap-batters').addEventListener('click', () => {
+  document.getElementById('btn-swap-batters')?.addEventListener('click', () => {
     swapCreaseBatters();
   });
 
   // Live state input changes in Editor
-  document.getElementById('editor-striker-input').addEventListener('change', e => {
+  document.getElementById('editor-striker-input')?.addEventListener('change', e => {
     updateActiveMatchField('currentStriker', e.target.value);
   });
-  document.getElementById('editor-nonstriker-input').addEventListener('change', e => {
+  document.getElementById('editor-nonstriker-input')?.addEventListener('change', e => {
     updateActiveMatchField('currentNonStriker', e.target.value);
   });
-  document.getElementById('editor-bowler-input').addEventListener('change', e => {
+  document.getElementById('editor-bowler-input')?.addEventListener('change', e => {
     updateActiveMatchField('currentBowler', e.target.value);
   });
-  document.getElementById('editor-thisover-input').addEventListener('change', e => {
+  document.getElementById('editor-thisover-input')?.addEventListener('change', e => {
     const raw = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
     updateActiveMatchField('liveThisOver', raw);
   });
-  document.getElementById('editor-innings-select').addEventListener('change', e => {
+  document.getElementById('editor-innings-select')?.addEventListener('change', e => {
     updateActiveMatchField('currentInnings', Number(e.target.value));
   });
-  document.getElementById('editor-status-select').addEventListener('change', e => {
+  document.getElementById('editor-status-select')?.addEventListener('change', e => {
     updateActiveMatchField('status', e.target.value);
   });
-  document.getElementById('editor-target-input').addEventListener('change', e => {
+  document.getElementById('editor-target-input')?.addEventListener('change', e => {
     updateActiveMatchField('targetRuns', Number(e.target.value));
   });
 
   // Subtabs in Editor
-  document.getElementById('subtab-btn-balls').addEventListener('click', () => setEditorSubTab('balls'));
-  document.getElementById('subtab-btn-scorecard').addEventListener('click', () => setEditorSubTab('scorecard'));
-  document.getElementById('subtab-btn-extras').addEventListener('click', () => setEditorSubTab('extras'));
+  document.getElementById('subtab-btn-balls')?.addEventListener('click', () => setEditorSubTab('balls'));
+  document.getElementById('subtab-btn-scorecard')?.addEventListener('click', () => setEditorSubTab('scorecard'));
+  document.getElementById('subtab-btn-extras')?.addEventListener('click', () => setEditorSubTab('extras'));
 
   // Edit Ball Form submission
-  document.getElementById('form-edit-ball').addEventListener('submit', handleSaveBallForm);
+  document.getElementById('form-edit-ball')?.addEventListener('submit', handleSaveBallForm);
 
   // Runs choices in Edit Ball Modal
   document.querySelectorAll('#ball-runs-selector .btn-run-choice').forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn?.addEventListener('click', () => {
       document.querySelectorAll('#ball-runs-selector .btn-run-choice').forEach(b => {
         b.classList.remove('ring-2', 'ring-sky-400');
       });
       btn.classList.add('ring-2', 'ring-sky-400');
       const rVal = btn.dataset.runs;
       const customInput = document.getElementById('edit-ball-runs-custom');
-      if (rVal === 'custom') {
-        customInput.classList.remove('hidden');
-        customInput.focus();
-      } else {
-        customInput.classList.add('hidden');
-        customInput.value = rVal;
+      if (customInput) {
+        if (rVal === 'custom') {
+          customInput.classList.remove('hidden');
+          customInput.focus();
+        } else {
+          customInput.classList.add('hidden');
+          customInput.value = rVal;
+        }
       }
     });
   });
 
   // Wicket checkbox in Edit Ball Modal
-  document.getElementById('edit-ball-is-wkt').addEventListener('change', e => {
-    document.getElementById('wkt-fields-group').classList.toggle('hidden', !e.target.checked);
+  document.getElementById('edit-ball-is-wkt')?.addEventListener('change', e => {
+    document.getElementById('wkt-fields-group')?.classList.toggle('hidden', !e.target.checked);
   });
 
   // Delete ball button
-  document.getElementById('btn-delete-ball').addEventListener('click', handleDeleteBall);
+  document.getElementById('btn-delete-ball')?.addEventListener('click', handleDeleteBall);
 
   // Insert missed ball prompt
-  document.getElementById('btn-insert-ball-prompt').addEventListener('click', handleInsertMissedBall);
+  document.getElementById('btn-insert-ball-prompt')?.addEventListener('click', handleInsertMissedBall);
 
   // Create Match form
-  document.getElementById('form-create-match').addEventListener('submit', handleCreateMatchForm);
+  document.getElementById('form-create-match')?.addEventListener('submit', handleCreateMatchForm);
 
   // Add Batter / Bowler buttons
-  document.getElementById('btn-add-batter-row').addEventListener('click', promptAddBatter);
-  document.getElementById('btn-add-bowler-row').addEventListener('click', promptAddBowler);
+  document.getElementById('btn-add-batter-row')?.addEventListener('click', promptAddBatter);
+  document.getElementById('btn-add-bowler-row')?.addEventListener('click', promptAddBowler);
 
   // Settings: Latency test
-  document.getElementById('btn-test-db-connection').addEventListener('click', async () => {
+  document.getElementById('btn-test-db-connection')?.addEventListener('click', async () => {
     const t0 = performance.now();
     try {
       const res = await fetch(`${CONFIG.FIREBASE_URL}/ping.json?t=${Date.now()}`);
@@ -447,7 +465,7 @@ function setupEventListeners() {
   });
 
   // Settings: Export Full DB
-  document.getElementById('btn-export-full-db').addEventListener('click', () => {
+  document.getElementById('btn-export-full-db')?.addEventListener('click', () => {
     const jsonStr = JSON.stringify(state.matchesDb, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
@@ -458,8 +476,23 @@ function setupEventListeners() {
     showToast('Database exported successfully', 'success');
   });
 
+  // Settings: Raw JSON patch apply
+  document.getElementById('btn-apply-raw-json')?.addEventListener('click', async () => {
+    try {
+      const rawText = document.getElementById('raw-json-editor')?.value;
+      if (!rawText) return;
+      const parsed = JSON.parse(rawText);
+      if (parsed && parsed.id) {
+        await pushMatchToCloud(parsed.id, parsed);
+        showToast('Raw JSON hot-patch successfully applied to Cloud!', 'success');
+      }
+    } catch (err) {
+      showToast('Invalid JSON: ' + err.message, 'error');
+    }
+  });
+
   // Settings: Emergency wipe
-  document.getElementById('btn-emergency-wipe-matches').addEventListener('click', async () => {
+  document.getElementById('btn-emergency-wipe-matches')?.addEventListener('click', async () => {
     const confirmPrompt = prompt('Type "WIPE" to confirm deleting all matches from cloud:');
     if (confirmPrompt === 'WIPE') {
       try {
@@ -687,11 +720,20 @@ function renderEditorView() {
 
   const match = state.matchesDb[state.activeMatchId];
   if (!match) {
-    document.getElementById('editor-scoreboard-card').innerHTML = `
+    const sb = document.getElementById('editor-scoreboard-card');
+    if (sb) sb.innerHTML = `
       <div class="p-8 text-center text-slate-400 text-sm">
-        Select or create a match to open the editor.
+        No match selected. Click "New Match" above to start a match or select one from the Matches tab.
       </div>
     `;
+    const tl = document.getElementById('editor-timeline-container');
+    if (tl) tl.innerHTML = '<div class="p-8 text-center text-slate-400 text-xs">No active match selected.</div>';
+    const cnt = document.getElementById('balls-total-count');
+    if (cnt) cnt.textContent = '0';
+    const battingTbody = document.getElementById('editor-batting-table-body');
+    if (battingTbody) battingTbody.innerHTML = '<tr><td colspan="8" class="text-center text-slate-400 py-3">No match selected.</td></tr>';
+    const bowlingTbody = document.getElementById('editor-bowling-table-body');
+    if (bowlingTbody) bowlingTbody.innerHTML = '<tr><td colspan="9" class="text-center text-slate-400 py-3">No match selected.</td></tr>';
     return;
   }
 
@@ -1565,3 +1607,45 @@ function showToast(message, type = 'info') {
     setTimeout(() => toast.remove(), 300);
   }, 3500);
 }
+
+function filterMatches(filterType) {
+  state.matchFilter = filterType;
+  document.querySelectorAll('.match-filter-btn').forEach(b => {
+    if (b.dataset.filter === filterType) {
+      b.className = 'match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-900/60 text-sky-300 border border-sky-700/60';
+    } else {
+      b.className = 'match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-slate-400 border border-slate-700';
+    }
+  });
+  renderMatchesView();
+}
+
+// Dismiss modals on backdrop click or ESC key
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) closeAllModals();
+  });
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') closeAllModals();
+});
+
+// Explicit Global Window Bindings for Inline Click & Event Handlers
+window.switchTab = switchTab;
+window.filterMatches = filterMatches;
+window.openMatchInEditor = openMatchInEditor;
+window.deleteMatchPrompt = deleteMatchPrompt;
+window.openEditBallModal = openEditBallModal;
+window.updateBatterField = updateBatterField;
+window.updateBowlerField = updateBowlerField;
+window.promptAddBatter = promptAddBatter;
+window.promptAddBowler = promptAddBowler;
+window.removeBatterRow = removeBatterRow;
+window.removeBowlerRow = removeBowlerRow;
+window.removeFowRow = removeFowRow;
+window.setEditorSubTab = setEditorSubTab;
+window.openModal = openModal;
+window.closeAllModals = closeAllModals;
+window.syncFromCloud = syncFromCloud;
+window.pushMatchToCloud = pushMatchToCloud;
+
