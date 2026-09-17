@@ -11514,16 +11514,6 @@ function CricketAddaMain() {
                 <Text style={[styles.brandSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Official Tournament Hub</Text>
               </View>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.wzBtn, { backgroundColor: currentTheme.primary }]}
-              onPress={() => {
-                setWzPhase(1);
-                setWizardVisible(true);
-              }}
-            >
-              <Text style={[styles.wzBtnText, { color: currentTheme.primaryText }]}>➕ New Match</Text>
-            </TouchableOpacity>
           </View>
 
       {/* ========================================================================= */}
@@ -11568,22 +11558,6 @@ function CricketAddaMain() {
               </View>
             </View>
           )}
-
-          {/* Quick "Create Your Team" Button */}
-          <TouchableOpacity
-            style={[styles.quickCreateTeamBanner, currentTheme.isLight && { backgroundColor: '#f0fdf4', borderColor: '#86efac' }]}
-            onPress={() => openNewTeamModal('teamA')}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={styles.quickCreateTeamIconBox}>
-                <Text style={{ fontSize: 18 }}>🏏</Text>
-              </View>
-              <Text style={[styles.quickCreateTeamTitle, currentTheme.isLight && { color: '#166534' }]}>
-                Create Your Team
-              </Text>
-            </View>
-            <Text style={styles.quickCreateTeamActionText}>➕</Text>
-          </TouchableOpacity>
 
           {/* Filter Pills */}
           <View style={styles.filterPillsRow}>
@@ -11639,11 +11613,8 @@ function CricketAddaMain() {
                   marginBottom: 16,
                 }}>
                   <Text style={{ fontSize: 36, marginBottom: 8 }}>🏟️</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 4 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 16 }}>
                     No Active Live Matches
-                  </Text>
-                  <Text style={{ fontSize: 12, color: currentTheme.isLight ? '#64748b' : '#94a3b8', textAlign: 'center', marginBottom: 16, maxWidth: 280 }}>
-                    Create your first match setup or team to start live scoring from scratch!
                   </Text>
                   <TouchableOpacity
                     style={{
@@ -11658,7 +11629,7 @@ function CricketAddaMain() {
                     }}
                   >
                     <Text style={{ color: currentTheme.primaryText, fontWeight: '900', fontSize: 13 }}>
-                      ➕ Start New Match Setup
+                      ➕ Start New Match
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -14747,22 +14718,6 @@ function CricketAddaMain() {
             <Text style={{ color: '#0284c7', fontWeight: '900', fontSize: 13 }}>View 🪪</Text>
           </TouchableOpacity>
 
-          {/* Create Custom Team Card */}
-          <TouchableOpacity
-            style={[styles.profileCreateTeamBanner, currentTheme.isLight && { backgroundColor: '#f0fdf4', borderColor: '#86efac' }]}
-            onPress={() => openNewTeamModal('teamA')}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-              <View style={styles.profileCreateTeamIconBox}>
-                <Text style={{ fontSize: 18 }}>🏏</Text>
-              </View>
-              <Text style={[styles.profileCreateTeamTitle, currentTheme.isLight && { color: '#166534' }]}>
-                Create Your Team
-              </Text>
-            </View>
-            <Text style={styles.profileCreateTeamActionText}>➕</Text>
-          </TouchableOpacity>
-
           {/* Captain Team Branding Card */}
           <TouchableOpacity
             style={{
@@ -15074,29 +15029,6 @@ function CricketAddaMain() {
             </Text>
           </TouchableOpacity>
 
-          {/* Sign Out Button on Profile */}
-          <TouchableOpacity
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              backgroundColor: currentTheme.isLight ? '#fee2e2' : 'rgba(127, 29, 29, 0.4)',
-              borderColor: '#ef4444',
-              borderWidth: 1,
-              borderRadius: 10,
-              paddingVertical: 12,
-              paddingHorizontal: 16,
-              marginTop: 16,
-              marginBottom: 16,
-            }}
-            onPress={handleSignOutAndReset}
-          >
-            <Text style={{ fontSize: 16 }}>🚪</Text>
-            <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 13, fontWeight: 'bold' }}>
-              Sign Out
-            </Text>
-          </TouchableOpacity>
         </ScrollView>
       )}
 
@@ -15113,15 +15045,8 @@ function CricketAddaMain() {
             <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
           </TouchableOpacity>
 
-          <View style={{ marginBottom: 16 }}>
-            <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 22, fontWeight: '900' }}>⚙️ App Settings</Text>
-            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 12, marginTop: 2 }}>
-              Configure match rules, DLS calculation engine, feedback and data
-            </Text>
-          </View>
-
           {/* PLAYER ACCOUNT & AUTHENTICATION SESSION */}
-          <Text style={{ color: currentTheme.isLight ? '#0284c7' : (currentTheme.secondary || '#38bdf8'), fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8 }}>
+          <Text style={{ color: currentTheme.isLight ? '#0284c7' : (currentTheme.secondary || '#38bdf8'), fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8, marginTop: 4 }}>
             👤 PLAYER ACCOUNT & SESSION
           </Text>
           <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', marginBottom: 16 }}>
@@ -15151,35 +15076,6 @@ function CricketAddaMain() {
             >
               <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 13, fontWeight: 'bold' }}>
                 🚪 Sign Out
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-                    {/* CLEAN TEST DATA RESET */}
-          <Text style={{ color: currentTheme.isLight ? '#0284c7' : (currentTheme.secondary || '#38bdf8'), fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8 }}>
-            🧹 TEST DATA & RESET
-          </Text>
-          <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', marginBottom: 16 }}>
-            <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 14, fontWeight: 'bold', marginBottom: 4 }}>
-              Clean Slate for App Testing
-            </Text>
-            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11.5, marginBottom: 12 }}>
-              Deletes all matches from DB, created teams, live scoring data, and career stats to test match setup and scoring from scratch. Your user profile and account details are 100% preserved.
-            </Text>
-            <TouchableOpacity
-              style={{
-                backgroundColor: currentTheme.isLight ? '#fef3c7' : 'rgba(180, 83, 9, 0.3)',
-                borderColor: '#f59e0b',
-                borderWidth: 1,
-                borderRadius: 8,
-                paddingVertical: 11,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              onPress={handleResetMatchesTeamsAndStats}
-            >
-              <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fcd34d', fontSize: 13, fontWeight: 'bold' }}>
-                🧹 Reset Teams, Matches & Stats
               </Text>
             </TouchableOpacity>
           </View>
@@ -15314,39 +15210,6 @@ function CricketAddaMain() {
                 <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff' }} />
               </TouchableOpacity>
             </View>
-          </View>
-
-          {/* 3. MATCH DRAFTS & CACHE */}
-          <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8 }}>
-            💾 MATCH DRAFTS & CACHE
-          </Text>
-
-          <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', marginBottom: 16 }}>
-            <TouchableOpacity
-              style={{
-                backgroundColor: currentTheme.isLight ? '#f8fafc' : '#1e293b',
-                borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                borderWidth: 1,
-                borderRadius: 8,
-                padding: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-              onPress={() => {
-                setMatchDraft({ hasDraft: false, step: 1, myTeam: null, opponentTeam: null });
-                Alert.alert('🗑️ Draft Cleared', 'All unfinished match setup drafts have been removed.');
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 18 }}>📝</Text>
-                <View>
-                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13, fontWeight: 'bold' }}>Clear Match Setup Draft</Text>
-                  <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5 }}>Discard unfinished match wizard configuration</Text>
-                </View>
-              </View>
-              <Text style={{ color: '#ef4444', fontSize: 12, fontWeight: 'bold' }}>Clear</Text>
-            </TouchableOpacity>
           </View>
 
           {/* 4. ABOUT & DEVELOPER INFO */}
