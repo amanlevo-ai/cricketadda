@@ -14701,19 +14701,9 @@ function CricketAddaMain() {
               <View style={[styles.playerPassportIconCircle, { backgroundColor: currentTheme.primary }]}>
                 <Text style={{ fontSize: 20 }}>🪪</Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={[styles.playerPassportTitle, currentTheme.isLight && { color: '#0369a1' }]}>
-                    My Player QR Pass & ID
-                  </Text>
-                  <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 4 }}>
-                    <Text style={{ color: '#fff', fontSize: 9, fontWeight: '900' }}>QR ID</Text>
-                  </View>
-                </View>
-                <Text style={[styles.playerPassportSub, currentTheme.isLight && { color: '#0284c7' }]}>
-                  {userProfile.phone ? `📞 ${userProfile.phone} • ` : ''}Show QR to captains to scan & add you into team squads
-                </Text>
-              </View>
+              <Text style={[styles.playerPassportTitle, currentTheme.isLight && { color: '#0369a1' }]}>
+                My QR Code
+              </Text>
             </View>
             <Text style={{ color: '#0284c7', fontWeight: '900', fontSize: 13 }}>View 🪪</Text>
           </TouchableOpacity>
