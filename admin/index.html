@@ -536,6 +536,42 @@
     </section>
 
 
+    <!-- 5.1 FULL-PAGE PLAYER PROFILE VIEW -->
+    <section id="view-player" class="tab-view hidden space-y-6">
+      <!-- Breadcrumb & Top Navigation Bar -->
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div class="flex items-center gap-3">
+          <button type="button" onclick="switchTab('users')" class="btn-secondary text-xs px-3.5 py-2 flex items-center gap-2 hover:border-sky-500 transition">
+            <i data-lucide="arrow-left" class="w-4 h-4"></i>
+            <span>Back to Players Directory</span>
+          </button>
+          <div class="h-6 w-px bg-slate-800 hidden sm:block"></div>
+          <div class="flex items-center gap-2 text-xs">
+            <span class="text-slate-400 hover:text-sky-400 cursor-pointer transition font-medium" onclick="switchTab('users')">Players Directory</span>
+            <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-600"></i>
+            <span id="player-view-breadcrumb" class="text-white font-bold">Player Career Dossier</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <button type="button" id="btn-share-player" onclick="sharePlayerProfile()" class="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5">
+            <i data-lucide="share-2" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span>Share Profile Link</span>
+          </button>
+          <button type="button" onclick="printPlayerDossier()" class="btn-secondary text-xs px-3 py-1.5 flex items-center gap-1.5">
+            <i data-lucide="printer" class="w-3.5 h-3.5 text-slate-400"></i>
+            <span>Print Dossier</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Full-Page Player Content Container -->
+      <div id="player-full-page-container" class="space-y-6">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+    </section>
+
+
     <!-- 6. DATABASE & CLOUD SETTINGS VIEW -->
     <section id="view-settings" class="tab-view hidden space-y-6">
       <!-- Database Connection Status -->
@@ -828,50 +864,10 @@
     </div>
   </div>
 
-  <!-- Player Career Dossier & Profile Modal -->
-  <div id="modal-player-dossier" class="modal-overlay fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 hidden overflow-y-auto">
-    <div class="glass-card max-w-3xl w-full rounded-2xl border border-slate-700/80 shadow-2xl my-auto max-h-[92vh] flex flex-col overflow-hidden animate-scale-in">
-      <!-- Modal Header Bar -->
-      <div class="flex items-center justify-between p-5 border-b border-slate-800 bg-slate-900/60 shrink-0">
-        <div class="flex items-center gap-2.5">
-          <div class="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-400 flex items-center justify-center border border-sky-500/30 shadow-inner">
-            <i data-lucide="award" class="w-5 h-5"></i>
-          </div>
-          <div>
-            <h3 class="font-bold text-sm text-white flex items-center gap-2">
-              <span id="dossier-header-title">Player Career Dossier</span>
-              <span class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span> Verified Profile
-              </span>
-            </h3>
-            <p class="text-[11px] text-slate-400">Complete performance analytics, team rosters & verified match statistics</p>
-          </div>
-        </div>
-        <button type="button" class="modal-close text-slate-400 hover:text-white transition p-1.5 rounded-lg hover:bg-slate-800">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
-      </div>
-
-      <!-- Modal Body (Scrollable) -->
-      <div class="p-5 overflow-y-auto space-y-5 flex-1" id="player-dossier-content">
-        <!-- Dynamically rendered by app.js -->
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="flex items-center justify-between px-5 py-3 border-t border-slate-800 bg-slate-900/60 shrink-0">
-        <div class="text-[11px] text-slate-400 flex items-center gap-1.5" id="dossier-footer-info">
-          <i data-lucide="database" class="w-3.5 h-3.5 text-sky-400"></i>
-          <span>Synced with Firebase Realtime Database</span>
-        </div>
-        <button type="button" class="modal-close btn-secondary text-xs px-4 py-1.5">Close</button>
-      </div>
-    </div>
-  </div>
-
   <!-- Toast Notification System -->
   <div id="toast-container"></div>
 
   <!-- Core Admin Logic -->
-  <script src="app.js?v=2.5"></script>
+  <script src="app.js?v=2.6"></script>
 </body>
 </html>

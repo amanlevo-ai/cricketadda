@@ -13,10 +13,12 @@ const CONFIG = {
 const state = {
   matchesDb: {},
   activeMatchId: null,
+  activePlayerId: null,
   teams: [],
   users: [],
   currentTab: 'dashboard',
   editorSubTab: 'balls',
+  playerProfileTab: 'batting',
   matchFilter: 'all',
   editingBallIndex: null,
   isOnline: false,
@@ -470,6 +472,7 @@ function restoreNavStateFromUrlOrStorage() {
   const hash = window.location.hash.replace(/^#/, '').trim();
   let tabId = 'dashboard';
   let matchId = null;
+  let playerId = null;
 
   if (hash) {
     const parts = hash.split('?');
@@ -477,6 +480,7 @@ function restoreNavStateFromUrlOrStorage() {
     if (parts[1]) {
       const params = new URLSearchParams(parts[1]);
       matchId = params.get('match');
+      playerId = params.get('id') || params.get('player');
     }
   } else {
     try {
@@ -484,14 +488,19 @@ function restoreNavStateFromUrlOrStorage() {
       if (storedTab) tabId = storedTab;
       const storedMatch = localStorage.getItem('cricketadda_admin_active_match');
       if (storedMatch) matchId = storedMatch;
+      const storedPlayer = localStorage.getItem('cricketadda_admin_active_player');
+      if (storedPlayer) playerId = storedPlayer;
     } catch (e) {}
   }
 
-  const validTabs = ['dashboard', 'matches', 'editor', 'teams', 'users', 'settings'];
+  const validTabs = ['dashboard', 'matches', 'editor', 'teams', 'users', 'player', 'settings'];
   if (!validTabs.includes(tabId)) tabId = 'dashboard';
 
   if (matchId) {
     state.activeMatchId = matchId;
+  }
+  if (playerId) {
+    state.activePlayerId = playerId;
   }
 
   try {
@@ -505,7 +514,7 @@ window.restoreNavStateFromUrlOrStorage = restoreNavStateFromUrlOrStorage;
 
 function switchTab(tabId, updateHistory = true) {
   if (!tabId) return;
-  const validTabs = ['dashboard', 'matches', 'editor', 'teams', 'users', 'settings'];
+  const validTabs = ['dashboard', 'matches', 'editor', 'teams', 'users', 'player', 'settings'];
   if (!validTabs.includes(tabId)) tabId = 'dashboard';
 
   state.currentTab = tabId;
@@ -517,6 +526,8 @@ function switchTab(tabId, updateHistory = true) {
     let newHash = '#' + tabId;
     if (tabId === 'editor' && state.activeMatchId) {
       newHash += `?match=${encodeURIComponent(state.activeMatchId)}`;
+    } else if (tabId === 'player' && state.activePlayerId) {
+      newHash += `?id=${encodeURIComponent(state.activePlayerId)}`;
     }
     if (window.location.hash !== newHash) {
       history.replaceState(null, '', newHash);
@@ -524,7 +535,8 @@ function switchTab(tabId, updateHistory = true) {
   }
 
   document.querySelectorAll('.nav-tab').forEach(t => {
-    const isActive = t.dataset.tab === tabId;
+    // Highlight users tab when viewing player profile to preserve intuitive hierarchy
+    const isActive = t.dataset.tab === tabId || (tabId === 'player' && t.dataset.tab === 'users');
     t.classList.toggle('active', isActive);
     if (isActive) {
       t.classList.add('text-sky-400', 'border-sky-500');
@@ -1021,6 +1033,10 @@ function renderAllViews() {
   renderTeamsView();
   renderUsersView();
   renderSettingsView();
+
+  if (state.currentTab === 'player' && state.activePlayerId) {
+    renderPlayerFullPageView(state.activePlayerId);
+  }
 
   // Tab count
   updateElementTextIfChanged('matches-tab-count', Object.keys(state.matchesDb).length);
@@ -1627,8 +1643,8 @@ function renderUsersView(query = null) {
 
       return `
         <tr class="hover:bg-slate-800/60 transition cursor-pointer group select-none" 
-            onclick="openPlayerDossier('${encodeURIComponent(userKey)}')" 
-            title="Click to view ${u.name || 'player'}'s complete career dossier & statistics">
+            onclick="openPlayerProfile('${encodeURIComponent(userKey)}')" 
+            title="Click to view ${u.name || 'player'}'s complete full-page career dossier & statistics">
           <td class="font-bold text-white flex items-center gap-3">
             <img src="${avatarSrc}" 
                  alt="${u.name || 'Player'}" 
@@ -2225,16 +2241,15 @@ document.querySelectorAll('.modal-close').forEach(btn => {
 });
 
 // ============================================================================
-// PLAYER CAREER DOSSIER MODAL & ADVANCED ANALYTICS
+// FULL-PAGE PLAYER CAREER DOSSIER & PROFILE VIEW ENGINE
 // ============================================================================
 
-let currentDossierUser = null;
-let currentDossierTab = 'batting';
-
-function openPlayerDossier(userKeyRaw) {
+function findUserByKey(userKeyRaw) {
+  if (!userKeyRaw) return null;
   const userKey = decodeURIComponent(userKeyRaw);
   const cleanKey = String(userKey).replace(/[^0-9]/g, '');
-  const user = state.users.find(u => {
+
+  return state.users.find(u => {
     const uPhone = String(u.phone || (u.profile && u.profile.phone) || '').replace(/[^0-9]/g, '');
     const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
     const uId = String(u.id || (u.profile && u.profile.id) || '');
@@ -2242,56 +2257,98 @@ function openPlayerDossier(userKeyRaw) {
     return (cleanKey && uPhone === cleanKey) ||
            (uEmail && uEmail === userKey.toLowerCase()) ||
            (uId && uId === userKey) ||
-           (uName && uName === userKey);
-  });
-
-  if (!user) {
-    showToast('Player profile not found', 'warning');
-    return;
-  }
-
-  currentDossierUser = user;
-  currentDossierTab = 'batting';
-
-  renderPlayerDossierModal(user);
-  openModal('modal-player-dossier');
+           (uName && uName.toLowerCase() === userKey.toLowerCase());
+  }) || null;
 }
 
-function switchDossierTab(tabId) {
-  currentDossierTab = tabId;
-  document.querySelectorAll('.dossier-tab-btn').forEach(btn => {
-    if (btn.dataset.tab === tabId) {
-      btn.className = 'dossier-tab-btn px-4 py-2.5 border-b-2 border-sky-400 text-sky-400 font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-sky-950/20';
+function openPlayerProfile(userKeyRaw) {
+  if (!userKeyRaw) return;
+  const userKey = decodeURIComponent(userKeyRaw);
+  state.activePlayerId = userKey;
+  try {
+    localStorage.setItem('cricketadda_admin_active_player', userKey);
+  } catch (e) {}
+
+  switchTab('player');
+}
+
+function switchPlayerProfileTab(tabId) {
+  state.playerProfileTab = tabId;
+
+  document.querySelectorAll('.player-profile-tab-btn').forEach(btn => {
+    const isActive = btn.dataset.tab === tabId;
+    if (isActive) {
+      btn.className = 'player-profile-tab-btn px-4 py-2.5 border-b-2 border-sky-400 text-sky-400 font-bold transition flex items-center gap-2 whitespace-nowrap bg-sky-950/30';
     } else {
-      btn.className = 'dossier-tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap';
+      btn.className = 'player-profile-tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-2 whitespace-nowrap';
     }
   });
 
-  document.querySelectorAll('.dossier-panel').forEach(panel => {
+  document.querySelectorAll('.player-profile-panel').forEach(panel => {
     panel.classList.toggle('hidden', panel.dataset.panel !== tabId);
   });
-  if (window.lucide) lucide.createIcons();
+
+  if (window.lucide) {
+    lucide.createIcons();
+  }
 }
 
-function copyDossierText(text, label = 'Copied') {
+function copyPlayerProfileText(text, label = 'Copied') {
+  if (!text) return;
   if (navigator.clipboard) {
     navigator.clipboard.writeText(text).then(() => {
-      showToast(`${label} to clipboard! 📋`, 'info');
+      showToast(`${label} copied to clipboard! 📋`, 'info');
     }).catch(() => {});
   }
 }
 
-function renderPlayerDossierModal(user) {
-  const container = document.getElementById('player-dossier-content');
-  const titleEl = document.getElementById('dossier-header-title');
+function sharePlayerProfile() {
+  if (!state.activePlayerId) return;
+  const url = `${window.location.origin}${window.location.pathname}#player?id=${encodeURIComponent(state.activePlayerId)}`;
+  copyPlayerProfileText(url, 'Player profile link');
+}
+
+function printPlayerDossier() {
+  window.print();
+}
+
+function renderPlayerFullPageView(userKeyRaw) {
+  const container = document.getElementById('player-full-page-container');
+  const breadcrumbEl = document.getElementById('player-view-breadcrumb');
   if (!container) return;
 
-  if (titleEl) {
-    titleEl.textContent = `${user.name || 'Player'} • Career Dossier`;
+  const user = findUserByKey(userKeyRaw);
+
+  if (!user) {
+    if (breadcrumbEl) breadcrumbEl.textContent = 'Player Profile Not Found';
+    container.innerHTML = `
+      <div class="glass-panel p-10 rounded-2xl border border-slate-800 text-center space-y-4">
+        <div class="w-14 h-14 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center mx-auto">
+          <i data-lucide="user-x" class="w-7 h-7"></i>
+        </div>
+        <h3 class="text-base font-bold text-white">Player Profile Not Found</h3>
+        <p class="text-xs text-slate-400 max-w-md mx-auto">
+          The requested player key "${userKeyRaw || ''}" does not match any verified athlete in the current database.
+        </p>
+        <div>
+          <button type="button" onclick="switchTab('users')" class="btn-primary text-xs px-4 py-2">
+            Return to Players Directory
+          </button>
+        </div>
+      </div>
+    `;
+    if (window.lucide) lucide.createIcons();
+    return;
+  }
+
+  const playerName = user.name || 'Unnamed Player';
+  const jerseyNumber = user.jersey || '';
+  if (breadcrumbEl) {
+    breadcrumbEl.textContent = jerseyNumber ? `${playerName} (#${jerseyNumber})` : playerName;
   }
 
   const avatarSrc = resolveUserAvatar(user);
-  const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'Player')}&background=0284c7&color=fff&bold=true&size=128&rounded=true`;
+  const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(playerName)}&background=0284c7&color=fff&bold=true&size=160&rounded=true`;
 
   const teams = getPlayerTeams(user);
   const rawData = user.raw || {};
@@ -2303,7 +2360,7 @@ function renderPlayerDossierModal(user) {
   const fielding = careerStats.fielding || {};
 
   // Matches involving this player
-  const cleanName = (user.name || '').trim().toLowerCase();
+  const cleanName = playerName.trim().toLowerCase();
   const playerMatches = [];
   Object.values(state.matchesDb || {}).forEach(m => {
     if (!m) return;
@@ -2319,7 +2376,7 @@ function renderPlayerDossierModal(user) {
       playerMatches.push({
         id: m.id,
         title: m.title || `${m.teamA || 'Team A'} vs ${m.teamB || 'Team B'}`,
-        tournament: m.tournament || 'Cricket Adda Championship',
+        tournament: m.tournament || 'CricketAdda Championship',
         status: m.status || 'completed',
         summary: m.toss || 'Official Match',
         score1: inn1.team ? `${inn1.team}: ${inn1.runs || 0}/${inn1.wickets || 0} (${inn1.overs || 0} ov)` : '',
@@ -2328,14 +2385,18 @@ function renderPlayerDossierModal(user) {
     }
   });
 
-  const matchesCount = matchOverview.matchesPlayed ?? user.matchesPlayed ?? 0;
+  const matchesCount = matchOverview.matchesPlayed ?? user.matchesPlayed ?? (playerMatches.length || 0);
   const winsCount = matchOverview.wins ?? 0;
   const lossesCount = matchOverview.losses ?? 0;
   const winRate = matchOverview.winRate || (matchesCount > 0 ? `${Math.round((winsCount / matchesCount) * 100)}%` : '0%');
   const potmCount = matchOverview.potmCount ?? 0;
 
   const battingRuns = batting.runs ?? 0;
+  const battingAvg = batting.avg || '0.00';
+  const battingSr = batting.sr || '0.00';
   const bowlingWkts = bowling.wickets ?? 0;
+  const bowlingEcon = bowling.econ || '0.00';
+  const bowlingAvg = bowling.avg || '0.00';
   const catchesCount = fielding.catches ?? 0;
 
   const roleText = user.role || 'Player';
@@ -2345,375 +2406,476 @@ function renderPlayerDossierModal(user) {
   let teamsBadgeList = '';
   if (teams.length > 0) {
     teamsBadgeList = teams.map(t => `
-      <span class="px-2.5 py-1 rounded-lg bg-sky-500/15 text-sky-300 border border-sky-500/30 text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm">
+      <span class="px-3 py-1 rounded-lg bg-sky-500/15 text-sky-300 border border-sky-500/30 text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm">
         <span>${t.flag || '🏏'}</span>
         <span>${t.name}</span>
       </span>
     `).join(' ');
   } else {
     teamsBadgeList = `
-      <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 text-xs font-medium inline-flex items-center gap-1.5">
+      <span class="px-3 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 text-xs font-medium inline-flex items-center gap-1.5">
         <span class="w-2 h-2 rounded-full bg-slate-500"></span>
         <span>No Team Yet (Free Agent)</span>
       </span>
     `;
   }
 
+  const activeTab = state.playerProfileTab || 'batting';
+
   container.innerHTML = `
-    <!-- 1. Hero Player Profile Header -->
-    <div class="glass-panel p-5 rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900/95 to-sky-950/30 flex flex-col sm:flex-row items-center sm:items-start gap-5 shadow-lg">
+    <!-- 1. FULL PAGE HERO SECTION -->
+    <div class="glass-panel p-6 rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900/95 to-sky-950/30 flex flex-col md:flex-row items-center md:items-start gap-6 shadow-xl">
+      <!-- Player Avatar -->
       <div class="relative shrink-0">
-        <img src="${avatarSrc}" alt="${user.name || 'Player'}" 
-             class="w-24 h-24 rounded-2xl object-cover border-2 border-sky-400 shadow-xl bg-slate-800" 
+        <img src="${avatarSrc}" alt="${playerName}" 
+             class="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border-2 border-sky-400 shadow-2xl bg-slate-800" 
              onerror="this.onerror=null; this.src='${fallbackUrl}';">
-        ${user.jersey ? `<span class="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-md bg-sky-500 text-white font-mono font-black text-xs shadow-md">${user.jersey}</span>` : ''}
+        ${jerseyNumber ? `
+          <span class="absolute -bottom-2.5 -right-2.5 px-3 py-1 rounded-lg bg-sky-500 text-white font-mono font-black text-sm shadow-lg border border-sky-300/40">
+            #${jerseyNumber}
+          </span>
+        ` : ''}
       </div>
 
-      <div class="flex-1 text-center sm:text-left space-y-2.5 min-w-0">
-        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
-          <h2 class="text-2xl font-black text-white tracking-tight">${user.name || 'Unnamed Player'}</h2>
-          <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1">
-            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+      <!-- Player Identity & Metadata -->
+      <div class="flex-1 text-center md:text-left space-y-3 min-w-0">
+        <div class="flex flex-wrap items-center justify-center md:justify-start gap-3">
+          <h2 class="text-2xl sm:text-3xl font-black text-white tracking-tight">${playerName}</h2>
+          <span class="px-3 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-xs font-semibold flex items-center gap-1.5">
+            <i data-lucide="shield-check" class="w-4 h-4"></i>
             <span>Verified Athlete</span>
+          </span>
+          <span class="px-2.5 py-1 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20 text-xs font-semibold flex items-center gap-1">
+            <i data-lucide="cloud" class="w-3.5 h-3.5"></i>
+            <span>Firebase Synced</span>
           </span>
         </div>
 
-        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs">
-          <span class="px-3 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">${roleText}</span>
-          ${battingStyle ? `<span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-medium">🏏 ${battingStyle}</span>` : ''}
-          ${bowlingStyle && bowlingStyle !== 'None' ? `<span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-medium">⚡ ${bowlingStyle}</span>` : ''}
+        <div class="flex flex-wrap items-center justify-center md:justify-start gap-2 text-xs">
+          <span class="px-3.5 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">${roleText}</span>
+          ${battingStyle ? `<span class="px-3 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-medium">🏏 ${battingStyle}</span>` : ''}
+          ${bowlingStyle && bowlingStyle !== 'None' ? `<span class="px-3 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-medium">⚡ ${bowlingStyle}</span>` : ''}
         </div>
 
-        <div class="pt-0.5 flex flex-wrap items-center justify-center sm:justify-start gap-2">
-          <span class="text-xs text-slate-400 font-semibold">Team:</span>
+        <div class="pt-0.5 flex flex-wrap items-center justify-center md:justify-start gap-2">
+          <span class="text-xs text-slate-400 font-semibold">Affiliation:</span>
           ${teamsBadgeList}
         </div>
 
-        <!-- Verified Contact Row with Click-to-Copy -->
-        <div class="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs font-mono text-slate-300">
+        <!-- Contact & Developer Info -->
+        <div class="pt-1 flex flex-wrap items-center justify-center md:justify-start gap-3 text-xs font-mono text-slate-300">
           ${user.phone ? `
-            <button type="button" onclick="copyDossierText('${user.phone}', 'Phone number')" 
-                    class="px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-300 flex items-center gap-1.5 transition" title="Click to copy phone">
+            <button type="button" onclick="copyPlayerProfileText('${user.phone}', 'Phone number')" 
+                    class="px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center gap-2 transition" title="Click to copy phone">
               <i data-lucide="phone" class="w-3.5 h-3.5 text-emerald-400"></i>
               <span>+91 ${user.phone.replace(/^91/, '')}</span>
+              <i data-lucide="copy" class="w-3 h-3 text-slate-400"></i>
             </button>
           ` : ''}
           ${user.email ? `
-            <button type="button" onclick="copyDossierText('${user.email}', 'Email address')" 
-                    class="px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-300 flex items-center gap-1.5 transition" title="Click to copy email">
+            <button type="button" onclick="copyPlayerProfileText('${user.email}', 'Email address')" 
+                    class="px-2.5 py-1.5 rounded-lg bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center gap-2 transition" title="Click to copy email">
               <i data-lucide="mail" class="w-3.5 h-3.5 text-sky-400"></i>
               <span>${user.email}</span>
+              <i data-lucide="copy" class="w-3 h-3 text-slate-400"></i>
             </button>
           ` : ''}
           ${user.id ? `
-            <span class="text-[11px] text-slate-500 font-mono self-center">UID: ${user.id}</span>
+            <button type="button" onclick="copyPlayerProfileText('${user.id}', 'User UID')" 
+                    class="px-2.5 py-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700/50 border border-slate-700/60 text-slate-400 flex items-center gap-1.5 transition text-[11px]" title="Click to copy UID">
+              <span>UID: ${user.id}</span>
+            </button>
           ` : ''}
         </div>
       </div>
     </div>
 
-    <!-- 2. Cricketer Top KPI Performance Cards -->
-    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-      <!-- Card 1: Matches -->
-      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+    <!-- 2. FULL-WIDTH CAREER KPI PERFORMANCE METRICS -->
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <!-- KPI 1: Matches -->
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
         <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
-          <span>Matches Played</span>
+          <span>Matches</span>
           <i data-lucide="calendar" class="w-4 h-4 text-sky-400"></i>
         </div>
-        <div class="text-2xl font-black text-white mt-1 font-mono">${matchesCount}</div>
-        <div class="text-[11px] text-slate-400 mt-0.5">${winsCount} Wins • ${lossesCount} Losses</div>
+        <div class="mt-2">
+          <p class="text-2xl sm:text-3xl font-black text-white font-mono">${matchesCount}</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">${winsCount}W • ${lossesCount}L</p>
+        </div>
       </div>
 
-      <!-- Card 2: Win Rate -->
-      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+      <!-- KPI 2: Win Rate -->
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
         <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
           <span>Win Rate</span>
           <i data-lucide="trending-up" class="w-4 h-4 text-emerald-400"></i>
         </div>
-        <div class="text-2xl font-black text-emerald-400 mt-1 font-mono">${winRate}</div>
-        <div class="text-[11px] text-slate-400 mt-0.5">Career Performance</div>
+        <div class="mt-2">
+          <p class="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">${winRate}</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Match success</p>
+        </div>
       </div>
 
-      <!-- Card 3: POTM -->
-      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+      <!-- KPI 3: Career Runs -->
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
         <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
-          <span>POTM Awards</span>
-          <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+          <span>Runs Scored</span>
+          <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
         </div>
-        <div class="text-2xl font-black text-amber-300 mt-1 font-mono">${potmCount}</div>
-        <div class="text-[11px] text-slate-400 mt-0.5">Player of the Match</div>
+        <div class="mt-2">
+          <p class="text-2xl sm:text-3xl font-black text-amber-300 font-mono">${battingRuns}</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Avg: ${battingAvg}</p>
+        </div>
       </div>
 
-      <!-- Card 4: Impact -->
-      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+      <!-- KPI 4: Strike Rate -->
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
         <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
-          <span>Career Impact</span>
-          <i data-lucide="zap" class="w-4 h-4 text-purple-400"></i>
+          <span>Batting SR</span>
+          <i data-lucide="gauge" class="w-4 h-4 text-sky-400"></i>
         </div>
-        <div class="text-2xl font-black text-purple-300 mt-1 font-mono">${battingRuns} <span class="text-xs text-slate-400 font-normal">Runs</span></div>
-        <div class="text-[11px] text-slate-400 mt-0.5 font-mono">${bowlingWkts} Wkts • ${catchesCount} Catches</div>
-      </div>
-    </div>
-
-    <!-- 3. Navigation Tabs -->
-    <div class="flex border-b border-slate-800 gap-1 overflow-x-auto text-xs font-semibold">
-      <button type="button" onclick="switchDossierTab('batting')" data-tab="batting" 
-              class="dossier-tab-btn px-4 py-2.5 border-b-2 border-sky-400 text-sky-400 font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-sky-950/20">
-        <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
-        <span>Batting Records</span>
-      </button>
-      <button type="button" onclick="switchDossierTab('bowling')" data-tab="bowling" 
-              class="dossier-tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap">
-        <i data-lucide="target" class="w-3.5 h-3.5"></i>
-        <span>Bowling Figures</span>
-      </button>
-      <button type="button" onclick="switchDossierTab('fielding')" data-tab="fielding" 
-              class="dossier-tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap">
-        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
-        <span>Fielding Prowess</span>
-      </button>
-      <button type="button" onclick="switchDossierTab('teams')" data-tab="teams" 
-              class="dossier-tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap">
-        <i data-lucide="users" class="w-3.5 h-3.5"></i>
-        <span>Teams & Matches (${teams.length})</span>
-      </button>
-    </div>
-
-    <!-- 4. Tab Panels -->
-    <!-- Tab 1: Batting -->
-    <div class="dossier-panel space-y-4" data-panel="batting">
-      <!-- Primary Batting Grid -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Total Runs</p>
-          <p class="text-xl font-black text-sky-400 font-mono mt-1">${batting.runs ?? 0}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Batting Average</p>
-          <p class="text-xl font-black text-white font-mono mt-1">${batting.avg || '0.00'}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Strike Rate</p>
-          <p class="text-xl font-black text-emerald-400 font-mono mt-1">${batting.sr || '0.00'}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Highest Score</p>
-          <p class="text-xl font-black text-amber-300 font-mono mt-1">${batting.highScore || '0'}</p>
+        <div class="mt-2">
+          <p class="text-2xl sm:text-3xl font-black text-sky-400 font-mono">${battingSr}</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Strike index</p>
         </div>
       </div>
 
-      <!-- Boundaries & Milestones -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Fifties (50s)</p>
-          <p class="text-lg font-bold text-white font-mono mt-1">${batting.fifties ?? 0}</p>
+      <!-- KPI 5: Career Wickets -->
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+        <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+          <span>Wickets</span>
+          <i data-lucide="target" class="w-4 h-4 text-rose-400"></i>
         </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Hundreds (100s)</p>
-          <p class="text-lg font-bold text-purple-400 font-mono mt-1">${batting.hundreds ?? 0}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Fours (4s)</p>
-          <p class="text-lg font-bold text-emerald-400 font-mono mt-1">${batting.fours ?? 0}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Sixes (6s)</p>
-          <p class="text-lg font-bold text-amber-400 font-mono mt-1">${batting.sixes ?? 0}</p>
+        <div class="mt-2">
+          <p class="text-2xl sm:text-3xl font-black text-rose-400 font-mono">${bowlingWkts}</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">Econ: ${bowlingEcon}</p>
         </div>
       </div>
 
-      <!-- Delivery Dynamics & Ducks -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
-          <p class="text-xs font-bold text-white flex items-center gap-1.5">
-            <i data-lucide="gauge" class="w-3.5 h-3.5 text-sky-400"></i>
-            <span>Ball Discipline & Control</span>
-          </p>
-          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
-            <span class="text-slate-400">Balls Faced:</span>
-            <span class="font-mono font-bold text-white">${batting.ballsFaced ?? 0}</span>
-          </div>
-          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
-            <span class="text-slate-400">Dot Balls Faced:</span>
-            <span class="font-mono font-bold text-white">${batting.dotBallsFaced ?? 0}</span>
-          </div>
-          <div class="flex justify-between text-xs pt-1">
-            <span class="text-slate-400">Dot Ball Percentage:</span>
-            <span class="font-mono font-bold text-sky-400">${batting.dotPct || '0.0%'}</span>
-          </div>
+      <!-- KPI 6: Awards / Catches -->
+      <div class="glass-panel p-4 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+        <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+          <span>POTM / Catches</span>
+          <i data-lucide="award" class="w-4 h-4 text-purple-400"></i>
         </div>
-
-        <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
-          <p class="text-xs font-bold text-white flex items-center gap-1.5">
-            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i>
-            <span>Dismissals & Ducks</span>
-          </p>
-          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
-            <span class="text-slate-400">Total Ducks (0s):</span>
-            <span class="font-mono font-bold text-red-400">${batting.ducks ?? 0}</span>
-          </div>
-          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
-            <span class="text-slate-400">Golden Ducks (1st Ball):</span>
-            <span class="font-mono font-bold text-amber-400">${batting.goldenDucks ?? 0}</span>
-          </div>
-          <div class="flex justify-between text-xs pt-1">
-            <span class="text-slate-400">Silver Ducks (2nd Ball):</span>
-            <span class="font-mono font-bold text-slate-300">${batting.silverDucks ?? 0}</span>
-          </div>
+        <div class="mt-2">
+          <p class="text-2xl sm:text-3xl font-black text-purple-400 font-mono">${potmCount}</p>
+          <p class="text-[11px] text-slate-400 mt-0.5">${catchesCount} catches</p>
         </div>
       </div>
     </div>
 
-    <!-- Tab 2: Bowling -->
-    <div class="dossier-panel space-y-4 hidden" data-panel="bowling">
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Wickets Taken</p>
-          <p class="text-xl font-black text-sky-400 font-mono mt-1">${bowling.wickets ?? 0}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Best Bowling (BBI)</p>
-          <p class="text-xl font-black text-emerald-400 font-mono mt-1">${bowling.best || '0/0'}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Bowling Average</p>
-          <p class="text-xl font-black text-white font-mono mt-1">${bowling.avg || '0.00'}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Economy Rate</p>
-          <p class="text-xl font-black text-amber-300 font-mono mt-1">${bowling.econ || '0.00'}</p>
-        </div>
+    <!-- 3. FULL PAGE TABBED ANALYTICS NAVIGATION -->
+    <div class="glass-panel rounded-2xl border border-slate-800 overflow-hidden shadow-lg">
+      <div class="flex border-b border-slate-800 bg-slate-900/80 overflow-x-auto no-scrollbar text-xs">
+        <button type="button" onclick="switchPlayerProfileTab('batting')" data-tab="batting" 
+                class="player-profile-tab-btn px-5 py-3 ${activeTab === 'batting' ? 'border-b-2 border-sky-400 text-sky-400 font-bold bg-sky-950/30' : 'border-b-2 border-transparent text-slate-400 hover:text-white'} transition flex items-center gap-2 whitespace-nowrap">
+          <i data-lucide="zap" class="w-4 h-4"></i>
+          <span>Batting Masterclass</span>
+        </button>
+        <button type="button" onclick="switchPlayerProfileTab('bowling')" data-tab="bowling" 
+                class="player-profile-tab-btn px-5 py-3 ${activeTab === 'bowling' ? 'border-b-2 border-sky-400 text-sky-400 font-bold bg-sky-950/30' : 'border-b-2 border-transparent text-slate-400 hover:text-white'} transition flex items-center gap-2 whitespace-nowrap">
+          <i data-lucide="crosshair" class="w-4 h-4"></i>
+          <span>Bowling Arsenal</span>
+        </button>
+        <button type="button" onclick="switchPlayerProfileTab('fielding')" data-tab="fielding" 
+                class="player-profile-tab-btn px-5 py-3 ${activeTab === 'fielding' ? 'border-b-2 border-sky-400 text-sky-400 font-bold bg-sky-950/30' : 'border-b-2 border-transparent text-slate-400 hover:text-white'} transition flex items-center gap-2 whitespace-nowrap">
+          <i data-lucide="shield" class="w-4 h-4"></i>
+          <span>Fielding & Keeping</span>
+        </button>
+        <button type="button" onclick="switchPlayerProfileTab('teams')" data-tab="teams" 
+                class="player-profile-tab-btn px-5 py-3 ${activeTab === 'teams' ? 'border-b-2 border-sky-400 text-sky-400 font-bold bg-sky-950/30' : 'border-b-2 border-transparent text-slate-400 hover:text-white'} transition flex items-center gap-2 whitespace-nowrap">
+          <i data-lucide="users" class="w-4 h-4"></i>
+          <span>Franchise Teams (${teams.length})</span>
+        </button>
+        <button type="button" onclick="switchPlayerProfileTab('matches')" data-tab="matches" 
+                class="player-profile-tab-btn px-5 py-3 ${activeTab === 'matches' ? 'border-b-2 border-sky-400 text-sky-400 font-bold bg-sky-950/30' : 'border-b-2 border-transparent text-slate-400 hover:text-white'} transition flex items-center gap-2 whitespace-nowrap">
+          <i data-lucide="calendar-days" class="w-4 h-4"></i>
+          <span>Match Appearances (${playerMatches.length})</span>
+        </button>
+        <button type="button" onclick="switchPlayerProfileTab('technical')" data-tab="technical" 
+                class="player-profile-tab-btn px-5 py-3 ${activeTab === 'technical' ? 'border-b-2 border-sky-400 text-sky-400 font-bold bg-sky-950/30' : 'border-b-2 border-transparent text-slate-400 hover:text-white'} transition flex items-center gap-2 whitespace-nowrap">
+          <i data-lucide="terminal" class="w-4 h-4"></i>
+          <span>Developer & Raw Data</span>
+        </button>
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
-          <p class="text-xs font-bold text-white flex items-center gap-1.5">
-            <i data-lucide="timer" class="w-3.5 h-3.5 text-sky-400"></i>
-            <span>Over Workload</span>
-          </p>
-          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
-            <span class="text-slate-400">Overs Bowled:</span>
-            <span class="font-mono font-bold text-white">${bowling.oversBowled || '0.0'}</span>
+      <div class="p-6">
+        <!-- Tab 1: Batting Panel -->
+        <div class="player-profile-panel space-y-6 ${activeTab === 'batting' ? '' : 'hidden'}" data-panel="batting">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Total Runs</p>
+              <p class="text-3xl font-black text-amber-300 font-mono mt-1">${battingRuns}</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Innings Batted</p>
+              <p class="text-3xl font-black text-white font-mono mt-1">${batting.inningsBatted ?? batting.innings ?? 0}</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Batting Average</p>
+              <p class="text-3xl font-black text-white font-mono mt-1">${battingAvg}</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Strike Rate</p>
+              <p class="text-3xl font-black text-sky-400 font-mono mt-1">${battingSr}</p>
+            </div>
           </div>
-          <div class="flex justify-between text-xs pt-1">
-            <span class="text-slate-400">Runs Conceded:</span>
-            <span class="font-mono font-bold text-red-400">${bowling.runsConceded ?? 0}</span>
+
+          <!-- Batting Breakdown Grid -->
+          <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+              <p class="text-[10px] text-slate-400 uppercase font-semibold">Highest Score</p>
+              <p class="text-xl font-black text-emerald-400 font-mono mt-1">${batting.highScore ?? 0}${batting.isNotOutInHigh ? '*' : ''}</p>
+            </div>
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+              <p class="text-[10px] text-slate-400 uppercase font-semibold">Balls Faced</p>
+              <p class="text-xl font-black text-white font-mono mt-1">${batting.ballsFaced ?? batting.balls ?? 0}</p>
+            </div>
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+              <p class="text-[10px] text-slate-400 uppercase font-semibold">Centuries (100s)</p>
+              <p class="text-xl font-black text-purple-400 font-mono mt-1">${batting.hundreds ?? 0}</p>
+            </div>
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+              <p class="text-[10px] text-slate-400 uppercase font-semibold">Fifties (50s)</p>
+              <p class="text-xl font-black text-sky-300 font-mono mt-1">${batting.fifties ?? 0}</p>
+            </div>
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+              <p class="text-[10px] text-slate-400 uppercase font-semibold">Fours (4s)</p>
+              <p class="text-xl font-black text-emerald-300 font-mono mt-1">${batting.fours ?? 0}</p>
+            </div>
+            <div class="glass-panel p-3.5 rounded-xl border border-slate-800">
+              <p class="text-[10px] text-slate-400 uppercase font-semibold">Sixes (6s)</p>
+              <p class="text-xl font-black text-amber-400 font-mono mt-1">${batting.sixes ?? 0}</p>
+            </div>
+          </div>
+
+          <!-- Advanced Cricketer Batting Insights -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-2.5">
+              <p class="text-xs font-bold text-white flex items-center gap-2">
+                <i data-lucide="pie-chart" class="w-4 h-4 text-sky-400"></i>
+                <span>Boundary & Dot Ball Analytics</span>
+              </p>
+              <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Boundary Percentage (Runs in 4s & 6s):</span>
+                <span class="font-mono font-bold text-amber-300">${batting.boundaryPct || '0.0%'}</span>
+              </div>
+              <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Dot Ball Percentage:</span>
+                <span class="font-mono font-bold text-white">${batting.dotPct || '0.0%'}</span>
+              </div>
+              <div class="flex justify-between text-xs pt-1">
+                <span class="text-slate-400">Not Outs:</span>
+                <span class="font-mono font-bold text-emerald-400">${batting.notOuts ?? 0}</span>
+              </div>
+            </div>
+
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-2.5">
+              <p class="text-xs font-bold text-white flex items-center gap-2">
+                <i data-lucide="alert-circle" class="w-4 h-4 text-rose-400"></i>
+                <span>Dismissal Vulnerability</span>
+              </p>
+              <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Total Ducks:</span>
+                <span class="font-mono font-bold text-rose-400">${batting.ducks ?? 0}</span>
+              </div>
+              <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Golden Ducks (1st Ball Out):</span>
+                <span class="font-mono font-bold text-amber-400">${batting.goldenDucks ?? 0}</span>
+              </div>
+              <div class="flex justify-between text-xs pt-1">
+                <span class="text-slate-400">Batting Frequency:</span>
+                <span class="font-mono font-bold text-sky-300">${matchesCount > 0 ? (battingRuns / matchesCount).toFixed(1) + ' R/M' : '0.0'}</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
-          <p class="text-xs font-bold text-white flex items-center gap-1.5">
-            <i data-lucide="shield" class="w-3.5 h-3.5 text-emerald-400"></i>
-            <span>Dot Ball Pressure</span>
-          </p>
-          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
-            <span class="text-slate-400">Dot Balls Bowled:</span>
-            <span class="font-mono font-bold text-emerald-400">${bowling.dotBallsBowled ?? 0}</span>
+        <!-- Tab 2: Bowling Panel -->
+        <div class="player-profile-panel space-y-6 ${activeTab === 'bowling' ? '' : 'hidden'}" data-panel="bowling">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Wickets Taken</p>
+              <p class="text-3xl font-black text-rose-400 font-mono mt-1">${bowlingWkts}</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Best Bowling (BBI)</p>
+              <p class="text-3xl font-black text-emerald-400 font-mono mt-1">${bowling.bestBowling || bowling.bbi || '-'}</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Bowling Average</p>
+              <p class="text-3xl font-black text-white font-mono mt-1">${bowlingAvg}</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Economy Rate</p>
+              <p class="text-3xl font-black text-amber-300 font-mono mt-1">${bowlingEcon}</p>
+            </div>
           </div>
-          <div class="flex justify-between text-xs pt-1">
-            <span class="text-slate-400">Dot Ball Percentage:</span>
-            <span class="font-mono font-bold text-white">${bowling.dotPct || '0.0%'}</span>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-2.5">
+              <p class="text-xs font-bold text-white flex items-center gap-2">
+                <i data-lucide="timer" class="w-4 h-4 text-sky-400"></i>
+                <span>Over Workload & Spell Control</span>
+              </p>
+              <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Overs Bowled:</span>
+                <span class="font-mono font-bold text-white">${bowling.oversBowled || bowling.overs || '0.0'}</span>
+              </div>
+              <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Runs Conceded:</span>
+                <span class="font-mono font-bold text-rose-400">${bowling.runsConceded ?? 0}</span>
+              </div>
+              <div class="flex justify-between text-xs pt-1">
+                <span class="text-slate-400">Maidens Bowled:</span>
+                <span class="font-mono font-bold text-emerald-400">${bowling.maidens ?? 0}</span>
+              </div>
+            </div>
+
+            <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-2.5">
+              <p class="text-xs font-bold text-white flex items-center gap-2">
+                <i data-lucide="shield" class="w-4 h-4 text-emerald-400"></i>
+                <span>Dot Ball Pressure & Extras</span>
+              </p>
+              <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Dot Balls Bowled:</span>
+                <span class="font-mono font-bold text-emerald-400">${bowling.dotBallsBowled ?? 0}</span>
+              </div>
+              <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+                <span class="text-slate-400">Dot Ball Percentage:</span>
+                <span class="font-mono font-bold text-white">${bowling.dotPct || '0.0%'}</span>
+              </div>
+              <div class="flex justify-between text-xs pt-1">
+                <span class="text-slate-400">5-Wicket Hauls (5W):</span>
+                <span class="font-mono font-bold text-purple-400">${bowling.fiveWickets ?? 0}</span>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Tab 3: Fielding -->
-    <div class="dossier-panel space-y-4 hidden" data-panel="fielding">
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Catches Taken</p>
-          <p class="text-xl font-black text-sky-400 font-mono mt-1">${fielding.catches ?? 0}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Direct Hits</p>
-          <p class="text-xl font-black text-emerald-400 font-mono mt-1">${fielding.directHits ?? 0}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Run-Outs</p>
-          <p class="text-xl font-black text-amber-300 font-mono mt-1">${fielding.runOuts ?? 0}</p>
-        </div>
-        <div class="glass-panel p-3 rounded-xl border border-slate-800">
-          <p class="text-[10px] text-slate-400 font-semibold uppercase">Stumpings</p>
-          <p class="text-xl font-black text-purple-400 font-mono mt-1">${fielding.stumpings ?? 0}</p>
-        </div>
-      </div>
-
-      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
-        <p class="text-xs font-bold text-white flex items-center gap-1.5">
-          <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span>Catching Efficiency & Safety</span>
-        </p>
-        <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
-          <span class="text-slate-400">Catch Efficiency Rate:</span>
-          <span class="font-mono font-bold text-emerald-400">${fielding.catchEfficiency || '100.0%'}</span>
-        </div>
-        <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
-          <span class="text-slate-400">Total Chances:</span>
-          <span class="font-mono font-bold text-white">${fielding.totalChances ?? (fielding.catches || 0)}</span>
-        </div>
-        <div class="flex justify-between text-xs pt-1">
-          <span class="text-slate-400">Dropped Catches:</span>
-          <span class="font-mono font-bold text-red-400">${fielding.droppedCatches ?? 0}</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Tab 4: Teams & Matches -->
-    <div class="dossier-panel space-y-4 hidden" data-panel="teams">
-      <div>
-        <p class="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
-          <i data-lucide="shield" class="w-3.5 h-3.5 text-sky-400"></i>
-          <span>Team Franchise Rosters (${teams.length})</span>
-        </p>
-        ${teams.length === 0 ? `
-          <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
-            <p>This player is not drafted in any team roster yet. Currently available as a <strong>Free Agent</strong>.</p>
+        <!-- Tab 3: Fielding Panel -->
+        <div class="player-profile-panel space-y-6 ${activeTab === 'fielding' ? '' : 'hidden'}" data-panel="fielding">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+            <div class="glass-panel p-4 rounded-xl border border-slate-800">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Catches Taken</p>
+              <p class="text-3xl font-black text-sky-400 font-mono mt-1">${catchesCount}</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border border-slate-800">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Direct Hits</p>
+              <p class="text-3xl font-black text-emerald-400 font-mono mt-1">${fielding.directHits ?? 0}</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border border-slate-800">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Run-Outs</p>
+              <p class="text-3xl font-black text-amber-300 font-mono mt-1">${fielding.runOuts ?? 0}</p>
+            </div>
+            <div class="glass-panel p-4 rounded-xl border border-slate-800">
+              <p class="text-[11px] text-slate-400 font-semibold uppercase">Stumpings</p>
+              <p class="text-3xl font-black text-purple-400 font-mono mt-1">${fielding.stumpings ?? 0}</p>
+            </div>
           </div>
-        ` : `
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            ${teams.map(t => `
-              <div class="glass-panel p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
-                <div class="flex items-center gap-2.5">
-                  <span class="text-2xl">${t.flag || '🏏'}</span>
-                  <div>
-                    <h4 class="font-bold text-white text-xs">${t.name}</h4>
-                    <p class="text-[10px] text-slate-400">${t.squadCount ? t.squadCount + ' Squad members' : 'Official Team'}</p>
+
+          <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-2.5">
+            <p class="text-xs font-bold text-white flex items-center gap-2">
+              <i data-lucide="check-check" class="w-4 h-4 text-emerald-400"></i>
+              <span>Catching Efficiency & Safety Record</span>
+            </p>
+            <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+              <span class="text-slate-400">Catch Efficiency Rate:</span>
+              <span class="font-mono font-bold text-emerald-400">${fielding.catchEfficiency || '100.0%'}</span>
+            </div>
+            <div class="flex justify-between text-xs py-1.5 border-b border-slate-800">
+              <span class="text-slate-400">Total Chances Offered:</span>
+              <span class="font-mono font-bold text-white">${fielding.totalChances ?? (catchesCount || 0)}</span>
+            </div>
+            <div class="flex justify-between text-xs pt-1">
+              <span class="text-slate-400">Dropped Catches:</span>
+              <span class="font-mono font-bold text-rose-400">${fielding.droppedCatches ?? 0}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 4: Franchise Teams Panel -->
+        <div class="player-profile-panel space-y-4 ${activeTab === 'teams' ? '' : 'hidden'}" data-panel="teams">
+          <div>
+            <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <i data-lucide="shield" class="w-4 h-4 text-sky-400"></i>
+              <span>Drafted Team Franchises (${teams.length})</span>
+            </h3>
+            ${teams.length === 0 ? `
+              <div class="glass-panel p-6 rounded-xl border border-slate-800 text-center space-y-2">
+                <p class="text-slate-300 text-xs font-medium">This athlete is currently not drafted into any official franchise roster.</p>
+                <p class="text-slate-500 text-[11px]">Available for tournament auctions and draft signings as a <strong>Free Agent</strong>.</p>
+              </div>
+            ` : `
+              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                ${teams.map(t => `
+                  <div class="glass-panel p-4 rounded-xl border border-slate-800 flex items-center justify-between hover:border-sky-500/50 transition shadow-sm">
+                    <div class="flex items-center gap-3">
+                      <span class="text-3xl">${t.flag || '🏏'}</span>
+                      <div>
+                        <h4 class="font-bold text-white text-sm">${t.name}</h4>
+                        <p class="text-[11px] text-slate-400">${t.squadCount ? t.squadCount + ' Squad Members' : 'Active Franchise'}</p>
+                      </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 text-xs font-semibold">Active Roster</span>
                   </div>
-                </div>
-                <span class="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 text-[10px] font-semibold">Active Roster</span>
+                `).join('')}
               </div>
-            `).join('')}
+            `}
           </div>
-        `}
-      </div>
+        </div>
 
-      <!-- Match History -->
-      <div>
-        <p class="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
-          <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i>
-          <span>Recent Match Appearances (${playerMatches.length})</span>
-        </p>
-        ${playerMatches.length === 0 ? `
-          <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
-            No match appearances recorded for this player in current database.
-          </div>
-        ` : `
-          <div class="space-y-2">
-            ${playerMatches.slice(0, 5).map(m => `
-              <div class="glass-panel p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
-                <div>
-                  <span class="font-bold text-white">${m.title}</span>
-                  <p class="text-[10px] text-slate-400">${m.tournament} • ${m.summary}</p>
-                </div>
-                <div class="text-right font-mono text-[11px] text-sky-300">
-                  ${m.score1 ? `<div>${m.score1}</div>` : ''}
-                  ${m.score2 ? `<div class="text-emerald-300">${m.score2}</div>` : ''}
-                </div>
+        <!-- Tab 5: Match Appearances Panel -->
+        <div class="player-profile-panel space-y-4 ${activeTab === 'matches' ? '' : 'hidden'}" data-panel="matches">
+          <div>
+            <h3 class="text-sm font-bold text-white mb-3 flex items-center gap-2">
+              <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
+              <span>Match Appearances & Match Logs (${playerMatches.length})</span>
+            </h3>
+            ${playerMatches.length === 0 ? `
+              <div class="glass-panel p-6 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
+                No official match appearances recorded for this player in the active tournament database.
               </div>
-            `).join('')}
+            ` : `
+              <div class="space-y-3">
+                ${playerMatches.map(m => `
+                  <div class="glass-panel p-4 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 hover:border-slate-700 transition">
+                    <div class="space-y-1">
+                      <div class="flex items-center gap-2">
+                        <span class="font-bold text-white text-sm">${m.title}</span>
+                        <span class="px-2 py-0.2 rounded bg-slate-800 text-slate-300 text-[10px] font-semibold border border-slate-700 uppercase">${m.status}</span>
+                      </div>
+                      <p class="text-xs text-slate-400">${m.tournament} • ${m.summary}</p>
+                    </div>
+                    <div class="text-right font-mono text-xs text-sky-300 space-y-0.5">
+                      ${m.score1 ? `<div>${m.score1}</div>` : ''}
+                      ${m.score2 ? `<div class="text-emerald-300">${m.score2}</div>` : ''}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            `}
           </div>
-        `}
+        </div>
+
+        <!-- Tab 6: Developer & Raw Technical Data Panel -->
+        <div class="player-profile-panel space-y-4 ${activeTab === 'technical' ? '' : 'hidden'}" data-panel="technical">
+          <div class="flex items-center justify-between">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i data-lucide="code" class="w-4 h-4 text-sky-400"></i>
+              <span>Raw Realtime Database Object</span>
+            </h3>
+            <button type="button" onclick="copyPlayerProfileText(JSON.stringify(findUserByKey('${encodeURIComponent(userKeyRaw)}') || {}, null, 2), 'Raw JSON')" 
+                    class="btn-secondary text-xs px-3 py-1 flex items-center gap-1.5">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i>
+              <span>Copy JSON</span>
+            </button>
+          </div>
+          <div class="glass-panel p-4 rounded-xl border border-slate-800 font-mono text-xs text-slate-300 bg-slate-950/70 overflow-x-auto max-h-96">
+            <pre>${JSON.stringify(user, null, 2)}</pre>
+          </div>
+        </div>
       </div>
     </div>
   `;
@@ -2722,6 +2884,11 @@ function renderPlayerDossierModal(user) {
     lucide.createIcons();
   }
 }
+
+// Backward Compatibility Aliases
+const openPlayerDossier = openPlayerProfile;
+const switchDossierTab = switchPlayerProfileTab;
+const copyDossierText = copyPlayerProfileText;
 
 // Explicit Global Window Bindings for Inline Click & Event Handlers
 window.switchTab = switchTab;
@@ -2741,7 +2908,11 @@ window.openModal = openModal;
 window.closeAllModals = closeAllModals;
 window.syncFromCloud = syncFromCloud;
 window.pushMatchToCloud = pushMatchToCloud;
-window.openPlayerDossier = openPlayerDossier;
-window.switchDossierTab = switchDossierTab;
+window.openPlayerProfile = openPlayerProfile;
+window.openPlayerDossier = openPlayerProfile;
+window.switchPlayerProfileTab = switchPlayerProfileTab;
+window.switchDossierTab = switchPlayerProfileTab;
+window.copyPlayerProfileText = copyPlayerProfileText;
 window.copyDossierText = copyDossierText;
-
+window.sharePlayerProfile = sharePlayerProfile;
+window.printPlayerDossier = printPlayerDossier;
