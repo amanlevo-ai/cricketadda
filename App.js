@@ -4286,6 +4286,7 @@ function CricketAddaMain() {
           if ((currentEmail && uEmail === currentEmail) || (currentPhone && uPhone === currentPhone)) {
             return {
               ...u,
+              avatarUri: updated?.avatarUri || u.avatarUri,
               profile: { ...(u.profile || {}), ...updated },
             };
           }
