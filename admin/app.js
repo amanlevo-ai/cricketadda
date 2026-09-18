@@ -24,6 +24,77 @@ const state = {
   pollTimer: null,
 };
 
+// Official Player Avatars & Fallback Generator
+const PLAYER_AVATARS = {
+  'Rohit Sharma': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/107.png',
+  'Virat Kohli': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/164.png',
+  'MS Dhoni': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/265.png',
+  'Sachin Tendulkar': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/104.png',
+  'Shubman Gill': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3752.png',
+  'KL Rahul': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1120.png',
+  'Sanju Samson': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2967.png',
+  'Rishabh Pant': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/657.png',
+  'Suryakumar Yadav': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1180.png',
+  'Hardik Pandya': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2740.png',
+  'Shivam Dube': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5431.png',
+  'Axar Patel': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1113.png',
+  'Ravindra Jadeja': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/9.png',
+  'Jasprit Bumrah': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1124.png',
+  'Arshdeep Singh': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4698.png',
+  'Mohammed Siraj': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3840.png',
+  'Kuldeep Yadav': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/261.png',
+  'Mitchell Starc': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/490.png',
+  'Pat Cummins': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/488.png',
+  'Josh Hazlewood': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/857.png',
+  'Adam Zampa': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/958.png',
+  'Glenn Maxwell': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/282.png',
+  'Travis Head': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1020.png',
+  'David Warner': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/170.png',
+  'Mitchell Marsh': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/221.png',
+  'Marcus Stoinis': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/964.png',
+  'Josh Inglis': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3655.png',
+  'Quinton de Kock': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/834.png',
+  'Heinrich Klaasen': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3869.png',
+  'David Miller': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/187.png',
+  'Aiden Markram': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1665.png',
+  'Tristan Stubbs': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5958.png',
+  'Marco Jansen': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5725.png',
+  'Keshav Maharaj': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3333.png',
+  'Kagiso Rabada': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1664.png',
+  'Anrich Nortje': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5433.png',
+  'Jos Buttler': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/509.png',
+  'Phil Salt': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5472.png',
+  'Harry Brook': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4932.png',
+  'Liam Livingstone': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3644.png',
+  'Jofra Archer': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3547.png',
+  'Mark Wood': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1040.png',
+  'Mohammad Rizwan': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/127.png',
+  'Babar Azam': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/275.png',
+};
+
+function resolveUserAvatar(user) {
+  if (!user) return 'https://ui-avatars.com/api/?name=Player&background=0284c7&color=fff&bold=true&size=128&rounded=true';
+  const rawUri = user.avatarUri || user.avatar || user.profilePic || user.photoUrl || user.photo || '';
+  if (rawUri && (rawUri.startsWith('http://') || rawUri.startsWith('https://') || rawUri.startsWith('data:image/'))) {
+    return rawUri;
+  }
+
+  const cleanName = (user.name || '').replace(/\s*\((?:c|wk|vc|c & wk)\)/gi, '').trim();
+  if (PLAYER_AVATARS[cleanName]) {
+    return PLAYER_AVATARS[cleanName];
+  }
+  if (PLAYER_AVATARS[user.name]) {
+    return PLAYER_AVATARS[user.name];
+  }
+
+  const colors = ['0284c7', '10b981', '8b5cf6', 'f59e0b', 'ec4899', '06b6d4', '3b82f6'];
+  let hash = 0;
+  for (let i = 0; i < cleanName.length; i++) hash = cleanName.charCodeAt(i) + ((hash << 5) - hash);
+  const color = colors[Math.abs(hash) % colors.length];
+
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(cleanName || 'Player')}&background=${color}&color=fff&bold=true&size=128&rounded=true`;
+}
+
 // Default Match Template
 const EMPTY_MATCH = {
   id: 'match_' + Date.now(),
@@ -212,6 +283,9 @@ async function syncFromCloud(showNotification = false) {
       const dedupeKey = cleanPhone && cleanPhone.length >= 10 ? cleanPhone : (cleanEmail || name.toLowerCase());
 
       const existing = playerMap.get(dedupeKey) || {};
+      const rawAvatar = prof.avatarUri || prof.avatar || prof.profilePic || prof.photoUrl || prof.photo ||
+                        raw.avatarUri || raw.avatar || raw.profilePic || raw.photoUrl || raw.photo || existing.avatarUri || '';
+
       playerMap.set(dedupeKey, {
         id: prof.id || raw.id || existing.id || `usr_${cleanPhone || Date.now()}`,
         name: prof.name || raw.name || existing.name || 'Unnamed Player',
@@ -221,7 +295,7 @@ async function syncFromCloud(showNotification = false) {
         battingStyle: prof.battingStyle || raw.battingStyle || existing.battingStyle || '',
         bowlingStyle: prof.bowlingStyle || raw.bowlingStyle || existing.bowlingStyle || '',
         jersey: prof.jersey || raw.jersey || existing.jersey || '',
-        avatarUri: prof.avatarUri || raw.avatarUri || existing.avatarUri || '',
+        avatarUri: rawAvatar,
         matchesPlayed: raw.careerStats?.matchOverview?.matchesPlayed ?? raw.careerStats?.careerStats?.batting?.innings ?? existing.matchesPlayed ?? 0,
         raw: raw,
       });
@@ -1475,10 +1549,16 @@ function renderUsersView(query = null) {
         secondaryStyle = bowlingStyle;
       }
 
+      const avatarSrc = resolveUserAvatar(u);
+      const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'Player')}&background=0284c7&color=fff&bold=true&size=128&rounded=true`;
+
       return `
         <tr class="hover:bg-slate-800/40 transition">
-          <td class="font-bold text-white flex items-center gap-2.5">
-            ${u.avatarUri ? `<img src="${u.avatarUri}" class="w-7 h-7 rounded-full object-cover border border-slate-700 shadow-sm" onerror="this.style.display='none'">` : '<div class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs">🏏</div>'}
+          <td class="font-bold text-white flex items-center gap-3">
+            <img src="${avatarSrc}" 
+                 alt="${u.name || 'Player'}" 
+                 class="w-9 h-9 rounded-full object-cover border-2 border-slate-700 shadow-sm bg-slate-800 shrink-0" 
+                 onerror="this.onerror=null; this.src='${fallbackUrl}';">
             <div class="flex items-center gap-1.5">
               ${u.jersey ? `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-mono text-[10px] font-bold">${u.jersey}</span>` : ''}
               <span>${u.name || 'Unnamed Player'}</span>

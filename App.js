@@ -4351,11 +4351,13 @@ function CricketAddaMain() {
         mediaTypes: picker.MediaTypeOptions ? picker.MediaTypeOptions.Images : 'Images',
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.85,
+        quality: 0.65,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
-        const newAvatarUri = result.assets[0].uri;
+        const asset = result.assets[0];
+        const newAvatarUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
         updateAndPersistUserProfile(prev => ({
           ...prev,
           avatarUri: newAvatarUri,
@@ -4399,11 +4401,13 @@ function CricketAddaMain() {
       const result = await picker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.85,
+        quality: 0.65,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
-        const newAvatarUri = result.assets[0].uri;
+        const asset = result.assets[0];
+        const newAvatarUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
         updateAndPersistUserProfile(prev => ({
           ...prev,
           avatarUri: newAvatarUri,
