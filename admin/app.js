@@ -94,10 +94,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   setupNavigation();
+  restoreNavStateFromUrlOrStorage();
   setupEventListeners();
 
   // Initial Data Fetch
   await syncFromCloud();
+
+  // Ensure restored tab and active match are rendered with fresh cloud data
+  renderAllViews();
 
   // Start Real-Time Polling Loop (continuous real-time sync with mobile scorers)
   startRealtimePolling();
@@ -358,11 +362,68 @@ function setupNavigation() {
       if (target) switchTab(target);
     });
   });
+
+  window.addEventListener('hashchange', () => {
+    restoreNavStateFromUrlOrStorage();
+  });
 }
 
-function switchTab(tabId) {
+function restoreNavStateFromUrlOrStorage() {
+  const hash = window.location.hash.replace(/^#/, '').trim();
+  let tabId = 'dashboard';
+  let matchId = null;
+
+  if (hash) {
+    const parts = hash.split('?');
+    tabId = parts[0];
+    if (parts[1]) {
+      const params = new URLSearchParams(parts[1]);
+      matchId = params.get('match');
+    }
+  } else {
+    try {
+      const storedTab = localStorage.getItem('cricketadda_admin_active_tab');
+      if (storedTab) tabId = storedTab;
+      const storedMatch = localStorage.getItem('cricketadda_admin_active_match');
+      if (storedMatch) matchId = storedMatch;
+    } catch (e) {}
+  }
+
+  const validTabs = ['dashboard', 'matches', 'editor', 'teams', 'users', 'settings'];
+  if (!validTabs.includes(tabId)) tabId = 'dashboard';
+
+  if (matchId) {
+    state.activeMatchId = matchId;
+  }
+
+  try {
+    const storedFilter = localStorage.getItem('cricketadda_admin_match_filter');
+    if (storedFilter) state.matchFilter = storedFilter;
+  } catch (e) {}
+
+  switchTab(tabId, false);
+}
+window.restoreNavStateFromUrlOrStorage = restoreNavStateFromUrlOrStorage;
+
+function switchTab(tabId, updateHistory = true) {
   if (!tabId) return;
+  const validTabs = ['dashboard', 'matches', 'editor', 'teams', 'users', 'settings'];
+  if (!validTabs.includes(tabId)) tabId = 'dashboard';
+
   state.currentTab = tabId;
+  try {
+    localStorage.setItem('cricketadda_admin_active_tab', tabId);
+  } catch (e) {}
+
+  if (updateHistory) {
+    let newHash = '#' + tabId;
+    if (tabId === 'editor' && state.activeMatchId) {
+      newHash += `?match=${encodeURIComponent(state.activeMatchId)}`;
+    }
+    if (window.location.hash !== newHash) {
+      history.replaceState(null, '', newHash);
+    }
+  }
 
   document.querySelectorAll('.nav-tab').forEach(t => {
     const isActive = t.dataset.tab === tabId;
@@ -1542,6 +1603,9 @@ function removeFowRow(idx) {
 
 function openMatchInEditor(matchId) {
   state.activeMatchId = matchId;
+  try {
+    localStorage.setItem('cricketadda_admin_active_match', matchId);
+  } catch (e) {}
   switchTab('editor');
 }
 
@@ -1660,6 +1724,9 @@ function showToast(message, type = 'info') {
 
 function filterMatches(filterType) {
   state.matchFilter = filterType;
+  try {
+    localStorage.setItem('cricketadda_admin_match_filter', filterType);
+  } catch (e) {}
   document.querySelectorAll('.match-filter-btn').forEach(b => {
     if (b.dataset.filter === filterType) {
       b.className = 'match-filter-btn px-3 py-1.5 rounded-lg text-xs font-semibold bg-sky-900/60 text-sky-300 border border-sky-700/60';
