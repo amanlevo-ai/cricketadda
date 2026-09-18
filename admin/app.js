@@ -74,7 +74,7 @@ const PLAYER_AVATARS = {
 
 function resolveUserAvatar(user) {
   if (!user) return 'https://ui-avatars.com/api/?name=Player&background=0284c7&color=fff&bold=true&size=128&rounded=true';
-  const rawUri = user.avatarUri || user.avatar || user.profilePic || user.photoUrl || user.photo || '';
+  const rawUri = user.avatarUri || (user.profile && (user.profile.avatarUri || user.profile.avatar)) || user.avatar || user.profilePic || user.photoUrl || user.photo || '';
   if (rawUri && (rawUri.startsWith('http://') || rawUri.startsWith('https://') || rawUri.startsWith('data:image/'))) {
     return rawUri;
   }
