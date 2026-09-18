@@ -4320,6 +4320,58 @@ function CricketAddaMain() {
     });
   };
 
+  // Auto-migrate local device file:/// or content:// avatar to portable base64 data URI
+  // This ensures the player's photo appears on web admin panel and other devices
+  useEffect(() => {
+    const rawUri = userProfile?.avatarUri;
+    if (rawUri && typeof rawUri === 'string' && (rawUri.startsWith('file://') || rawUri.startsWith('content://'))) {
+      let isMounted = true;
+      (async () => {
+        try {
+          let base64Data = null;
+          try {
+            const FileSystem = require('expo-file-system');
+            if (FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
+              const enc = (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ? FileSystem.EncodingType.Base64 : 'base64';
+              base64Data = await FileSystem.readAsStringAsync(rawUri, { encoding: enc });
+            }
+          } catch (fsErr) {
+            console.log('expo-file-system read error:', fsErr);
+          }
+
+          if (!base64Data) {
+            try {
+              const resp = await fetch(rawUri);
+              const blob = await resp.blob();
+              base64Data = await new Promise((resolve) => {
+                const reader = new FileReader();
+                reader.onloadend = () => resolve(reader.result);
+                reader.onerror = () => resolve(null);
+                reader.readAsDataURL(blob);
+              });
+            } catch (blobErr) {
+              console.log('Blob fetch avatar error:', blobErr);
+            }
+          }
+
+          if (isMounted && base64Data) {
+            const fullUri = String(base64Data).startsWith('data:')
+              ? base64Data
+              : `data:image/jpeg;base64,${base64Data}`;
+            updateAndPersistUserProfile(prev => ({
+              ...prev,
+              avatarUri: fullUri,
+            }));
+            console.log('Successfully migrated profile photo to base64 data URI');
+          }
+        } catch (migErr) {
+          console.log('Profile photo auto-migration error:', migErr);
+        }
+      })();
+      return () => { isMounted = false; };
+    }
+  }, [userProfile?.avatarUri]);
+
   // Pick Image from Phone's Photo Gallery
   const pickImageFromGallery = async () => {
     try {
@@ -4357,7 +4409,31 @@ function CricketAddaMain() {
 
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         const asset = result.assets[0];
-        const newAvatarUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        let newAvatarUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : null;
+        if (!newAvatarUri && asset.uri) {
+          try {
+            const FileSystem = require('expo-file-system');
+            if (FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
+              const enc = (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ? FileSystem.EncodingType.Base64 : 'base64';
+              const b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: enc });
+              if (b64) newAvatarUri = `data:image/jpeg;base64,${b64}`;
+            }
+          } catch (e) {}
+        }
+        if (!newAvatarUri && asset.uri) {
+          try {
+            const resp = await fetch(asset.uri);
+            const blob = await resp.blob();
+            const b64 = await new Promise(res => {
+              const reader = new FileReader();
+              reader.onloadend = () => res(reader.result);
+              reader.onerror = () => res(null);
+              reader.readAsDataURL(blob);
+            });
+            if (b64) newAvatarUri = b64;
+          } catch (e) {}
+        }
+        if (!newAvatarUri) newAvatarUri = asset.uri;
         updateAndPersistUserProfile(prev => ({
           ...prev,
           avatarUri: newAvatarUri,
@@ -4407,7 +4483,31 @@ function CricketAddaMain() {
 
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         const asset = result.assets[0];
-        const newAvatarUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        let newAvatarUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : null;
+        if (!newAvatarUri && asset.uri) {
+          try {
+            const FileSystem = require('expo-file-system');
+            if (FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
+              const enc = (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ? FileSystem.EncodingType.Base64 : 'base64';
+              const b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: enc });
+              if (b64) newAvatarUri = `data:image/jpeg;base64,${b64}`;
+            }
+          } catch (e) {}
+        }
+        if (!newAvatarUri && asset.uri) {
+          try {
+            const resp = await fetch(asset.uri);
+            const blob = await resp.blob();
+            const b64 = await new Promise(res => {
+              const reader = new FileReader();
+              reader.onloadend = () => res(reader.result);
+              reader.onerror = () => res(null);
+              reader.readAsDataURL(blob);
+            });
+            if (b64) newAvatarUri = b64;
+          } catch (e) {}
+        }
+        if (!newAvatarUri) newAvatarUri = asset.uri;
         updateAndPersistUserProfile(prev => ({
           ...prev,
           avatarUri: newAvatarUri,
