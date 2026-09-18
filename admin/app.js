@@ -1515,6 +1515,57 @@ function renderTeamsView() {
   updateElementHtmlIfChanged(container, newHtml, 'teamsGrid');
 }
 
+// ============================================================================
+// PLAYER TEAMS & CAREER DOSSIER ENGINE
+// ============================================================================
+
+function getPlayerTeams(user) {
+  if (!user) return [];
+  const foundTeams = [];
+  const cleanName = (user.name || '').trim().toLowerCase();
+  const cleanPhone = String(user.phone || '').replace(/[^0-9]/g, '');
+  const cleanEmail = String(user.email || '').toLowerCase();
+
+  // 1. Direct profile team if specified
+  const directTeam = user.team || user.teamName || user.profile?.team || user.profile?.teamName;
+  if (directTeam) {
+    foundTeams.push({
+      name: directTeam,
+      flag: user.teamFlag || user.profile?.teamFlag || '🦁',
+      role: user.role || 'Member',
+    });
+  }
+
+  // 2. Search state.teams squads
+  (state.teams || []).forEach(t => {
+    if (!t) return;
+    const squad = Array.isArray(t.squad) ? t.squad : [];
+    const isMember = squad.some(p => {
+      if (!p) return false;
+      if (typeof p === 'string') {
+        return p.trim().toLowerCase() === cleanName;
+      }
+      const pName = String(p.name || '').trim().toLowerCase();
+      const pPhone = String(p.phone || '').replace(/[^0-9]/g, '');
+      const pEmail = String(p.email || '').toLowerCase();
+      return (cleanPhone && pPhone && cleanPhone === pPhone) ||
+             (cleanName && pName && cleanName === pName) ||
+             (cleanEmail && pEmail && cleanEmail === pEmail);
+    });
+
+    if (isMember && !foundTeams.some(existing => existing.name?.toLowerCase() === (t.name || '').toLowerCase())) {
+      foundTeams.push({
+        id: t.id,
+        name: t.name,
+        flag: t.flag || t.logo || '🏏',
+        squadCount: squad.length,
+      });
+    }
+  });
+
+  return foundTeams;
+}
+
 // 5. USERS DIRECTORY VIEW
 function renderUsersView(query = null) {
   const tbody = document.getElementById('users-table-body');
@@ -1527,19 +1578,22 @@ function renderUsersView(query = null) {
 
   if (activeQuery) {
     list = list.filter(u => {
+      const userTeams = getPlayerTeams(u);
+      const teamMatch = userTeams.some(t => t.name?.toLowerCase().includes(activeQuery));
       return (
         u.name?.toLowerCase().includes(activeQuery) ||
         u.phone?.includes(activeQuery) ||
         u.email?.toLowerCase().includes(activeQuery) ||
         u.role?.toLowerCase().includes(activeQuery) ||
-        u.jersey?.toLowerCase().includes(activeQuery)
+        u.jersey?.toLowerCase().includes(activeQuery) ||
+        teamMatch
       );
     });
   }
 
   let newHtml = '';
   if (list.length === 0) {
-    newHtml = '<tr><td colspan="5" class="text-center text-slate-400 py-6">No players registered.</td></tr>';
+    newHtml = '<tr><td colspan="6" class="text-center text-slate-400 py-8 text-xs">No registered players found matching your query.</td></tr>';
   } else {
     newHtml = list.map(u => {
       const roleText = u.role || 'Player';
@@ -1551,17 +1605,39 @@ function renderUsersView(query = null) {
 
       const avatarSrc = resolveUserAvatar(u);
       const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'Player')}&background=0284c7&color=fff&bold=true&size=128&rounded=true`;
+      const userKey = u.phone || u.id || u.email || u.name;
+
+      const userTeams = getPlayerTeams(u);
+      let teamsHtml = '';
+      if (userTeams.length > 0) {
+        teamsHtml = userTeams.map(t => `
+          <span class="px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-300 border border-sky-500/20 text-[11px] font-semibold inline-flex items-center gap-1">
+            <span>${t.flag || '🏏'}</span>
+            <span class="truncate max-w-[120px]">${t.name}</span>
+          </span>
+        `).join(' ');
+      } else {
+        teamsHtml = `
+          <span class="px-2 py-0.5 rounded-md bg-slate-800/80 text-slate-400 border border-slate-700/60 text-[10px] font-medium inline-flex items-center gap-1.5">
+            <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+            <span>No Team Yet</span>
+          </span>
+        `;
+      }
 
       return `
-        <tr class="hover:bg-slate-800/40 transition">
+        <tr class="hover:bg-slate-800/60 transition cursor-pointer group select-none" 
+            onclick="openPlayerDossier('${encodeURIComponent(userKey)}')" 
+            title="Click to view ${u.name || 'player'}'s complete career dossier & statistics">
           <td class="font-bold text-white flex items-center gap-3">
             <img src="${avatarSrc}" 
                  alt="${u.name || 'Player'}" 
-                 class="w-10 h-10 rounded-full object-cover border-2 border-slate-700 shadow-sm bg-slate-800 shrink-0" 
+                 class="w-10 h-10 rounded-full object-cover border-2 border-slate-700 group-hover:border-sky-400 shadow-sm bg-slate-800 shrink-0 transition" 
                  onerror="this.onerror=null; this.src='${fallbackUrl}';">
             <div class="flex items-center gap-1.5">
-              ${u.jersey ? `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-mono text-[10px] font-bold">${u.jersey}</span>` : ''}
-              <span>${u.name || 'Unnamed Player'}</span>
+              ${u.jersey ? `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-mono text-[10px] font-bold group-hover:bg-sky-900/50">${u.jersey}</span>` : ''}
+              <span class="group-hover:text-sky-300 transition font-semibold">${u.name || 'Unnamed Player'}</span>
+              <i data-lucide="chevron-right" class="w-3.5 h-3.5 text-slate-500 opacity-0 group-hover:opacity-100 transition transform group-hover:translate-x-0.5"></i>
             </div>
           </td>
           <td class="font-mono text-slate-300">${u.phone ? `+91 ${u.phone.replace(/^91/, '')}` : '-'}</td>
@@ -1570,6 +1646,11 @@ function renderUsersView(query = null) {
             <div class="space-y-0.5">
               <span class="inline-block px-2 py-0.5 rounded bg-slate-800/90 text-sky-400 font-semibold text-[11px]">${roleText}</span>
               ${secondaryStyle ? `<span class="block text-[10px] text-slate-400">${secondaryStyle}</span>` : ''}
+            </div>
+          </td>
+          <td>
+            <div class="flex flex-wrap gap-1 items-center">
+              ${teamsHtml}
             </div>
           </td>
           <td class="text-right font-mono font-bold text-emerald-400">${u.matchesPlayed ?? 0}</td>
@@ -2143,6 +2224,505 @@ document.querySelectorAll('.modal-close').forEach(btn => {
   btn.addEventListener('click', closeAllModals);
 });
 
+// ============================================================================
+// PLAYER CAREER DOSSIER MODAL & ADVANCED ANALYTICS
+// ============================================================================
+
+let currentDossierUser = null;
+let currentDossierTab = 'batting';
+
+function openPlayerDossier(userKeyRaw) {
+  const userKey = decodeURIComponent(userKeyRaw);
+  const cleanKey = String(userKey).replace(/[^0-9]/g, '');
+  const user = state.users.find(u => {
+    const uPhone = String(u.phone || (u.profile && u.profile.phone) || '').replace(/[^0-9]/g, '');
+    const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+    const uId = String(u.id || (u.profile && u.profile.id) || '');
+    const uName = String(u.name || (u.profile && u.profile.name) || '');
+    return (cleanKey && uPhone === cleanKey) ||
+           (uEmail && uEmail === userKey.toLowerCase()) ||
+           (uId && uId === userKey) ||
+           (uName && uName === userKey);
+  });
+
+  if (!user) {
+    showToast('Player profile not found', 'warning');
+    return;
+  }
+
+  currentDossierUser = user;
+  currentDossierTab = 'batting';
+
+  renderPlayerDossierModal(user);
+  openModal('modal-player-dossier');
+}
+
+function switchDossierTab(tabId) {
+  currentDossierTab = tabId;
+  document.querySelectorAll('.dossier-tab-btn').forEach(btn => {
+    if (btn.dataset.tab === tabId) {
+      btn.className = 'dossier-tab-btn px-4 py-2.5 border-b-2 border-sky-400 text-sky-400 font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-sky-950/20';
+    } else {
+      btn.className = 'dossier-tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap';
+    }
+  });
+
+  document.querySelectorAll('.dossier-panel').forEach(panel => {
+    panel.classList.toggle('hidden', panel.dataset.panel !== tabId);
+  });
+  if (window.lucide) lucide.createIcons();
+}
+
+function copyDossierText(text, label = 'Copied') {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(text).then(() => {
+      showToast(`${label} to clipboard! 📋`, 'info');
+    }).catch(() => {});
+  }
+}
+
+function renderPlayerDossierModal(user) {
+  const container = document.getElementById('player-dossier-content');
+  const titleEl = document.getElementById('dossier-header-title');
+  if (!container) return;
+
+  if (titleEl) {
+    titleEl.textContent = `${user.name || 'Player'} • Career Dossier`;
+  }
+
+  const avatarSrc = resolveUserAvatar(user);
+  const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.name || 'Player')}&background=0284c7&color=fff&bold=true&size=128&rounded=true`;
+
+  const teams = getPlayerTeams(user);
+  const rawData = user.raw || {};
+  const careerStats = rawData.careerStats?.careerStats || user.careerStats?.careerStats || rawData.careerStats || user.careerStats || {};
+  const matchOverview = rawData.careerStats?.matchOverview || user.careerStats?.matchOverview || {};
+
+  const batting = careerStats.batting || {};
+  const bowling = careerStats.bowling || {};
+  const fielding = careerStats.fielding || {};
+
+  // Matches involving this player
+  const cleanName = (user.name || '').trim().toLowerCase();
+  const playerMatches = [];
+  Object.values(state.matchesDb || {}).forEach(m => {
+    if (!m) return;
+    const inn1 = m.innings1 || {};
+    const inn2 = m.innings2 || {};
+    const inBat1 = (inn1.batting || []).some(b => String(b?.name || '').trim().toLowerCase() === cleanName);
+    const inBat2 = (inn2.batting || []).some(b => String(b?.name || '').trim().toLowerCase() === cleanName);
+    const inBowl1 = (inn1.bowling || []).some(b => String(b?.name || '').trim().toLowerCase() === cleanName);
+    const inBowl2 = (inn2.bowling || []).some(b => String(b?.name || '').trim().toLowerCase() === cleanName);
+    const isScorer = String(m.activeScorer?.name || '').trim().toLowerCase() === cleanName;
+
+    if (inBat1 || inBat2 || inBowl1 || inBowl2 || isScorer) {
+      playerMatches.push({
+        id: m.id,
+        title: m.title || `${m.teamA || 'Team A'} vs ${m.teamB || 'Team B'}`,
+        tournament: m.tournament || 'Cricket Adda Championship',
+        status: m.status || 'completed',
+        summary: m.toss || 'Official Match',
+        score1: inn1.team ? `${inn1.team}: ${inn1.runs || 0}/${inn1.wickets || 0} (${inn1.overs || 0} ov)` : '',
+        score2: inn2.team ? `${inn2.team}: ${inn2.runs || 0}/${inn2.wickets || 0} (${inn2.overs || 0} ov)` : '',
+      });
+    }
+  });
+
+  const matchesCount = matchOverview.matchesPlayed ?? user.matchesPlayed ?? 0;
+  const winsCount = matchOverview.wins ?? 0;
+  const lossesCount = matchOverview.losses ?? 0;
+  const winRate = matchOverview.winRate || (matchesCount > 0 ? `${Math.round((winsCount / matchesCount) * 100)}%` : '0%');
+  const potmCount = matchOverview.potmCount ?? 0;
+
+  const battingRuns = batting.runs ?? 0;
+  const bowlingWkts = bowling.wickets ?? 0;
+  const catchesCount = fielding.catches ?? 0;
+
+  const roleText = user.role || 'Player';
+  const battingStyle = user.battingStyle || (user.profile && user.profile.battingStyle) || 'Right-hand Bat';
+  const bowlingStyle = user.bowlingStyle || (user.profile && user.profile.bowlingStyle) || 'Right-arm Fast';
+
+  let teamsBadgeList = '';
+  if (teams.length > 0) {
+    teamsBadgeList = teams.map(t => `
+      <span class="px-2.5 py-1 rounded-lg bg-sky-500/15 text-sky-300 border border-sky-500/30 text-xs font-semibold inline-flex items-center gap-1.5 shadow-sm">
+        <span>${t.flag || '🏏'}</span>
+        <span>${t.name}</span>
+      </span>
+    `).join(' ');
+  } else {
+    teamsBadgeList = `
+      <span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-400 border border-slate-700 text-xs font-medium inline-flex items-center gap-1.5">
+        <span class="w-2 h-2 rounded-full bg-slate-500"></span>
+        <span>No Team Yet (Free Agent)</span>
+      </span>
+    `;
+  }
+
+  container.innerHTML = `
+    <!-- 1. Hero Player Profile Header -->
+    <div class="glass-panel p-5 rounded-2xl border border-slate-800 bg-gradient-to-r from-slate-900 via-slate-900/95 to-sky-950/30 flex flex-col sm:flex-row items-center sm:items-start gap-5 shadow-lg">
+      <div class="relative shrink-0">
+        <img src="${avatarSrc}" alt="${user.name || 'Player'}" 
+             class="w-24 h-24 rounded-2xl object-cover border-2 border-sky-400 shadow-xl bg-slate-800" 
+             onerror="this.onerror=null; this.src='${fallbackUrl}';">
+        ${user.jersey ? `<span class="absolute -bottom-2 -right-2 px-2 py-0.5 rounded-md bg-sky-500 text-white font-mono font-black text-xs shadow-md">${user.jersey}</span>` : ''}
+      </div>
+
+      <div class="flex-1 text-center sm:text-left space-y-2.5 min-w-0">
+        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2.5">
+          <h2 class="text-2xl font-black text-white tracking-tight">${user.name || 'Unnamed Player'}</h2>
+          <span class="px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 text-[11px] font-semibold flex items-center gap-1">
+            <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+            <span>Verified Athlete</span>
+          </span>
+        </div>
+
+        <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs">
+          <span class="px-3 py-1 rounded-lg bg-sky-500/20 text-sky-300 font-bold border border-sky-500/30">${roleText}</span>
+          ${battingStyle ? `<span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-medium">🏏 ${battingStyle}</span>` : ''}
+          ${bowlingStyle && bowlingStyle !== 'None' ? `<span class="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-200 border border-slate-700 font-medium">⚡ ${bowlingStyle}</span>` : ''}
+        </div>
+
+        <div class="pt-0.5 flex flex-wrap items-center justify-center sm:justify-start gap-2">
+          <span class="text-xs text-slate-400 font-semibold">Team:</span>
+          ${teamsBadgeList}
+        </div>
+
+        <!-- Verified Contact Row with Click-to-Copy -->
+        <div class="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-3 text-xs font-mono text-slate-300">
+          ${user.phone ? `
+            <button type="button" onclick="copyDossierText('${user.phone}', 'Phone number')" 
+                    class="px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-300 flex items-center gap-1.5 transition" title="Click to copy phone">
+              <i data-lucide="phone" class="w-3.5 h-3.5 text-emerald-400"></i>
+              <span>+91 ${user.phone.replace(/^91/, '')}</span>
+            </button>
+          ` : ''}
+          ${user.email ? `
+            <button type="button" onclick="copyDossierText('${user.email}', 'Email address')" 
+                    class="px-2 py-1 rounded bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700/80 text-slate-300 flex items-center gap-1.5 transition" title="Click to copy email">
+              <i data-lucide="mail" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>${user.email}</span>
+            </button>
+          ` : ''}
+          ${user.id ? `
+            <span class="text-[11px] text-slate-500 font-mono self-center">UID: ${user.id}</span>
+          ` : ''}
+        </div>
+      </div>
+    </div>
+
+    <!-- 2. Cricketer Top KPI Performance Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <!-- Card 1: Matches -->
+      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+        <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+          <span>Matches Played</span>
+          <i data-lucide="calendar" class="w-4 h-4 text-sky-400"></i>
+        </div>
+        <div class="text-2xl font-black text-white mt-1 font-mono">${matchesCount}</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">${winsCount} Wins • ${lossesCount} Losses</div>
+      </div>
+
+      <!-- Card 2: Win Rate -->
+      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+        <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+          <span>Win Rate</span>
+          <i data-lucide="trending-up" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <div class="text-2xl font-black text-emerald-400 mt-1 font-mono">${winRate}</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">Career Performance</div>
+      </div>
+
+      <!-- Card 3: POTM -->
+      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+        <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+          <span>POTM Awards</span>
+          <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <div class="text-2xl font-black text-amber-300 mt-1 font-mono">${potmCount}</div>
+        <div class="text-[11px] text-slate-400 mt-0.5">Player of the Match</div>
+      </div>
+
+      <!-- Card 4: Impact -->
+      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 bg-slate-900/60 flex flex-col justify-between">
+        <div class="text-[11px] text-slate-400 font-semibold uppercase tracking-wider flex items-center justify-between">
+          <span>Career Impact</span>
+          <i data-lucide="zap" class="w-4 h-4 text-purple-400"></i>
+        </div>
+        <div class="text-2xl font-black text-purple-300 mt-1 font-mono">${battingRuns} <span class="text-xs text-slate-400 font-normal">Runs</span></div>
+        <div class="text-[11px] text-slate-400 mt-0.5 font-mono">${bowlingWkts} Wkts • ${catchesCount} Catches</div>
+      </div>
+    </div>
+
+    <!-- 3. Navigation Tabs -->
+    <div class="flex border-b border-slate-800 gap-1 overflow-x-auto text-xs font-semibold">
+      <button type="button" onclick="switchDossierTab('batting')" data-tab="batting" 
+              class="dossier-tab-btn px-4 py-2.5 border-b-2 border-sky-400 text-sky-400 font-bold transition flex items-center gap-1.5 whitespace-nowrap bg-sky-950/20">
+        <i data-lucide="crosshair" class="w-3.5 h-3.5"></i>
+        <span>Batting Records</span>
+      </button>
+      <button type="button" onclick="switchDossierTab('bowling')" data-tab="bowling" 
+              class="dossier-tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap">
+        <i data-lucide="target" class="w-3.5 h-3.5"></i>
+        <span>Bowling Figures</span>
+      </button>
+      <button type="button" onclick="switchDossierTab('fielding')" data-tab="fielding" 
+              class="dossier-tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap">
+        <i data-lucide="shield-check" class="w-3.5 h-3.5"></i>
+        <span>Fielding Prowess</span>
+      </button>
+      <button type="button" onclick="switchDossierTab('teams')" data-tab="teams" 
+              class="dossier-tab-btn px-4 py-2.5 border-b-2 border-transparent text-slate-400 hover:text-white transition flex items-center gap-1.5 whitespace-nowrap">
+        <i data-lucide="users" class="w-3.5 h-3.5"></i>
+        <span>Teams & Matches (${teams.length})</span>
+      </button>
+    </div>
+
+    <!-- 4. Tab Panels -->
+    <!-- Tab 1: Batting -->
+    <div class="dossier-panel space-y-4" data-panel="batting">
+      <!-- Primary Batting Grid -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Total Runs</p>
+          <p class="text-xl font-black text-sky-400 font-mono mt-1">${batting.runs ?? 0}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Batting Average</p>
+          <p class="text-xl font-black text-white font-mono mt-1">${batting.avg || '0.00'}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Strike Rate</p>
+          <p class="text-xl font-black text-emerald-400 font-mono mt-1">${batting.sr || '0.00'}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Highest Score</p>
+          <p class="text-xl font-black text-amber-300 font-mono mt-1">${batting.highScore || '0'}</p>
+        </div>
+      </div>
+
+      <!-- Boundaries & Milestones -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Fifties (50s)</p>
+          <p class="text-lg font-bold text-white font-mono mt-1">${batting.fifties ?? 0}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Hundreds (100s)</p>
+          <p class="text-lg font-bold text-purple-400 font-mono mt-1">${batting.hundreds ?? 0}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Fours (4s)</p>
+          <p class="text-lg font-bold text-emerald-400 font-mono mt-1">${batting.fours ?? 0}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Sixes (6s)</p>
+          <p class="text-lg font-bold text-amber-400 font-mono mt-1">${batting.sixes ?? 0}</p>
+        </div>
+      </div>
+
+      <!-- Delivery Dynamics & Ducks -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <p class="text-xs font-bold text-white flex items-center gap-1.5">
+            <i data-lucide="gauge" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span>Ball Discipline & Control</span>
+          </p>
+          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Balls Faced:</span>
+            <span class="font-mono font-bold text-white">${batting.ballsFaced ?? 0}</span>
+          </div>
+          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Dot Balls Faced:</span>
+            <span class="font-mono font-bold text-white">${batting.dotBallsFaced ?? 0}</span>
+          </div>
+          <div class="flex justify-between text-xs pt-1">
+            <span class="text-slate-400">Dot Ball Percentage:</span>
+            <span class="font-mono font-bold text-sky-400">${batting.dotPct || '0.0%'}</span>
+          </div>
+        </div>
+
+        <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <p class="text-xs font-bold text-white flex items-center gap-1.5">
+            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span>Dismissals & Ducks</span>
+          </p>
+          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Total Ducks (0s):</span>
+            <span class="font-mono font-bold text-red-400">${batting.ducks ?? 0}</span>
+          </div>
+          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Golden Ducks (1st Ball):</span>
+            <span class="font-mono font-bold text-amber-400">${batting.goldenDucks ?? 0}</span>
+          </div>
+          <div class="flex justify-between text-xs pt-1">
+            <span class="text-slate-400">Silver Ducks (2nd Ball):</span>
+            <span class="font-mono font-bold text-slate-300">${batting.silverDucks ?? 0}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 2: Bowling -->
+    <div class="dossier-panel space-y-4 hidden" data-panel="bowling">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Wickets Taken</p>
+          <p class="text-xl font-black text-sky-400 font-mono mt-1">${bowling.wickets ?? 0}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Best Bowling (BBI)</p>
+          <p class="text-xl font-black text-emerald-400 font-mono mt-1">${bowling.best || '0/0'}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Bowling Average</p>
+          <p class="text-xl font-black text-white font-mono mt-1">${bowling.avg || '0.00'}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Economy Rate</p>
+          <p class="text-xl font-black text-amber-300 font-mono mt-1">${bowling.econ || '0.00'}</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <p class="text-xs font-bold text-white flex items-center gap-1.5">
+            <i data-lucide="timer" class="w-3.5 h-3.5 text-sky-400"></i>
+            <span>Over Workload</span>
+          </p>
+          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Overs Bowled:</span>
+            <span class="font-mono font-bold text-white">${bowling.oversBowled || '0.0'}</span>
+          </div>
+          <div class="flex justify-between text-xs pt-1">
+            <span class="text-slate-400">Runs Conceded:</span>
+            <span class="font-mono font-bold text-red-400">${bowling.runsConceded ?? 0}</span>
+          </div>
+        </div>
+
+        <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
+          <p class="text-xs font-bold text-white flex items-center gap-1.5">
+            <i data-lucide="shield" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>Dot Ball Pressure</span>
+          </p>
+          <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
+            <span class="text-slate-400">Dot Balls Bowled:</span>
+            <span class="font-mono font-bold text-emerald-400">${bowling.dotBallsBowled ?? 0}</span>
+          </div>
+          <div class="flex justify-between text-xs pt-1">
+            <span class="text-slate-400">Dot Ball Percentage:</span>
+            <span class="font-mono font-bold text-white">${bowling.dotPct || '0.0%'}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 3: Fielding -->
+    <div class="dossier-panel space-y-4 hidden" data-panel="fielding">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-center">
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Catches Taken</p>
+          <p class="text-xl font-black text-sky-400 font-mono mt-1">${fielding.catches ?? 0}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Direct Hits</p>
+          <p class="text-xl font-black text-emerald-400 font-mono mt-1">${fielding.directHits ?? 0}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Run-Outs</p>
+          <p class="text-xl font-black text-amber-300 font-mono mt-1">${fielding.runOuts ?? 0}</p>
+        </div>
+        <div class="glass-panel p-3 rounded-xl border border-slate-800">
+          <p class="text-[10px] text-slate-400 font-semibold uppercase">Stumpings</p>
+          <p class="text-xl font-black text-purple-400 font-mono mt-1">${fielding.stumpings ?? 0}</p>
+        </div>
+      </div>
+
+      <div class="glass-panel p-3.5 rounded-xl border border-slate-800 space-y-2">
+        <p class="text-xs font-bold text-white flex items-center gap-1.5">
+          <i data-lucide="check-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Catching Efficiency & Safety</span>
+        </p>
+        <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
+          <span class="text-slate-400">Catch Efficiency Rate:</span>
+          <span class="font-mono font-bold text-emerald-400">${fielding.catchEfficiency || '100.0%'}</span>
+        </div>
+        <div class="flex justify-between text-xs py-1 border-b border-slate-800/80">
+          <span class="text-slate-400">Total Chances:</span>
+          <span class="font-mono font-bold text-white">${fielding.totalChances ?? (fielding.catches || 0)}</span>
+        </div>
+        <div class="flex justify-between text-xs pt-1">
+          <span class="text-slate-400">Dropped Catches:</span>
+          <span class="font-mono font-bold text-red-400">${fielding.droppedCatches ?? 0}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab 4: Teams & Matches -->
+    <div class="dossier-panel space-y-4 hidden" data-panel="teams">
+      <div>
+        <p class="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
+          <i data-lucide="shield" class="w-3.5 h-3.5 text-sky-400"></i>
+          <span>Team Franchise Rosters (${teams.length})</span>
+        </p>
+        ${teams.length === 0 ? `
+          <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
+            <p>This player is not drafted in any team roster yet. Currently available as a <strong>Free Agent</strong>.</p>
+          </div>
+        ` : `
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            ${teams.map(t => `
+              <div class="glass-panel p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                  <span class="text-2xl">${t.flag || '🏏'}</span>
+                  <div>
+                    <h4 class="font-bold text-white text-xs">${t.name}</h4>
+                    <p class="text-[10px] text-slate-400">${t.squadCount ? t.squadCount + ' Squad members' : 'Official Team'}</p>
+                  </div>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-sky-500/10 text-sky-400 border border-sky-500/30 text-[10px] font-semibold">Active Roster</span>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+
+      <!-- Match History -->
+      <div>
+        <p class="text-xs font-bold text-white mb-2 flex items-center gap-1.5">
+          <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i>
+          <span>Recent Match Appearances (${playerMatches.length})</span>
+        </p>
+        ${playerMatches.length === 0 ? `
+          <div class="glass-panel p-4 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
+            No match appearances recorded for this player in current database.
+          </div>
+        ` : `
+          <div class="space-y-2">
+            ${playerMatches.slice(0, 5).map(m => `
+              <div class="glass-panel p-3 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+                <div>
+                  <span class="font-bold text-white">${m.title}</span>
+                  <p class="text-[10px] text-slate-400">${m.tournament} • ${m.summary}</p>
+                </div>
+                <div class="text-right font-mono text-[11px] text-sky-300">
+                  ${m.score1 ? `<div>${m.score1}</div>` : ''}
+                  ${m.score2 ? `<div class="text-emerald-300">${m.score2}</div>` : ''}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `}
+      </div>
+    </div>
+  `;
+
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
 // Explicit Global Window Bindings for Inline Click & Event Handlers
 window.switchTab = switchTab;
 window.filterMatches = filterMatches;
@@ -2161,4 +2741,7 @@ window.openModal = openModal;
 window.closeAllModals = closeAllModals;
 window.syncFromCloud = syncFromCloud;
 window.pushMatchToCloud = pushMatchToCloud;
+window.openPlayerDossier = openPlayerDossier;
+window.switchDossierTab = switchDossierTab;
+window.copyDossierText = copyDossierText;
 
