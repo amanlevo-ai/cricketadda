@@ -34,14 +34,17 @@ import {
   wipeFirebaseMatchesTeamsAndStats,
   syncMatchToFirebase,
   subscribeToFirebaseMatch,
+  subscribeToFirebaseMatchesDb,
   syncMatchesDbToFirebase,
   fetchFirebaseMatchesDb,
   syncTeamsToFirebase,
   syncSingleTeamToFirebase,
   fetchFirebaseTeams,
+  subscribeToFirebaseTeams,
   syncUsersToFirebase,
   syncSingleUserProfileToFirebase,
   fetchFirebaseUsers,
+  subscribeToFirebaseUsers,
   fetchCloudUserByEmail,
   searchCloudPlayerByPhone,
   sendVerificationOtpEmail,
@@ -1520,15 +1523,36 @@ const MATCH_DATABASE = {};
 // REAL-TIME CAREER STATS & MATCH-BY-MATCH HISTORY RECALCULATION ENGINE
 // ============================================================================
 const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, currentLiveMatch, currentLiveBatters, currentLiveBowlers, currentDroppedCatches) => {
-  const userName = (userProf?.name || '').trim().toLowerCase();
+  const userName = (userProf?.name || '').trim();
+  const cleanUserName = userName.replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
+  const userPhone = String(userProf?.phone || '').replace(/[^0-9]/g, '');
+  const userId = String(userProf?.id || '').toLowerCase();
   const allMatches = Object.values(matchesDatabase || {});
   
-  let mergedMatches = [...allMatches];
+  let mergedMatches = allMatches.map(m => {
+    if (m && m.id === activeMId) {
+      return {
+        ...m,
+        ...(currentLiveMatch || {}),
+        liveBatters: { ...(m.liveBatters || {}), ...(currentLiveBatters || {}) },
+        liveBowlerStats: { ...(m.liveBowlerStats || {}), ...(currentLiveBowlers || {}) },
+        liveState: {
+          ...(m.liveState || {}),
+          liveBatters: { ...(m.liveState?.liveBatters || {}), ...(m.liveBatters || {}), ...(currentLiveBatters || {}) },
+          liveBowlerStats: { ...(m.liveState?.liveBowlerStats || {}), ...(m.liveBowlerStats || {}), ...(currentLiveBowlers || {}) },
+        },
+      };
+    }
+    return m;
+  });
+
   if (activeMId && currentLiveMatch && !mergedMatches.some(m => m.id === activeMId)) {
     mergedMatches.unshift({
       ...currentLiveMatch,
       id: activeMId,
       status: 'live',
+      liveBatters: currentLiveBatters,
+      liveBowlerStats: currentLiveBowlers,
       liveState: {
         liveBatters: currentLiveBatters,
         liveBowlerStats: currentLiveBowlers,
@@ -1583,7 +1607,7 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
     const inn1Batters = Array.isArray(m.innings1?.batting) ? m.innings1.batting : (m.innings1?.batting && typeof m.innings1.batting === 'object' ? Object.values(m.innings1.batting) : []);
     const inn2Batters = Array.isArray(m.innings2?.batting) ? m.innings2.batting : (m.innings2?.batting && typeof m.innings2.batting === 'object' ? Object.values(m.innings2.batting) : []);
     
-    let liveBatObj = m.liveState?.liveBatters || {};
+    let liveBatObj = m.liveBatters || m.liveState?.liveBatters || {};
     if (m.id === activeMId && currentLiveBatters) {
       liveBatObj = { ...liveBatObj, ...currentLiveBatters };
     }
@@ -1592,17 +1616,26 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
     const allMatchBatters = [...inn1Batters, ...inn2Batters, ...liveBatList];
 
     let userBat = null;
-    if (userName) {
-      userBat = allMatchBatters.find(b => b.name && (b.name.toLowerCase() === userName || b.name.toLowerCase().includes(userName) || userName.includes(b.name.toLowerCase())));
-    }
-    if (!userBat && allMatchBatters.length > 0) {
-      userBat = allMatchBatters.sort((a, b) => (Number(b.runs) || 0) - (Number(a.runs) || 0))[0];
+    if (cleanUserName || userPhone || userId) {
+      userBat = allMatchBatters.find(b => {
+        if (!b || !b.name) return false;
+        const bName = String(b.name).replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
+        const bPhone = String(b.phone || '').replace(/[^0-9]/g, '');
+        const bId = String(b.id || b.playerId || '').toLowerCase();
+        if (userPhone && bPhone && userPhone === bPhone) return true;
+        if (userId && bId && userId === bId) return true;
+        if (cleanUserName && bName) {
+          if (bName === cleanUserName) return true;
+          if (cleanUserName.length >= 3 && (bName.includes(cleanUserName) || cleanUserName.includes(bName))) return true;
+        }
+        return false;
+      });
     }
 
     const inn1Bowlers = Array.isArray(m.innings1?.bowling) ? m.innings1.bowling : (m.innings1?.bowling && typeof m.innings1.bowling === 'object' ? Object.values(m.innings1.bowling) : []);
     const inn2Bowlers = Array.isArray(m.innings2?.bowling) ? m.innings2.bowling : (m.innings2?.bowling && typeof m.innings2.bowling === 'object' ? Object.values(m.innings2.bowling) : []);
     
-    let liveBowlObj = m.liveState?.liveBowlerStats || {};
+    let liveBowlObj = m.liveBowlerStats || m.liveState?.liveBowlerStats || {};
     if (m.id === activeMId && currentLiveBowlers) {
       liveBowlObj = { ...liveBowlObj, ...currentLiveBowlers };
     }
@@ -1611,11 +1644,20 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
     const allMatchBowlers = [...inn1Bowlers, ...inn2Bowlers, ...liveBowlList];
 
     let userBowl = null;
-    if (userName) {
-      userBowl = allMatchBowlers.find(b => b.name && (b.name.toLowerCase() === userName || b.name.toLowerCase().includes(userName) || userName.includes(b.name.toLowerCase())));
-    }
-    if (!userBowl && allMatchBowlers.length > 0) {
-      userBowl = allMatchBowlers.sort((a, b) => (Number(b.wickets) || 0) - (Number(a.wickets) || 0))[0];
+    if (cleanUserName || userPhone || userId) {
+      userBowl = allMatchBowlers.find(b => {
+        if (!b || !b.name) return false;
+        const bName = String(b.name).replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
+        const bPhone = String(b.phone || '').replace(/[^0-9]/g, '');
+        const bId = String(b.id || b.playerId || '').toLowerCase();
+        if (userPhone && bPhone && userPhone === bPhone) return true;
+        if (userId && bId && userId === bId) return true;
+        if (cleanUserName && bName) {
+          if (bName === cleanUserName) return true;
+          if (cleanUserName.length >= 3 && (bName.includes(cleanUserName) || cleanUserName.includes(bName))) return true;
+        }
+        return false;
+      });
     }
 
     let bRuns = 0;
@@ -2948,13 +2990,13 @@ function generateQrMatrix(text) {
   }
 }
 
-function CricketSvgQrCode({ value, size = 180, logoEmoji = '🏏', color = '#0f172a', bgColor = '#ffffff' }) {
+function CricketSvgQrCode({ value, size = 220, logoEmoji = '🏏', color = '#000000', bgColor = '#ffffff' }) {
   const { matrix, size: matrixSize } = React.useMemo(() => generateQrMatrix(String(value || 'cricketadda')), [value]);
-  const quietZone = 2;
+  const quietZone = 3;
   const totalGridSize = matrixSize + (quietZone * 2);
 
   return (
-    <View style={{ width: size, height: size, backgroundColor: bgColor, borderRadius: 12, padding: 8, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.25, shadowRadius: 10, elevation: 8 }}>
+    <View style={{ width: size, height: size, backgroundColor: bgColor, borderRadius: 14, padding: 8, justifyContent: 'center', alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.3, shadowRadius: 10, elevation: 8 }}>
       <Svg width={size - 16} height={size - 16} viewBox={`0 0 ${totalGridSize} ${totalGridSize}`}>
         {/* Crisp White Quiet Zone Border */}
         <Rect x="0" y="0" width={totalGridSize} height={totalGridSize} fill={bgColor} />
@@ -3622,7 +3664,8 @@ function CricketAddaMain() {
     avatar: null,
   });
   const [scorerTransferModalVisible, setScorerTransferModalVisible] = useState(false);
-  const [transferTab, setTransferTab] = useState('phone'); // 'phone' | 'squads' | 'qr'
+  const [transferTab, setTransferTab] = useState('users'); // 'users' | 'phone' | 'qr'
+  const [transferSearchQuery, setTransferSearchQuery] = useState('');
   const [transferPhoneInput, setTransferPhoneInput] = useState('');
   const [transferPhoneSearchResult, setTransferPhoneSearchResult] = useState(null);
   const [transferPhoneNotFound, setTransferPhoneNotFound] = useState(false);
@@ -4766,40 +4809,114 @@ function CricketAddaMain() {
     };
   }, [isAuthenticated]);
 
-  // Live Cloud Refresh: Automatically pull newly registered opponent teams & manual squads from cloud when entering Teams tab or Match Setup
+  // Live Real-Time Continuous Cloud Subscriptions: Instant Multi-Device Sync for Teams, Users & Matches
   useEffect(() => {
-    if (isFirebaseConfigured() && (activeTab === 'teams' || wizardVisible)) {
-      fetchFirebaseTeams().then(cloudTeams => {
-        if (Array.isArray(cloudTeams) && (cloudTeams || []).length > 0) {
-          const cleanTeams = cloudTeams.filter(Boolean);
-          setRegisteredTeams(prev => {
-            const currentMap = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
-            let hasNew = false;
-            cleanTeams.forEach(ct => {
-              if (!ct || !ct.name) return;
-              const key = String(ct.id || ct.name).toLowerCase();
-              if (!currentMap.has(key)) {
-                currentMap.set(key, ct);
-                hasNew = true;
-              } else {
-                const existing = currentMap.get(key);
-                if (Array.isArray(ct.squad) && (ct.squad || []).length > (existing?.squad?.length || 0)) {
-                  currentMap.set(key, { ...existing, ...ct });
-                  hasNew = true;
-                }
-              }
-            });
-            if (hasNew) {
-              const updated = Array.from(currentMap.values());
-              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
-              return updated;
+    if (!isFirebaseConfigured()) return;
+
+    // 1. Teams Real-Time Continuous Subscription (No refresh or app restart required)
+    const unsubTeams = subscribeToFirebaseTeams(cloudTeams => {
+      if (!Array.isArray(cloudTeams) || cloudTeams.length === 0) return;
+      const cleanTeams = cloudTeams.filter(Boolean);
+      setRegisteredTeams(prev => {
+        const currentMap = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
+        let hasNew = false;
+        cleanTeams.forEach(ct => {
+          if (!ct || !ct.name) return;
+          const key = String(ct.id || ct.name).toLowerCase();
+          if (!currentMap.has(key)) {
+            currentMap.set(key, ct);
+            hasNew = true;
+          } else {
+            const existing = currentMap.get(key);
+            const ctLen = Array.isArray(ct.squad) ? ct.squad.length : 0;
+            const exLen = Array.isArray(existing?.squad) ? existing.squad.length : 0;
+            if (ctLen > exLen || (ct.updatedAt && ct.updatedAt > (existing?.updatedAt || 0))) {
+              currentMap.set(key, { ...existing, ...ct });
+              hasNew = true;
             }
-            return prev;
-          });
+          }
+        });
+        if (hasNew) {
+          const updated = Array.from(currentMap.values());
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
+          return updated;
         }
-      }).catch(() => {});
-    }
-  }, [activeTab, wizardVisible]);
+        return prev;
+      });
+    }, 2500);
+
+    // 2. Users & Registered Players Real-Time Subscription
+    const unsubUsers = subscribeToFirebaseUsers(cloudUsers => {
+      if (!Array.isArray(cloudUsers) || cloudUsers.length === 0) return;
+      const cleanUsers = cloudUsers.filter(Boolean);
+      setUsersDb(cleanUsers);
+      AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(cleanUsers)).catch(() => {});
+
+      setRegisteredPlayers(prev => {
+        const playerMap = new Map((prev || []).map(p => [String(p.phone || p.id || p.name).toLowerCase(), p]));
+        let hasChanges = false;
+        cleanUsers.forEach(u => {
+          const key = String(u.phone || u.id || u.name).toLowerCase();
+          if (!playerMap.has(key)) {
+            playerMap.set(key, u);
+            hasChanges = true;
+          } else {
+            const existing = playerMap.get(key);
+            if (JSON.stringify(existing) !== JSON.stringify(u)) {
+              playerMap.set(key, { ...existing, ...u });
+              hasChanges = true;
+            }
+          }
+        });
+        if (hasChanges) {
+          const updated = Array.from(playerMap.values());
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updated)).catch(() => {});
+          return updated;
+        }
+        return prev;
+      });
+    }, 3000);
+
+    // 3. Matches DB Real-Time Subscription
+    const unsubMatches = subscribeToFirebaseMatchesDb(cloudMatches => {
+      if (!cloudMatches || typeof cloudMatches !== 'object') return;
+      setMatchesDb(prev => {
+        let hasChanges = false;
+        const next = { ...(prev || {}) };
+        Object.entries(cloudMatches).forEach(([mId, mData]) => {
+          if (!mData) return;
+          const existing = next[mId];
+          if (!existing) {
+            next[mId] = mData;
+            hasChanges = true;
+          } else {
+            if (
+              mData.liveRuns !== existing.liveRuns ||
+              mData.liveWickets !== existing.liveWickets ||
+              mData.liveBalls !== existing.liveBalls ||
+              mData.status !== existing.status ||
+              mData.activeScorer !== existing.activeScorer ||
+              (mData.liveBatters && Object.keys(mData.liveBatters).length > 0)
+            ) {
+              next[mId] = { ...existing, ...mData };
+              hasChanges = true;
+            }
+          }
+        });
+        if (hasChanges) {
+          AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(next)).catch(() => {});
+          return next;
+        }
+        return prev;
+      });
+    }, 2500);
+
+    return () => {
+      if (typeof unsubTeams === 'function') unsubTeams();
+      if (typeof unsubUsers === 'function') unsubUsers();
+      if (typeof unsubMatches === 'function') unsubMatches();
+    };
+  }, []);
 
   // Live Cloud Database Auto-Sync: Automatically sync teams to Cloud
   useEffect(() => {
@@ -5183,7 +5300,7 @@ function CricketAddaMain() {
 
   const playCelebrationAudio = async (type = 'boundary') => {
     try {
-      if (!soundEffectsEnabled) return;
+      if (!soundEffectsEnabled || isOfficialScorer) return;
 
       // 1. Mobile Native Audio (Android & iOS) via modern expo-audio
       let ExpoAudio = null;
@@ -5754,6 +5871,8 @@ function CricketAddaMain() {
   const wsRef = useRef(null);
   const clientIdRef = useRef(`client_${Platform.OS}_${Date.now()}_${Math.floor(Math.random() * 1000)}`);
   const isApplyingRemoteSyncRef = useRef(false);
+  const inn1ScorecardDataRef = useRef(null);
+  const inn2ScorecardDataRef = useRef(null);
 
   const getSyncHost = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
@@ -5768,7 +5887,6 @@ function CricketAddaMain() {
     if (!d) return;
     isApplyingRemoteSyncRef.current = true;
     if (d.activeMatchId) setActiveMatchId(d.activeMatchId);
-    if (d.matchesDb && typeof d.matchesDb === 'object') setMatchesDb(d.matchesDb);
     if (typeof d.liveRuns === 'number') setLiveRuns(d.liveRuns);
     if (typeof d.liveWickets === 'number') setLiveWickets(d.liveWickets);
     if (typeof d.liveBalls === 'number') setLiveBalls(d.liveBalls);
@@ -5780,6 +5898,57 @@ function CricketAddaMain() {
     if (Array.isArray(d.liveCommentaryList)) setLiveCommentaryList(d.liveCommentaryList);
     if (d.liveBatters && typeof d.liveBatters === 'object') setLiveBatters(d.liveBatters);
     if (d.liveBowlerStats && typeof d.liveBowlerStats === 'object') setLiveBowlerStats(d.liveBowlerStats);
+    if (Array.isArray(d.scoringHistory)) setScoringHistory(d.scoringHistory);
+    if (d.currentStriker) setStriker(d.currentStriker);
+    if (d.currentNonStriker) setNonStriker(d.currentNonStriker);
+    if (d.currentBowler) setBowler(d.currentBowler);
+
+    // Synchronize matchesDb in real-time so viewer scorecard & stats immediately reflect live match data
+    if (d.activeMatchId) {
+      setMatchesDb(prev => {
+        const existingMatch = prev[d.activeMatchId] || {};
+        const updatedMatch = {
+          ...existingMatch,
+          ...(d.match || {}),
+          id: d.activeMatchId,
+          liveRuns: typeof d.liveRuns === 'number' ? d.liveRuns : existingMatch.liveRuns,
+          liveWickets: typeof d.liveWickets === 'number' ? d.liveWickets : existingMatch.liveWickets,
+          liveBalls: typeof d.liveBalls === 'number' ? d.liveBalls : existingMatch.liveBalls,
+          liveThisOver: Array.isArray(d.liveThisOver) ? d.liveThisOver : existingMatch.liveThisOver,
+          activeScorer: d.activeScorer || existingMatch.activeScorer,
+          currentInnings: d.currentInnings || existingMatch.currentInnings,
+          firstInningsSummary: d.firstInningsSummary || existingMatch.firstInningsSummary,
+          liveBatters: d.liveBatters || existingMatch.liveBatters,
+          liveBowlerStats: d.liveBowlerStats || existingMatch.liveBowlerStats,
+          scoringHistory: Array.isArray(d.scoringHistory) ? d.scoringHistory : existingMatch.scoringHistory,
+          currentStriker: d.currentStriker || existingMatch.currentStriker,
+          currentNonStriker: d.currentNonStriker || existingMatch.currentNonStriker,
+          currentBowler: d.currentBowler || existingMatch.currentBowler,
+          status: (d.match && d.match.status) || d.status || existingMatch.status || 'live',
+          innings1: d.innings1 || existingMatch.innings1,
+          innings2: d.innings2 || existingMatch.innings2,
+          liveState: {
+            ...(existingMatch.liveState || {}),
+            liveRuns: typeof d.liveRuns === 'number' ? d.liveRuns : existingMatch.liveRuns,
+            liveWickets: typeof d.liveWickets === 'number' ? d.liveWickets : existingMatch.liveWickets,
+            liveBalls: typeof d.liveBalls === 'number' ? d.liveBalls : existingMatch.liveBalls,
+            liveThisOver: Array.isArray(d.liveThisOver) ? d.liveThisOver : existingMatch.liveThisOver,
+            liveBatters: d.liveBatters || existingMatch.liveBatters,
+            liveBowlerStats: d.liveBowlerStats || existingMatch.liveBowlerStats,
+            scoringHistory: Array.isArray(d.scoringHistory) ? d.scoringHistory : existingMatch.scoringHistory,
+            currentInnings: d.currentInnings || existingMatch.currentInnings,
+            currentStriker: d.currentStriker || existingMatch.currentStriker,
+            currentNonStriker: d.currentNonStriker || existingMatch.currentNonStriker,
+            currentBowler: d.currentBowler || existingMatch.currentBowler,
+          },
+        };
+        const next = { ...prev, [d.activeMatchId]: updatedMatch };
+        AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(next)).catch(() => {});
+        return next;
+      });
+    } else if (d.matchesDb && typeof d.matchesDb === 'object') {
+      setMatchesDb(d.matchesDb);
+    }
 
     // Live celebration effect for remote viewers (never for the scorer who submitted the ball)
     const isSelfSender = Boolean(d.senderClientId && d.senderClientId === clientIdRef.current);
@@ -5821,6 +5990,12 @@ function CricketAddaMain() {
       liveCommentaryList,
       liveBatters,
       liveBowlerStats,
+      scoringHistory: (customPayload.scoringHistory !== undefined ? customPayload.scoringHistory : scoringHistory) || [],
+      currentStriker: customPayload.currentStriker || (match && match.currentStriker) || striker,
+      currentNonStriker: customPayload.currentNonStriker || (match && match.currentNonStriker) || nonStriker,
+      currentBowler: customPayload.currentBowler || (match && match.currentBowler) || bowler,
+      innings1: customPayload.innings1 || inn1ScorecardDataRef.current,
+      innings2: customPayload.innings2 || inn2ScorecardDataRef.current,
       ...customPayload,
     };
 
@@ -6734,9 +6909,6 @@ function CricketAddaMain() {
           else if (isWkt) Vibration.vibrate([0, 120, 50, 160]);
         } catch (e) {}
       }
-      if (soundEffectsEnabled) {
-        playCelebrationAudio(celebrationEvent.type);
-      }
     }
 
     // 6. Generate and append real-time text commentary
@@ -7031,7 +7203,8 @@ function CricketAddaMain() {
       const pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
       const isCap = Boolean((typeof p === 'object' && p.isCaptain) || pIdx === 0 || pName.includes('(c)') || pName === team.captain);
       const isWk = Boolean((typeof p === 'object' && (p.isWk || p.role === 'WK')) || pName.includes('(wk)') || pName === team.wicketkeeper);
-      const pRole = typeof p === 'object' && p.role ? p.role : (isCap ? 'BAT' : isWk ? 'WK' : 'BAT');
+      const rawRole = typeof p === 'object' && p.role ? p.role : (isCap ? 'BAT' : isWk ? 'WK' : 'BAT');
+      const pRole = rawRole.includes('BOWL') ? 'BOWL' : rawRole.includes('WK') ? 'WK' : rawRole.includes('ALL') ? 'ALL' : 'BAT';
       return {
         id: typeof p === 'object' && p.id ? p.id : `p_${Date.now()}_${pIdx}`,
         name: pName.replace(' (c)', '').replace(' (wk)', '').trim(),
@@ -7047,18 +7220,21 @@ function CricketAddaMain() {
       };
     }) : [];
 
+    // Compact squad format: name:role[:c|:wk] -> guarantees QR fits in version 4-5 matrix (~200-300 bytes)
+    const compactSquad = cleanSquad.map(p => {
+      const tag = p.isCaptain ? ':c' : (p.isWk ? ':wk' : '');
+      return `${p.name}:${p.role}${tag}`;
+    });
+
     const payload = JSON.stringify({
       type: 'team',
-      id: team.id || `team_${Date.now()}`,
+      id: team.id || `t_${Date.now()}`,
       name: team.name,
       shortName: team.shortName || team.name.slice(0, 3).toUpperCase(),
       flag: team.flag || '🦁',
-      logo: team.logo || team.logoUri || null,
-      city: team.city || team.homeGround || 'Local Ground',
-      captain: team.captain || (cleanSquad[0]?.name) || 'Captain',
-      wicketkeeper: team.wicketkeeper || (cleanSquad.find(p => p.isWk)?.name) || 'Wicketkeeper',
-      squad: cleanSquad,
-      squadCount: (cleanSquad || []).length,
+      city: team.city || team.homeGround || 'Local',
+      captain: team.captain || (cleanSquad[0]?.name) || '',
+      squad: compactSquad,
     });
 
     setQrDisplayData({
@@ -7217,7 +7393,27 @@ function CricketAddaMain() {
       if (qrScanPurpose === 'add_team_a' || qrScanPurpose === 'add_team_b' || data.type === 'team') {
         const slot = qrScanPurpose === 'add_team_b' ? 'teamB' : (qrScanPurpose === 'add_team_a' ? 'teamA' : 'teamB');
         const existingLocal = registeredTeams.find(t => t.id === data.id || (t.name && t.name.toLowerCase() === (data.name || '').toLowerCase()));
-        const cleanSquad = (Array.isArray(data.squad) && (data.squad || []).length > 0) ? data.squad : (existingLocal?.squad || []);
+        const rawSquad = (Array.isArray(data.squad) && data.squad.length > 0) ? data.squad : (existingLocal?.squad || []);
+        const cleanSquad = rawSquad.map((p, pIdx) => {
+          if (typeof p === 'string') {
+            const parts = p.split(':');
+            const name = (parts[0] || `Player ${pIdx + 1}`).trim();
+            const role = parts[1] || 'BAT';
+            const tag = parts[2] || '';
+            const isCap = tag === 'c' || pIdx === 0;
+            const isWk = tag === 'wk';
+            return {
+              id: `p_${Date.now()}_${pIdx}`,
+              name,
+              role,
+              isCaptain: isCap,
+              isWk,
+              battingStyle: 'Right Hand Bat',
+              bowlingStyle: role === 'BOWL' ? 'Right Arm Fast' : 'Right Arm Medium',
+            };
+          }
+          return p;
+        });
         const teamObj = {
           id: data.id || existingLocal?.id || `scanned_team_${Date.now()}`,
           name: data.name || existingLocal?.name || 'Scanned Team',
@@ -7227,7 +7423,7 @@ function CricketAddaMain() {
           logoUri: data.logo || existingLocal?.logoUri || null,
           city: data.city || existingLocal?.city || 'Scanned City',
           captain: data.captain || existingLocal?.captain || (cleanSquad[0]?.name) || 'Captain',
-          wicketkeeper: data.wicketkeeper || existingLocal?.wicketkeeper || 'Wicketkeeper',
+          wicketkeeper: data.wicketkeeper || existingLocal?.wicketkeeper || (cleanSquad.find(p => p.isWk)?.name) || 'Wicketkeeper',
           squad: cleanSquad,
           isCustomCreated: true,
         };
@@ -7423,11 +7619,18 @@ function CricketAddaMain() {
     };
     setLiveCommentaryList(prev => [transferComm, ...prev]);
 
+    // Broadcast scoring transfer state to all devices over Firebase RTDB
+    broadcastMatchState({
+      activeScorer: newScorerObj,
+      liveCommentaryList: [transferComm, ...liveCommentaryList],
+    });
+
     // Reset inputs
     setTransferPhoneInput('');
     setTransferPhoneSearchResult(null);
     setTransferPhoneNotFound(false);
     setTransferCustomName('');
+    setTransferSearchQuery('');
     setScorerTransferModalVisible(false);
 
     Alert.alert(
@@ -9110,6 +9313,8 @@ function CricketAddaMain() {
 
   const inn1ScorecardData = getInningScorecardData(currentMatchData, 1);
   const inn2ScorecardData = getInningScorecardData(currentMatchData, 2);
+  inn1ScorecardDataRef.current = inn1ScorecardData;
+  inn2ScorecardDataRef.current = inn2ScorecardData;
   const activeInningData = scorecardInning === 1 ? inn1ScorecardData : inn2ScorecardData;
 
   // -------------------------------------------------------------
@@ -21123,13 +21328,22 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       <Modal visible={scorerTransferModalVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setScorerTransferModalVisible(false)}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.teamPickerModalCard, { maxHeight: Math.min(safeModalCardMaxHeight, 680), backgroundColor: currentTheme.isLight ? '#ffffff' : '#090d16', borderColor: '#38bdf8', borderWidth: 1.5 }]}>
+          <View style={[styles.teamPickerModalCard, {
+            height: '86%',
+            maxHeight: 740,
+            minHeight: 520,
+            width: Math.min(width - 24, 460),
+            backgroundColor: currentTheme.isLight ? '#ffffff' : '#090d16',
+            borderColor: '#38bdf8',
+            borderWidth: 1.5,
+            padding: 14,
+          }]}>
             {/* Header */}
             <View style={styles.teamPickerHeaderRow}>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.teamPickerModalTitle, { color: '#38bdf8' }]}>🔄 Transfer Scoring</Text>
                 <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>
-                  Transfer live scoring via phone number, match squads, or QR code
+                  1-tap transfer to registered users, players, or match squads
                 </Text>
               </View>
               <TouchableOpacity
@@ -21140,6 +21354,7 @@ function CricketAddaMain() {
                   setTransferPhoneSearchResult(null);
                   setTransferPhoneNotFound(false);
                   setTransferCustomName('');
+                  setTransferSearchQuery('');
                 }}
               >
                 <Text style={styles.wizardCloseBtnText}>✕</Text>
@@ -21182,10 +21397,29 @@ function CricketAddaMain() {
               backgroundColor: '#0f172a',
               borderRadius: 10,
               padding: 3,
-              marginBottom: 12,
+              marginBottom: 10,
               borderColor: '#1e293b',
               borderWidth: 1,
             }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1.2,
+                  paddingVertical: 8,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  backgroundColor: transferTab === 'users' ? '#0284c7' : 'transparent',
+                }}
+                onPress={() => setTransferTab('users')}
+              >
+                <Text style={{
+                  color: transferTab === 'users' ? '#ffffff' : '#94a3b8',
+                  fontSize: 11,
+                  fontWeight: transferTab === 'users' ? 'bold' : '600',
+                }}>
+                  👥 Users & Squads
+                </Text>
+              </TouchableOpacity>
+
               <TouchableOpacity
                 style={{
                   flex: 1,
@@ -21198,7 +21432,7 @@ function CricketAddaMain() {
               >
                 <Text style={{
                   color: transferTab === 'phone' ? '#ffffff' : '#94a3b8',
-                  fontSize: 11.5,
+                  fontSize: 11,
                   fontWeight: transferTab === 'phone' ? 'bold' : '600',
                 }}>
                   📱 By Mobile
@@ -21207,26 +21441,7 @@ function CricketAddaMain() {
 
               <TouchableOpacity
                 style={{
-                  flex: 1,
-                  paddingVertical: 8,
-                  borderRadius: 8,
-                  alignItems: 'center',
-                  backgroundColor: transferTab === 'squads' ? '#0284c7' : 'transparent',
-                }}
-                onPress={() => setTransferTab('squads')}
-              >
-                <Text style={{
-                  color: transferTab === 'squads' ? '#ffffff' : '#94a3b8',
-                  fontSize: 11.5,
-                  fontWeight: transferTab === 'squads' ? 'bold' : '600',
-                }}>
-                  👥 Match Squads
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  flex: 1,
+                  flex: 0.9,
                   paddingVertical: 8,
                   borderRadius: 8,
                   alignItems: 'center',
@@ -21236,7 +21451,7 @@ function CricketAddaMain() {
               >
                 <Text style={{
                   color: transferTab === 'qr' ? '#ffffff' : '#94a3b8',
-                  fontSize: 11.5,
+                  fontSize: 11,
                   fontWeight: transferTab === 'qr' ? 'bold' : '600',
                 }}>
                   📷 Scan QR
@@ -21244,7 +21459,277 @@ function CricketAddaMain() {
               </TouchableOpacity>
             </View>
 
-            {/* TAB 1: TRANSFER BY MOBILE NUMBER */}
+            {/* TAB 1: ELIGIBLE USERS & MATCH SQUADS (DEFAULT) */}
+            {transferTab === 'users' && (
+              <View style={{ flex: 1 }}>
+                {/* Search Bar */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  backgroundColor: '#0f172a',
+                  borderColor: '#334155',
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  paddingHorizontal: 10,
+                  marginBottom: 10,
+                }}>
+                  <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
+                  <TextInput
+                    style={{
+                      flex: 1,
+                      color: '#ffffff',
+                      fontSize: 12.5,
+                      paddingVertical: 7,
+                    }}
+                    placeholder="Search users, players, squads..."
+                    placeholderTextColor="#64748b"
+                    value={transferSearchQuery}
+                    onChangeText={setTransferSearchQuery}
+                  />
+                  {(transferSearchQuery || '').length > 0 && (
+                    <TouchableOpacity onPress={() => setTransferSearchQuery('')}>
+                      <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: 'bold' }}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+                  {/* SECTION 1: MATCH SQUADS */}
+                  {/* BATTING TEAM */}
+                  {(() => {
+                    const q = (transferSearchQuery || '').toLowerCase().trim();
+                    const filteredBatters = (activeBattingSquad || []).filter(p => !q || p.toLowerCase().includes(q));
+                    if (filteredBatters.length === 0 && q) return null;
+                    return (
+                      <View style={{ marginBottom: 12 }}>
+                        <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={{ color: '#6ee7b7', fontSize: 11.5, fontWeight: '900' }}>
+                            🏏 {battingTeamFlag} {battingTeamName} Squad
+                          </Text>
+                          <Text style={{ color: '#34d399', fontSize: 10, fontWeight: 'bold' }}>
+                            {filteredBatters.length} Players
+                          </Text>
+                        </View>
+                        {filteredBatters.map((pName, idx) => {
+                          const isCurrent = activeScorer.name === pName;
+                          const regP = registeredPlayers.find(rp => rp && rp.name?.toLowerCase() === pName.toLowerCase());
+                          const pRole = regP?.role || 'Player';
+                          const pAvatar = getPlayerAvatarUri(pName) || regP?.avatarUri || null;
+
+                          return (
+                            <View
+                              key={`trans_p1_${pName}_${idx}`}
+                              style={{
+                                backgroundColor: isCurrent ? '#064e3b' : '#0f172a',
+                                borderColor: isCurrent ? '#10b981' : '#1e293b',
+                                borderWidth: 1,
+                                borderRadius: 8,
+                                padding: 8,
+                                marginBottom: 5,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                              }}
+                            >
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                                <PlayerAvatar name={pName} size={28} customUri={pAvatar} />
+                                <View style={{ flex: 1 }}>
+                                  <Text style={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} numberOfLines={1}>
+                                    {pName}
+                                  </Text>
+                                  <Text style={{ color: '#94a3b8', fontSize: 10 }}>{pRole}</Text>
+                                </View>
+                              </View>
+
+                              {isCurrent ? (
+                                <View style={{ backgroundColor: '#10b981', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 }}>
+                                  <Text style={{ color: '#022c22', fontSize: 10, fontWeight: '900' }}>ACTIVE ✓</Text>
+                                </View>
+                              ) : (
+                                <TouchableOpacity
+                                  style={{ backgroundColor: '#0284c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 }}
+                                  activeOpacity={0.8}
+                                  onPress={() => transferScoringToPlayer({ name: pName, role: pRole, avatarUri: pAvatar }, battingTeamName, battingTeamFlag)}
+                                >
+                                  <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }}>Transfer ➔</Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    );
+                  })()}
+
+                  {/* BOWLING TEAM */}
+                  {(() => {
+                    const q = (transferSearchQuery || '').toLowerCase().trim();
+                    const filteredBowlers = (activeOppBowlers || []).filter(p => !q || p.toLowerCase().includes(q));
+                    if (filteredBowlers.length === 0 && q) return null;
+                    return (
+                      <View style={{ marginBottom: 12 }}>
+                        <View style={{ backgroundColor: '#1e1b4b', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={{ color: '#a5b4fc', fontSize: 11.5, fontWeight: '900' }}>
+                            ⚡ {bowlingTeamFlag} {bowlingTeamName} Squad
+                          </Text>
+                          <Text style={{ color: '#818cf8', fontSize: 10, fontWeight: 'bold' }}>
+                            {filteredBowlers.length} Players
+                          </Text>
+                        </View>
+                        {filteredBowlers.map((pName, idx) => {
+                          const isCurrent = activeScorer.name === pName;
+                          const regP = registeredPlayers.find(rp => rp && rp.name?.toLowerCase() === pName.toLowerCase());
+                          const pRole = regP?.role || 'Player';
+                          const pAvatar = getPlayerAvatarUri(pName) || regP?.avatarUri || null;
+
+                          return (
+                            <View
+                              key={`trans_p2_${pName}_${idx}`}
+                              style={{
+                                backgroundColor: isCurrent ? '#1e1b4b' : '#0f172a',
+                                borderColor: isCurrent ? '#6366f1' : '#1e293b',
+                                borderWidth: 1,
+                                borderRadius: 8,
+                                padding: 8,
+                                marginBottom: 5,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                              }}
+                            >
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                                <PlayerAvatar name={pName} size={28} customUri={pAvatar} />
+                                <View style={{ flex: 1 }}>
+                                  <Text style={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} numberOfLines={1}>
+                                    {pName}
+                                  </Text>
+                                  <Text style={{ color: '#94a3b8', fontSize: 10 }}>{pRole}</Text>
+                                </View>
+                              </View>
+
+                              {isCurrent ? (
+                                <View style={{ backgroundColor: '#6366f1', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 }}>
+                                  <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>ACTIVE ✓</Text>
+                                </View>
+                              ) : (
+                                <TouchableOpacity
+                                  style={{ backgroundColor: '#0284c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 }}
+                                  activeOpacity={0.8}
+                                  onPress={() => transferScoringToPlayer({ name: pName, role: pRole, avatarUri: pAvatar }, bowlingTeamName, bowlingTeamFlag)}
+                                >
+                                  <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }}>Transfer ➔</Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    );
+                  })()}
+
+                  {/* SECTION 2: REGISTERED USERS & PLAYERS */}
+                  {(() => {
+                    const q = (transferSearchQuery || '').toLowerCase().trim();
+                    // Merge registeredPlayers and usersDb, deduplicating by phone / name
+                    const candidateMap = new Map();
+                    (registeredPlayers || []).forEach(p => {
+                      if (!p || !p.name) return;
+                      const key = (p.phone || p.name).toLowerCase();
+                      candidateMap.set(key, p);
+                    });
+                    (usersDb || []).forEach(u => {
+                      if (!u) return;
+                      const prof = u.profile || u;
+                      if (!prof || !prof.name) return;
+                      const key = (prof.phone || prof.name).toLowerCase();
+                      if (!candidateMap.has(key)) {
+                        candidateMap.set(key, prof);
+                      }
+                    });
+
+                    const squadNamesLower = new Set([
+                      ...(activeBattingSquad || []).map(s => s.toLowerCase()),
+                      ...(activeOppBowlers || []).map(s => s.toLowerCase()),
+                    ]);
+
+                    const nonSquadUsers = Array.from(candidateMap.values()).filter(p => {
+                      if (squadNamesLower.has((p.name || '').toLowerCase())) return false;
+                      if (!q) return true;
+                      const matchName = (p.name || '').toLowerCase().includes(q);
+                      const matchPhone = (p.phone || '').includes(q);
+                      const matchRole = (p.role || '').toLowerCase().includes(q);
+                      return matchName || matchPhone || matchRole;
+                    });
+
+                    if (nonSquadUsers.length === 0) return null;
+
+                    return (
+                      <View style={{ marginBottom: 12 }}>
+                        <View style={{ backgroundColor: '#0c2340', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '900' }}>
+                            📱 Registered App Players & Scorers
+                          </Text>
+                          <Text style={{ color: '#0284c7', fontSize: 10, fontWeight: 'bold' }}>
+                            {nonSquadUsers.length} Available
+                          </Text>
+                        </View>
+                        {nonSquadUsers.map((p, idx) => {
+                          const pName = p.name || 'User';
+                          const isCurrent = activeScorer.name === pName || (p.phone && activeScorer.phone === p.phone);
+                          const pRole = p.role || 'Player';
+                          const pAvatar = p.avatarUri || getPlayerAvatarUri(pName) || null;
+
+                          return (
+                            <View
+                              key={`trans_reg_${pName}_${idx}`}
+                              style={{
+                                backgroundColor: isCurrent ? '#0c2340' : '#0f172a',
+                                borderColor: isCurrent ? '#38bdf8' : '#1e293b',
+                                borderWidth: 1,
+                                borderRadius: 8,
+                                padding: 8,
+                                marginBottom: 5,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                              }}
+                            >
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                                <PlayerAvatar name={pName} size={28} customUri={pAvatar} />
+                                <View style={{ flex: 1 }}>
+                                  <Text style={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} numberOfLines={1}>
+                                    {pName}
+                                  </Text>
+                                  <Text style={{ color: '#94a3b8', fontSize: 10 }}>
+                                    {pRole}{p.phone ? ` • 📞 ${p.phone}` : ''}
+                                  </Text>
+                                </View>
+                              </View>
+
+                              {isCurrent ? (
+                                <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 }}>
+                                  <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>ACTIVE ✓</Text>
+                                </View>
+                              ) : (
+                                <TouchableOpacity
+                                  style={{ backgroundColor: '#0284c7', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 6 }}
+                                  activeOpacity={0.8}
+                                  onPress={() => transferScoringToPlayer(p, battingTeamName, battingTeamFlag, p.phone, pAvatar)}
+                                >
+                                  <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }}>Transfer ➔</Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
+                          );
+                        })}
+                      </View>
+                    );
+                  })()}
+                </ScrollView>
+              </View>
+            )}
+
+            {/* TAB 2: TRANSFER BY MOBILE NUMBER */}
             {transferTab === 'phone' && (
               <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
                 <View style={{ marginBottom: 12 }}>
@@ -21315,11 +21800,6 @@ function CricketAddaMain() {
                     borderRadius: 12,
                     padding: 12,
                     marginBottom: 14,
-                    shadowColor: '#38bdf8',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.2,
-                    shadowRadius: 6,
-                    elevation: 3,
                   }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                       <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5 }}>
@@ -21342,11 +21822,6 @@ function CricketAddaMain() {
                         <Text style={{ color: '#94a3b8', fontSize: 11 }}>
                           Role: {transferPhoneSearchResult.role || 'Player'} {transferPhoneSearchResult.jersey ? `• #${transferPhoneSearchResult.jersey}` : ''}
                         </Text>
-                        {transferPhoneSearchResult.battingStyle ? (
-                          <Text style={{ color: '#64748b', fontSize: 10 }}>
-                            {transferPhoneSearchResult.battingStyle}
-                          </Text>
-                        ) : null}
                       </View>
                     </View>
 
@@ -21540,149 +22015,10 @@ function CricketAddaMain() {
                       💡 Quick Mobile Handover:
                     </Text>
                     <Text style={{ color: '#94a3b8', fontSize: 11, lineHeight: 16 }}>
-                      When a physical scanner or camera is unavailable, enter the 10-digit mobile number of the player or official. Their registered profile will appear automatically for 1-tap scoring delegation.
+                      Enter the 10-digit mobile number of any player or scorer. Their registered profile will appear automatically for 1-tap scoring delegation.
                     </Text>
                   </View>
                 )}
-              </ScrollView>
-            )}
-
-            {/* TAB 2: MATCH SQUADS */}
-            {transferTab === 'squads' && (
-              <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
-                {/* SECTION: TEAM A (BATTING TEAM) SQUAD */}
-                <View style={{ marginBottom: 12 }}>
-                  <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: '#6ee7b7', fontSize: 11.5, fontWeight: '900' }}>
-                      🏏 {battingTeamFlag} {battingTeamName} Squad
-                    </Text>
-                    <Text style={{ color: '#34d399', fontSize: 10, fontWeight: 'bold' }}>
-                      {(activeBattingSquad || []).length} Players
-                    </Text>
-                  </View>
-                  {activeBattingSquad.map((pName, idx) => {
-                    const isCurrent = activeScorer.name === pName;
-                    const regP = registeredPlayers.find(rp => rp && rp.name?.toLowerCase() === pName.toLowerCase());
-                    const pRole = regP?.role || 'Player';
-                    const pAvatar = getPlayerAvatarUri(pName) || regP?.avatarUri || null;
-
-                    return (
-                      <View
-                        key={`trans_p1_${pName}_${idx}`}
-                        style={{
-                          backgroundColor: isCurrent ? '#064e3b' : '#0f172a',
-                          borderColor: isCurrent ? '#10b981' : '#1e293b',
-                          borderWidth: 1,
-                          borderRadius: 8,
-                          padding: 8,
-                          marginBottom: 5,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                          <PlayerAvatar name={pName} size={28} customUri={pAvatar} />
-                          <View style={{ flex: 1 }}>
-                            <Text style={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} numberOfLines={1}>
-                              {pName}
-                            </Text>
-                            <Text style={{ color: '#94a3b8', fontSize: 10 }}>{pRole}</Text>
-                          </View>
-                        </View>
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <TouchableOpacity
-                            style={{ backgroundColor: '#1e293b', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 5 }}
-                            onPress={() => openPlayerQrCode({ name: pName, role: pRole, avatarUri: pAvatar }, battingTeamName, battingTeamFlag)}
-                          >
-                            <Text style={{ color: '#38bdf8', fontSize: 10, fontWeight: 'bold' }}>🪪 QR</Text>
-                          </TouchableOpacity>
-
-                          {isCurrent ? (
-                            <View style={{ backgroundColor: '#10b981', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 }}>
-                              <Text style={{ color: '#022c22', fontSize: 10, fontWeight: '900' }}>ACTIVE</Text>
-                            </View>
-                          ) : (
-                            <TouchableOpacity
-                              style={{ backgroundColor: '#0284c7', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 5 }}
-                              onPress={() => transferScoringToPlayer({ name: pName, role: pRole, avatarUri: pAvatar }, battingTeamName, battingTeamFlag)}
-                            >
-                              <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: 'bold' }}>Transfer ✓</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
-
-                {/* SECTION: TEAM B (BOWLING TEAM) SQUAD */}
-                <View style={{ marginBottom: 12 }}>
-                  <View style={{ backgroundColor: '#1e1b4b', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6, marginBottom: 6, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Text style={{ color: '#a5b4fc', fontSize: 11.5, fontWeight: '900' }}>
-                      ⚡ {bowlingTeamFlag} {bowlingTeamName} Squad
-                    </Text>
-                    <Text style={{ color: '#818cf8', fontSize: 10, fontWeight: 'bold' }}>
-                      {(activeOppBowlers || []).length} Players
-                    </Text>
-                  </View>
-                  {activeOppBowlers.map((pName, idx) => {
-                    const isCurrent = activeScorer.name === pName;
-                    const regP = registeredPlayers.find(rp => rp && rp.name?.toLowerCase() === pName.toLowerCase());
-                    const pRole = regP?.role || 'Player';
-                    const pAvatar = getPlayerAvatarUri(pName) || regP?.avatarUri || null;
-
-                    return (
-                      <View
-                        key={`trans_p2_${pName}_${idx}`}
-                        style={{
-                          backgroundColor: isCurrent ? '#1e1b4b' : '#0f172a',
-                          borderColor: isCurrent ? '#6366f1' : '#1e293b',
-                          borderWidth: 1,
-                          borderRadius: 8,
-                          padding: 8,
-                          marginBottom: 5,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                        }}
-                      >
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                          <PlayerAvatar name={pName} size={28} customUri={pAvatar} />
-                          <View style={{ flex: 1 }}>
-                            <Text style={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }} numberOfLines={1}>
-                              {pName}
-                            </Text>
-                            <Text style={{ color: '#94a3b8', fontSize: 10 }}>{pRole}</Text>
-                          </View>
-                        </View>
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                          <TouchableOpacity
-                            style={{ backgroundColor: '#1e293b', paddingHorizontal: 6, paddingVertical: 4, borderRadius: 5 }}
-                            onPress={() => openPlayerQrCode({ name: pName, role: pRole, avatarUri: pAvatar }, bowlingTeamName, bowlingTeamFlag)}
-                          >
-                            <Text style={{ color: '#38bdf8', fontSize: 10, fontWeight: 'bold' }}>🪪 QR</Text>
-                          </TouchableOpacity>
-
-                          {isCurrent ? (
-                            <View style={{ backgroundColor: '#6366f1', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 5 }}>
-                              <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>ACTIVE</Text>
-                            </View>
-                          ) : (
-                            <TouchableOpacity
-                              style={{ backgroundColor: '#0284c7', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 5 }}
-                              onPress={() => transferScoringToPlayer({ name: pName, role: pRole, avatarUri: pAvatar }, bowlingTeamName, bowlingTeamFlag)}
-                            >
-                              <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: 'bold' }}>Transfer ✓</Text>
-                            </TouchableOpacity>
-                          )}
-                        </View>
-                      </View>
-                    );
-                  })}
-                </View>
               </ScrollView>
             )}
 
@@ -21775,7 +22111,7 @@ function CricketAddaMain() {
 
             {/* SVG Matrix QR Code */}
             <View style={{ marginVertical: 10, alignItems: 'center' }}>
-              <CricketSvgQrCode value={qrDisplayData.payload} size={210} logoEmoji={qrDisplayData.emoji} />
+              <CricketSvgQrCode value={qrDisplayData.payload} size={224} logoEmoji={qrDisplayData.emoji} />
             </View>
 
             {/* Explanatory Pill */}

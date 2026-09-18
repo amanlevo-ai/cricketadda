@@ -220,6 +220,14 @@ export async function syncMatchToFirebaseDirect(matchId, matchState) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload),
     });
+
+    // Also mirror into /matches_db/${id}.json for persistent historical and admin records
+    fetch(`${baseUrl}/matches_db/${id}.json`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+
     return res.ok;
   } catch (err) {
     return false;
@@ -630,41 +638,255 @@ export async function fetchFirebaseMatchesDb() {
 /**
  * Fetch registered teams from Cloud
  */
+/**
+ * Fetch registered teams from Cloud (merges /teams.json AND /teams_index.json)
+ */
 export async function fetchFirebaseTeams() {
   if (!isFirebaseConfigured()) return null;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const url = `${baseUrl}/teams.json`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data)) return data;
-      if (data && typeof data === 'object') return Object.values(data);
+    const [teamsRes, indexRes] = await Promise.allSettled([
+      fetch(`${baseUrl}/teams.json?t=${Date.now()}`),
+      fetch(`${baseUrl}/teams_index.json?t=${Date.now()}`),
+    ]);
+
+    const teamMap = new Map();
+    function addTeam(t) {
+      if (!t || typeof t !== 'object' || !t.name) return;
+      const id = String(t.id || t.name).toLowerCase();
+      if (!teamMap.has(id)) {
+        teamMap.set(id, t);
+      } else {
+        const existing = teamMap.get(id);
+        const curSquad = Array.isArray(t.squad) ? t.squad : [];
+        const exSquad = Array.isArray(existing.squad) ? existing.squad : [];
+        if (curSquad.length > exSquad.length) {
+          teamMap.set(id, { ...existing, ...t });
+        }
+      }
     }
-    return null;
+
+    if (teamsRes.status === 'fulfilled' && teamsRes.value.ok) {
+      const data = await teamsRes.value.json();
+      if (Array.isArray(data)) data.forEach(addTeam);
+      else if (data && typeof data === 'object') Object.values(data).forEach(addTeam);
+    }
+
+    if (indexRes.status === 'fulfilled' && indexRes.value.ok) {
+      const idxData = await indexRes.value.json();
+      if (idxData && typeof idxData === 'object') Object.values(idxData).forEach(addTeam);
+    }
+
+    return Array.from(teamMap.values());
   } catch (e) {
     return null;
   }
 }
 
 /**
- * Fetch registered users from Cloud
+ * Subscribes to real-time team updates across all devices
+ */
+export function subscribeToFirebaseTeams(onTeamsUpdate, intervalMs = 2500) {
+  if (!isFirebaseConfigured()) return () => {};
+  let isActive = true;
+  let lastTeamsHash = '';
+
+  const checkTeams = async () => {
+    if (!isActive) return;
+    try {
+      const teams = await fetchFirebaseTeams();
+      if (!isActive || !teams) return;
+      const currentHash = JSON.stringify(teams.map(t => `${t.id}_${t.name}_${(t.squad || []).length}`));
+      if (currentHash !== lastTeamsHash) {
+        lastTeamsHash = currentHash;
+        if (typeof onTeamsUpdate === 'function') {
+          onTeamsUpdate(teams);
+        }
+      }
+    } catch (e) {}
+  };
+
+  checkTeams();
+  const intervalId = setInterval(checkTeams, intervalMs);
+
+  return () => {
+    isActive = false;
+    clearInterval(intervalId);
+  };
+}
+
+/**
+ * Fetch registered users from Cloud (merges /users.json, /registered_players.json, and /users_by_email.json)
  */
 export async function fetchFirebaseUsers() {
   if (!isFirebaseConfigured()) return null;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const url = `${baseUrl}/users.json`;
-    const res = await fetch(url);
-    if (res.ok) {
-      const data = await res.json();
-      if (Array.isArray(data)) return data.filter(Boolean);
-      if (data && typeof data === 'object') return Object.values(data).filter(Boolean);
+    const [usersRes, regRes, emailRes] = await Promise.allSettled([
+      fetch(`${baseUrl}/users.json?t=${Date.now()}`),
+      fetch(`${baseUrl}/registered_players.json?t=${Date.now()}`),
+      fetch(`${baseUrl}/users_by_email.json?t=${Date.now()}`),
+    ]);
+
+    const playerMap = new Map();
+    function ingest(raw) {
+      if (!raw || typeof raw !== 'object') return;
+      const prof = raw.profile || raw;
+      const name = (prof.name || raw.name || '').trim();
+      if (!name) return;
+
+      const cleanPhone = String(prof.phone || raw.phone || '').replace(/[^0-9]/g, '');
+      const cleanEmail = String(prof.email || raw.email || '').trim().toLowerCase();
+      const dedupeKey = cleanPhone && cleanPhone.length >= 10 ? cleanPhone : (cleanEmail || name.toLowerCase());
+
+      const existing = playerMap.get(dedupeKey) || {};
+      playerMap.set(dedupeKey, {
+        id: prof.id || raw.id || existing.id || `usr_${cleanPhone || Date.now()}`,
+        name: prof.name || raw.name || existing.name || 'Unnamed Player',
+        phone: cleanPhone || existing.phone || '',
+        email: cleanEmail || existing.email || '',
+        role: prof.role || raw.role || existing.role || 'Player',
+        battingStyle: prof.battingStyle || raw.battingStyle || existing.battingStyle || 'Right-hand Bat',
+        bowlingStyle: prof.bowlingStyle || raw.bowlingStyle || existing.bowlingStyle || 'Right-arm Fast',
+        jersey: prof.jersey || raw.jersey || existing.jersey || '#1',
+        avatarUri: prof.avatarUri || raw.avatarUri || existing.avatarUri || null,
+        careerStats: raw.careerStats || existing.careerStats || null,
+        createdTeams: raw.createdTeams || existing.createdTeams || [],
+        profile: {
+          id: prof.id || raw.id || existing.id || `usr_${cleanPhone || Date.now()}`,
+          name: prof.name || raw.name || existing.name || 'Unnamed Player',
+          phone: cleanPhone || existing.phone || '',
+          email: cleanEmail || existing.email || '',
+          role: prof.role || raw.role || existing.role || 'Player',
+          jersey: prof.jersey || raw.jersey || existing.jersey || '#1',
+          avatarUri: prof.avatarUri || raw.avatarUri || existing.avatarUri || null,
+          battingStyle: prof.battingStyle || raw.battingStyle || existing.battingStyle || 'Right-hand Bat',
+          bowlingStyle: prof.bowlingStyle || raw.bowlingStyle || existing.bowlingStyle || 'Right-arm Fast',
+        },
+      });
     }
-    return null;
+
+    if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
+      const uData = await usersRes.value.json();
+      if (Array.isArray(uData)) uData.forEach(ingest);
+      else if (uData && typeof uData === 'object') Object.values(uData).forEach(ingest);
+    }
+
+    if (regRes.status === 'fulfilled' && regRes.value.ok) {
+      const rpData = await regRes.value.json();
+      if (rpData && typeof rpData === 'object') Object.values(rpData).forEach(ingest);
+    }
+
+    if (emailRes.status === 'fulfilled' && emailRes.value.ok) {
+      const ubeData = await emailRes.value.json();
+      if (ubeData && typeof ubeData === 'object') Object.values(ubeData).forEach(ingest);
+    }
+
+    return Array.from(playerMap.values());
   } catch (e) {
     return null;
   }
+}
+
+/**
+ * Subscribes to real-time registered players / users updates across all devices
+ */
+export function subscribeToFirebaseUsers(onUsersUpdate, intervalMs = 3000) {
+  if (!isFirebaseConfigured()) return () => {};
+  let isActive = true;
+  let lastUsersHash = '';
+
+  const checkUsers = async () => {
+    if (!isActive) return;
+    try {
+      const users = await fetchFirebaseUsers();
+      if (!isActive || !users) return;
+      const currentHash = JSON.stringify(users.map(u => `${u.id}_${u.name}_${u.phone}`));
+      if (currentHash !== lastUsersHash) {
+        lastUsersHash = currentHash;
+        if (typeof onUsersUpdate === 'function') {
+          onUsersUpdate(users);
+        }
+      }
+    } catch (e) {}
+  };
+
+  checkUsers();
+  const intervalId = setInterval(checkUsers, intervalMs);
+
+  return () => {
+    isActive = false;
+    clearInterval(intervalId);
+  };
+}
+
+/**
+ * Subscribes to real-time matches database updates
+ */
+export function subscribeToFirebaseMatchesDb(onMatchesUpdate, intervalMs = 2500) {
+  if (!isFirebaseConfigured()) return () => {};
+  let isActive = true;
+  let lastHash = '';
+
+  const checkMatches = async () => {
+    if (!isActive) return;
+    try {
+      const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+      const [dbRes, liveRes] = await Promise.allSettled([
+        fetch(`${baseUrl}/matches_db.json?t=${Date.now()}`),
+        fetch(`${baseUrl}/matches.json?t=${Date.now()}`),
+      ]);
+
+      let matches = {};
+      if (dbRes.status === 'fulfilled' && dbRes.value.ok) {
+        const data = await dbRes.value.json();
+        if (data && typeof data === 'object') matches = { ...data };
+      }
+
+      if (liveRes.status === 'fulfilled' && liveRes.value.ok) {
+        const liveData = await liveRes.value.json();
+        if (liveData && typeof liveData === 'object') {
+          Object.entries(liveData).forEach(([mId, lMatch]) => {
+            if (lMatch && typeof lMatch === 'object') {
+              matches[mId] = {
+                ...(matches[mId] || {}),
+                ...(lMatch.match || {}),
+                id: mId,
+                liveRuns: lMatch.liveRuns ?? matches[mId]?.liveRuns,
+                liveWickets: lMatch.liveWickets ?? matches[mId]?.liveWickets,
+                liveBalls: lMatch.liveBalls ?? matches[mId]?.liveBalls,
+                liveThisOver: lMatch.liveThisOver ?? matches[mId]?.liveThisOver,
+                activeScorer: lMatch.activeScorer ?? matches[mId]?.activeScorer,
+                currentInnings: lMatch.currentInnings ?? matches[mId]?.currentInnings,
+                firstInningsSummary: lMatch.firstInningsSummary ?? matches[mId]?.firstInningsSummary,
+                liveBatters: lMatch.liveBatters ?? matches[mId]?.liveBatters,
+                liveBowlerStats: lMatch.liveBowlerStats ?? matches[mId]?.liveBowlerStats,
+                scoringHistory: lMatch.scoringHistory ?? matches[mId]?.scoringHistory,
+                status: lMatch.status || matches[mId]?.status || 'live',
+              };
+            }
+          });
+        }
+      }
+
+      if (!isActive) return;
+      const currentHash = JSON.stringify(Object.keys(matches).map(k => `${k}_${matches[k]?.liveRuns}_${matches[k]?.liveWickets}_${matches[k]?.status}`));
+      if (currentHash !== lastHash) {
+        lastHash = currentHash;
+        if (typeof onMatchesUpdate === 'function') {
+          onMatchesUpdate(matches);
+        }
+      }
+    } catch (e) {}
+  };
+
+  checkMatches();
+  const intervalId = setInterval(checkMatches, intervalMs);
+
+  return () => {
+    isActive = false;
+    clearInterval(intervalId);
+  };
 }
 
 /**
