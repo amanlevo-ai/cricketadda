@@ -594,12 +594,16 @@
           <span>Admin Danger Zone</span>
         </h3>
         <p class="text-xs text-slate-400">
-          Emergency tools to wipe test matches while strictly preserving all user accounts and registered profiles.
+          Emergency tools to wipe test matches or teams from the database while strictly preserving all user accounts and registered profiles.
         </p>
-        <div>
+        <div class="flex flex-wrap items-center gap-3">
           <button id="btn-emergency-wipe-matches" class="btn-danger text-xs">
             <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             <span>Clean All Matches from Database</span>
+          </button>
+          <button id="btn-emergency-wipe-teams" class="btn-danger text-xs">
+            <i data-lucide="shield-alert" class="w-3.5 h-3.5"></i>
+            <span>Clean All Teams from Database</span>
           </button>
         </div>
       </div>

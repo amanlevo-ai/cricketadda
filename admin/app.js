@@ -648,7 +648,7 @@ function setupEventListeners() {
     }
   });
 
-  // Settings: Emergency wipe
+  // Settings: Emergency wipe matches
   document.getElementById('btn-emergency-wipe-matches')?.addEventListener('click', async () => {
     const confirmPrompt = prompt('Type "WIPE" to confirm deleting all matches from database:');
     if (confirmPrompt === 'WIPE') {
@@ -661,6 +661,55 @@ function setupEventListeners() {
         showToast('Matches wiped from database. User profiles were preserved.', 'warning');
       } catch (e) {
         showToast('Wipe failed: ' + e.message, 'error');
+      }
+    }
+  });
+
+  // Settings: Emergency wipe teams
+  document.getElementById('btn-emergency-wipe-teams')?.addEventListener('click', async () => {
+    const confirmPrompt = prompt('Type "WIPE TEAMS" to confirm deleting all teams from database:');
+    if (confirmPrompt === 'WIPE TEAMS') {
+      try {
+        await Promise.all([
+          fetch(`${CONFIG.FIREBASE_URL}/teams.json`, { method: 'DELETE' }),
+          fetch(`${CONFIG.FIREBASE_URL}/teams_index.json`, { method: 'DELETE' }),
+        ]);
+
+        // Reset createdTeams in user profiles so client devices don't re-sync deleted teams
+        try {
+          const resUsers = await fetch(`${CONFIG.FIREBASE_URL}/users.json`);
+          const usersData = await resUsers.json();
+          if (Array.isArray(usersData)) {
+            const updatedUsers = usersData.map(u => ({ ...u, createdTeams: [] }));
+            const usersByEmail = {};
+            updatedUsers.forEach(u => {
+              if (u && u.email) {
+                const safeKey = u.email.replace(/\./g, '_').replace(/@/g, '_at_');
+                usersByEmail[safeKey] = u;
+              }
+            });
+            await Promise.all([
+              fetch(`${CONFIG.FIREBASE_URL}/users.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(updatedUsers),
+              }),
+              fetch(`${CONFIG.FIREBASE_URL}/users_by_email.json`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(usersByEmail),
+              }),
+            ]);
+          }
+        } catch (uErr) {
+          console.warn('Could not reset user createdTeams:', uErr);
+        }
+
+        state.teams = [];
+        renderAllViews();
+        showToast('All teams wiped from database. User profiles were preserved.', 'warning');
+      } catch (e) {
+        showToast('Wipe teams failed: ' + e.message, 'error');
       }
     }
   });
