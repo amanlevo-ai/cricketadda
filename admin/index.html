@@ -562,10 +562,90 @@
             <i data-lucide="activity" class="w-3.5 h-3.5 text-emerald-400"></i>
             <span>Test Connection Latency</span>
           </button>
-          <button id="btn-export-full-db" class="btn-secondary text-xs">
-            <i data-lucide="download" class="w-3.5 h-3.5 text-sky-400"></i>
-            <span>Backup All Matches JSON</span>
-          </button>
+        </div>
+      </div>
+
+      <!-- Database Backup & Restore Center -->
+      <div class="glass-panel p-5 rounded-xl border border-sky-900/50 bg-sky-950/10 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-3">
+          <div>
+            <h3 class="font-bold text-sm text-sky-400 flex items-center gap-2">
+              <i data-lucide="database" class="w-4 h-4 text-sky-400"></i>
+              <span>Database Backup & Restore Center</span>
+            </h3>
+            <p class="text-xs text-slate-400 mt-0.5">
+              Create instant database snapshots or restore your database from previous backups.
+            </p>
+          </div>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sky-900/40 text-sky-300 text-[11px] font-mono border border-sky-700/50">
+            <i data-lucide="shield-check" class="w-3.5 h-3.5 text-emerald-400"></i>
+            <span>Safety Snapshot Ready</span>
+          </span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <!-- Full DB Backup -->
+          <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+            <div class="flex items-center gap-2 text-xs font-bold text-white">
+              <i data-lucide="archive" class="w-4 h-4 text-emerald-400"></i>
+              <span>Full Database Backup</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Complete snapshot of all matches, teams, player rosters, and user profiles in 1 JSON file.
+            </p>
+            <button id="btn-backup-full-db" class="btn-primary text-xs w-full justify-center mt-1">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Download Full Backup</span>
+            </button>
+          </div>
+
+          <!-- Matches Backup -->
+          <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+            <div class="flex items-center gap-2 text-xs font-bold text-white">
+              <i data-lucide="trophy" class="w-4 h-4 text-sky-400"></i>
+              <span>Matches Only Backup</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Export all active, live, and completed matches with ball-by-ball deliveries and scorecards.
+            </p>
+            <button id="btn-export-full-db" class="btn-secondary text-xs w-full justify-center mt-1">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Backup Matches JSON</span>
+            </button>
+          </div>
+
+          <!-- Teams Backup -->
+          <div class="p-3.5 rounded-xl bg-slate-900/80 border border-slate-800 space-y-2">
+            <div class="flex items-center gap-2 text-xs font-bold text-white">
+              <i data-lucide="users" class="w-4 h-4 text-purple-400"></i>
+              <span>Teams & Squads Backup</span>
+            </div>
+            <p class="text-[11px] text-slate-400 leading-relaxed">
+              Export all registered teams, squad player rosters, captains, and club metadata.
+            </p>
+            <button id="btn-backup-teams-db" class="btn-secondary text-xs w-full justify-center mt-1">
+              <i data-lucide="download" class="w-3.5 h-3.5"></i>
+              <span>Backup Teams JSON</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Restore Section -->
+        <div class="border-t border-slate-800/80 pt-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div class="space-y-0.5">
+            <h4 class="font-bold text-xs text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="upload-cloud" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span>Restore Database from Backup File</span>
+            </h4>
+            <p class="text-[11px] text-slate-400">Select a previously downloaded backup JSON file to import data back into Firebase.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <input type="file" id="input-restore-db-file" accept=".json" class="hidden">
+            <button id="btn-trigger-restore-db" class="btn-secondary text-xs border-amber-800/60 text-amber-300 hover:bg-amber-950/30">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+              <span>Select File & Restore...</span>
+            </button>
+          </div>
         </div>
       </div>
 

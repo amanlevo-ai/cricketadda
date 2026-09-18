@@ -645,7 +645,54 @@ function setupEventListeners() {
     }
   });
 
-  // Settings: Export Full DB
+  // Settings: Full Database Backup (Matches + Teams + Players)
+  document.getElementById('btn-backup-full-db')?.addEventListener('click', async () => {
+    try {
+      showToast('Preparing full database snapshot...', 'info');
+      const [matchesRes, teamsRes, usersRes] = await Promise.allSettled([
+        fetch(`${CONFIG.FIREBASE_URL}/matches_db.json?t=${Date.now()}`),
+        fetch(`${CONFIG.FIREBASE_URL}/teams.json?t=${Date.now()}`),
+        fetch(`${CONFIG.FIREBASE_URL}/users.json?t=${Date.now()}`),
+      ]);
+
+      const matchesData = matchesRes.status === 'fulfilled' && matchesRes.value.ok ? await matchesRes.value.json() : state.matchesDb;
+      const teamsData = teamsRes.status === 'fulfilled' && teamsRes.value.ok ? await teamsRes.value.json() : state.teams;
+      const usersData = usersRes.status === 'fulfilled' && usersRes.value.ok ? await usersRes.value.json() : state.users;
+
+      const fullBackup = {
+        app: 'CricketAdda Pro',
+        version: '2.0',
+        exportedAt: new Date().toISOString(),
+        timestamp: Date.now(),
+        summary: {
+          matchesCount: Object.keys(matchesData || {}).length,
+          teamsCount: Array.isArray(teamsData) ? teamsData.length : Object.keys(teamsData || {}).length,
+          usersCount: Array.isArray(usersData) ? usersData.length : Object.keys(usersData || {}).length,
+        },
+        data: {
+          matches: matchesData || {},
+          teams: teamsData || [],
+          users: usersData || [],
+        }
+      };
+
+      const jsonStr = JSON.stringify(fullBackup, null, 2);
+      const blob = new Blob([jsonStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `cricketadda_full_database_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('Full database backup successfully downloaded!', 'success');
+    } catch (err) {
+      showToast('Full backup failed: ' + err.message, 'error');
+    }
+  });
+
+  // Settings: Matches Only Backup
   document.getElementById('btn-export-full-db')?.addEventListener('click', () => {
     const jsonStr = JSON.stringify(state.matchesDb, null, 2);
     const blob = new Blob([jsonStr], { type: 'application/json' });
@@ -653,8 +700,108 @@ function setupEventListeners() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `cricketadda_matches_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
     a.click();
-    showToast('Database exported successfully', 'success');
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Matches backup successfully downloaded!', 'success');
+  });
+
+  // Settings: Teams & Squads Backup
+  document.getElementById('btn-backup-teams-db')?.addEventListener('click', () => {
+    const teamsBackup = {
+      app: 'CricketAdda Pro',
+      type: 'teams_backup',
+      exportedAt: new Date().toISOString(),
+      teamsCount: state.teams.length,
+      teams: state.teams,
+    };
+    const jsonStr = JSON.stringify(teamsBackup, null, 2);
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `cricketadda_teams_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Teams backup successfully downloaded!', 'success');
+  });
+
+  // Settings: Database Restore / Import
+  const restoreFileInput = document.getElementById('input-restore-db-file');
+  document.getElementById('btn-trigger-restore-db')?.addEventListener('click', () => {
+    restoreFileInput?.click();
+  });
+
+  restoreFileInput?.addEventListener('change', async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      showToast('Reading backup file...', 'info');
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+
+      const confirmRestore = confirm(
+        `Are you sure you want to restore database from "${file.name}"?\nThis will import and update matching data in Firebase Realtime Database.`
+      );
+      if (!confirmRestore) {
+        restoreFileInput.value = '';
+        return;
+      }
+
+      let restoredMatches = 0;
+      let restoredTeams = 0;
+
+      // Handle Full Backup structure
+      if (parsed.data && parsed.data.matches) {
+        await fetch(`${CONFIG.FIREBASE_URL}/matches_db.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(parsed.data.matches),
+        });
+        restoredMatches = Object.keys(parsed.data.matches).length;
+      } else if (parsed.matchesDb || (typeof parsed === 'object' && !parsed.teams && !Array.isArray(parsed))) {
+        const matchesToRestore = parsed.matchesDb || parsed;
+        await fetch(`${CONFIG.FIREBASE_URL}/matches_db.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(matchesToRestore),
+        });
+        restoredMatches = Object.keys(matchesToRestore).length;
+      }
+
+      // Handle Teams in Full Backup or Teams-only backup
+      const teamsToRestore = parsed.data?.teams || parsed.teams || (Array.isArray(parsed) ? parsed : null);
+      if (teamsToRestore && Array.isArray(teamsToRestore)) {
+        await fetch(`${CONFIG.FIREBASE_URL}/teams.json`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(teamsToRestore),
+        });
+        // Also re-index
+        teamsToRestore.forEach(t => {
+          if (t && t.id) {
+            fetch(`${CONFIG.FIREBASE_URL}/teams_index/${t.id}.json`, {
+              method: 'PUT',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(t),
+            }).catch(() => {});
+          }
+        });
+        restoredTeams = teamsToRestore.length;
+      }
+
+      await syncFromCloud(false);
+      renderAllViews();
+      showToast(`Restore Complete! Imported ${restoredMatches} matches and ${restoredTeams} teams.`, 'success');
+    } catch (err) {
+      showToast('Restore failed: ' + err.message, 'error');
+    } finally {
+      restoreFileInput.value = '';
+    }
   });
 
   // Settings: Raw JSON patch apply
