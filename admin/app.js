@@ -1539,7 +1539,7 @@ function renderUsersView(query = null) {
 
   let newHtml = '';
   if (list.length === 0) {
-    newHtml = '<tr><td colspan="6" class="text-center text-slate-400 py-6">No players registered.</td></tr>';
+    newHtml = '<tr><td colspan="5" class="text-center text-slate-400 py-6">No players registered.</td></tr>';
   } else {
     newHtml = list.map(u => {
       const roleText = u.role || 'Player';
@@ -1551,32 +1551,17 @@ function renderUsersView(query = null) {
 
       const avatarSrc = resolveUserAvatar(u);
       const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(u.name || 'Player')}&background=0284c7&color=fff&bold=true&size=128&rounded=true`;
-      const userKey = u.phone || u.id || u.email || u.name;
-      const isLocalPhonePath = u.avatarUri && (u.avatarUri.startsWith('file://') || u.avatarUri.startsWith('content://'));
 
       return `
         <tr class="hover:bg-slate-800/40 transition">
           <td class="font-bold text-white flex items-center gap-3">
-            <div class="relative group cursor-pointer shrink-0" onclick="openPlayerPhotoModal('${encodeURIComponent(userKey)}')" title="Click to change photo">
-              <img src="${avatarSrc}" 
-                   alt="${u.name || 'Player'}" 
-                   class="w-10 h-10 rounded-full object-cover border-2 border-slate-700 group-hover:border-sky-400 shadow-sm bg-slate-800 transition" 
-                   onerror="this.onerror=null; this.src='${fallbackUrl}';">
-              <div class="absolute inset-0 rounded-full bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center transition">
-                <i data-lucide="camera" class="w-4 h-4 text-sky-400"></i>
-              </div>
-            </div>
-            <div class="flex flex-col">
-              <div class="flex items-center gap-1.5">
-                ${u.jersey ? `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-mono text-[10px] font-bold">${u.jersey}</span>` : ''}
-                <span>${u.name || 'Unnamed Player'}</span>
-              </div>
-              ${isLocalPhonePath ? `
-                <span class="inline-flex items-center gap-1 text-[9px] text-amber-400 font-normal mt-0.5" title="Photo stored locally on user phone. Open mobile app to auto-sync, or upload from PC here.">
-                  <span class="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse"></span>
-                  Phone Photo (Sync on App or Upload)
-                </span>
-              ` : ''}
+            <img src="${avatarSrc}" 
+                 alt="${u.name || 'Player'}" 
+                 class="w-10 h-10 rounded-full object-cover border-2 border-slate-700 shadow-sm bg-slate-800 shrink-0" 
+                 onerror="this.onerror=null; this.src='${fallbackUrl}';">
+            <div class="flex items-center gap-1.5">
+              ${u.jersey ? `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-mono text-[10px] font-bold">${u.jersey}</span>` : ''}
+              <span>${u.name || 'Unnamed Player'}</span>
             </div>
           </td>
           <td class="font-mono text-slate-300">${u.phone ? `+91 ${u.phone.replace(/^91/, '')}` : '-'}</td>
@@ -1588,14 +1573,6 @@ function renderUsersView(query = null) {
             </div>
           </td>
           <td class="text-right font-mono font-bold text-emerald-400">${u.matchesPlayed ?? 0}</td>
-          <td class="text-right">
-            <button onclick="openPlayerPhotoModal('${encodeURIComponent(userKey)}')" 
-                    class="px-2.5 py-1 rounded bg-sky-500/10 hover:bg-sky-500/20 text-sky-400 border border-sky-500/30 inline-flex items-center gap-1 text-xs font-semibold transition"
-                    title="Upload or change profile picture">
-              <i data-lucide="camera" class="w-3.5 h-3.5"></i>
-              <span>Change Photo</span>
-            </button>
-          </td>
         </tr>
       `;
     }).join('');
@@ -2166,335 +2143,6 @@ document.querySelectorAll('.modal-close').forEach(btn => {
   btn.addEventListener('click', closeAllModals);
 });
 
-// Photo modal interactive bindings
-document.getElementById('btn-browse-photo')?.addEventListener('click', () => {
-  document.getElementById('photo-file-input')?.click();
-});
-document.getElementById('photo-file-input')?.addEventListener('change', handlePlayerPhotoFileUpload);
-document.getElementById('btn-preview-url')?.addEventListener('click', handlePlayerPhotoUrlPreview);
-document.getElementById('photo-url-input')?.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    handlePlayerPhotoUrlPreview();
-  }
-});
-document.getElementById('btn-save-player-photo')?.addEventListener('click', savePlayerPhoto);
-
-// ============================================================================
-// PLAYER PROFILE PHOTO MANAGEMENT & CLOUD SYNC
-// ============================================================================
-
-let currentEditingUserKey = null;
-let currentEditingUserPhoto = null;
-
-const PRO_STAR_PRESETS = [
-  { name: 'Rohit Sharma', avatar: PLAYER_AVATARS['Rohit Sharma'] },
-  { name: 'Virat Kohli', avatar: PLAYER_AVATARS['Virat Kohli'] },
-  { name: 'MS Dhoni', avatar: PLAYER_AVATARS['MS Dhoni'] },
-  { name: 'Jasprit Bumrah', avatar: PLAYER_AVATARS['Jasprit Bumrah'] },
-  { name: 'Hardik Pandya', avatar: PLAYER_AVATARS['Hardik Pandya'] },
-  { name: 'Shubman Gill', avatar: PLAYER_AVATARS['Shubman Gill'] },
-  { name: 'Suryakumar Yadav', avatar: PLAYER_AVATARS['Suryakumar Yadav'] },
-  { name: 'Ravindra Jadeja', avatar: PLAYER_AVATARS['Ravindra Jadeja'] },
-  { name: 'Rishabh Pant', avatar: PLAYER_AVATARS['Rishabh Pant'] },
-  { name: 'Mitchell Starc', avatar: PLAYER_AVATARS['Mitchell Starc'] },
-];
-
-function renderPhotoPresets() {
-  const container = document.getElementById('photo-quick-presets');
-  if (!container) return;
-  container.innerHTML = PRO_STAR_PRESETS.map(p => `
-    <button type="button" 
-            onclick="selectPhotoPreset('${p.avatar}', '${p.name.replace(/'/g, "\\'")}')" 
-            title="${p.name}" 
-            class="group relative flex flex-col items-center p-1 rounded-lg border border-slate-700/80 hover:border-sky-400 bg-slate-800/60 hover:bg-sky-950/40 transition">
-      <img src="${p.avatar}" alt="${p.name}" class="w-10 h-10 rounded-full object-cover border border-slate-600 group-hover:border-sky-400 shrink-0">
-      <span class="text-[9px] text-slate-300 group-hover:text-sky-300 font-medium truncate w-full text-center mt-1">${p.name.split(' ')[0]}</span>
-    </button>
-  `).join('');
-}
-
-function selectPhotoPreset(avatarUrl, name) {
-  currentEditingUserPhoto = avatarUrl;
-  const preview = document.getElementById('photo-modal-preview');
-  if (preview) preview.src = avatarUrl;
-  const urlInput = document.getElementById('photo-url-input');
-  if (urlInput) urlInput.value = avatarUrl;
-  const previewLabel = document.getElementById('photo-modal-preview-label');
-  if (previewLabel) previewLabel.textContent = `Preset: ${name}`;
-  showToast(`Selected ${name} avatar preset! Click 'Save & Sync to App' to apply.`, 'info');
-}
-
-function openPlayerPhotoModal(userKeyRaw) {
-  const userKey = decodeURIComponent(userKeyRaw);
-  const cleanKey = String(userKey).replace(/[^0-9]/g, '');
-  const targetUser = state.users.find(u => {
-    const uPhone = String(u.phone || (u.profile && u.profile.phone) || '').replace(/[^0-9]/g, '');
-    const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
-    const uId = String(u.id || (u.profile && u.profile.id) || '');
-    const uName = String(u.name || (u.profile && u.profile.name) || '');
-    return (cleanKey && uPhone === cleanKey) ||
-           (uEmail && uEmail === userKey.toLowerCase()) ||
-           (uId && uId === userKey) ||
-           (uName && uName === userKey);
-  });
-
-  if (!targetUser) {
-    showToast('Player profile not found', 'error');
-    return;
-  }
-
-  currentEditingUserKey = userKey;
-  const currentAvatar = resolveUserAvatar(targetUser);
-  currentEditingUserPhoto = currentAvatar;
-
-  const modal = document.getElementById('modal-player-photo');
-  const nameEl = document.getElementById('photo-modal-player-name');
-  const subEl = document.getElementById('photo-modal-player-subtitle');
-  const previewEl = document.getElementById('photo-modal-preview');
-  const labelEl = document.getElementById('photo-modal-preview-label');
-  const urlInput = document.getElementById('photo-url-input');
-  const fileInput = document.getElementById('photo-file-input');
-  const keyInput = document.getElementById('photo-modal-user-key');
-
-  if (nameEl) nameEl.textContent = `${targetUser.name || 'Player'}${targetUser.jersey ? ' (' + targetUser.jersey + ')' : ''}`;
-  if (subEl) subEl.textContent = `${targetUser.phone ? '+91 ' + targetUser.phone.replace(/^91/, '') : targetUser.email || 'Registered Player'} • ${targetUser.role || 'Player'}`;
-  if (previewEl) previewEl.src = currentAvatar;
-  if (labelEl) labelEl.textContent = 'Current Photo Preview';
-  if (urlInput) urlInput.value = (currentAvatar.startsWith('http') && !currentAvatar.includes('ui-avatars.com')) ? currentAvatar : '';
-  if (fileInput) fileInput.value = '';
-  if (keyInput) keyInput.value = userKey;
-
-  renderPhotoPresets();
-
-  if (modal) {
-    modal.classList.remove('hidden');
-    if (window.lucide) lucide.createIcons();
-  }
-}
-
-function handlePlayerPhotoFileUpload(e) {
-  const file = e.target.files && e.target.files[0];
-  if (!file) return;
-
-  if (!file.type.startsWith('image/')) {
-    showToast('Please select an image file (JPG, PNG, WebP)', 'warning');
-    return;
-  }
-
-  const reader = new FileReader();
-  reader.onload = function(evt) {
-    const img = new Image();
-    img.onload = function() {
-      const maxDim = 256;
-      let w = img.width;
-      let h = img.height;
-      if (w > h) {
-        if (w > maxDim) {
-          h = Math.round((h * maxDim) / w);
-          w = maxDim;
-        }
-      } else {
-        if (h > maxDim) {
-          w = Math.round((w * maxDim) / h);
-          h = maxDim;
-        }
-      }
-      const canvas = document.createElement('canvas');
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext('2d');
-      ctx.drawImage(img, 0, 0, w, h);
-
-      const optimizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-      currentEditingUserPhoto = optimizedBase64;
-
-      const preview = document.getElementById('photo-modal-preview');
-      if (preview) preview.src = optimizedBase64;
-      const label = document.getElementById('photo-modal-preview-label');
-      if (label) label.textContent = `Uploaded: ${file.name} (${Math.round(optimizedBase64.length / 1024)} KB)`;
-      const urlInput = document.getElementById('photo-url-input');
-      if (urlInput) urlInput.value = '';
-
-      showToast('Photo selected! Click "Save & Sync to App" to apply.', 'success');
-    };
-    img.onerror = function() {
-      showToast('Could not parse image file', 'error');
-    };
-    img.src = evt.target.result;
-  };
-  reader.onerror = function() {
-    showToast('Failed to read file from disk', 'error');
-  };
-  reader.readAsDataURL(file);
-}
-
-function handlePlayerPhotoUrlPreview() {
-  const urlInput = document.getElementById('photo-url-input');
-  const url = (urlInput ? urlInput.value : '').trim();
-  if (!url) {
-    showToast('Please enter an image URL first', 'warning');
-    return;
-  }
-  currentEditingUserPhoto = url;
-  const preview = document.getElementById('photo-modal-preview');
-  if (preview) preview.src = url;
-  const label = document.getElementById('photo-modal-preview-label');
-  if (label) label.textContent = 'Custom Web Link Preview';
-  showToast('Photo preview updated! Click "Save & Sync to App" to apply.', 'info');
-}
-
-async function savePlayerPhoto() {
-  if (!currentEditingUserKey || !currentEditingUserPhoto) {
-    showToast('No photo chosen to save', 'warning');
-    return;
-  }
-
-  const btn = document.getElementById('btn-save-player-photo');
-  const originalHtml = btn ? btn.innerHTML : '';
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = '<span class="inline-block animate-spin mr-1">⏳</span> Syncing...';
-  }
-
-  try {
-    const userKey = currentEditingUserKey;
-    const cleanKey = String(userKey).replace(/[^0-9]/g, '');
-    const userIdx = state.users.findIndex(u => {
-      const uPhone = String(u.phone || (u.profile && u.profile.phone) || '').replace(/[^0-9]/g, '');
-      const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
-      const uId = String(u.id || (u.profile && u.profile.id) || '');
-      const uName = String(u.name || (u.profile && u.profile.name) || '');
-      return (cleanKey && uPhone === cleanKey) ||
-             (uEmail && uEmail === userKey.toLowerCase()) ||
-             (uId && uId === userKey) ||
-             (uName && uName === userKey);
-    });
-
-    if (userIdx === -1) throw new Error('Player not found in local memory');
-
-    const targetUser = state.users[userIdx];
-    const newAvatar = currentEditingUserPhoto;
-    targetUser.avatarUri = newAvatar;
-    if (!targetUser.profile) targetUser.profile = {};
-    targetUser.profile.avatarUri = newAvatar;
-
-    const targetPhone = String(targetUser.phone || '').replace(/[^0-9]/g, '');
-    const targetEmail = String(targetUser.email || '').toLowerCase();
-    const targetName = String(targetUser.name || '').trim().toLowerCase();
-    const targetId = String(targetUser.id || '');
-
-    // 1. Sync to /users.json in Firebase RTDB
-    try {
-      const res = await fetch(`${CONFIG.FIREBASE_URL}/users.json`);
-      if (res.ok) {
-        let usersData = await res.json();
-        if (Array.isArray(usersData)) {
-          let matched = false;
-          usersData = usersData.map(u => {
-            if (!u) return u;
-            const uPhone = String(u.phone || (u.profile && u.profile.phone) || '').replace(/[^0-9]/g, '');
-            const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
-            const uName = String(u.name || (u.profile && u.profile.name) || '').trim().toLowerCase();
-            const uId = String(u.id || (u.profile && u.profile.id) || '');
-            if ((targetPhone && uPhone === targetPhone) ||
-                (targetEmail && uEmail === targetEmail) ||
-                (targetId && uId === targetId) ||
-                (targetName && uName === targetName)) {
-              matched = true;
-              return {
-                ...u,
-                avatarUri: newAvatar,
-                profile: { ...(u.profile || {}), avatarUri: newAvatar },
-              };
-            }
-            return u;
-          });
-
-          if (matched) {
-            await fetch(`${CONFIG.FIREBASE_URL}/users.json`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(usersData),
-            });
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Sync /users.json error:', e);
-    }
-
-    // 2. Sync to /users_by_email.json
-    if (targetEmail) {
-      try {
-        const sanitizedKey = targetEmail.replace(/[.#$[\]]/g, '_');
-        await Promise.allSettled([
-          fetch(`${CONFIG.FIREBASE_URL}/users_by_email/${sanitizedKey}/avatarUri.json`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newAvatar),
-          }),
-          fetch(`${CONFIG.FIREBASE_URL}/users_by_email/${sanitizedKey}/profile/avatarUri.json`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(newAvatar),
-          }),
-        ]);
-      } catch (e) {
-        console.warn('Sync /users_by_email error:', e);
-      }
-    }
-
-    // 3. Sync to /registered_players.json
-    try {
-      const regRes = await fetch(`${CONFIG.FIREBASE_URL}/registered_players.json`);
-      if (regRes.ok) {
-        let regData = await regRes.json();
-        if (Array.isArray(regData)) {
-          let matchedReg = false;
-          regData = regData.map(p => {
-            if (!p) return p;
-            const pPhone = String(p.phone || '').replace(/[^0-9]/g, '');
-            const pEmail = String(p.email || '').toLowerCase();
-            const pName = String(p.name || '').trim().toLowerCase();
-            if ((targetPhone && pPhone === targetPhone) ||
-                (targetEmail && pEmail === targetEmail) ||
-                (targetName && pName === targetName)) {
-              matchedReg = true;
-              return { ...p, avatarUri: newAvatar };
-            }
-            return p;
-          });
-
-          if (matchedReg) {
-            await fetch(`${CONFIG.FIREBASE_URL}/registered_players.json`, {
-              method: 'PUT',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(regData),
-            });
-          }
-        }
-      }
-    } catch (e) {
-      console.warn('Sync /registered_players error:', e);
-    }
-
-    // Close modal & refresh UI
-    closeAllModals();
-    renderUsersView();
-    showToast(`Profile picture successfully saved and synced to mobile app for ${targetUser.name || 'player'}! 🎉`, 'success');
-  } catch (err) {
-    console.error('Save photo error:', err);
-    showToast(`Failed to update photo: ${err.message}`, 'error');
-  } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = originalHtml || '<i data-lucide="check" class="w-3.5 h-3.5"></i><span>Save & Sync to App</span>';
-      if (window.lucide) lucide.createIcons();
-    }
-  }
-}
-
 // Explicit Global Window Bindings for Inline Click & Event Handlers
 window.switchTab = switchTab;
 window.filterMatches = filterMatches;
@@ -2513,7 +2161,4 @@ window.openModal = openModal;
 window.closeAllModals = closeAllModals;
 window.syncFromCloud = syncFromCloud;
 window.pushMatchToCloud = pushMatchToCloud;
-window.openPlayerPhotoModal = openPlayerPhotoModal;
-window.selectPhotoPreset = selectPhotoPreset;
-window.savePlayerPhoto = savePlayerPhoto;
 
