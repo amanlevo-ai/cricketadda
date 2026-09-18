@@ -14,6 +14,9 @@ const state = {
   matchesDb: {},
   activeMatchId: null,
   activePlayerId: null,
+  scorerRequests: {},
+  activeScorerRequestId: null,
+  lastSeenRequestCount: 0,
   teams: [],
   users: [],
   currentTab: 'dashboard',
@@ -187,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function syncFromCloud(showNotification = false) {
   const startTime = performance.now();
   try {
-    const [matchesDbRes, matchesLiveRes, teamsRes, teamsIndexRes, usersRes, regPlayersRes, usersByEmailRes] = await Promise.allSettled([
+    const [matchesDbRes, matchesLiveRes, teamsRes, teamsIndexRes, usersRes, regPlayersRes, usersByEmailRes, scorerRequestsRes] = await Promise.allSettled([
       fetch(`${CONFIG.FIREBASE_URL}/matches_db.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/matches.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/teams.json?t=${Date.now()}`),
@@ -195,6 +198,7 @@ async function syncFromCloud(showNotification = false) {
       fetch(`${CONFIG.FIREBASE_URL}/users.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/registered_players.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/users_by_email.json?t=${Date.now()}`),
+      fetch(`${CONFIG.FIREBASE_URL}/score_change_requests.json?t=${Date.now()}`),
     ]);
 
     const latency = Math.round(performance.now() - startTime);
@@ -319,6 +323,13 @@ async function syncFromCloud(showNotification = false) {
       if (ubeData && typeof ubeData === 'object') Object.values(ubeData).forEach(ingestPlayer);
     }
     state.users = Array.from(playerMap.values());
+
+    // 4. Process Scorer Change & Mistake Requests (/score_change_requests)
+    if (scorerRequestsRes.status === 'fulfilled' && scorerRequestsRes.value.ok) {
+      const sData = await scorerRequestsRes.value.json();
+      state.scorerRequests = sData && typeof sData === 'object' ? sData : {};
+      renderScorerAlerts();
+    }
 
     // Default active match if none selected
     const matchKeys = Object.keys(state.matchesDb);
@@ -2885,6 +2896,259 @@ function renderPlayerFullPageView(userKeyRaw) {
   }
 }
 
+// // ============================================================================
+// SCORER CHANGE REQUESTS & LIVE MISTAKE DISPUTE RESOLUTION ENGINE
+// ============================================================================
+
+function toggleScorerAlertsDropdown() {
+  const dropdown = document.getElementById('dropdown-scorer-alerts');
+  if (!dropdown) return;
+  const isHidden = dropdown.classList.toggle('hidden');
+  if (!isHidden && window.lucide) {
+    lucide.createIcons();
+  }
+}
+
+// Close dropdown on outside click
+document.addEventListener('click', (e) => {
+  const dropdown = document.getElementById('dropdown-scorer-alerts');
+  const btn = document.getElementById('btn-scorer-alerts');
+  if (!dropdown || !btn) return;
+  if (!dropdown.classList.contains('hidden') && !dropdown.contains(e.target) && !btn.contains(e.target)) {
+    dropdown.classList.add('hidden');
+  }
+});
+
+function formatTimeAgo(timestamp) {
+  if (!timestamp) return 'Recently';
+  const diffSec = Math.floor((Date.now() - Number(timestamp)) / 1000);
+  if (diffSec < 60) return 'Just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  return `${Math.floor(diffHr / 24)}d ago`;
+}
+
+function playScorerAlertChime() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.setValueAtTime(880, ctx.currentTime + 0.12); // A5
+    gain.gain.setValueAtTime(0.18, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.35);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.35);
+  } catch (e) {}
+}
+
+function renderScorerAlerts() {
+  const badge = document.getElementById('badge-scorer-alerts');
+  const countLabel = document.getElementById('dropdown-alerts-count');
+  const listContainer = document.getElementById('scorer-alerts-list');
+  if (!listContainer) return;
+
+  const requests = Object.entries(state.scorerRequests || {});
+  const pending = requests.filter(([id, r]) => r && r.status !== 'resolved');
+  const pendingCount = pending.length;
+
+  if (badge) {
+    badge.textContent = pendingCount;
+    badge.classList.toggle('hidden', pendingCount === 0);
+  }
+  if (countLabel) {
+    countLabel.textContent = `${pendingCount} Pending`;
+  }
+
+  // Play alert audio and show notification if a new request has arrived
+  if (pendingCount > state.lastSeenRequestCount) {
+    playScorerAlertChime();
+    const latest = pending[pending.length - 1][1];
+    showToast(`🚨 Scorer Alert: ${latest.scorerName || 'Scorer'} reported an error on match! Click 🔔 to review.`, 'warning');
+  }
+  state.lastSeenRequestCount = pendingCount;
+
+  if (pending.length === 0) {
+    listContainer.innerHTML = '<p class="text-xs text-slate-400 text-center py-5">No pending scorer change requests.</p>';
+    return;
+  }
+
+  // Sort newest first
+  pending.sort((a, b) => (b[1].timestamp || 0) - (a[1].timestamp || 0));
+
+  listContainer.innerHTML = pending.map(([reqId, req]) => {
+    const match = state.matchesDb[req.matchId] || {};
+    const matchTitle = req.matchTitle || match.title || `${match.teamA || 'Team A'} vs ${match.teamB || 'Team B'}`;
+    const scorerName = req.scorerName || 'Official Scorer';
+    const timeStr = formatTimeAgo(req.timestamp);
+    const ballNote = req.ballIndex !== undefined ? `<span class="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono text-[10px] font-bold">Ball #${Number(req.ballIndex) + 1}</span>` : '';
+
+    return `
+      <div class="glass-panel p-3 rounded-xl border border-slate-700/80 bg-slate-900/90 space-y-2 hover:border-amber-500/50 transition">
+        <div class="flex items-start justify-between gap-2">
+          <div>
+            <span class="font-bold text-white text-xs block">${matchTitle}</span>
+            <p class="text-[10px] text-slate-400 mt-0.5">By ${scorerName} • ${timeStr}</p>
+          </div>
+          ${ballNote}
+        </div>
+        <p class="text-xs text-amber-200 bg-amber-950/30 p-2.5 rounded-lg border border-amber-500/20 font-medium">
+          "${req.description || 'Scorer requested score review or ball adjustment'}"
+        </p>
+        <div class="flex items-center justify-between pt-1">
+          <button type="button" onclick="handleFixScorerRequest('${reqId}')" 
+                  class="px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold transition flex items-center gap-1.5 shadow-sm">
+            <i data-lucide="wrench" class="w-3.5 h-3.5"></i>
+            <span>Fix in Match Editor</span>
+          </button>
+          <button type="button" onclick="quickResolveScorerRequest('${reqId}')" 
+                  class="text-[11px] text-slate-400 hover:text-emerald-400 transition font-medium">
+            Dismiss
+          </button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  if (window.lucide) {
+    lucide.createIcons();
+  }
+}
+
+function handleFixScorerRequest(reqId) {
+  const req = state.scorerRequests ? state.scorerRequests[reqId] : null;
+  if (!req) return;
+
+  // Close dropdown
+  const dropdown = document.getElementById('dropdown-scorer-alerts');
+  if (dropdown) dropdown.classList.add('hidden');
+
+  state.activeMatchId = req.matchId;
+  state.activeScorerRequestId = reqId;
+
+  // Switch to editor
+  switchTab('editor');
+
+  // Populate Dispute Banner
+  const banner = document.getElementById('editor-scorer-request-banner');
+  const bannerDesc = document.getElementById('banner-request-desc');
+  const bannerAuthor = document.getElementById('banner-request-author');
+  const bannerTime = document.getElementById('banner-request-time');
+
+  if (banner && bannerDesc && bannerAuthor && bannerTime) {
+    bannerDesc.textContent = req.description || 'Scorer requested correction';
+    bannerAuthor.textContent = `Submitted by: ${req.scorerName || 'Scorer'}${req.scorerPhone ? ' (' + req.scorerPhone + ')' : ''}`;
+    bannerTime.textContent = formatTimeAgo(req.timestamp);
+    banner.classList.remove('hidden');
+  }
+
+  showToast(`Loaded Match for Review: "${req.matchTitle || 'Active Match'}"`, 'info');
+
+  // If specific ball was reported, highlight or open it
+  if (req.ballIndex !== undefined) {
+    setTimeout(() => {
+      openEditBallModal(Number(req.ballIndex));
+    }, 350);
+  }
+}
+
+async function resolveCurrentScorerRequest() {
+  const reqId = state.activeScorerRequestId;
+  if (!reqId) return;
+
+  try {
+    await fetch(`${CONFIG.FIREBASE_URL}/score_change_requests/${reqId}.json`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'resolved',
+        resolvedAt: Date.now(),
+        resolvedBy: 'Admin',
+      }),
+    });
+
+    if (state.scorerRequests && state.scorerRequests[reqId]) {
+      state.scorerRequests[reqId].status = 'resolved';
+    }
+
+    dismissRequestBanner();
+    renderScorerAlerts();
+    showToast('Scorer request marked as Resolved! ✅ Cloud updated.', 'success');
+  } catch (err) {
+    showToast('Failed to resolve request: ' + err.message, 'error');
+  }
+}
+
+async function quickResolveScorerRequest(reqId) {
+  if (!reqId) return;
+  try {
+    await fetch(`${CONFIG.FIREBASE_URL}/score_change_requests/${reqId}.json`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        status: 'resolved',
+        resolvedAt: Date.now(),
+        resolvedBy: 'Admin (Dismissed)',
+      }),
+    });
+
+    if (state.scorerRequests && state.scorerRequests[reqId]) {
+      state.scorerRequests[reqId].status = 'resolved';
+    }
+
+    renderScorerAlerts();
+    showToast('Request dismissed.', 'info');
+  } catch (err) {
+    showToast('Error: ' + err.message, 'error');
+  }
+}
+
+function dismissRequestBanner() {
+  const banner = document.getElementById('editor-scorer-request-banner');
+  if (banner) banner.classList.add('hidden');
+  state.activeScorerRequestId = null;
+}
+
+async function createMockScorerAlert() {
+  const matchKeys = Object.keys(state.matchesDb || {});
+  const matchId = state.activeMatchId || matchKeys[0] || 'match_demo';
+  const match = state.matchesDb[matchId] || {};
+  const matchTitle = match.title || `${match.teamA || 'Team A'} vs ${match.teamB || 'Team B'}`;
+
+  const mockPayload = {
+    matchId: matchId,
+    matchTitle: matchTitle,
+    scorerName: 'Amandeep Singh (Mobile Scorer)',
+    scorerPhone: '+91 9780425527',
+    description: 'Accidental 4 runs recorded on Ball #12. It was actually a Wicket (Caught behind). Please adjust striker score and team total.',
+    ballIndex: 11,
+    timestamp: Date.now(),
+    status: 'pending',
+  };
+
+  try {
+    showToast('Simulating incoming scorer alert to Firebase...', 'info');
+    const res = await fetch(`${CONFIG.FIREBASE_URL}/score_change_requests.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(mockPayload),
+    });
+    if (res.ok) {
+      await syncFromCloud(false);
+      showToast('New Scorer Alert received! Check 🔔 in the header.', 'warning');
+    }
+  } catch (e) {
+    showToast('Simulation failed: ' + e.message, 'error');
+  }
+}
+
 // Backward Compatibility Aliases
 const openPlayerDossier = openPlayerProfile;
 const switchDossierTab = switchPlayerProfileTab;
@@ -2916,3 +3180,9 @@ window.copyPlayerProfileText = copyPlayerProfileText;
 window.copyDossierText = copyDossierText;
 window.sharePlayerProfile = sharePlayerProfile;
 window.printPlayerDossier = printPlayerDossier;
+window.toggleScorerAlertsDropdown = toggleScorerAlertsDropdown;
+window.handleFixScorerRequest = handleFixScorerRequest;
+window.resolveCurrentScorerRequest = resolveCurrentScorerRequest;
+window.quickResolveScorerRequest = quickResolveScorerRequest;
+window.dismissRequestBanner = dismissRequestBanner;
+window.createMockScorerAlert = createMockScorerAlert;
