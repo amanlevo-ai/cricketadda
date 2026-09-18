@@ -274,22 +274,46 @@ function startRealtimePolling() {
 
 function updateCloudStatusPill(isOnline, latency = null) {
   const pill = document.getElementById('cloud-status-pill');
+  if (!pill) return;
   const text = document.getElementById('cloud-status-text');
   const badge = document.getElementById('cloud-latency-badge');
+  const dot = pill.querySelector('span');
 
   if (isOnline) {
-    pill.classList.remove('border-red-800/80', 'bg-red-950/20');
-    pill.classList.add('border-slate-800', 'bg-slate-900');
-    pill.querySelector('span').className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 live-pulse';
-    text.textContent = 'Database Connected';
-    badge.textContent = latency ? `${latency} ms` : 'Online';
-    badge.className = 'text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-emerald-400 font-mono';
+    if (!pill.classList.contains('border-slate-800')) {
+      pill.classList.remove('border-red-800/80', 'bg-red-950/20');
+      pill.classList.add('border-slate-800', 'bg-slate-900');
+    }
+    if (dot && !dot.className.includes('bg-emerald-400')) {
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400 live-pulse';
+    }
+    if (text && text.textContent !== 'Database Connected') {
+      text.textContent = 'Database Connected';
+    }
+    const badgeText = latency ? `${latency} ms` : 'Online';
+    if (badge && badge.textContent !== badgeText) {
+      badge.textContent = badgeText;
+    }
+    if (badge && !badge.className.includes('text-emerald-400')) {
+      badge.className = 'text-[10px] px-1.5 py-0.2 rounded bg-slate-800 text-emerald-400 font-mono';
+    }
   } else {
-    pill.classList.add('border-red-800/80', 'bg-red-950/20');
-    pill.querySelector('span').className = 'w-2.5 h-2.5 rounded-full bg-red-500';
-    text.textContent = 'Disconnected / Offline';
-    badge.textContent = 'Retry';
-    badge.className = 'text-[10px] px-1.5 py-0.2 rounded bg-red-900 text-red-300 font-mono';
+    if (!pill.classList.contains('border-red-800/80')) {
+      pill.classList.add('border-red-800/80', 'bg-red-950/20');
+      pill.classList.remove('border-slate-800', 'bg-slate-900');
+    }
+    if (dot && !dot.className.includes('bg-red-500')) {
+      dot.className = 'w-2.5 h-2.5 rounded-full bg-red-500';
+    }
+    if (text && text.textContent !== 'Disconnected / Offline') {
+      text.textContent = 'Disconnected / Offline';
+    }
+    if (badge && badge.textContent !== 'Retry') {
+      badge.textContent = 'Retry';
+    }
+    if (badge && !badge.className.includes('text-red-300')) {
+      badge.className = 'text-[10px] px-1.5 py-0.2 rounded bg-red-900 text-red-300 font-mono';
+    }
   }
 }
 
@@ -731,8 +755,43 @@ function setEditorSubTab(subTab) {
 }
 
 // ============================================================================
-// VIEW RENDERERS
+// VIEW RENDERERS & HIGH-EFFICIENCY DOM CACHING
+// Prevents continuous browser re-rendering / image flickering on background poll
 // ============================================================================
+
+const domCache = {
+  usersTbody: null,
+  teamsGrid: null,
+  matchesContainer: null,
+  spotlightCards: null,
+  recentMatches: null,
+  editorScoreboard: null,
+  editorTimeline: null,
+  editorBatting: null,
+  editorBowling: null,
+  editorExtras: null,
+};
+
+function updateElementHtmlIfChanged(elementOrId, newHtml, cacheKey, onUpdated) {
+  const el = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+  if (!el) return false;
+  if (domCache[cacheKey] !== newHtml) {
+    domCache[cacheKey] = newHtml;
+    el.innerHTML = newHtml;
+    if (onUpdated) onUpdated(el);
+    return true;
+  }
+  return false;
+}
+
+function updateElementTextIfChanged(elementOrId, newText) {
+  const el = typeof elementOrId === 'string' ? document.getElementById(elementOrId) : elementOrId;
+  if (!el) return;
+  const str = String(newText ?? '');
+  if (el.textContent !== str) {
+    el.textContent = str;
+  }
+}
 
 function renderAllViews() {
   renderDashboardView();
@@ -743,10 +802,7 @@ function renderAllViews() {
   renderSettingsView();
 
   // Tab count
-  const countSpan = document.getElementById('matches-tab-count');
-  if (countSpan) countSpan.textContent = Object.keys(state.matchesDb).length;
-
-  if (window.lucide) window.lucide.createIcons();
+  updateElementTextIfChanged('matches-tab-count', Object.keys(state.matchesDb).length);
 }
 
 // 1. DASHBOARD VIEW
@@ -754,21 +810,22 @@ function renderDashboardView() {
   const matches = Object.values(state.matchesDb || {});
   const liveMatches = matches.filter(m => m.status === 'in_progress' || m.status === 'live');
 
-  document.getElementById('stat-live-matches').textContent = liveMatches.length;
-  document.getElementById('stat-total-matches').textContent = matches.length;
-  document.getElementById('stat-registered-players').textContent = state.users.length;
-  document.getElementById('stat-registered-teams').textContent = state.teams.length;
+  updateElementTextIfChanged('stat-live-matches', liveMatches.length);
+  updateElementTextIfChanged('stat-total-matches', matches.length);
+  updateElementTextIfChanged('stat-registered-players', state.users.length);
+  updateElementTextIfChanged('stat-registered-teams', state.teams.length);
 
   // Live spotlight cards
   const spotlightContainer = document.getElementById('live-spotlight-cards');
+  let newSpotlightHtml = '';
   if (liveMatches.length === 0) {
-    spotlightContainer.innerHTML = `
+    newSpotlightHtml = `
       <div class="col-span-2 glass-panel p-6 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
         ⚡ No live matches actively scoring right now. When a scorer scores on mobile, it will appear here in real-time.
       </div>
     `;
   } else {
-    spotlightContainer.innerHTML = liveMatches.map(m => {
+    newSpotlightHtml = liveMatches.map(m => {
       const inn = m.currentInnings === 2 ? m.innings2 : m.innings1;
       const battingTeam = inn?.team || m.teamA;
       const bowlingTeam = inn?.team === m.teamA ? m.teamB : m.teamA;
@@ -805,14 +862,16 @@ function renderDashboardView() {
       `;
     }).join('');
   }
+  updateElementHtmlIfChanged(spotlightContainer, newSpotlightHtml, 'spotlightCards');
 
   // Recent Matches list in dashboard
   const recentContainer = document.getElementById('dashboard-recent-matches');
+  let newRecentHtml = '';
   if (matches.length === 0) {
-    recentContainer.innerHTML = '<p class="text-xs text-slate-400 py-4 text-center">No matches recorded yet.</p>';
+    newRecentHtml = '<p class="text-xs text-slate-400 py-4 text-center">No matches recorded yet.</p>';
   } else {
     const sorted = [...matches].sort((a, b) => (b.lastUpdatedAt || 0) - (a.lastUpdatedAt || 0)).slice(0, 5);
-    recentContainer.innerHTML = sorted.map(m => {
+    newRecentHtml = sorted.map(m => {
       const inn1 = m.innings1 || {};
       const inn2 = m.innings2 || {};
       return `
@@ -831,11 +890,17 @@ function renderDashboardView() {
       `;
     }).join('');
   }
+  updateElementHtmlIfChanged(recentContainer, newRecentHtml, 'recentMatches');
 }
 
 // 2. MATCHES DIRECTORY VIEW
-function renderMatchesView(query = '') {
+function renderMatchesView(query = null) {
   const container = document.getElementById('matches-container');
+  if (!container) return;
+
+  const searchInput = document.getElementById('matches-search');
+  const activeQuery = (query !== null ? query : (searchInput ? searchInput.value : '')).toLowerCase().trim();
+
   let list = Object.values(state.matchesDb || {});
 
   // Apply Filter
@@ -850,68 +915,72 @@ function renderMatchesView(query = '') {
   }
 
   // Apply Search Query
-  if (query) {
+  if (activeQuery) {
     list = list.filter(m => {
       return (
-        m.teamA?.toLowerCase().includes(query) ||
-        m.teamB?.toLowerCase().includes(query) ||
-        m.tournament?.toLowerCase().includes(query) ||
-        m.venue?.toLowerCase().includes(query) ||
-        m.id?.toLowerCase().includes(query)
+        m.teamA?.toLowerCase().includes(activeQuery) ||
+        m.teamB?.toLowerCase().includes(activeQuery) ||
+        m.tournament?.toLowerCase().includes(activeQuery) ||
+        m.venue?.toLowerCase().includes(activeQuery) ||
+        m.id?.toLowerCase().includes(activeQuery)
       );
     });
   }
 
+  let newHtml = '';
   if (list.length === 0) {
-    container.innerHTML = `
+    newHtml = `
       <div class="col-span-3 glass-panel p-8 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
         No matches match the selected filter. Matches scored on mobile will appear here.
       </div>
     `;
-    return;
+  } else {
+    newHtml = list.map(m => {
+      const inn1 = m.innings1 || {};
+      const inn2 = m.innings2 || {};
+      const isLive = m.status === 'in_progress' || m.status === 'live';
+
+      return `
+        <div class="glass-panel p-4 rounded-xl border ${isLive ? 'border-emerald-700/60 bg-emerald-950/10' : 'border-slate-800'} space-y-3 card-hover">
+          <div class="flex items-center justify-between border-b border-slate-800/60 pb-2">
+            <span class="text-[10px] font-bold uppercase tracking-wider ${isLive ? 'text-emerald-400' : 'text-slate-400'}">
+              ${isLive ? '🔴 LIVE INNINGS ' + (m.currentInnings || 1) : m.tournament}
+            </span>
+            <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(m.status)}">
+              ${m.status || 'setup'}
+            </span>
+          </div>
+
+          <div class="space-y-1.5">
+            <div class="flex items-center justify-between text-sm font-bold text-white">
+              <span class="flex items-center gap-1.5">${m.flagA || ''} ${m.teamA}</span>
+              <span class="text-sky-300 font-mono">${inn1.runs != null ? `${inn1.runs}/${inn1.wickets || 0} (${inn1.overs || '0.0'})` : '-'}</span>
+            </div>
+            <div class="flex items-center justify-between text-sm font-bold text-white">
+              <span class="flex items-center gap-1.5">${m.flagB || ''} ${m.teamB}</span>
+              <span class="text-sky-300 font-mono">${inn2.runs != null ? `${inn2.runs}/${inn2.wickets || 0} (${inn2.overs || '0.0'})` : '-'}</span>
+            </div>
+          </div>
+
+          <p class="text-[11px] text-slate-400 italic">${m.result || m.toss || 'Scoring ready'}</p>
+
+          <div class="flex items-center justify-between border-t border-slate-800/80 pt-2.5">
+            <button onclick="openMatchInEditor('${m.id}')" class="btn-primary text-xs py-1 px-3">
+              <i data-lucide="edit-2" class="w-3 h-3"></i>
+              <span>Open & Edit</span>
+            </button>
+            <button onclick="deleteMatchPrompt('${m.id}')" class="text-slate-400 hover:text-red-400 text-xs p-1" title="Delete Match">
+              <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
-  container.innerHTML = list.map(m => {
-    const inn1 = m.innings1 || {};
-    const inn2 = m.innings2 || {};
-    const isLive = m.status === 'in_progress' || m.status === 'live';
-
-    return `
-      <div class="glass-panel p-4 rounded-xl border ${isLive ? 'border-emerald-700/60 bg-emerald-950/10' : 'border-slate-800'} space-y-3 card-hover">
-        <div class="flex items-center justify-between border-b border-slate-800/60 pb-2">
-          <span class="text-[10px] font-bold uppercase tracking-wider ${isLive ? 'text-emerald-400' : 'text-slate-400'}">
-            ${isLive ? '🔴 LIVE INNINGS ' + (m.currentInnings || 1) : m.tournament}
-          </span>
-          <span class="px-2 py-0.5 rounded text-[10px] font-bold uppercase ${getStatusBadgeClass(m.status)}">
-            ${m.status || 'setup'}
-          </span>
-        </div>
-
-        <div class="space-y-1.5">
-          <div class="flex items-center justify-between text-sm font-bold text-white">
-            <span class="flex items-center gap-1.5">${m.flagA || ''} ${m.teamA}</span>
-            <span class="text-sky-300 font-mono">${inn1.runs != null ? `${inn1.runs}/${inn1.wickets || 0} (${inn1.overs || '0.0'})` : '-'}</span>
-          </div>
-          <div class="flex items-center justify-between text-sm font-bold text-white">
-            <span class="flex items-center gap-1.5">${m.flagB || ''} ${m.teamB}</span>
-            <span class="text-sky-300 font-mono">${inn2.runs != null ? `${inn2.runs}/${inn2.wickets || 0} (${inn2.overs || '0.0'})` : '-'}</span>
-          </div>
-        </div>
-
-        <p class="text-[11px] text-slate-400 italic">${m.result || m.toss || 'Scoring ready'}</p>
-
-        <div class="flex items-center justify-between border-t border-slate-800/80 pt-2.5">
-          <button onclick="openMatchInEditor('${m.id}')" class="btn-primary text-xs py-1 px-3">
-            <i data-lucide="edit-2" class="w-3 h-3"></i>
-            <span>Open & Edit</span>
-          </button>
-          <button onclick="deleteMatchPrompt('${m.id}')" class="text-slate-400 hover:text-red-400 text-xs p-1" title="Delete Match">
-            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
+  updateElementHtmlIfChanged(container, newHtml, 'matchesContainer', () => {
+    if (window.lucide) window.lucide.createIcons();
+  });
 }
 
 // 3. DEEP SCORER & BALL-BY-BALL EDITOR VIEW
@@ -943,14 +1012,20 @@ function renderEditorView() {
     return;
   }
 
-  // Populate Inputs
-  document.getElementById('editor-striker-input').value = match.currentStriker || '';
-  document.getElementById('editor-nonstriker-input').value = match.currentNonStriker || '';
-  document.getElementById('editor-bowler-input').value = match.currentBowler || '';
-  document.getElementById('editor-thisover-input').value = Array.isArray(match.liveThisOver) ? match.liveThisOver.join(', ') : '';
-  document.getElementById('editor-innings-select').value = String(match.currentInnings || 1);
-  document.getElementById('editor-status-select').value = match.status || 'in_progress';
-  document.getElementById('editor-target-input').value = match.targetRuns || '';
+  // Populate Inputs without interrupting active typing
+  const updateInputIfNotFocused = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && document.activeElement !== el && el.value !== String(val ?? '')) {
+      el.value = val ?? '';
+    }
+  };
+  updateInputIfNotFocused('editor-striker-input', match.currentStriker || '');
+  updateInputIfNotFocused('editor-nonstriker-input', match.currentNonStriker || '');
+  updateInputIfNotFocused('editor-bowler-input', match.currentBowler || '');
+  updateInputIfNotFocused('editor-thisover-input', Array.isArray(match.liveThisOver) ? match.liveThisOver.join(', ') : '');
+  updateInputIfNotFocused('editor-innings-select', String(match.currentInnings || 1));
+  updateInputIfNotFocused('editor-status-select', match.status || 'in_progress');
+  updateInputIfNotFocused('editor-target-input', match.targetRuns || '');
 
   // Render Scoreboard Card
   renderEditorScoreboardCard(match);
@@ -967,6 +1042,7 @@ function renderEditorView() {
 
 function renderEditorScoreboardCard(match) {
   const card = document.getElementById('editor-scoreboard-card');
+  if (!card) return;
   const innNum = match.currentInnings || 1;
   const inn = innNum === 2 ? match.innings2 : match.innings1;
   const oppInn = innNum === 2 ? match.innings1 : match.innings2;
@@ -981,7 +1057,7 @@ function renderEditorScoreboardCard(match) {
 
   const thisOverBalls = Array.isArray(match.liveThisOver) ? match.liveThisOver : [];
 
-  card.innerHTML = `
+  const cardHtml = `
     <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-5 border-b border-slate-700">
       <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
@@ -1008,57 +1084,64 @@ function renderEditorScoreboardCard(match) {
       </div>
     </div>
   `;
+
+  updateElementHtmlIfChanged(card, cardHtml, 'editorScoreboard');
 }
 
 function renderBallTimeline(match) {
   const container = document.getElementById('editor-timeline-container');
+  if (!container) return;
   const countBadge = document.getElementById('balls-total-count');
 
   const history = match.liveState?.scoringHistory || [];
-  countBadge.textContent = history.length;
+  updateElementTextIfChanged(countBadge, history.length);
 
+  let newTimelineHtml = '';
   if (history.length === 0) {
-    container.innerHTML = `
+    newTimelineHtml = `
       <div class="p-8 text-center text-slate-400 text-xs">
         No delivery history recorded in this match yet. As scorer records balls, they appear here. You can also click "Insert Missed Ball".
       </div>
     `;
-    return;
-  }
+  } else {
+    // Reverse chronological (newest first)
+    const reversed = [...history].map((ball, idx) => ({ ...ball, originalIndex: idx })).reverse();
 
-  // Reverse chronological (newest first)
-  const reversed = [...history].map((ball, idx) => ({ ...ball, originalIndex: idx })).reverse();
+    newTimelineHtml = reversed.map(ball => {
+      const ballSym = ball.ballSymbol || String(ball.addedRuns ?? '0');
+      const isWkt = ball.isWkt || ballSym === 'W';
+      const striker = ball.striker || 'Batter';
+      const bowler = ball.bowler || 'Bowler';
+      const runs = ball.addedRuns ?? 0;
+      const comm = ball.dismissalDesc || (isWkt ? `Wicket! ${ball.dismissedPlayerName || striker} out` : `${runs} run${runs === 1 ? '' : 's'}`);
 
-  container.innerHTML = reversed.map(ball => {
-    const ballSym = ball.ballSymbol || String(ball.addedRuns ?? '0');
-    const isWkt = ball.isWkt || ballSym === 'W';
-    const striker = ball.striker || 'Batter';
-    const bowler = ball.bowler || 'Bowler';
-    const runs = ball.addedRuns ?? 0;
-    const comm = ball.dismissalDesc || (isWkt ? `Wicket! ${ball.dismissedPlayerName || striker} out` : `${runs} run${runs === 1 ? '' : 's'}`);
-
-    return `
-      <div class="timeline-item p-3 sm:px-4 flex items-center justify-between gap-3 cursor-pointer" onclick="openEditBallModal(${ball.originalIndex})">
-        <div class="flex items-center gap-3">
-          <div>${renderBallBadgeHtml(ballSym)}</div>
-          <div>
-            <p class="text-xs font-bold text-white flex items-center gap-1.5">
-              <span>${striker}</span>
-              <span class="text-[10px] text-slate-400">vs</span>
-              <span class="text-slate-300 font-normal">${bowler}</span>
-            </p>
-            <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-1">${comm}</p>
+      return `
+        <div class="timeline-item p-3 sm:px-4 flex items-center justify-between gap-3 cursor-pointer" onclick="openEditBallModal(${ball.originalIndex})">
+          <div class="flex items-center gap-3">
+            <div>${renderBallBadgeHtml(ballSym)}</div>
+            <div>
+              <p class="text-xs font-bold text-white flex items-center gap-1.5">
+                <span>${striker}</span>
+                <span class="text-[10px] text-slate-400">vs</span>
+                <span class="text-slate-300 font-normal">${bowler}</span>
+              </p>
+              <p class="text-[11px] text-slate-400 mt-0.5 line-clamp-1">${comm}</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-[11px] text-slate-400 font-mono">Ball #${ball.originalIndex + 1}</span>
+            <button class="text-slate-400 hover:text-sky-400 p-1" title="Edit ball">
+              <i data-lucide="edit" class="w-3.5 h-3.5"></i>
+            </button>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <span class="text-[11px] text-slate-400 font-mono">Ball #${ball.originalIndex + 1}</span>
-          <button class="text-slate-400 hover:text-sky-400 p-1" title="Edit ball">
-            <i data-lucide="edit" class="w-3.5 h-3.5"></i>
-          </button>
-        </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    }).join('');
+  }
+
+  updateElementHtmlIfChanged(container, newTimelineHtml, 'editorTimeline', () => {
+    if (window.lucide) window.lucide.createIcons();
+  });
 }
 
 function renderEditorScorecardTables(match) {
@@ -1067,52 +1150,64 @@ function renderEditorScorecardTables(match) {
 
   // Batting Table
   const battingTbody = document.getElementById('editor-batting-table-body');
-  const batters = inn?.batting || [];
-  if (batters.length === 0) {
-    battingTbody.innerHTML = '<tr><td colspan="8" class="text-center text-slate-400 py-3">No batters in scorecard yet.</td></tr>';
-  } else {
-    battingTbody.innerHTML = batters.map((b, idx) => {
-      const sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0';
-      return `
-        <tr>
-          <td><input type="text" class="form-input text-xs py-1" value="${b.name || ''}" onchange="updateBatterField(${idx}, 'name', this.value)"></td>
-          <td><input type="text" class="form-input text-xs py-1" value="${b.dismissal || 'not out'}" onchange="updateBatterField(${idx}, 'dismissal', this.value)"></td>
-          <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center font-bold w-16" value="${b.runs ?? 0}" onchange="updateBatterField(${idx}, 'runs', Number(this.value))"></td>
-          <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-14" value="${b.balls ?? 0}" onchange="updateBatterField(${idx}, 'balls', Number(this.value))"></td>
-          <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12 text-emerald-400" value="${b.fours ?? 0}" onchange="updateBatterField(${idx}, 'fours', Number(this.value))"></td>
-          <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12 text-purple-400" value="${b.sixes ?? 0}" onchange="updateBatterField(${idx}, 'sixes', Number(this.value))"></td>
-          <td class="text-center font-mono text-slate-300">${sr}</td>
-          <td class="text-right">
-            <button onclick="removeBatterRow(${idx})" class="text-slate-400 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-          </td>
-        </tr>
-      `;
-    }).join('');
+  if (battingTbody && !battingTbody.contains(document.activeElement)) {
+    const batters = inn?.batting || [];
+    let newBattingHtml = '';
+    if (batters.length === 0) {
+      newBattingHtml = '<tr><td colspan="8" class="text-center text-slate-400 py-3">No batters in scorecard yet.</td></tr>';
+    } else {
+      newBattingHtml = batters.map((b, idx) => {
+        const sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0';
+        return `
+          <tr>
+            <td><input type="text" class="form-input text-xs py-1" value="${b.name || ''}" onchange="updateBatterField(${idx}, 'name', this.value)"></td>
+            <td><input type="text" class="form-input text-xs py-1" value="${b.dismissal || 'not out'}" onchange="updateBatterField(${idx}, 'dismissal', this.value)"></td>
+            <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center font-bold w-16" value="${b.runs ?? 0}" onchange="updateBatterField(${idx}, 'runs', Number(this.value))"></td>
+            <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-14" value="${b.balls ?? 0}" onchange="updateBatterField(${idx}, 'balls', Number(this.value))"></td>
+            <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12 text-emerald-400" value="${b.fours ?? 0}" onchange="updateBatterField(${idx}, 'fours', Number(this.value))"></td>
+            <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12 text-purple-400" value="${b.sixes ?? 0}" onchange="updateBatterField(${idx}, 'sixes', Number(this.value))"></td>
+            <td class="text-center font-mono text-slate-300">${sr}</td>
+            <td class="text-right">
+              <button onclick="removeBatterRow(${idx})" class="text-slate-400 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+    updateElementHtmlIfChanged(battingTbody, newBattingHtml, 'editorBatting', () => {
+      if (window.lucide) window.lucide.createIcons();
+    });
   }
 
   // Bowling Table
   const bowlingTbody = document.getElementById('editor-bowling-table-body');
-  const bowlers = inn?.bowling || [];
-  if (bowlers.length === 0) {
-    bowlingTbody.innerHTML = '<tr><td colspan="9" class="text-center text-slate-400 py-3">No bowlers in scorecard yet.</td></tr>';
-  } else {
-    bowlingTbody.innerHTML = bowlers.map((bw, idx) => {
-      return `
-        <tr>
-          <td><input type="text" class="form-input text-xs py-1" value="${bw.name || ''}" onchange="updateBowlerField(${idx}, 'name', this.value)"></td>
-          <td class="text-center"><input type="text" class="form-input text-xs py-1 text-center font-bold w-16" value="${bw.overs || '0.0'}" onchange="updateBowlerField(${idx}, 'overs', this.value)"></td>
-          <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12" value="${bw.maidens ?? 0}" onchange="updateBowlerField(${idx}, 'maidens', Number(this.value))"></td>
-          <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-14 font-bold" value="${bw.runs ?? 0}" onchange="updateBowlerField(${idx}, 'runs', Number(this.value))"></td>
-          <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12 font-black text-red-400" value="${bw.wickets ?? 0}" onchange="updateBowlerField(${idx}, 'wickets', Number(this.value))"></td>
-          <td class="text-center font-mono text-slate-300">${bw.econ || '0.00'}</td>
-          <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12" value="${bw.wides ?? 0}" onchange="updateBowlerField(${idx}, 'wides', Number(this.value))"></td>
-          <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12" value="${bw.noBalls ?? 0}" onchange="updateBowlerField(${idx}, 'noBalls', Number(this.value))"></td>
-          <td class="text-right">
-            <button onclick="removeBowlerRow(${idx})" class="text-slate-400 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-          </td>
-        </tr>
-      `;
-    }).join('');
+  if (bowlingTbody && !bowlingTbody.contains(document.activeElement)) {
+    const bowlers = inn?.bowling || [];
+    let newBowlingHtml = '';
+    if (bowlers.length === 0) {
+      newBowlingHtml = '<tr><td colspan="9" class="text-center text-slate-400 py-3">No bowlers in scorecard yet.</td></tr>';
+    } else {
+      newBowlingHtml = bowlers.map((bw, idx) => {
+        return `
+          <tr>
+            <td><input type="text" class="form-input text-xs py-1" value="${bw.name || ''}" onchange="updateBowlerField(${idx}, 'name', this.value)"></td>
+            <td class="text-center"><input type="text" class="form-input text-xs py-1 text-center font-bold w-16" value="${bw.overs || '0.0'}" onchange="updateBowlerField(${idx}, 'overs', this.value)"></td>
+            <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12" value="${bw.maidens ?? 0}" onchange="updateBowlerField(${idx}, 'maidens', Number(this.value))"></td>
+            <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-14 font-bold" value="${bw.runs ?? 0}" onchange="updateBowlerField(${idx}, 'runs', Number(this.value))"></td>
+            <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12 font-black text-red-400" value="${bw.wickets ?? 0}" onchange="updateBowlerField(${idx}, 'wickets', Number(this.value))"></td>
+            <td class="text-center font-mono text-slate-300">${bw.econ || '0.00'}</td>
+            <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12" value="${bw.wides ?? 0}" onchange="updateBowlerField(${idx}, 'wides', Number(this.value))"></td>
+            <td class="text-center"><input type="number" class="form-input text-xs py-1 text-center w-12" value="${bw.noBalls ?? 0}" onchange="updateBowlerField(${idx}, 'noBalls', Number(this.value))"></td>
+            <td class="text-right">
+              <button onclick="removeBowlerRow(${idx})" class="text-slate-400 hover:text-red-400 p-1"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+    }
+    updateElementHtmlIfChanged(bowlingTbody, newBowlingHtml, 'editorBowling', () => {
+      if (window.lucide) window.lucide.createIcons();
+    });
   }
 }
 
@@ -1121,24 +1216,36 @@ function renderEditorExtras(match) {
   const inn = innNum === 2 ? match.innings2 : match.innings1;
   const extras = inn?.extras || { wides: 0, noBalls: 0, byes: 0, legByes: 0, penalty: 0 };
 
-  document.getElementById('override-extras-wides').value = extras.wides ?? 0;
-  document.getElementById('override-extras-noballs').value = extras.noBalls ?? 0;
-  document.getElementById('override-extras-byes').value = extras.byes ?? 0;
-  document.getElementById('override-extras-legbyes').value = extras.legByes ?? 0;
-  document.getElementById('override-extras-penalty').value = extras.penalty ?? 0;
+  const updateInputIfNotFocused = (id, val) => {
+    const el = document.getElementById(id);
+    if (el && document.activeElement !== el && el.value !== String(val ?? '')) {
+      el.value = val ?? '';
+    }
+  };
+  updateInputIfNotFocused('override-extras-wides', extras.wides ?? 0);
+  updateInputIfNotFocused('override-extras-noballs', extras.noBalls ?? 0);
+  updateInputIfNotFocused('override-extras-byes', extras.byes ?? 0);
+  updateInputIfNotFocused('override-extras-legbyes', extras.legByes ?? 0);
+  updateInputIfNotFocused('override-extras-penalty', extras.penalty ?? 0);
 
   // FOW list
   const fowList = document.getElementById('editor-fow-list');
-  const fow = inn?.fallOfWickets || [];
-  if (fow.length === 0) {
-    fowList.innerHTML = '<p class="text-xs text-slate-400 py-2">No fall of wickets recorded.</p>';
-  } else {
-    fowList.innerHTML = fow.map((item, idx) => `
-      <div class="flex items-center justify-between p-2 rounded bg-slate-900 border border-slate-800 text-xs">
-        <span>Wkt ${item.wkt || idx + 1}: <strong class="text-white">${item.score ?? 0} runs</strong> (${item.player || 'Batter'}, ov ${item.over || '0.0'})</span>
-        <button onclick="removeFowRow(${idx})" class="text-slate-400 hover:text-red-400"><i data-lucide="trash" class="w-3 h-3"></i></button>
-      </div>
-    `).join('');
+  if (fowList) {
+    const fow = inn?.fallOfWickets || [];
+    let newFowHtml = '';
+    if (fow.length === 0) {
+      newFowHtml = '<p class="text-xs text-slate-400 py-2">No fall of wickets recorded.</p>';
+    } else {
+      newFowHtml = fow.map((item, idx) => `
+        <div class="flex items-center justify-between p-2 rounded bg-slate-900 border border-slate-800 text-xs">
+          <span>Wkt ${item.wkt || idx + 1}: <strong class="text-white">${item.score ?? 0} runs</strong> (${item.player || 'Batter'}, ov ${item.over || '0.0'})</span>
+          <button onclick="removeFowRow(${idx})" class="text-slate-400 hover:text-red-400"><i data-lucide="trash" class="w-3 h-3"></i></button>
+        </div>
+      `).join('');
+    }
+    updateElementHtmlIfChanged(fowList, newFowHtml, 'editorFow', () => {
+      if (window.lucide) window.lucide.createIcons();
+    });
   }
 }
 
@@ -1147,105 +1254,115 @@ function renderTeamsView() {
   const container = document.getElementById('teams-grid');
   if (!container) return;
 
+  let newHtml = '';
   if (state.teams.length === 0) {
-    container.innerHTML = `
+    newHtml = `
       <div class="col-span-3 glass-panel p-8 rounded-xl border border-slate-800 text-center text-slate-400 text-xs">
         No teams registered in the database.
       </div>
     `;
-    return;
+  } else {
+    newHtml = state.teams.map(t => {
+      const squad = Array.isArray(t.squad) ? t.squad : [];
+      return `
+        <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-3 card-hover">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-xl shadow-inner">
+              ${t.flag || t.logo || '🏏'}
+            </div>
+            <div>
+              <h4 class="font-extrabold text-sm text-white">${t.name}</h4>
+              <p class="text-xs text-slate-400">${squad.length} Players in Squad • ${t.captain ? `Cap: ${t.captain}` : 'Official Team'}</p>
+            </div>
+          </div>
+
+          <div class="border-t border-slate-800/80 pt-2 space-y-1">
+            <p class="text-[11px] text-slate-400 font-semibold uppercase">Roster Sample:</p>
+            <div class="flex flex-wrap gap-1">
+              ${squad.slice(0, 8).map(p => {
+                const pName = typeof p === 'string' ? p : (p.name || 'Player');
+                return `<span class="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 font-medium">${pName}</span>`;
+              }).join('')}
+              ${squad.length > 8 ? `<span class="text-[10px] text-slate-400 font-medium">+${squad.length - 8} more</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
   }
 
-  container.innerHTML = state.teams.map(t => {
-    const squad = Array.isArray(t.squad) ? t.squad : [];
-    return `
-      <div class="glass-panel p-4 rounded-xl border border-slate-800 space-y-3 card-hover">
-        <div class="flex items-center gap-3">
-          <div class="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-xl shadow-inner">
-            ${t.flag || t.logo || '🏏'}
-          </div>
-          <div>
-            <h4 class="font-extrabold text-sm text-white">${t.name}</h4>
-            <p class="text-xs text-slate-400">${squad.length} Players in Squad • ${t.captain ? `Cap: ${t.captain}` : 'Official Team'}</p>
-          </div>
-        </div>
-
-        <div class="border-t border-slate-800/80 pt-2 space-y-1">
-          <p class="text-[11px] text-slate-400 font-semibold uppercase">Roster Sample:</p>
-          <div class="flex flex-wrap gap-1">
-            ${squad.slice(0, 8).map(p => {
-              const pName = typeof p === 'string' ? p : (p.name || 'Player');
-              return `<span class="px-2 py-0.5 rounded bg-slate-800 text-[10px] text-slate-300 font-medium">${pName}</span>`;
-            }).join('')}
-            ${squad.length > 8 ? `<span class="text-[10px] text-slate-400 font-medium">+${squad.length - 8} more</span>` : ''}
-          </div>
-        </div>
-      </div>
-    `;
-  }).join('');
+  updateElementHtmlIfChanged(container, newHtml, 'teamsGrid');
 }
 
 // 5. USERS DIRECTORY VIEW
-function renderUsersView(query = '') {
+function renderUsersView(query = null) {
   const tbody = document.getElementById('users-table-body');
   if (!tbody) return;
 
+  const searchInput = document.getElementById('users-search');
+  const activeQuery = (query !== null ? query : (searchInput ? searchInput.value : '')).toLowerCase().trim();
+
   let list = [...state.users];
 
-  if (query) {
-    const q = query.toLowerCase().trim();
+  if (activeQuery) {
     list = list.filter(u => {
       return (
-        u.name?.toLowerCase().includes(q) ||
-        u.phone?.includes(q) ||
-        u.email?.toLowerCase().includes(q) ||
-        u.role?.toLowerCase().includes(q) ||
-        u.jersey?.toLowerCase().includes(q)
+        u.name?.toLowerCase().includes(activeQuery) ||
+        u.phone?.includes(activeQuery) ||
+        u.email?.toLowerCase().includes(activeQuery) ||
+        u.role?.toLowerCase().includes(activeQuery) ||
+        u.jersey?.toLowerCase().includes(activeQuery)
       );
     });
   }
 
+  let newHtml = '';
   if (list.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="5" class="text-center text-slate-400 py-6">No players registered.</td></tr>';
-    return;
+    newHtml = '<tr><td colspan="5" class="text-center text-slate-400 py-6">No players registered.</td></tr>';
+  } else {
+    newHtml = list.map(u => {
+      const roleText = u.role || 'Player';
+      const bowlingStyle = u.bowlingStyle && u.bowlingStyle !== 'None' ? u.bowlingStyle : '';
+      let secondaryStyle = '';
+      if (bowlingStyle && !roleText.toLowerCase().includes(bowlingStyle.toLowerCase())) {
+        secondaryStyle = bowlingStyle;
+      }
+
+      return `
+        <tr class="hover:bg-slate-800/40 transition">
+          <td class="font-bold text-white flex items-center gap-2.5">
+            ${u.avatarUri ? `<img src="${u.avatarUri}" class="w-7 h-7 rounded-full object-cover border border-slate-700 shadow-sm" onerror="this.style.display='none'">` : '<div class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs">🏏</div>'}
+            <div class="flex items-center gap-1.5">
+              ${u.jersey ? `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-mono text-[10px] font-bold">${u.jersey}</span>` : ''}
+              <span>${u.name || 'Unnamed Player'}</span>
+            </div>
+          </td>
+          <td class="font-mono text-slate-300">${u.phone ? `+91 ${u.phone.replace(/^91/, '')}` : '-'}</td>
+          <td class="text-slate-400 font-mono text-xs">${u.email || '-'}</td>
+          <td>
+            <div class="space-y-0.5">
+              <span class="inline-block px-2 py-0.5 rounded bg-slate-800/90 text-sky-400 font-semibold text-[11px]">${roleText}</span>
+              ${secondaryStyle ? `<span class="block text-[10px] text-slate-400">${secondaryStyle}</span>` : ''}
+            </div>
+          </td>
+          <td class="text-right font-mono font-bold text-emerald-400">${u.matchesPlayed ?? 0}</td>
+        </tr>
+      `;
+    }).join('');
   }
 
-  tbody.innerHTML = list.map(u => {
-    const roleText = u.role || 'Player';
-    const bowlingStyle = u.bowlingStyle && u.bowlingStyle !== 'None' ? u.bowlingStyle : '';
-    let secondaryStyle = '';
-    if (bowlingStyle && !roleText.toLowerCase().includes(bowlingStyle.toLowerCase())) {
-      secondaryStyle = bowlingStyle;
-    }
-
-    return `
-      <tr class="hover:bg-slate-800/40 transition">
-        <td class="font-bold text-white flex items-center gap-2.5">
-          ${u.avatarUri ? `<img src="${u.avatarUri}" class="w-7 h-7 rounded-full object-cover border border-slate-700 shadow-sm" onerror="this.style.display='none'">` : '<div class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs">🏏</div>'}
-          <div class="flex items-center gap-1.5">
-            ${u.jersey ? `<span class="px-1.5 py-0.2 rounded bg-slate-800 text-sky-400 font-mono text-[10px] font-bold">${u.jersey}</span>` : ''}
-            <span>${u.name || 'Unnamed Player'}</span>
-          </div>
-        </td>
-        <td class="font-mono text-slate-300">${u.phone ? `+91 ${u.phone.replace(/^91/, '')}` : '-'}</td>
-        <td class="text-slate-400 font-mono text-xs">${u.email || '-'}</td>
-        <td>
-          <div class="space-y-0.5">
-            <span class="inline-block px-2 py-0.5 rounded bg-slate-800/90 text-sky-400 font-semibold text-[11px]">${roleText}</span>
-            ${secondaryStyle ? `<span class="block text-[10px] text-slate-400">${secondaryStyle}</span>` : ''}
-          </div>
-        </td>
-        <td class="text-right font-mono font-bold text-emerald-400">${u.matchesPlayed ?? 0}</td>
-      </tr>
-    `;
-  }).join('');
+  updateElementHtmlIfChanged(tbody, newHtml, 'usersTbody');
 }
 
 // 6. SETTINGS VIEW
 function renderSettingsView() {
   const jsonEditor = document.getElementById('raw-json-editor');
+  if (jsonEditor && document.activeElement === jsonEditor) return;
   if (state.activeMatchId && state.matchesDb[state.activeMatchId]) {
-    jsonEditor.value = JSON.stringify(state.matchesDb[state.activeMatchId], null, 2);
+    const formatted = JSON.stringify(state.matchesDb[state.activeMatchId], null, 2);
+    if (jsonEditor && jsonEditor.value !== formatted) {
+      jsonEditor.value = formatted;
+    }
   }
 }
 
