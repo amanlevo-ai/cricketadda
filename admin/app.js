@@ -581,6 +581,9 @@ async function pushMatchToCloud(matchId, customMatchState = null) {
 
   const updatedMatch = {
     ...currentMatch,
+    currentStriker: currentMatch.currentStriker || currentMatch.liveState?.currentStriker || '',
+    currentNonStriker: currentMatch.currentNonStriker || currentMatch.liveState?.currentNonStriker || '',
+    currentBowler: currentMatch.currentBowler || currentMatch.liveState?.currentBowler || '',
     liveOvers: resolvedOvers,
     lastUpdatedAt: Date.now(),
     adminEditedAt: Date.now(),
