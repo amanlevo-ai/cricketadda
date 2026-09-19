@@ -52,6 +52,9 @@ import {
   flushOfflineSyncQueue,
   getOfflineQueue,
   enqueueOfflineSync,
+  fetchFirebaseDeletedMatches,
+  fetchFirebaseDeletedTeams,
+  syncMatchToFirebaseDirect,
 } from './firebaseSync';
 import Svg, {
   Circle,
@@ -4192,26 +4195,55 @@ function CricketAddaMain() {
 
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
     const uName = (userProfile?.name || '').toLowerCase().trim();
+    const uPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const uId = userProfile?.id;
 
-    // 1. Check match creator:
+    // Delegated / Assigned Scorer metadata on the match
+    const assignedPhone = String(targetMatch.scorerPhone || targetMatch.activeScorer?.phone || '').replace(/[^0-9]/g, '').slice(-10);
+    const assignedEmail = (targetMatch.scorerEmail || targetMatch.activeScorer?.email || '').toLowerCase().trim();
+    const assignedId = targetMatch.scorerId || targetMatch.activeScorer?.id;
+    const assignedName = (targetMatch.scorerName || targetMatch.activeScorer?.name || '').toLowerCase().trim();
+
+    // Check if scoring duty is currently delegated away from creator
+    const isDelegated = Boolean(
+      targetMatch.isScoringDelegated ||
+      (targetMatch.scorerPhone && targetMatch.creatorPhone && assignedPhone !== String(targetMatch.creatorPhone).replace(/[^0-9]/g, '').slice(-10)) ||
+      (targetMatch.scorerId && targetMatch.creatorId && assignedId !== targetMatch.creatorId) ||
+      (targetMatch.scorerEmail && targetMatch.creatorEmail && assignedEmail !== targetMatch.creatorEmail.toLowerCase().trim())
+    );
+
+    if (isDelegated) {
+      // If delegated, ONLY the designated delegate has scoring rights!
+      if (assignedPhone && uPhone && assignedPhone === uPhone) return true;
+      if (assignedEmail && uEmail && assignedEmail === uEmail) return true;
+      if (assignedId && uId && assignedId === uId) return true;
+      if (assignedName && uName && assignedName === uName) return true;
+      return false;
+    }
+
+    // 1. Check designated/transferred scorer (non-exclusive / not flagged as delegated):
+    if (assignedPhone && uPhone && assignedPhone === uPhone) return true;
+    if (assignedEmail && uEmail && assignedEmail === uEmail) return true;
+    if (assignedId && uId && assignedId === uId) return true;
+    if (assignedName && uName && assignedName === uName) return true;
+    if (activeScorer?.authorizedMatchId === targetMatch.id) return true;
+    if (activeScorer?.id && uId && activeScorer.id === uId) return true;
+    if (activeScorer?.phone && uPhone && String(activeScorer.phone).replace(/[^0-9]/g, '').slice(-10) === uPhone) return true;
+    if (activeScorer?.name && uName && activeScorer.name.toLowerCase() === uName) return true;
+
+    // 2. Check match creator:
+    const creatorPhone = String(targetMatch.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
     if (targetMatch.creatorEmail && uEmail && targetMatch.creatorEmail.toLowerCase() === uEmail) return true;
     if (targetMatch.creatorId && uId && targetMatch.creatorId === uId) return true;
     if (targetMatch.creatorName && uName && targetMatch.creatorName.toLowerCase() === uName) return true;
 
-    // 2. Check designated/transferred scorer:
-    if (targetMatch.scorerId && uId && targetMatch.scorerId === uId) return true;
-    if (targetMatch.scorerName && uName && targetMatch.scorerName.toLowerCase() === uName) return true;
-    if (activeScorer?.authorizedMatchId === targetMatch.id) return true;
-    if (activeScorer?.id && uId && activeScorer.id === uId && (targetMatch.scorerId === activeScorer.id || !targetMatch.scorerId)) return true;
-    if (activeScorer?.name && uName && activeScorer.name.toLowerCase() === uName && (targetMatch.scorerName === activeScorer.name || !targetMatch.scorerName)) return true;
-
     // 3. Fallback for locally created matches without explicit cloud creator IDs:
-    if (!targetMatch.creatorId && !targetMatch.scorerId) return true;
+    if (!targetMatch.creatorId && !targetMatch.scorerId && !targetMatch.creatorEmail && !targetMatch.creatorPhone) return true;
     if (targetMatch.id === activeMatchId && (!targetMatch.creatorId || !targetMatch.scorerId)) return true;
 
     return false;
-  }, [userProfile, authEmail, activeScorer, viewerSimulated, activeMatchId]);
+  }, [userProfile, authEmail, authPhone, activeScorer, viewerSimulated, activeMatchId]);
 
   const isOfficialScorer = useMemo(() => {
     const currentMatch = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb || {})[0] || MATCH_DATABASE[activeMatchId];
@@ -4842,26 +4874,89 @@ function CricketAddaMain() {
           } catch (e) {}
         }
 
-        // Live Cloud Sync: Fetch cloud database state in background
+        // Live Cloud Sync: Fetch cloud database state and purge tombstones
         if (isFirebaseConfigured()) {
-          fetchFirebaseTeams().then(cloudTeams => {
-            const cleanTeams = Array.isArray(cloudTeams) ? cloudTeams.filter(Boolean) : [];
-            setRegisteredTeams(cleanTeams);
-            AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(cleanTeams)).catch(() => {});
-          }).catch(() => {});
+          // 1. Fetch deleted tombstones first
+          Promise.allSettled([
+            fetchFirebaseDeletedMatches(),
+            fetchFirebaseDeletedTeams(),
+          ]).then(async ([delMatchesRes, delTeamsRes]) => {
+            const delMatches = delMatchesRes.status === 'fulfilled' ? delMatchesRes.value : new Set();
+            const delTeams = delTeamsRes.status === 'fulfilled' ? delTeamsRes.value : new Set();
 
-          fetchFirebaseUsers().then(cloudUsers => {
-            if (Array.isArray(cloudUsers) && (cloudUsers || []).length > 0) {
-              const cleanUsers = cloudUsers.filter(Boolean);
-              setUsersDb(cleanUsers);
-              AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(cleanUsers)).catch(() => {});
-            }
-          }).catch(() => {});
+            const isTeamDeleted = (t) => {
+              if (!t) return true;
+              const tId = String(t.id || '').trim().toLowerCase();
+              const tName = String(t.name || '').trim().toLowerCase();
+              return (tId && delTeams.has(tId)) || (tName && delTeams.has(tName));
+            };
 
-          fetchFirebaseMatchesDb().then(cloudDb => {
-            const cleanMatches = (cloudDb && typeof cloudDb === 'object') ? cloudDb : {};
-            setMatchesDb(cleanMatches);
-            AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(cleanMatches)).catch(() => {});
+            // Purge local user profile createdTeams if any were deleted
+            setUserProfile(prev => {
+              if (prev && Array.isArray(prev.createdTeams) && prev.createdTeams.length > 0) {
+                const cleanedCreatedTeams = prev.createdTeams.filter(t => !isTeamDeleted(t));
+                if (cleanedCreatedTeams.length !== prev.createdTeams.length) {
+                  const updated = { ...prev, createdTeams: cleanedCreatedTeams };
+                  AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(updated)).catch(() => {});
+                  return updated;
+                }
+              }
+              return prev;
+            });
+
+            // Purge local registered teams
+            setRegisteredTeams(prev => {
+              const cleaned = (prev || []).filter(t => !isTeamDeleted(t));
+              if (cleaned.length !== (prev || []).length) {
+                AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(cleaned)).catch(() => {});
+              }
+              return cleaned;
+            });
+
+            // Purge local matchesDb
+            setMatchesDb(prev => {
+              let hasDel = false;
+              const cleaned = {};
+              Object.entries(prev || {}).forEach(([mId, m]) => {
+                if (m && !delMatches.has(mId)) {
+                  cleaned[mId] = m;
+                } else {
+                  hasDel = true;
+                }
+              });
+              if (hasDel) {
+                AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(cleaned)).catch(() => {});
+              }
+              return hasDel ? cleaned : prev;
+            });
+
+            // 2. Fetch fresh cloud state
+            fetchFirebaseTeams().then(cloudTeams => {
+              const cleanTeams = Array.isArray(cloudTeams) ? cloudTeams.filter(t => Boolean(t) && !isTeamDeleted(t)) : [];
+              setRegisteredTeams(cleanTeams);
+              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(cleanTeams)).catch(() => {});
+            }).catch(() => {});
+
+            fetchFirebaseUsers().then(cloudUsers => {
+              if (Array.isArray(cloudUsers) && (cloudUsers || []).length > 0) {
+                const cleanUsers = cloudUsers.filter(Boolean);
+                setUsersDb(cleanUsers);
+                AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(cleanUsers)).catch(() => {});
+              }
+            }).catch(() => {});
+
+            fetchFirebaseMatchesDb().then(cloudDb => {
+              const cleanMatches = {};
+              if (cloudDb && typeof cloudDb === 'object') {
+                Object.entries(cloudDb).forEach(([mId, m]) => {
+                  if (m && !delMatches.has(mId)) {
+                    cleanMatches[mId] = m;
+                  }
+                });
+              }
+              setMatchesDb(cleanMatches);
+              AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(cleanMatches)).catch(() => {});
+            }).catch(() => {});
           }).catch(() => {});
         }
       } catch (e) {}
@@ -4920,31 +5015,50 @@ function CricketAddaMain() {
 
     // 1. Teams Real-Time Continuous Subscription (No refresh or app restart required)
     const unsubTeams = subscribeToFirebaseTeams(cloudTeams => {
-      if (!Array.isArray(cloudTeams) || cloudTeams.length === 0) return;
+      if (!Array.isArray(cloudTeams)) return;
       const cleanTeams = cloudTeams.filter(Boolean);
       setRegisteredTeams(prev => {
+        // If cloud is empty or cleared, update immediately
+        if (cleanTeams.length === 0 && (prev || []).length > 0) {
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify([])).catch(() => {});
+          return [];
+        }
+
+        const cloudMap = new Map(cleanTeams.map(ct => [String(ct.id || ct.name).toLowerCase(), ct]));
+        let hasChanges = false;
+
+        // Check if any team in prev was deleted from cloud
+        if (prev && prev.length > 0) {
+          const filteredPrev = prev.filter(p => p && cloudMap.has(String(p.id || p.name).toLowerCase()));
+          if (filteredPrev.length !== prev.length) {
+            hasChanges = true;
+          }
+        }
+
         const currentMap = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
-        let hasNew = false;
         cleanTeams.forEach(ct => {
           if (!ct || !ct.name) return;
           const key = String(ct.id || ct.name).toLowerCase();
           if (!currentMap.has(key)) {
             currentMap.set(key, ct);
-            hasNew = true;
+            hasChanges = true;
           } else {
             const existing = currentMap.get(key);
             const ctLen = Array.isArray(ct.squad) ? ct.squad.length : 0;
             const exLen = Array.isArray(existing?.squad) ? existing.squad.length : 0;
             if (ctLen > exLen || (ct.updatedAt && ct.updatedAt > (existing?.updatedAt || 0))) {
               currentMap.set(key, { ...existing, ...ct });
-              hasNew = true;
+              hasChanges = true;
             }
           }
         });
-        if (hasNew) {
-          const updated = Array.from(currentMap.values());
-          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
-          return updated;
+
+        // Retain only teams that exist in cloud
+        const nextList = Array.from(currentMap.values()).filter(t => cloudMap.has(String(t.id || t.name).toLowerCase()));
+
+        if (hasChanges || nextList.length !== (prev || []).length) {
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(nextList)).catch(() => {});
+          return nextList;
         }
         return prev;
       });
@@ -4987,10 +5101,12 @@ function CricketAddaMain() {
       if (!cloudMatches || typeof cloudMatches !== 'object') return;
       setMatchesDb(prev => {
         let hasChanges = false;
-        const next = { ...(prev || {}) };
+        // Start with cloudMatches as authority for existing keys
+        const next = {};
+        // Keep valid cloud matches
         Object.entries(cloudMatches).forEach(([mId, mData]) => {
           if (!mData) return;
-          const existing = next[mId];
+          const existing = (prev || {})[mId];
           if (!existing) {
             next[mId] = mData;
             hasChanges = true;
@@ -5001,13 +5117,25 @@ function CricketAddaMain() {
               mData.liveBalls !== existing.liveBalls ||
               mData.status !== existing.status ||
               mData.activeScorer !== existing.activeScorer ||
+              mData.isScoringDelegated !== existing.isScoringDelegated ||
+              mData.scorerPhone !== existing.scorerPhone ||
               (mData.liveBatters && Object.keys(mData.liveBatters).length > 0)
             ) {
-              next[mId] = { ...existing, ...mData };
               hasChanges = true;
             }
+            next[mId] = { ...existing, ...mData };
           }
         });
+
+        // Check if any deleted match needs to be dropped from prev
+        if (prev) {
+          Object.keys(prev).forEach(prevKey => {
+            if (!next[prevKey]) {
+              hasChanges = true;
+            }
+          });
+        }
+
         if (hasChanges) {
           AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(next)).catch(() => {});
           return next;
@@ -7681,34 +7809,64 @@ function CricketAddaMain() {
     const isPlayerObj = player && typeof player === 'object';
     const playerName = isPlayerObj ? (player.name || 'Scorer') : String(player || 'Scorer').trim();
     const playerRole = isPlayerObj ? (player.role || 'Player') : 'Player';
-    const playerPhone = customPhone || (isPlayerObj ? player.phone : '') || '';
+    const playerPhone = customPhone || (isPlayerObj ? (player.phone || '') : '') || '';
+    const cleanPhoneDigits = String(playerPhone).replace(/[^0-9]/g, '').slice(-10);
+    const playerEmail = (isPlayerObj ? (player.email || '') : '') || '';
     const resolvedTeamName = teamName || (transferSelectedTeam === 'bowling' ? bowlingTeamName : battingTeamName);
     const resolvedTeamFlag = teamFlag || (transferSelectedTeam === 'bowling' ? bowlingTeamFlag : battingTeamFlag);
     
     // Resolve avatar
     const avatar = customAvatar || (isPlayerObj ? player.avatarUri : null) || getPlayerAvatarUri(playerName) || PLAYER_AVATARS[playerName] || null;
 
+    const resolvedScorerId = (isPlayerObj && player.id) || (cleanPhoneDigits ? `usr_${cleanPhoneDigits}` : `usr_${playerName.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}`);
+
     const newScorerObj = {
-      id: (isPlayerObj && player.id) || `usr_${playerName.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}`,
+      id: resolvedScorerId,
       name: playerName,
-      phone: playerPhone,
+      phone: cleanPhoneDigits || playerPhone,
+      email: playerEmail,
       role: `${playerRole} & Official Scorer`,
       team: resolvedTeamName,
       flag: resolvedTeamFlag,
       avatar,
+      authorizedMatchId: activeMatchId,
     };
 
     setActiveScorer(newScorerObj);
 
+    // Current creator fallback metadata if not already set on match
+    const myPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const myEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
+    const myName = userProfile?.name || authName || 'Creator';
+    const myId = userProfile?.id || `usr_${myPhone || 'admin'}`;
+
     // Persist to match record
-    if (activeMatchId && matchesDb && matchesDb[activeMatchId]) {
+    if (activeMatchId) {
+      const existingMatch = (matchesDb && matchesDb[activeMatchId]) || {};
       const updatedMatch = {
-        ...matchesDb[activeMatchId],
+        ...existingMatch,
         activeScorer: newScorerObj,
         scorerName: playerName,
+        scorerPhone: cleanPhoneDigits || playerPhone,
+        scorerEmail: playerEmail,
+        scorerId: resolvedScorerId,
+        isScoringDelegated: true,
+        delegatedAt: Date.now(),
+        delegatedFrom: myName,
+        // Ensure creator is recorded so they can reclaim
+        creatorId: existingMatch.creatorId || myId,
+        creatorName: existingMatch.creatorName || myName,
+        creatorPhone: existingMatch.creatorPhone || myPhone,
+        creatorEmail: existingMatch.creatorEmail || myEmail,
       };
+
       setMatchesDb(prev => ({ ...prev, [activeMatchId]: updatedMatch }));
       AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...matchesDb, [activeMatchId]: updatedMatch })).catch(() => {});
+
+      // Direct cloud push to both /matches and /matches_db
+      if (isFirebaseConfigured()) {
+        syncMatchToFirebaseDirect(activeMatchId, updatedMatch).catch(() => {});
+      }
     }
 
     const transferComm = {
@@ -7719,7 +7877,7 @@ function CricketAddaMain() {
       ballSymbol: '🔄',
       badgeType: 'special',
       runs: 0,
-      text: `📋 OFFICIAL SCORING TRANSFERRED: Scoring duty delegated to ${playerName}${playerPhone ? ` (📱 ${playerPhone})` : ''} [${resolvedTeamFlag} ${resolvedTeamName}].`,
+      text: `📋 OFFICIAL SCORING TRANSFERRED: Scoring duty delegated to ${playerName}${cleanPhoneDigits ? ` (📱 +91 ${cleanPhoneDigits})` : ''} [${resolvedTeamFlag} ${resolvedTeamName}].`,
       timestamp: 'Just now',
     };
     setLiveCommentaryList(prev => [transferComm, ...prev]);
@@ -7727,6 +7885,11 @@ function CricketAddaMain() {
     // Broadcast scoring transfer state to all devices over Firebase RTDB
     broadcastMatchState({
       activeScorer: newScorerObj,
+      isScoringDelegated: true,
+      scorerName: playerName,
+      scorerPhone: cleanPhoneDigits || playerPhone,
+      scorerEmail: playerEmail,
+      scorerId: resolvedScorerId,
       liveCommentaryList: [transferComm, ...liveCommentaryList],
     });
 
@@ -7740,8 +7903,76 @@ function CricketAddaMain() {
 
     Alert.alert(
       '✅ Scoring Rights Delegated!',
-      `• Assigned Scorer: ${playerName}\n${playerPhone ? `• Phone: +91 ${playerPhone}\n` : ''}• Team: ${resolvedTeamFlag} ${resolvedTeamName}\n• Role: ${playerRole}\n\nLive scoring is now under ${playerName}'s control.`
+      `• Assigned Scorer: ${playerName}\n${cleanPhoneDigits ? `• Phone: +91 ${cleanPhoneDigits}\n` : ''}• Team: ${resolvedTeamFlag} ${resolvedTeamName}\n• Role: ${playerRole}\n\nLive scoring is now under ${playerName}'s control.`
     );
+  };
+
+  // Creator can reclaim scoring rights back from the delegate at any time
+  const reclaimScoringDuty = () => {
+    const myPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const myEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
+    const myName = userProfile?.name || authName || 'Creator';
+    const myId = userProfile?.id || `usr_${myPhone || 'creator'}`;
+
+    const creatorScorerObj = {
+      id: myId,
+      name: myName,
+      phone: myPhone,
+      email: myEmail,
+      role: 'Match Creator & Official Scorer',
+      team: battingTeamName,
+      flag: battingTeamFlag,
+      avatar: userProfile?.avatarUri || null,
+      authorizedMatchId: activeMatchId,
+    };
+
+    setActiveScorer(creatorScorerObj);
+
+    if (activeMatchId) {
+      const existingMatch = (matchesDb && matchesDb[activeMatchId]) || {};
+      const updatedMatch = {
+        ...existingMatch,
+        activeScorer: creatorScorerObj,
+        scorerName: myName,
+        scorerPhone: myPhone,
+        scorerEmail: myEmail,
+        scorerId: myId,
+        isScoringDelegated: false,
+        reclaimedAt: Date.now(),
+      };
+
+      setMatchesDb(prev => ({ ...prev, [activeMatchId]: updatedMatch }));
+      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...matchesDb, [activeMatchId]: updatedMatch })).catch(() => {});
+
+      if (isFirebaseConfigured()) {
+        syncMatchToFirebaseDirect(activeMatchId, updatedMatch).catch(() => {});
+      }
+    }
+
+    const reclaimComm = {
+      id: `comm_reclaim_${Date.now()}`,
+      overs: `${Math.floor(liveBalls / 6)}.${liveBalls % 6}`,
+      bowler,
+      batter: striker,
+      ballSymbol: '👑',
+      badgeType: 'special',
+      runs: 0,
+      text: `👑 SCORING RECLAIMED: Match creator ${myName} resumed official scoring duty.`,
+      timestamp: 'Just now',
+    };
+    setLiveCommentaryList(prev => [reclaimComm, ...prev]);
+
+    broadcastMatchState({
+      activeScorer: creatorScorerObj,
+      isScoringDelegated: false,
+      scorerName: myName,
+      scorerPhone: myPhone,
+      scorerEmail: myEmail,
+      scorerId: myId,
+      liveCommentaryList: [reclaimComm, ...liveCommentaryList],
+    });
+
+    showAppToast('You have reclaimed official scoring rights! 👑', '✅');
   };
 
   // ============================================================================
@@ -12840,7 +13071,7 @@ function CricketAddaMain() {
             </TouchableOpacity>
 
             {!isOfficialScorer ? (
-              /* Viewer Options for Spectators */
+              /* Viewer Options for Spectators / Delegated match creator */
               <>
                 <TouchableOpacity
                   style={{
@@ -12893,6 +13124,52 @@ function CricketAddaMain() {
                     Wagon Wheel
                   </Text>
                 </TouchableOpacity>
+
+                {/* Reclaim Scoring Button: Shown to match creator if scoring is delegated */}
+                {Boolean(
+                  (currentMatchData?.isScoringDelegated || (matchesDb && matchesDb[activeMatchId]?.isScoringDelegated)) &&
+                  (
+                    (currentMatchData?.creatorPhone && String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10) === String(currentMatchData.creatorPhone).replace(/[^0-9]/g, '').slice(-10)) ||
+                    (currentMatchData?.creatorEmail && (userProfile?.email || authEmail || '').toLowerCase().trim() === String(currentMatchData.creatorEmail).toLowerCase().trim()) ||
+                    (currentMatchData?.creatorId && userProfile?.id && currentMatchData.creatorId === userProfile.id) ||
+                    (currentMatchData?.creatorName && userProfile?.name && String(currentMatchData.creatorName).toLowerCase().trim() === String(userProfile.name).toLowerCase().trim())
+                  )
+                ) && (
+                  <TouchableOpacity
+                    style={{
+                      flex: 1.3,
+                      height: 36,
+                      backgroundColor: '#7c2d12',
+                      borderColor: '#f97316',
+                      borderWidth: 1.2,
+                      borderRadius: 8,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: 4,
+                      paddingHorizontal: 6,
+                    }}
+                    onPress={() => {
+                      Alert.alert(
+                        '👑 Reclaim Official Scoring?',
+                        'Do you want to take back official match scoring rights from the assigned scorer?',
+                        [
+                          { text: 'Cancel', style: 'cancel' },
+                          { text: 'Reclaim Scoring', style: 'default', onPress: reclaimScoringDuty }
+                        ]
+                      );
+                    }}
+                  >
+                    <Text style={{ fontSize: 12 }}>👑</Text>
+                    <Text style={{
+                      color: '#fed7aa',
+                      fontSize: 11.5,
+                      fontWeight: '900',
+                    }} numberOfLines={1}>
+                      Reclaim Scoring
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </>
             ) : (
               /* Scorer Controls for Official Match Scorer */

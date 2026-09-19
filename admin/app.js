@@ -190,7 +190,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function syncFromCloud(showNotification = false) {
   const startTime = performance.now();
   try {
-    const [matchesDbRes, matchesLiveRes, teamsRes, teamsIndexRes, usersRes, regPlayersRes, usersByEmailRes, scorerRequestsRes] = await Promise.allSettled([
+    const [matchesDbRes, matchesLiveRes, teamsRes, teamsIndexRes, usersRes, regPlayersRes, usersByEmailRes, scorerRequestsRes, deletedMatchesRes, deletedTeamsRes] = await Promise.allSettled([
       fetch(`${CONFIG.FIREBASE_URL}/matches_db.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/matches.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/teams.json?t=${Date.now()}`),
@@ -199,6 +199,8 @@ async function syncFromCloud(showNotification = false) {
       fetch(`${CONFIG.FIREBASE_URL}/registered_players.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/users_by_email.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/score_change_requests.json?t=${Date.now()}`),
+      fetch(`${CONFIG.FIREBASE_URL}/deleted_matches.json?t=${Date.now()}`),
+      fetch(`${CONFIG.FIREBASE_URL}/deleted_teams.json?t=${Date.now()}`),
     ]);
 
     const latency = Math.round(performance.now() - startTime);
@@ -206,10 +208,39 @@ async function syncFromCloud(showNotification = false) {
     state.isOnline = true;
     updateCloudStatusPill(true, latency);
 
+    // Process Tombstones
+    const deletedMatchesSet = new Set();
+    if (deletedMatchesRes.status === 'fulfilled' && deletedMatchesRes.value.ok) {
+      const delMData = await deletedMatchesRes.value.json();
+      if (delMData && typeof delMData === 'object') {
+        Object.keys(delMData).forEach(k => deletedMatchesSet.add(String(k).trim()));
+      }
+    }
+
+    const deletedTeamsSet = new Set();
+    if (deletedTeamsRes.status === 'fulfilled' && deletedTeamsRes.value.ok) {
+      const delTData = await deletedTeamsRes.value.json();
+      if (delTData && typeof delTData === 'object') {
+        Object.entries(delTData).forEach(([k, v]) => {
+          if (k) deletedTeamsSet.add(String(k).trim().toLowerCase());
+          if (v && typeof v === 'object' && v.teamName) {
+            deletedTeamsSet.add(String(v.teamName).trim().toLowerCase());
+          }
+        });
+      }
+    }
+
     // 1. Process Matches DB
     if (matchesDbRes.status === 'fulfilled' && matchesDbRes.value.ok) {
       const data = await matchesDbRes.value.json();
-      state.matchesDb = data && typeof data === 'object' ? data : {};
+      const rawDb = data && typeof data === 'object' ? data : {};
+      const cleanDb = {};
+      Object.entries(rawDb).forEach(([mId, m]) => {
+        if (m && !deletedMatchesSet.has(mId)) {
+          cleanDb[mId] = m;
+        }
+      });
+      state.matchesDb = cleanDb;
     }
 
     // 2. Process Live In-Flight Matches (/matches)
@@ -217,7 +248,7 @@ async function syncFromCloud(showNotification = false) {
       const liveData = await matchesLiveRes.value.json();
       if (liveData && typeof liveData === 'object') {
         Object.entries(liveData).forEach(([mId, lMatch]) => {
-          if (lMatch && typeof lMatch === 'object') {
+          if (lMatch && typeof lMatch === 'object' && !deletedMatchesSet.has(mId)) {
             if (!state.matchesDb[mId]) {
               state.matchesDb[mId] = lMatch.match || lMatch;
             } else {
@@ -246,9 +277,16 @@ async function syncFromCloud(showNotification = false) {
     }
 
     // 3. Process Teams & Squads (Merge /teams.json AND /teams_index.json)
+    const isTeamDeleted = (t) => {
+      if (!t) return true;
+      const tId = String(t.id || '').trim().toLowerCase();
+      const tName = String(t.name || '').trim().toLowerCase();
+      return (tId && deletedTeamsSet.has(tId)) || (tName && deletedTeamsSet.has(tName));
+    };
+
     const teamMap = new Map();
     function addTeam(t) {
-      if (!t || typeof t !== 'object') return;
+      if (!t || typeof t !== 'object' || isTeamDeleted(t)) return;
       const id = t.id || `team_${t.name || Date.now()}`;
       if (!teamMap.has(id)) {
         teamMap.set(id, t);
@@ -2116,8 +2154,14 @@ function deleteMatchPrompt(matchId) {
   if (state.activeMatchId === matchId) {
     state.activeMatchId = Object.keys(state.matchesDb)[0] || null;
   }
-  fetch(`${CONFIG.FIREBASE_URL}/matches_db/${matchId}.json`, { method: 'DELETE' });
-  fetch(`${CONFIG.FIREBASE_URL}/matches/${matchId}.json`, { method: 'DELETE' });
+  const id = String(matchId).trim();
+  fetch(`${CONFIG.FIREBASE_URL}/matches_db/${id}.json`, { method: 'DELETE' });
+  fetch(`${CONFIG.FIREBASE_URL}/matches/${id}.json`, { method: 'DELETE' });
+  fetch(`${CONFIG.FIREBASE_URL}/deleted_matches/${id}.json`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ deletedAt: Date.now(), id, deletedBy: 'admin' }),
+  });
   renderAllViews();
   showToast('Match deleted.', 'warning');
 }

@@ -118,7 +118,18 @@ export async function wipeFirebaseMatchesTeamsAndStats() {
       fetch(`${baseUrl}/matches.json`, { method: 'DELETE' }),
       fetch(`${baseUrl}/matches_db.json`, { method: 'DELETE' }),
       fetch(`${baseUrl}/teams.json`, { method: 'DELETE' }),
+      fetch(`${baseUrl}/teams_index.json`, { method: 'DELETE' }),
       fetch(`${baseUrl}/registered_players.json`, { method: 'DELETE' }),
+      fetch(`${baseUrl}/deleted_matches/wipe_tombstone.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wipedAt: Date.now(), reason: 'database_wipe' }),
+      }),
+      fetch(`${baseUrl}/deleted_teams/wipe_tombstone.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ wipedAt: Date.now(), reason: 'database_wipe' }),
+      }),
       fetch(`${baseUrl}/users.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -202,6 +213,90 @@ export async function enqueueOfflineSync(action, payload) {
 }
 
 // ============================================================================
+// DELETED RECORDS / TOMBSTONES MANAGEMENT (PREVENTS GHOST RESURRECTION)
+// ============================================================================
+
+export async function fetchFirebaseDeletedMatches() {
+  if (!isFirebaseConfigured()) return new Set();
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const res = await fetch(`${baseUrl}/deleted_matches.json?t=${Date.now()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === 'object') {
+        return new Set(Object.keys(data).map(k => String(k).trim()));
+      }
+    }
+    return new Set();
+  } catch (e) {
+    return new Set();
+  }
+}
+
+export async function fetchFirebaseDeletedTeams() {
+  if (!isFirebaseConfigured()) return new Set();
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const res = await fetch(`${baseUrl}/deleted_teams.json?t=${Date.now()}`);
+    if (res.ok) {
+      const data = await res.json();
+      if (data && typeof data === 'object') {
+        const set = new Set();
+        Object.entries(data).forEach(([k, v]) => {
+          if (k) set.add(String(k).trim().toLowerCase());
+          if (v && typeof v === 'object' && v.teamName) {
+            set.add(String(v.teamName).trim().toLowerCase());
+          }
+        });
+        return set;
+      }
+    }
+    return new Set();
+  } catch (e) {
+    return new Set();
+  }
+}
+
+export async function recordDeletedMatchTombstone(matchId) {
+  if (!isFirebaseConfigured() || !matchId) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const id = String(matchId).trim();
+    await Promise.allSettled([
+      fetch(`${baseUrl}/deleted_matches/${id}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deletedAt: Date.now(), id }),
+      }),
+      fetch(`${baseUrl}/matches/${id}.json`, { method: 'DELETE' }),
+      fetch(`${baseUrl}/matches_db/${id}.json`, { method: 'DELETE' }),
+    ]);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function recordDeletedTeamTombstone(teamId, teamName = null) {
+  if (!isFirebaseConfigured() || !teamId) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const id = String(teamId).trim();
+    await Promise.allSettled([
+      fetch(`${baseUrl}/deleted_teams/${id}.json`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ deletedAt: Date.now(), id, teamName }),
+      }),
+      fetch(`${baseUrl}/teams_index/${id}.json`, { method: 'DELETE' }),
+    ]);
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+// ============================================================================
 // DIRECT CLOUD SYNC METHODS (REST HTTP)
 // ============================================================================
 
@@ -210,6 +305,14 @@ export async function syncMatchToFirebaseDirect(matchId, matchState) {
   try {
     const id = matchId || 'match_final_2026';
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+
+    // Never sync a match that has been marked as deleted
+    const deletedMatches = await fetchFirebaseDeletedMatches();
+    if (deletedMatches.has(id)) {
+      console.log(`[FirebaseSync] ⛔ Suppressing sync for deleted match: ${id}`);
+      return false;
+    }
+
     const url = `${baseUrl}/matches/${id}.json`;
     const payload = {
       ...matchState,
@@ -238,11 +341,21 @@ export async function syncMatchesDbToFirebaseDirect(matchesDb) {
   if (!isFirebaseConfigured() || !matchesDb) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const deletedMatches = await fetchFirebaseDeletedMatches();
+
+    // Strip out any tombstoned / deleted matches
+    const sanitizedDb = {};
+    Object.entries(matchesDb).forEach(([mId, mData]) => {
+      if (mData && !deletedMatches.has(mId)) {
+        sanitizedDb[mId] = mData;
+      }
+    });
+
     const url = `${baseUrl}/matches_db.json`;
     const res = await fetch(url, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(matchesDb),
+      body: JSON.stringify(sanitizedDb),
     });
     return res.ok;
   } catch (e) {
@@ -254,7 +367,16 @@ export async function syncTeamsToFirebaseDirect(teams) {
   if (!isFirebaseConfigured() || !Array.isArray(teams)) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const cleanTeams = teams.filter(Boolean);
+    const deletedTeams = await fetchFirebaseDeletedTeams();
+
+    const isTeamDeleted = (t) => {
+      if (!t) return true;
+      const tId = String(t.id || '').trim().toLowerCase();
+      const tName = String(t.name || '').trim().toLowerCase();
+      return (tId && deletedTeams.has(tId)) || (tName && deletedTeams.has(tName));
+    };
+
+    const cleanTeams = teams.filter(t => Boolean(t) && !isTeamDeleted(t));
 
     // 1. Fetch current cloud teams to merge so other devices' teams are never overwritten
     let mergedTeams = [...cleanTeams];
@@ -263,7 +385,7 @@ export async function syncTeamsToFirebaseDirect(teams) {
       if (cloudRes.ok) {
         const cloudData = await cloudRes.json();
         const rawCloudList = Array.isArray(cloudData) ? cloudData : (cloudData && typeof cloudData === 'object' ? Object.values(cloudData) : []);
-        const existingCloudList = rawCloudList.filter(Boolean);
+        const existingCloudList = rawCloudList.filter(t => Boolean(t) && !isTeamDeleted(t));
         existingCloudList.forEach(ct => {
           if (!ct || !ct.name) return;
           const ctId = String(ct.id || ct.name).toLowerCase();
@@ -281,16 +403,18 @@ export async function syncTeamsToFirebaseDirect(teams) {
       }
     } catch (mergeErr) {}
 
-    // 2. Save full merged list so no team is ever lost
+    const finalTeams = mergedTeams.filter(t => Boolean(t) && !isTeamDeleted(t));
+
+    // 2. Save full merged list so no valid team is ever lost
     await fetch(`${baseUrl}/teams.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(mergedTeams.filter(Boolean)),
+      body: JSON.stringify(finalTeams),
     });
 
     // 3. Index each team individually by team ID for instant direct lookup
     cleanTeams.forEach(t => {
-      if (!t || !t.id) return;
+      if (!t || !t.id || isTeamDeleted(t)) return;
       fetch(`${baseUrl}/teams_index/${t.id}.json`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -624,10 +748,31 @@ export async function fetchFirebaseMatchesDb() {
   if (!isFirebaseConfigured()) return null;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const url = `${baseUrl}/matches_db.json`;
-    const res = await fetch(url);
-    if (res.ok) {
-      return await res.json();
+    const [dbRes, deletedRes] = await Promise.allSettled([
+      fetch(`${baseUrl}/matches_db.json?t=${Date.now()}`),
+      fetch(`${baseUrl}/deleted_matches.json?t=${Date.now()}`),
+    ]);
+
+    let deletedSet = new Set();
+    if (deletedRes.status === 'fulfilled' && deletedRes.value.ok) {
+      const delData = await deletedRes.value.json();
+      if (delData && typeof delData === 'object') {
+        deletedSet = new Set(Object.keys(delData).map(k => String(k).trim()));
+      }
+    }
+
+    if (dbRes.status === 'fulfilled' && dbRes.value.ok) {
+      const data = await dbRes.value.json();
+      if (data && typeof data === 'object') {
+        const cleanMatches = {};
+        Object.entries(data).forEach(([mId, m]) => {
+          if (m && !deletedSet.has(mId)) {
+            cleanMatches[mId] = m;
+          }
+        });
+        return cleanMatches;
+      }
+      return {};
     }
     return null;
   } catch (e) {
@@ -645,14 +790,35 @@ export async function fetchFirebaseTeams() {
   if (!isFirebaseConfigured()) return null;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const [teamsRes, indexRes] = await Promise.allSettled([
+    const [teamsRes, indexRes, deletedRes] = await Promise.allSettled([
       fetch(`${baseUrl}/teams.json?t=${Date.now()}`),
       fetch(`${baseUrl}/teams_index.json?t=${Date.now()}`),
+      fetch(`${baseUrl}/deleted_teams.json?t=${Date.now()}`),
     ]);
+
+    const deletedTeamsSet = new Set();
+    if (deletedRes.status === 'fulfilled' && deletedRes.value.ok) {
+      const delData = await deletedRes.value.json();
+      if (delData && typeof delData === 'object') {
+        Object.entries(delData).forEach(([k, v]) => {
+          if (k) deletedTeamsSet.add(String(k).trim().toLowerCase());
+          if (v && typeof v === 'object' && v.teamName) {
+            deletedTeamsSet.add(String(v.teamName).trim().toLowerCase());
+          }
+        });
+      }
+    }
+
+    const isTeamDeleted = (t) => {
+      if (!t) return true;
+      const tId = String(t.id || '').trim().toLowerCase();
+      const tName = String(t.name || '').trim().toLowerCase();
+      return (tId && deletedTeamsSet.has(tId)) || (tName && deletedTeamsSet.has(tName));
+    };
 
     const teamMap = new Map();
     function addTeam(t) {
-      if (!t || typeof t !== 'object' || !t.name) return;
+      if (!t || typeof t !== 'object' || !t.name || isTeamDeleted(t)) return;
       const id = String(t.id || t.name).toLowerCase();
       if (!teamMap.has(id)) {
         teamMap.set(id, t);
@@ -832,22 +998,37 @@ export function subscribeToFirebaseMatchesDb(onMatchesUpdate, intervalMs = 2500)
     if (!isActive) return;
     try {
       const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-      const [dbRes, liveRes] = await Promise.allSettled([
+      const [dbRes, liveRes, deletedRes] = await Promise.allSettled([
         fetch(`${baseUrl}/matches_db.json?t=${Date.now()}`),
         fetch(`${baseUrl}/matches.json?t=${Date.now()}`),
+        fetch(`${baseUrl}/deleted_matches.json?t=${Date.now()}`),
       ]);
+
+      let deletedSet = new Set();
+      if (deletedRes.status === 'fulfilled' && deletedRes.value.ok) {
+        const delData = await deletedRes.value.json();
+        if (delData && typeof delData === 'object') {
+          deletedSet = new Set(Object.keys(delData).map(k => String(k).trim()));
+        }
+      }
 
       let matches = {};
       if (dbRes.status === 'fulfilled' && dbRes.value.ok) {
         const data = await dbRes.value.json();
-        if (data && typeof data === 'object') matches = { ...data };
+        if (data && typeof data === 'object') {
+          Object.entries(data).forEach(([mId, m]) => {
+            if (m && !deletedSet.has(mId)) {
+              matches[mId] = m;
+            }
+          });
+        }
       }
 
       if (liveRes.status === 'fulfilled' && liveRes.value.ok) {
         const liveData = await liveRes.value.json();
         if (liveData && typeof liveData === 'object') {
           Object.entries(liveData).forEach(([mId, lMatch]) => {
-            if (lMatch && typeof lMatch === 'object') {
+            if (lMatch && typeof lMatch === 'object' && !deletedSet.has(mId)) {
               matches[mId] = {
                 ...(matches[mId] || {}),
                 ...(lMatch.match || {}),
