@@ -2366,9 +2366,57 @@ function recalculateActiveMatchStats() {
   let currentOverIndex = 0;
   let ballsInCurrentOver = 0;
 
+  // Pass 1: History Sanitization & Out Batter Tracking
+  // - Enforce 0 runs on non-runout wickets (bowled, caught, lbw, stumped, hit wicket)
+  // - Clean up any subsequent balls where an already-dismissed batter was recorded
+  const dismissedBatters = new Map();
   history.forEach((ball, bIdx) => {
-    const runs = Number(ball.addedRuns) || 0;
-    const overthrow = Number(ball.overthrowRuns) || 0;
+    if (!ball || (ball.innings && ball.innings !== innNum)) return;
+    const isWkt = Boolean(ball.isWkt);
+    const dType = ball.dismissalType || ball.customDismissalType || (isWkt ? 'bowled' : null);
+    const isRunOut = isWkt && dType === 'run_out';
+
+    if (isWkt && !isRunOut) {
+      ball.addedRuns = 0;
+      ball.runsOffBat = 0;
+      ball.overthrowRuns = 0;
+      ball.ballSymbol = 'W';
+    }
+
+    if (isWkt) {
+      const outName = (ball.dismissedPlayerName || ball.striker || '').trim();
+      const incName = (ball.incomingBatter || '').trim();
+      if (outName) {
+        dismissedBatters.set(outName.toLowerCase(), {
+          replacement: incName,
+          dismissedOn: bIdx,
+        });
+      }
+    }
+
+    // Replace dismissed batter on any subsequent balls
+    const curStriker = (ball.striker || '').trim();
+    if (curStriker && dismissedBatters.has(curStriker.toLowerCase())) {
+      const disInfo = dismissedBatters.get(curStriker.toLowerCase());
+      if (bIdx > disInfo.dismissedOn && disInfo.replacement) {
+        ball.striker = disInfo.replacement;
+      }
+    }
+    const curNonStriker = (ball.nonStriker || '').trim();
+    if (curNonStriker && dismissedBatters.has(curNonStriker.toLowerCase())) {
+      const disInfo = dismissedBatters.get(curNonStriker.toLowerCase());
+      if (bIdx > disInfo.dismissedOn && disInfo.replacement) {
+        ball.nonStriker = disInfo.replacement;
+      }
+    }
+  });
+
+  history.forEach((ball, bIdx) => {
+    const isWkt = Boolean(ball.isWkt);
+    const dType = ball.dismissalType || ball.customDismissalType || (isWkt ? 'bowled' : null);
+    const isRunOut = isWkt && dType === 'run_out';
+    const runs = (isWkt && !isRunOut) ? 0 : (Number(ball.addedRuns) || 0);
+    const overthrow = (isWkt && !isRunOut) ? 0 : (Number(ball.overthrowRuns) || 0);
     totalRuns += runs;
 
     const isLegal = ball.isLegalDelivery !== false && ball.extraType !== 'wide' && ball.extraType !== 'noBall';
@@ -2559,6 +2607,23 @@ function recalculateActiveMatchStats() {
     };
     match.liveState.firstInningsSummary = match.firstInningsSummary;
   }
+
+  // Ensure active crease batters are not marked OUT
+  if (match.currentStriker && battersMap[match.currentStriker] && !battersMap[match.currentStriker].isNotOut) {
+    if (dismissedBatters.has(match.currentStriker.toLowerCase())) {
+      const rep = dismissedBatters.get(match.currentStriker.toLowerCase()).replacement;
+      if (rep) match.currentStriker = rep;
+    }
+  }
+  if (match.currentNonStriker && battersMap[match.currentNonStriker] && !battersMap[match.currentNonStriker].isNotOut) {
+    if (dismissedBatters.has(match.currentNonStriker.toLowerCase())) {
+      const rep = dismissedBatters.get(match.currentNonStriker.toLowerCase()).replacement;
+      if (rep) match.currentNonStriker = rep;
+    }
+  }
+  if (!match.liveState) match.liveState = {};
+  match.liveState.currentStriker = match.currentStriker;
+  match.liveState.currentNonStriker = match.currentNonStriker;
 
   // Push directly to cloud
   pushMatchToCloud(state.activeMatchId, match);
