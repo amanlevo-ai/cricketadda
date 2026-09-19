@@ -1953,39 +1953,48 @@ function openEditBallModal(ballIndex) {
   (regBowlTeam?.squad || []).forEach(p => { const n = typeof p === 'string' ? p : p?.name; if (n) fieldingSquadSet.add(n.trim()); });
   const fieldingPlayers = Array.from(fieldingSquadSet);
 
-  // Helper to populate a <datalist>
-  const populateDatalist = (id, items) => {
-    const dl = document.getElementById(id);
-    if (!dl) return;
-    dl.innerHTML = '';
+  // Helper to populate a <select> dropdown
+  const populateSelectDropdown = (id, items, defaultLabel, selectedValue) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.innerHTML = `<option value="">${escapeHtml(defaultLabel)}</option>`;
+    const normSelected = String(selectedValue || '').trim().toLowerCase();
+    let found = false;
+
     (items || []).forEach(item => {
       if (!item) return;
+      const clean = String(item).trim();
+      const isSel = clean.toLowerCase() === normSelected;
+      if (isSel) found = true;
       const opt = document.createElement('option');
-      opt.value = String(item).trim();
-      dl.appendChild(opt);
+      opt.value = clean;
+      opt.textContent = clean;
+      if (isSel) opt.selected = true;
+      el.appendChild(opt);
     });
-  };
 
-  // Populate all datalists
-  populateDatalist('list-strikers', battingPlayers);
-  populateDatalist('list-dismissed-batters', battingPlayers);
-  populateDatalist('list-incoming-batters', battingPlayers);
-  populateDatalist('list-fielders', fieldingPlayers);
-  populateDatalist('list-bowlers', fieldingPlayers);
+    // If a custom/previous value exists that wasn't in the list, keep it as an option
+    if (selectedValue && !found) {
+      const opt = document.createElement('option');
+      opt.value = selectedValue;
+      opt.textContent = selectedValue;
+      opt.selected = true;
+      el.appendChild(opt);
+    }
+  };
 
   // Wickets
   const isWkt = Boolean(ball.isWkt);
   const wktCheckbox = document.getElementById('edit-ball-is-wkt');
   wktCheckbox.checked = isWkt;
   document.getElementById('wkt-fields-group').classList.toggle('hidden', !isWkt);
-
   document.getElementById('edit-ball-wkt-type').value = ball.dismissalType || 'bowled';
-  
-  // Default dismissed batter to striker if not already set
-  const dismissedBatterVal = ball.dismissedPlayerName || ball.dismissedPlayer || (isWkt ? (ball.striker || match.currentStriker || '') : '');
-  document.getElementById('edit-ball-dismissed-player').value = dismissedBatterVal;
-  
-  document.getElementById('edit-ball-fielder').value = ball.finalFielder || '';
+
+  // Resolved values
+  const strikerVal = ball.striker || match.currentStriker || '';
+  const bowlerVal = ball.bowler || match.currentBowler || '';
+  const dismissedBatterVal = ball.dismissedPlayerName || ball.dismissedPlayer || (isWkt ? strikerVal : '');
+  const fielderVal = ball.finalFielder || '';
 
   // Incoming Batter Resolution:
   // 1. If ball already has incomingBatter saved
@@ -2015,21 +2024,30 @@ function openEditBallModal(ballIndex) {
     const unbatted = battingPlayers.find(p => !battedNames.has(p.toLowerCase()));
     if (unbatted) resolvedIncoming = unbatted;
   }
-  document.getElementById('edit-ball-incoming-player').value = resolvedIncoming;
 
-  // Batters & Bowler
-  document.getElementById('edit-ball-striker').value = ball.striker || match.currentStriker || '';
-  document.getElementById('edit-ball-bowler').value = ball.bowler || match.currentBowler || '';
+  // Populate all 5 select dropdowns
+  populateSelectDropdown('edit-ball-striker', battingPlayers, '-- Select Striker --', strikerVal);
+  populateSelectDropdown('edit-ball-bowler', fieldingPlayers, '-- Select Bowler --', bowlerVal);
+  populateSelectDropdown('edit-ball-dismissed-player', battingPlayers, '-- Select Dismissed Batter --', dismissedBatterVal);
+  populateSelectDropdown('edit-ball-fielder', fieldingPlayers, '-- None / Select Fielder --', fielderVal);
+  populateSelectDropdown('edit-ball-incoming-player', battingPlayers, '-- Select Incoming Batter --', resolvedIncoming);
+
   document.getElementById('edit-ball-commentary').value = ball.dismissalDesc || '';
 
   // Auto-fill Dismissed Batter when Striker changes or Wicket is checked
-  const strikerInput = document.getElementById('edit-ball-striker');
-  const dismissedInput = document.getElementById('edit-ball-dismissed-player');
+  const strikerSelect = document.getElementById('edit-ball-striker');
+  const dismissedSelect = document.getElementById('edit-ball-dismissed-player');
   wktCheckbox.onchange = () => {
     const checked = wktCheckbox.checked;
     document.getElementById('wkt-fields-group').classList.toggle('hidden', !checked);
-    if (checked && !dismissedInput.value) {
-      dismissedInput.value = strikerInput.value || match.currentStriker || '';
+    if (checked && !dismissedSelect.value) {
+      dismissedSelect.value = strikerSelect.value || match.currentStriker || '';
+    }
+  };
+
+  strikerSelect.onchange = () => {
+    if (wktCheckbox.checked && !dismissedSelect.value) {
+      dismissedSelect.value = strikerSelect.value;
     }
   };
 
