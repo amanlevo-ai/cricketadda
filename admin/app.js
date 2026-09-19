@@ -579,11 +579,29 @@ async function pushMatchToCloud(matchId, customMatchState = null) {
   const resolvedBalls = currentMatch.liveBalls !== undefined ? Number(currentMatch.liveBalls) : (currentMatch.liveState?.liveBalls || 0);
   const resolvedOvers = currentMatch.liveOvers || `${Math.floor(resolvedBalls / 6)}.${resolvedBalls % 6}`;
 
+  // Strip nested match to prevent circular payload explosion
+  const baseMatch = { ...currentMatch };
+  delete baseMatch.match;
+
+  const striker = baseMatch.currentStriker || baseMatch.liveState?.currentStriker || '';
+  const nonStriker = baseMatch.currentNonStriker || baseMatch.liveState?.currentNonStriker || '';
+  const bowler = baseMatch.currentBowler || baseMatch.liveState?.currentBowler || '';
+
   const updatedMatch = {
-    ...currentMatch,
-    currentStriker: currentMatch.currentStriker || currentMatch.liveState?.currentStriker || '',
-    currentNonStriker: currentMatch.currentNonStriker || currentMatch.liveState?.currentNonStriker || '',
-    currentBowler: currentMatch.currentBowler || currentMatch.liveState?.currentBowler || '',
+    ...baseMatch,
+    currentStriker: striker,
+    currentNonStriker: nonStriker,
+    currentBowler: bowler,
+    liveState: {
+      ...(baseMatch.liveState || {}),
+      currentStriker: striker,
+      currentNonStriker: nonStriker,
+      currentBowler: bowler,
+      liveRuns: baseMatch.liveRuns !== undefined ? Number(baseMatch.liveRuns) : (baseMatch.liveState?.liveRuns || 0),
+      liveWickets: baseMatch.liveWickets !== undefined ? Number(baseMatch.liveWickets) : (baseMatch.liveState?.liveWickets || 0),
+      liveBalls: resolvedBalls,
+      liveOvers: resolvedOvers,
+    },
     liveOvers: resolvedOvers,
     lastUpdatedAt: Date.now(),
     adminEditedAt: Date.now(),
@@ -618,9 +636,6 @@ async function pushMatchToCloud(matchId, customMatchState = null) {
       liveOvers,
       liveThisOver: updatedMatch.liveThisOver || updatedMatch.liveState?.liveThisOver || [],
       currentInnings: updatedMatch.currentInnings || 1,
-      currentStriker: updatedMatch.currentStriker || updatedMatch.liveState?.currentStriker || '',
-      currentNonStriker: updatedMatch.currentNonStriker || updatedMatch.liveState?.currentNonStriker || '',
-      currentBowler: updatedMatch.currentBowler || updatedMatch.liveState?.currentBowler || '',
       scoringHistory: liveHistory,
       liveBatters,
       liveBowlerStats: liveBowlers,
