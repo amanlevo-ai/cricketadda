@@ -7382,6 +7382,7 @@ function CricketAddaMain() {
         currentStriker: nextStriker,
         currentNonStriker: nextNonStriker,
       },
+      scoringHistory: [...scoringHistory, snapshot],
       celebrationEvent,
     });
 
@@ -8407,6 +8408,7 @@ function CricketAddaMain() {
         liveBatters: lastAction.liveBatters || liveBatters,
         liveBowlerStats: lastAction.liveBowlerStats || liveBowlerStats,
         liveCommentaryList: updatedComm,
+        scoringHistory: remainingHistory,
       });
 
       Alert.alert(
@@ -9394,16 +9396,32 @@ function CricketAddaMain() {
   ) => {
     const bowlersMap = new Map();
 
-    // 1. If historyStack has delivery snapshots for this innings, compute ground-truth stats directly from deliveries
-    const inningDeliveries = (historyStack || []).filter(h => !h.innings || h.innings === inningNum);
-    
-    if (inningDeliveries.length > 0) {
-      const bowlerDeliveriesMap = {};
+    // 1. Seed with static bowlers
+    (staticBowling || []).forEach(bw => {
+      if (bw && bw.name) {
+        bowlersMap.set(String(bw.name).trim().toLowerCase(), {
+          ...bw,
+          name: bw.name,
+          overs: bw.overs || '0.0',
+          balls: Number(bw.balls) || parseOversToBalls(bw.overs || '0.0'),
+          runs: Number(bw.runs) || 0,
+          wickets: Number(bw.wickets) || 0,
+          maidens: Number(bw.maidens) || 0,
+          econ: bw.econ || '0.00',
+        });
+      }
+    });
 
+    // 2. Compute stats from delivery history snapshots for this innings
+    const inningDeliveries = (historyStack || []).filter(h => !h.innings || h.innings === inningNum);
+    const bowlerDeliveriesMap = {};
+
+    if (inningDeliveries.length > 0) {
       inningDeliveries.forEach(d => {
-        const bName = d.bowler || 'Bowler';
-        if (!bowlerDeliveriesMap[bName]) {
-          bowlerDeliveriesMap[bName] = { balls: 0, runs: 0, wickets: 0 };
+        const bName = (d.bowler || 'Bowler').trim();
+        const key = bName.toLowerCase();
+        if (!bowlerDeliveriesMap[key]) {
+          bowlerDeliveriesMap[key] = { name: bName, balls: 0, runs: 0, wickets: 0, maidens: 0 };
         }
 
         const isLegal = d.isLegalDelivery !== false;
@@ -9416,39 +9434,42 @@ function CricketAddaMain() {
           d.customDismissalType !== 'obstructing'
         );
 
-        if (isLegal) bowlerDeliveriesMap[bName].balls++;
-        bowlerDeliveriesMap[bName].runs += runsConceded;
-        if (isBowlerWkt) bowlerDeliveriesMap[bName].wickets++;
+        if (isLegal) bowlerDeliveriesMap[key].balls++;
+        bowlerDeliveriesMap[key].runs += runsConceded;
+        if (isBowlerWkt) bowlerDeliveriesMap[key].wickets++;
       });
+    }
 
-      Object.keys(bowlerDeliveriesMap).forEach(bName => {
-        const stats = bowlerDeliveriesMap[bName];
-        const ovStr = `${Math.floor(stats.balls / 6)}.${stats.balls % 6}`;
-        const econ = stats.balls > 0 ? ((stats.runs / stats.balls) * 6).toFixed(2) : '0.00';
-        bowlersMap.set(bName.toLowerCase(), {
-          name: bName,
-          style: 'Right-arm Fast Medium',
-          overs: ovStr,
-          balls: stats.balls,
-          runs: stats.runs,
-          wickets: stats.wickets,
-          maidens: 0,
-          econ,
-        });
+    // 3. Merge delivery stats into bowlersMap
+    Object.keys(bowlerDeliveriesMap).forEach(key => {
+      const stats = bowlerDeliveriesMap[key];
+      const existing = bowlersMap.get(key) || {
+        name: stats.name,
+        style: 'Right-arm Fast Medium',
+        maidens: 0,
+        sectorBreakdown: [],
+        overDetails: [],
+      };
+      const ovStr = `${Math.floor(stats.balls / 6)}.${stats.balls % 6}`;
+      const econ = stats.balls > 0 ? ((stats.runs / stats.balls) * 6).toFixed(2) : '0.00';
+      bowlersMap.set(key, {
+        ...existing,
+        name: stats.name,
+        overs: ovStr,
+        balls: stats.balls,
+        runs: stats.runs,
+        wickets: stats.wickets,
+        econ,
       });
-    } else {
-      // 2. Seed with static bowlers and activeMap
-      (staticBowling || []).forEach(bw => {
-        if (bw && bw.name) bowlersMap.set(String(bw.name).toLowerCase(), { ...bw });
-      });
+    });
 
-      const activeMap = forcedBowlersMap || liveBowlerStats;
-
+    // 4. Merge live/active bowlers map (liveBowlerStats or forcedBowlersMap)
+    const activeMap = forcedBowlersMap || liveBowlerStats;
+    if (activeMap && typeof activeMap === 'object') {
       Object.keys(activeMap).forEach(bName => {
         const liveBw = activeMap[bName];
         if (!liveBw) return;
-
-        const key = bName.toLowerCase();
+        const key = bName.trim().toLowerCase();
         const existing = bowlersMap.get(key) || {
           name: bName,
           style: 'Right-arm Fast Medium',
@@ -9457,45 +9478,70 @@ function CricketAddaMain() {
           overDetails: [],
         };
 
-        const ovStr = `${Math.floor((liveBw.balls || 0) / 6)}.${(liveBw.balls || 0) % 6}`;
-        const econ = (liveBw.balls || 0) > 0 ? (((liveBw.runs || 0) / liveBw.balls) * 6).toFixed(2) : '0.00';
+        const liveBalls = Number(liveBw.balls) || 0;
+        const liveRuns = Number(liveBw.runs) || 0;
+        const liveWickets = Number(liveBw.wickets) || 0;
+        const liveMaidens = Number(liveBw.maidens) || 0;
+
+        // If bowler has live stats, take maximum to ensure latest live figures are never lost
+        const finalBalls = Math.max(existing.balls || 0, liveBalls);
+        const finalRuns = Math.max(existing.runs || 0, liveRuns);
+        const finalWickets = Math.max(existing.wickets || 0, liveWickets);
+        const finalMaidens = Math.max(existing.maidens || 0, liveMaidens);
+
+        const ovStr = `${Math.floor(finalBalls / 6)}.${finalBalls % 6}`;
+        const econ = finalBalls > 0 ? (((finalRuns) / finalBalls) * 6).toFixed(2) : '0.00';
 
         bowlersMap.set(key, {
           ...existing,
           name: bName,
           overs: ovStr,
-          balls: liveBw.balls || 0,
-          runs: liveBw.runs || 0,
-          wickets: liveBw.wickets || 0,
-          maidens: liveBw.maidens || 0,
-          econ: econ,
+          balls: finalBalls,
+          runs: finalRuns,
+          wickets: finalWickets,
+          maidens: finalMaidens,
+          econ,
         });
       });
     }
 
-    // 3. Filter to bowlers who actually bowled
+    // 5. Filter to bowlers who actually bowled or is current bowler
     let list = Array.from(bowlersMap.values()).filter(bw => {
       const activeMap = forcedBowlersMap || liveBowlerStats;
-      const liveBw = activeMap[bw.name];
+      const liveBw = activeMap && activeMap[bw.name];
       const hasLiveBalls = liveBw && (liveBw.balls > 0 || liveBw.runs > 0 || liveBw.wickets > 0);
+      const hasBalls = (Number(bw.balls) || 0) > 0;
       const hasOvers = bw.overs && bw.overs !== '0.0' && bw.overs !== '0';
       const hasFigures = bw.runs > 0 || bw.wickets > 0 || bw.maidens > 0;
-      const isCurrentBowler = !isForcedHistorical && isLiveMatchActive && (bw.name === (currentBowlerName || bowler));
-      return hasLiveBalls || hasOvers || hasFigures || isCurrentBowler;
+      const curName = (currentBowlerName || bowler || '').trim().toLowerCase();
+      const isCurrentBowler = !isForcedHistorical && isLiveMatchActive && curName && (bw.name.trim().toLowerCase() === curName);
+      return hasLiveBalls || hasBalls || hasOvers || hasFigures || isCurrentBowler;
     });
 
-    // 4. MATHEMATICAL RECONCILIATION:
+    // 6. MATHEMATICAL RECONCILIATION:
     // A. Reconcile total bowler balls so sum of bowler balls === totalInningsBalls
     if (list.length > 0 && totalInningsBalls > 0) {
       const sumBowlerBalls = list.reduce((acc, b) => acc + (Number(b.balls) || 0), 0);
       if (sumBowlerBalls > totalInningsBalls) {
         let excess = sumBowlerBalls - totalInningsBalls;
-        for (let i = (list || []).length - 1; i >= 0 && excess > 0; i--) {
+        for (let i = list.length - 1; i >= 0 && excess > 0; i--) {
           const canDeduct = Math.min(excess, list[i].balls);
           list[i].balls -= canDeduct;
           excess -= canDeduct;
           list[i].overs = `${Math.floor(list[i].balls / 6)}.${list[i].balls % 6}`;
           list[i].econ = list[i].balls > 0 ? (((list[i].runs || 0) / list[i].balls) * 6).toFixed(2) : '0.00';
+        }
+      } else if (sumBowlerBalls < totalInningsBalls) {
+        const deficit = totalInningsBalls - sumBowlerBalls;
+        // Credit the deficit balls to the current bowler, or the last bowler who bowled
+        const curName = (currentBowlerName || bowler || '').trim().toLowerCase();
+        let targetBowler = curName ? list.find(b => b.name && b.name.trim().toLowerCase() === curName) : null;
+        if (!targetBowler) targetBowler = list[list.length - 1];
+
+        if (targetBowler) {
+          targetBowler.balls += deficit;
+          targetBowler.overs = `${Math.floor(targetBowler.balls / 6)}.${targetBowler.balls % 6}`;
+          targetBowler.econ = targetBowler.balls > 0 ? (((targetBowler.runs || 0) / targetBowler.balls) * 6).toFixed(2) : '0.00';
         }
       }
     }
@@ -9505,7 +9551,7 @@ function CricketAddaMain() {
       const sumBowlerWkts = list.reduce((acc, b) => acc + (Number(b.wickets) || 0), 0);
       if (sumBowlerWkts > totalInningsWickets) {
         let excessWkts = sumBowlerWkts - totalInningsWickets;
-        for (let i = (list || []).length - 1; i >= 0 && excessWkts > 0; i--) {
+        for (let i = list.length - 1; i >= 0 && excessWkts > 0; i--) {
           const canDeduct = Math.min(excessWkts, list[i].wickets);
           list[i].wickets -= canDeduct;
           excessWkts -= canDeduct;
