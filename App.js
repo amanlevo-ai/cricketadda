@@ -6129,9 +6129,48 @@ function CricketAddaMain() {
     if (d.firstInningsSummary) setFirstInningsSummary(d.firstInningsSummary);
     if (d.match) setMatch(prev => ({ ...prev, ...d.match }));
     if (Array.isArray(d.liveCommentaryList)) setLiveCommentaryList(d.liveCommentaryList);
-    if (d.liveBatters && typeof d.liveBatters === 'object') setLiveBatters(d.liveBatters);
-    if (d.liveBowlerStats && typeof d.liveBowlerStats === 'object') setLiveBowlerStats(d.liveBowlerStats);
-    if (Array.isArray(d.scoringHistory)) setScoringHistory(d.scoringHistory);
+    if (d.liveBatters && typeof d.liveBatters === 'object') {
+      setLiveBatters(prev => {
+        const merged = { ...(prev || {}) };
+        Object.entries(d.liveBatters).forEach(([pName, b]) => {
+          if (!b) return;
+          const existing = merged[pName] || {};
+          merged[pName] = {
+            ...existing,
+            ...b,
+            runs: Math.max(Number(existing.runs) || 0, Number(b.runs) || 0),
+            balls: Math.max(Number(existing.balls) || 0, Number(b.balls) || 0),
+            fours: Math.max(Number(existing.fours) || 0, Number(b.fours) || 0),
+            sixes: Math.max(Number(existing.sixes) || 0, Number(b.sixes) || 0),
+          };
+        });
+        return merged;
+      });
+    }
+    if (d.liveBowlerStats && typeof d.liveBowlerStats === 'object') {
+      setLiveBowlerStats(prev => {
+        const merged = { ...(prev || {}) };
+        Object.entries(d.liveBowlerStats).forEach(([bName, bw]) => {
+          if (!bw) return;
+          const existing = merged[bName] || {};
+          merged[bName] = {
+            ...existing,
+            ...bw,
+            balls: Math.max(Number(existing.balls) || 0, Number(bw.balls) || 0),
+            runs: Math.max(Number(existing.runs) || 0, Number(bw.runs) || 0),
+            wickets: Math.max(Number(existing.wickets) || 0, Number(bw.wickets) || 0),
+            maidens: Math.max(Number(existing.maidens) || 0, Number(bw.maidens) || 0),
+          };
+        });
+        return merged;
+      });
+    }
+    if (Array.isArray(d.scoringHistory)) {
+      setScoringHistory(prev => {
+        if (!Array.isArray(prev) || prev.length === 0) return d.scoringHistory;
+        return d.scoringHistory.length >= prev.length ? d.scoringHistory : prev;
+      });
+    }
     if (d.currentStriker) setStriker(d.currentStriker);
     if (d.currentNonStriker) setNonStriker(d.currentNonStriker);
     if (d.currentBowler) setBowler(d.currentBowler);
@@ -6408,9 +6447,35 @@ function CricketAddaMain() {
   })();
 
   const getBatterStat = name => {
-    const b = liveBatters[name] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 };
-    const sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(1) : '0.0';
-    return `${b.runs}* (${b.balls}b) • ${b.fours}x4 ${b.sixes}x6 • SR: ${sr}`;
+    if (!name) return '0* (0b) • 0x4 0x6 • SR: 0.0';
+    const norm = String(name).trim().toLowerCase();
+
+    // 1. Calculate from delivery history
+    let hRuns = 0;
+    let hBalls = 0;
+    let hFours = 0;
+    let hSixes = 0;
+    (scoringHistory || []).forEach(d => {
+      if ((!d.innings || d.innings === currentInnings) && d.striker && String(d.striker).trim().toLowerCase() === norm) {
+        if (d.extraType !== 'wide') {
+          hBalls++;
+          const r = Number(d.runsOffBat !== undefined ? d.runsOffBat : (d.addedRuns || 0));
+          hRuns += r;
+          if (r === 4) hFours++;
+          if (r === 6) hSixes++;
+        }
+      }
+    });
+
+    // 2. Merge with liveBatters cache (taking Math.max so in-flight state is never lost)
+    const cached = liveBatters[name] || Object.entries(liveBatters || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1] || {};
+    const finalRuns = Math.max(hRuns, Number(cached.runs) || 0);
+    const finalBalls = Math.max(hBalls, Number(cached.balls) || 0);
+    const finalFours = Math.max(hFours, Number(cached.fours) || 0);
+    const finalSixes = Math.max(hSixes, Number(cached.sixes) || 0);
+
+    const sr = finalBalls > 0 ? ((finalRuns / finalBalls) * 100).toFixed(1) : '0.0';
+    return `${finalRuns}* (${finalBalls}b) • ${finalFours}x4 ${finalSixes}x6 • SR: ${sr}`;
   };
 
   const maxBowlerOversQuota = Math.ceil(maxOvers / 5); // 4 overs in 20 ov match, 10 in 50 ov match
@@ -6423,10 +6488,54 @@ function CricketAddaMain() {
   };
 
   const getBowlerStat = name => {
-    const bw = liveBowlerStats[name] || { balls: 0, maidens: 0, runs: 0, wickets: 0 };
-    const ovStr = `${Math.floor(bw.balls / 6)}.${bw.balls % 6}`;
-    const econ = bw.balls > 0 ? ((bw.runs / bw.balls) * 6).toFixed(1) : '0.0';
-    return `${ovStr}/${maxBowlerOversQuota} ov • ${bw.runs} r • ${bw.wickets} w • Econ: ${econ}`;
+    if (!name) return `0.0/${maxBowlerOversQuota} ov • 0 r • 0 w • Econ: 0.0`;
+    const norm = String(name).trim().toLowerCase();
+
+    // 1. Calculate from delivery history
+    let hBalls = 0;
+    let hRuns = 0;
+    let hWickets = 0;
+    let hMaidens = 0;
+    (scoringHistory || []).forEach(d => {
+      if ((!d.innings || d.innings === currentInnings) && d.bowler && String(d.bowler).trim().toLowerCase() === norm) {
+        if (d.isLegalDelivery !== false) hBalls++;
+        const isByeOrLegBye = d.extraType === 'bye' || d.extraType === 'legBye';
+        const runsConceded = isByeOrLegBye ? 0 : (Number(d.addedRuns) || 0);
+        hRuns += runsConceded;
+        const isBowlerWkt = Boolean(
+          d.isWkt &&
+          d.customDismissalType !== 'run_out' &&
+          d.customDismissalType !== 'retired' &&
+          d.customDismissalType !== 'obstructing'
+        );
+        if (isBowlerWkt) hWickets++;
+      }
+    });
+
+    // 2. Check current over balls from sanitizedThisOver / liveThisOver if this is the active bowler
+    const isCurrentActiveBowler = String(bowler || '').trim().toLowerCase() === norm;
+    let overBalls = 0;
+    let overRuns = 0;
+    if (isCurrentActiveBowler && Array.isArray(liveThisOver)) {
+      liveThisOver.forEach(sym => {
+        if (!sym) return;
+        const s = String(sym);
+        const isLegal = !s.includes('Wd') && !s.includes('Nb');
+        if (isLegal) overBalls++;
+        const val = parseInt(s.replace(/[^0-9]/g, ''), 10);
+        if (!isNaN(val)) overRuns += val;
+      });
+    }
+
+    // 3. Merge with liveBowlerStats cache (taking Math.max so in-flight deliveries are never lost)
+    const cached = liveBowlerStats[name] || Object.entries(liveBowlerStats || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1] || {};
+    const finalBalls = Math.max(hBalls, Number(cached.balls) || 0, isCurrentActiveBowler ? overBalls : 0);
+    const finalRuns = Math.max(hRuns, Number(cached.runs) || 0, isCurrentActiveBowler ? overRuns : 0);
+    const finalWickets = Math.max(hWickets, Number(cached.wickets) || 0);
+
+    const ovStr = `${Math.floor(finalBalls / 6)}.${finalBalls % 6}`;
+    const econ = finalBalls > 0 ? ((finalRuns / finalBalls) * 6).toFixed(1) : '0.0';
+    return `${ovStr}/${maxBowlerOversQuota} ov • ${finalRuns} r • ${finalWickets} w • Econ: ${econ}`;
   };
 
   const oversStr = `${Math.floor(liveBalls / 6)}.${liveBalls % 6}`;
