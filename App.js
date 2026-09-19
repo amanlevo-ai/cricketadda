@@ -6601,7 +6601,7 @@ function CricketAddaMain() {
     setSelectedExtraType(null);
     setNeedsNewBowler(false);
 
-        // 2. Set Opening Batters for 2nd Innings
+    // 2. Set Opening Batters for 2nd Innings
     const team2Batters = (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0)
       ? currentMatchData.innings2.batting.map(b => b.name)
       : (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0)
@@ -6626,6 +6626,7 @@ function CricketAddaMain() {
 
     setMatch(prev => ({
       ...prev,
+      currentInnings: 2,
       currentStriker: newStriker,
       currentNonStriker: newNonStriker,
       currentBowler: newBowler,
@@ -6633,25 +6634,74 @@ function CricketAddaMain() {
       previousBowler: null,
     }));
 
-    setLiveBatters({
+    const initial2ndBatters = {
       [newStriker]: { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
       [newNonStriker]: { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
-    });
-
-    setLiveBowlerStats({
+    };
+    const initial2ndBowlers = {
       [newBowler]: { balls: 0, maidens: 0, runs: 0, wickets: 0 },
-    });
+    };
+
+    setLiveBatters(initial2ndBatters);
+    setLiveBowlerStats(initial2ndBowlers);
 
     const target = firstInningsSummary ? firstInningsSummary.target : (liveRuns + 1);
-    setLiveCommentaryList(prev => [
-      {
-        id: `comm_inn2_start_${Date.now()}`,
-        isOverEnd: true,
-        overNum: 0,
-        overSummary: `🚀 2ND INNINGS UNDERWAY! ${newStriker} & ${newNonStriker} walk out to chase ${target} runs in ${maxOvers} overs (RRR: ${(target / maxOvers).toFixed(2)}) • ${newBowler} takes the new ball.`,
+    const inn2Comm = {
+      id: `comm_inn2_start_${Date.now()}`,
+      isOverEnd: true,
+      overNum: 0,
+      overSummary: `🚀 2ND INNINGS UNDERWAY! ${newStriker} & ${newNonStriker} walk out to chase ${target} runs in ${maxOvers} overs (RRR: ${(target / maxOvers).toFixed(2)}) • ${newBowler} takes the new ball.`,
+    };
+    setLiveCommentaryList(prev => [inn2Comm, ...prev]);
+
+    setMatchesDb(prev => {
+      const cur = prev[activeMatchId] || {};
+      const updated = {
+        ...cur,
+        currentInnings: 2,
+        liveState: {
+          ...(cur.liveState || {}),
+          currentInnings: 2,
+          liveRuns: 0,
+          liveWickets: 0,
+          liveBalls: 0,
+          liveThisOver: [],
+          scoringHistory: [],
+          currentStriker: newStriker,
+          currentNonStriker: newNonStriker,
+          currentBowler: newBowler,
+          liveBatters: initial2ndBatters,
+          liveBowlerStats: initial2ndBowlers,
+        },
+        lastUpdatedAt: Date.now(),
+      };
+      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...prev, [activeMatchId]: updated })).catch(() => {});
+      return { ...prev, [activeMatchId]: updated };
+    });
+
+    broadcastMatchState({
+      currentInnings: 2,
+      liveRuns: 0,
+      liveWickets: 0,
+      liveBalls: 0,
+      liveThisOver: [],
+      scoringHistory: [],
+      currentStriker: newStriker,
+      currentNonStriker: newNonStriker,
+      currentBowler: newBowler,
+      liveBatters: initial2ndBatters,
+      liveBowlerStats: initial2ndBowlers,
+      liveCommentaryList: [inn2Comm, ...liveCommentaryList],
+      match: {
+        ...match,
+        currentInnings: 2,
+        currentStriker: newStriker,
+        currentNonStriker: newNonStriker,
+        currentBowler: newBowler,
+        lastOverBowler: null,
+        previousBowler: null,
       },
-      ...prev,
-    ]);
+    });
 
     setStartStriker(newStriker);
     setStartNonStriker(newNonStriker);
@@ -6941,10 +6991,20 @@ function CricketAddaMain() {
 
     if (isWkt) {
       setLiveWickets(w => w + 1);
-      ballSymbol = 'W';
+      ballSymbol = addedRuns > 0 ? `${addedRuns}W` : 'W';
       batterBallsAdded = 1;
-      batterDotsAdded = 1;
-      bowlerRunsConceded = 0;
+      if (addedRuns > 0) {
+        batterRunsAdded = runs;
+        bowlerRunsConceded = addedRuns;
+        if (runs === 1) batterSinglesAdded = 1;
+        else if (runs === 2) batterDoublesAdded = 1;
+        else if (runs === 3) batterTriplesAdded = 1;
+        else if (runs === 4) batterFoursAdded = 1;
+        else if (runs === 6) batterSixesAdded = 1;
+      } else {
+        batterDotsAdded = 1;
+        bowlerRunsConceded = 0;
+      }
     } else if (extraType === 'wide') {
       const penalty = extraPenalty || 1;
       const totalWides = penalty + runs + otRuns;
@@ -7118,6 +7178,11 @@ function CricketAddaMain() {
       } else {
         nextStriker = otherBatterTarget;
         nextNonStriker = newInc;
+      }
+      if (isOverEnd && swapBattersOnOverEnd) {
+        const temp = nextStriker;
+        nextStriker = nextNonStriker;
+        nextNonStriker = temp;
       }
       setMatch(prev => ({
         ...prev,
@@ -7341,10 +7406,10 @@ function CricketAddaMain() {
 
     // 7. Check if this ball COMPLETES the 1st Innings
     if (currentInnings === 1) {
-      if (nextBalls >= maxLegalBalls || nextWkts >= 10) {
+      if (nextBalls >= maxLegalBalls || nextWkts >= maxWicketsForSquad) {
         const target = nextRuns + 1;
         const rrr = (target / maxOvers).toFixed(2);
-        const reason = nextWkts >= 10 ? 'All Out' : `${maxOvers}.0 Overs Completed`;
+        const reason = nextWkts >= maxWicketsForSquad ? 'All Out' : `${maxOvers}.0 Overs Completed`;
 
         const inn1Summary = {
           team: battingTeamName,
@@ -7358,8 +7423,8 @@ function CricketAddaMain() {
           target: target,
           rrr: rrr,
           reason: reason,
-          batting: JSON.parse(JSON.stringify(liveBatters)),
-          bowling: JSON.parse(JSON.stringify(liveBowlerStats)),
+          batting: JSON.parse(JSON.stringify(updatedLiveBatters)),
+          bowling: JSON.parse(JSON.stringify(updatedLiveBowlers)),
         };
         setFirstInningsSummary(inn1Summary);
 
@@ -7375,6 +7440,8 @@ function CricketAddaMain() {
                 runs: nextRuns,
                 wickets: nextWkts,
                 overs: nextOvStr,
+                batting: updatedLiveBatters,
+                bowling: updatedLiveBowlers,
               },
             },
           };
@@ -7387,7 +7454,29 @@ function CricketAddaMain() {
           overNum: Math.floor(nextBalls / 6),
           overSummary: `🏁 1st Innings Ended • ${battingTeamName}: ${nextRuns}/${nextWkts} (${nextOvStr} ov) • Target: ${target} runs (${rrr} RRR) • Handover scoring to ${bowlingTeamName}`,
         };
-        setLiveCommentaryList(prev => [innEndComm, ...newCommEntries, ...prev]);
+        const updatedCommList = [innEndComm, ...newCommEntries, ...liveCommentaryList];
+        setLiveCommentaryList(updatedCommList);
+
+        // Broadcast final 1st innings delivery & break state to spectators and cloud
+        broadcastMatchState({
+          liveRuns: nextRuns,
+          liveWickets: nextWkts,
+          liveBalls: nextBalls,
+          liveThisOver: nextThisOver,
+          liveCommentaryList: updatedCommList,
+          liveBatters: updatedLiveBatters,
+          liveBowlerStats: updatedLiveBowlers,
+          firstInningsSummary: inn1Summary,
+          innings1: {
+            runs: nextRuns,
+            wickets: nextWkts,
+            overs: nextOvStr,
+            batting: updatedLiveBatters,
+            bowling: updatedLiveBowlers,
+          },
+          scoringHistory: [...scoringHistory, snapshot],
+          celebrationEvent,
+        });
 
         setInningsBreakModalVisible(true);
         setSelectedExtraType(null);
@@ -7401,9 +7490,9 @@ function CricketAddaMain() {
 
       if (target > 0 && nextRuns >= target) {
         matchEnded = true;
-        const wktsRemaining = 10 - nextWkts;
+        const wktsRemaining = Math.max(0, maxWicketsForSquad - nextWkts);
         resText = `🎉 ${battingTeamName} won by ${wktsRemaining} wicket${wktsRemaining === 1 ? '' : 's'}!`;
-      } else if (nextBalls >= maxLegalBalls || nextWkts >= 10) {
+      } else if (nextBalls >= maxLegalBalls || nextWkts >= maxWicketsForSquad) {
         matchEnded = true;
         if (target > 0 && nextRuns === target - 1) {
           resText = `🤝 Match Tied! Super Over Required!`;
@@ -7428,6 +7517,8 @@ function CricketAddaMain() {
                 runs: nextRuns,
                 wickets: nextWkts,
                 overs: nextOvStr,
+                batting: updatedLiveBatters,
+                bowling: updatedLiveBowlers,
               },
             },
           };
@@ -7439,7 +7530,36 @@ function CricketAddaMain() {
           overNum: Math.floor(nextBalls / 6),
           overSummary: `🏆 MATCH COMPLETED • ${resText} • ${battingTeamName}: ${nextRuns}/${nextWkts} (${nextOvStr} ov)`,
         };
-        setLiveCommentaryList(prev => [matchEndComm, ...newCommEntries, ...prev]);
+        const updatedCommList = [matchEndComm, ...newCommEntries, ...liveCommentaryList];
+        setLiveCommentaryList(updatedCommList);
+
+        // Broadcast match finish state to spectators and cloud
+        broadcastMatchState({
+          status: 'completed',
+          result: resText,
+          liveRuns: nextRuns,
+          liveWickets: nextWkts,
+          liveBalls: nextBalls,
+          liveThisOver: nextThisOver,
+          liveCommentaryList: updatedCommList,
+          liveBatters: updatedLiveBatters,
+          liveBowlerStats: updatedLiveBowlers,
+          innings2: {
+            runs: nextRuns,
+            wickets: nextWkts,
+            overs: nextOvStr,
+            batting: updatedLiveBatters,
+            bowling: updatedLiveBowlers,
+          },
+          match: {
+            ...match,
+            status: 'completed',
+            result: resText,
+          },
+          scoringHistory: [...scoringHistory, snapshot],
+          celebrationEvent,
+        });
+
         setMatchCompletedModalVisible(true);
         setSelectedExtraType(null);
         return;
@@ -7478,26 +7598,10 @@ function CricketAddaMain() {
       liveBalls: nextBalls,
       liveThisOver: nextThisOver,
       liveCommentaryList: [...newCommEntries, ...liveCommentaryList],
-      liveBatters: {
-        ...liveBatters,
-        [striker]: {
-          ...(liveBatters[striker] || {}),
-          runs: (liveBatters[striker]?.runs || 0) + batterRunsAdded,
-          balls: (liveBatters[striker]?.balls || 0) + batterBallsAdded,
-          fours: (liveBatters[striker]?.fours || 0) + batterFoursAdded,
-          sixes: (liveBatters[striker]?.sixes || 0) + batterSixesAdded,
-          dots: (liveBatters[striker]?.dots || 0) + batterDotsAdded,
-        },
-      },
-      liveBowlerStats: {
-        ...liveBowlerStats,
-        [bowler]: {
-          ...(liveBowlerStats[bowler] || {}),
-          runs: (liveBowlerStats[bowler]?.runs || 0) + (extraType === 'bye' || extraType === 'legBye' ? 0 : addedRuns),
-          wickets: (liveBowlerStats[bowler]?.wickets || 0) + (isWkt ? 1 : 0),
-          balls: (liveBowlerStats[bowler]?.balls || 0) + (isLegalDelivery ? 1 : 0),
-        },
-      },
+      liveBatters: updatedLiveBatters,
+      liveBowlerStats: updatedLiveBowlers,
+      currentStriker: nextStriker,
+      currentNonStriker: nextNonStriker,
       match: {
         ...match,
         currentStriker: nextStriker,
@@ -8432,6 +8536,10 @@ function CricketAddaMain() {
       setScoringHistory(prev => prev.slice(0, -1));
 
       // Restore exact state from snapshot
+      setNeedsNewBowler(false);
+      setChangeBowlerModalVisible(false);
+      setMatchResultText('');
+
       setLiveRuns(lastAction.liveRuns);
       setLiveWickets(lastAction.liveWickets);
       setLiveBalls(lastAction.liveBalls);
@@ -8440,6 +8548,8 @@ function CricketAddaMain() {
       if (lastAction.liveBowlerStats) setLiveBowlerStats(lastAction.liveBowlerStats);
       setMatch(prev => ({
         ...prev,
+        status: 'in_progress',
+        result: '',
         currentStriker: lastAction.striker,
         currentNonStriker: lastAction.nonStriker,
         currentBowler: lastAction.bowler,
@@ -8485,6 +8595,8 @@ function CricketAddaMain() {
         const oversFormatted = `${Math.floor(lastAction.liveBalls / 6)}.${lastAction.liveBalls % 6}`;
         const updatedMatch = {
           ...cur,
+          status: 'in_progress',
+          result: '',
           innings1: {
             ...(cur.innings1 || {}),
             runs: currentInnings === 1 ? lastAction.liveRuns : (cur.innings1?.runs || 0),
@@ -8499,6 +8611,8 @@ function CricketAddaMain() {
           },
           liveState: {
             currentInnings,
+            status: 'in_progress',
+            result: '',
             liveRuns: lastAction.liveRuns,
             liveWickets: lastAction.liveWickets,
             liveBalls: lastAction.liveBalls,
@@ -8522,6 +8636,8 @@ function CricketAddaMain() {
 
       // Broadcast undo state live to Cloud & PC Spectators
       broadcastMatchState({
+        status: 'in_progress',
+        result: '',
         liveRuns: lastAction.liveRuns,
         liveWickets: lastAction.liveWickets,
         liveBalls: lastAction.liveBalls,
@@ -8530,6 +8646,17 @@ function CricketAddaMain() {
         liveBowlerStats: lastAction.liveBowlerStats || liveBowlerStats,
         liveCommentaryList: updatedComm,
         scoringHistory: remainingHistory,
+        currentStriker: lastAction.striker,
+        currentNonStriker: lastAction.nonStriker,
+        currentBowler: lastAction.bowler,
+        match: {
+          ...match,
+          status: 'in_progress',
+          result: '',
+          currentStriker: lastAction.striker,
+          currentNonStriker: lastAction.nonStriker,
+          currentBowler: lastAction.bowler,
+        },
       });
 
       Alert.alert(
@@ -8541,6 +8668,10 @@ function CricketAddaMain() {
 
     // 3. Fallback if undoing pre-existing balls in this over
     if (liveThisOver && (liveThisOver || []).length > 0) {
+      setNeedsNewBowler(false);
+      setChangeBowlerModalVisible(false);
+      setMatchResultText('');
+
       const lastBallSymbol = liveThisOver[(liveThisOver || []).length - 1];
       const parsed = parseBallSymbol(lastBallSymbol);
 
@@ -8584,10 +8715,17 @@ function CricketAddaMain() {
       });
 
       broadcastMatchState({
+        status: 'in_progress',
+        result: '',
         liveRuns: nextR,
         liveWickets: nextW,
         liveBalls: nextB,
         liveThisOver: nextOver,
+        match: {
+          ...match,
+          status: 'in_progress',
+          result: '',
+        },
       });
 
       Alert.alert(
@@ -8683,10 +8821,30 @@ function CricketAddaMain() {
       currentBowler: finalBowler,
     }));
 
+    setLiveBowlerStats(prev => ({
+      ...prev,
+      [finalBowler]: prev[finalBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
+    }));
+
     setNeedsNewBowler(false);
     setLiveThisOver([]);
     setChangeBowlerModalVisible(false);
     setCustomNextBowler('');
+
+    broadcastMatchState({
+      currentBowler: finalBowler,
+      liveThisOver: [],
+      liveBowlerStats: {
+        ...liveBowlerStats,
+        [finalBowler]: liveBowlerStats[finalBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
+      },
+      match: {
+        ...match,
+        lastOverBowler: match.currentBowler || bowler,
+        previousBowler: match.currentBowler || bowler,
+        currentBowler: finalBowler,
+      },
+    });
   };
 
   const handleRunPress = runs => {
@@ -14028,6 +14186,8 @@ function CricketAddaMain() {
                       return { ...prev, [activeMatchId]: updated };
                     });
                     broadcastMatchState({
+                      currentStriker: nextSt,
+                      currentNonStriker: nextNst,
                       match: {
                         ...match,
                         currentStriker: nextSt,
@@ -18850,19 +19010,42 @@ function CricketAddaMain() {
                   const bText = `${cleanSt} & ${cleanNst} are on the pitch ready to open the batting.`;
                   const bwText = `${cleanBw} takes the new ball, ready to bowl the opening over!`;
 
-                  setLiveCommentaryList(prev => [
-                    {
-                      id: `comm_inn_start_${Date.now()}`,
-                      isOverEnd: true,
-                      isMatchStart: true,
-                      headerTitle: innTitle,
-                      overNum: 0,
-                      battersText: bText,
-                      bowlerText: bwText,
-                      overSummary: `🏏 ${bText}\n${bwText}`,
+                  const startCommEntry = {
+                    id: `comm_inn_start_${Date.now()}`,
+                    isOverEnd: true,
+                    isMatchStart: true,
+                    headerTitle: innTitle,
+                    overNum: 0,
+                    battersText: bText,
+                    bowlerText: bwText,
+                    overSummary: `🏏 ${bText}\n${bwText}`,
+                  };
+                  const updatedComm = [startCommEntry, ...(liveCommentaryList.filter(c => c.overNum !== 0))];
+                  setLiveCommentaryList(updatedComm);
+
+                  broadcastMatchState({
+                    currentStriker: finalSt,
+                    currentNonStriker: finalNst,
+                    currentBowler: finalBw,
+                    liveBatters: {
+                      ...liveBatters,
+                      [finalSt]: liveBatters[finalSt] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
+                      [finalNst]: liveBatters[finalNst] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
                     },
-                    ...(prev.filter(c => c.overNum !== 0)),
-                  ]);
+                    liveBowlerStats: {
+                      ...liveBowlerStats,
+                      [finalBw]: liveBowlerStats[finalBw] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
+                    },
+                    liveCommentaryList: updatedComm,
+                    match: {
+                      ...match,
+                      currentStriker: finalSt,
+                      currentNonStriker: finalNst,
+                      currentBowler: finalBw,
+                      previousBowler: null,
+                      lastOverBowler: null,
+                    },
+                  });
                 }}
               >
                 <Text style={{ color: '#020617', fontWeight: '900', fontSize: 14 }}>
