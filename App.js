@@ -6127,7 +6127,13 @@ function CricketAddaMain() {
     if (d.activeScorer) setActiveScorer(d.activeScorer);
     if (d.currentInnings) setCurrentInnings(d.currentInnings);
     if (d.firstInningsSummary) setFirstInningsSummary(d.firstInningsSummary);
-    if (d.match) setMatch(prev => ({ ...prev, ...d.match }));
+    setMatch(prev => ({
+      ...prev,
+      ...(d.match || {}),
+      currentStriker: d.currentStriker || d.match?.currentStriker || prev.currentStriker || '',
+      currentNonStriker: d.currentNonStriker || d.match?.currentNonStriker || prev.currentNonStriker || '',
+      currentBowler: d.currentBowler || d.match?.currentBowler || prev.currentBowler || '',
+    }));
     if (Array.isArray(d.liveCommentaryList)) setLiveCommentaryList(d.liveCommentaryList);
     if (d.liveBatters && typeof d.liveBatters === 'object') {
       setLiveBatters(d.liveBatters);
@@ -6138,9 +6144,6 @@ function CricketAddaMain() {
     if (Array.isArray(d.scoringHistory)) {
       setScoringHistory(d.scoringHistory);
     }
-    if (d.currentStriker) setStriker(d.currentStriker);
-    if (d.currentNonStriker) setNonStriker(d.currentNonStriker);
-    if (d.currentBowler) setBowler(d.currentBowler);
 
     // Synchronize matchesDb in real-time so viewer scorecard & stats immediately reflect live match data
     if (d.activeMatchId) {
@@ -6386,9 +6389,43 @@ function CricketAddaMain() {
     }
   })();
 
-  let striker = match.currentStriker || (currentMatchData?.innings1?.batting?.[0]?.name) || (activeBattingSquad[0] || 'Striker');
-  let nonStriker = match.currentNonStriker || (currentMatchData?.innings1?.batting?.[1]?.name) || (activeBattingSquad[1] || activeBattingSquad[0] || 'Non-Striker');
-  let bowler = match.currentBowler || (currentMatchData?.innings1?.bowling?.[0]?.name) || (activeOppBowlers[0] || 'Bowler');
+  // Helper to check if player was dismissed in this innings
+  const isBatterOut = pName => {
+    if (!pName) return false;
+    const norm = String(pName).trim().toLowerCase();
+    if (liveBatters && liveBatters[pName] && liveBatters[pName].isNotOut === false) return true;
+    const fromMap = Object.entries(liveBatters || {}).find(([k]) => k.trim().toLowerCase() === norm);
+    if (fromMap && fromMap[1] && fromMap[1].isNotOut === false) return true;
+    return (scoringHistory || []).some(s => {
+      if (s.innings && s.innings !== currentInnings) return false;
+      if (!s.isWkt) return false;
+      const outP = String(s.dismissedPlayerName || s.dismissedPlayer || s.striker || '').trim().toLowerCase();
+      return outP === norm;
+    });
+  };
+
+  let striker = match.currentStriker || currentMatchData?.currentStriker || '';
+  let nonStriker = match.currentNonStriker || currentMatchData?.currentNonStriker || '';
+  let bowler = match.currentBowler || currentMatchData?.currentBowler || (currentMatchData?.innings1?.bowling?.[0]?.name) || (activeOppBowlers[0] || 'Bowler');
+
+  // Hard Guarantee: an OUT batter can NEVER be striker or non-striker at the crease
+  if (isBatterOut(striker)) {
+    const lastWkt = [...(scoringHistory || [])].reverse().find(s => s.isWkt && (!s.innings || s.innings === currentInnings));
+    if (lastWkt && lastWkt.incomingBatter && !isBatterOut(lastWkt.incomingBatter)) {
+      striker = lastWkt.incomingBatter;
+    } else {
+      const avail = (activeBattingSquad || []).find(p => p !== nonStriker && !isBatterOut(p));
+      striker = avail || '';
+    }
+  }
+
+  if (isBatterOut(nonStriker)) {
+    const avail = (activeBattingSquad || []).find(p => p !== striker && !isBatterOut(p));
+    nonStriker = avail || '';
+  }
+
+  if (!striker) striker = (activeBattingSquad.find(p => !isBatterOut(p)) || 'Striker');
+  if (!nonStriker) nonStriker = (activeBattingSquad.find(p => p !== striker && !isBatterOut(p)) || 'Non-Striker');
 
   const activeOppFielders = activeOppBowlers;
 

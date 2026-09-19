@@ -2608,6 +2608,41 @@ function recalculateActiveMatchStats() {
     match.liveState.firstInningsSummary = match.firstInningsSummary;
   }
 
+  // Resolve active crease from latest delivery of this innings
+  const latestDelivery = history[history.length - 1];
+  if (latestDelivery) {
+    let st = latestDelivery.striker || match.currentStriker;
+    let nst = latestDelivery.nonStriker || match.currentNonStriker;
+
+    // If a wicket fell on latest delivery:
+    if (latestDelivery.isWkt) {
+      const out = (latestDelivery.dismissedPlayerName || st || '').trim().toLowerCase();
+      const inc = (latestDelivery.incomingBatter || '').trim();
+      const surviving = (out === (nst || '').trim().toLowerCase()) ? st : nst;
+      if (latestDelivery.nextOnStrike === 'non_striker') {
+        st = surviving;
+        nst = inc;
+      } else {
+        st = inc;
+        nst = surviving;
+      }
+    }
+
+    // Hard guarantee: replace any out batter with valid incoming/surviving player
+    if (st && dismissedBatters.has(st.toLowerCase())) {
+      const rep = dismissedBatters.get(st.toLowerCase()).replacement;
+      if (rep) st = rep;
+    }
+    if (nst && dismissedBatters.has(nst.toLowerCase())) {
+      const rep = dismissedBatters.get(nst.toLowerCase()).replacement;
+      if (rep) nst = rep;
+    }
+
+    if (st) match.currentStriker = st;
+    if (nst) match.currentNonStriker = nst;
+    if (latestDelivery.bowler) match.currentBowler = latestDelivery.bowler;
+  }
+
   // Ensure active crease batters are not marked OUT
   if (match.currentStriker && battersMap[match.currentStriker] && !battersMap[match.currentStriker].isNotOut) {
     if (dismissedBatters.has(match.currentStriker.toLowerCase())) {
