@@ -8205,6 +8205,10 @@ function CricketAddaMain() {
   // CAPTAIN & TEAM CUSTOMIZATION LOGIC (OWN TEAM & SQUAD ROSTER MANAGEMENT)
   // ============================================================================
   const handleEditTeamAndSquadFromScorer = (slot = 'bowling') => {
+    if (!isOfficialScorer) {
+      Alert.alert('👁️ Spectator Mode', 'You are in read-only Spectator Mode. Only the Official Match Scorer can edit teams and squads.');
+      return;
+    }
     const isBowling = slot === 'bowling';
     const targetName = isBowling ? bowlingTeamName : battingTeamName;
     const targetFlag = isBowling ? bowlingTeamFlag : battingTeamFlag;
@@ -13538,6 +13542,37 @@ function CricketAddaMain() {
                     </Text>
                   </TouchableOpacity>
                 )}
+
+                {viewerSimulated && (
+                  <TouchableOpacity
+                    style={{
+                      flex: 1.15,
+                      height: 36,
+                      backgroundColor: '#10b981',
+                      borderColor: '#34d399',
+                      borderWidth: 1.2,
+                      borderRadius: 8,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexDirection: 'row',
+                      gap: 4,
+                      paddingHorizontal: 6,
+                    }}
+                    onPress={() => {
+                      setViewerSimulated(false);
+                      showAppToast('🏏 Switched back to Scorer Mode', '🏏');
+                    }}
+                  >
+                    <Text style={{ fontSize: 12 }}>🏏</Text>
+                    <Text style={{
+                      color: '#022c22',
+                      fontSize: 11.5,
+                      fontWeight: '900',
+                    }} numberOfLines={1}>
+                      Exit Viewer
+                    </Text>
+                  </TouchableOpacity>
+                )}
               </>
             ) : (
               /* Scorer Controls for Official Match Scorer */
@@ -13600,6 +13635,50 @@ function CricketAddaMain() {
               </>
             )}
           </View>
+
+          {/* SPECTATOR PREVIEW MODE BANNER (When scorer tests app as a viewer) */}
+          {viewerSimulated && (
+            <View style={{
+              backgroundColor: '#0c4a6e',
+              borderColor: '#38bdf8',
+              borderWidth: 1.5,
+              borderRadius: 10,
+              paddingVertical: 7,
+              paddingHorizontal: 12,
+              marginBottom: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+            }}>
+              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 15 }}>👁️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '900' }}>
+                    SPECTATOR PREVIEW MODE
+                  </Text>
+                  <Text style={{ color: '#bae6fd', fontSize: 10 }}>
+                    Testing live match as remote spectators see it (Read-Only)
+                  </Text>
+                </View>
+              </View>
+              <TouchableOpacity
+                style={{
+                  backgroundColor: '#10b981',
+                  paddingHorizontal: 8,
+                  paddingVertical: 4,
+                  borderRadius: 6,
+                }}
+                onPress={() => {
+                  setViewerSimulated(false);
+                  showAppToast('🏏 Switched back to Scorer Mode', '🏏');
+                }}
+              >
+                <Text style={{ color: '#022c22', fontSize: 10.5, fontWeight: '900' }}>
+                  Exit Preview
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {isFirstInningsFinished ? (
             /* ========================================================================= */
@@ -13867,22 +13946,24 @@ function CricketAddaMain() {
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: '#7f1d1d',
-                    borderColor: '#ef4444',
-                    borderWidth: 1.5,
-                    paddingVertical: 12,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                  onPress={handleUndoLastBall}
-                >
-                  <Text style={{ color: '#fca5a5', fontSize: 13.5, fontWeight: '900' }}>
-                    ↩️ Undo / Correct Final Delivery
-                  </Text>
-                </TouchableOpacity>
+                {isOfficialScorer && (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#7f1d1d',
+                      borderColor: '#ef4444',
+                      borderWidth: 1.5,
+                      paddingVertical: 12,
+                      borderRadius: 10,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onPress={handleUndoLastBall}
+                  >
+                    <Text style={{ color: '#fca5a5', fontSize: 13.5, fontWeight: '900' }}>
+                      ↩️ Undo / Correct Final Delivery
+                    </Text>
+                  </TouchableOpacity>
+                )}
 
                 <TouchableOpacity
                   style={{
@@ -13930,8 +14011,8 @@ function CricketAddaMain() {
                         borderColor: currentTheme.isLight ? '#10b981' : 'rgba(52, 211, 153, 0.55)',
                       }
                     ]}
-                    activeOpacity={0.75}
-                    onPress={() => handleEditTeamAndSquadFromScorer('batting')}
+                    activeOpacity={isOfficialScorer ? 0.75 : 1}
+                    onPress={isOfficialScorer ? () => handleEditTeamAndSquadFromScorer('batting') : undefined}
                   >
                     <TeamFlagBadge
                       flag={battingTeamFlag}
@@ -13963,8 +14044,8 @@ function CricketAddaMain() {
                         borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
                       }
                     ]}
-                    activeOpacity={0.75}
-                    onPress={() => handleEditTeamAndSquadFromScorer('bowling')}
+                    activeOpacity={isOfficialScorer ? 0.75 : 1}
+                    onPress={isOfficialScorer ? () => handleEditTeamAndSquadFromScorer('bowling') : undefined}
                   >
                     <View style={{ flex: 1, minWidth: 0, alignItems: 'flex-end', marginRight: 7, justifyContent: 'center' }}>
                       <Text style={[styles.scorerOppTeamName, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 14.5, fontWeight: '800' }]} numberOfLines={1}>
@@ -14209,6 +14290,15 @@ function CricketAddaMain() {
                   onPress={() => setAdminNoteModalVisible(true)}
                 >
                   <Text style={[styles.toolBtnText, { color: '#f59e0b', fontWeight: '800' }]}>📝 Note</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toolBtn, { backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0c4a6e', borderColor: '#38bdf8', borderWidth: 1 }]}
+                  onPress={() => {
+                    setViewerSimulated(true);
+                    showAppToast('👁️ Switched to Spectator Mode Preview', '👁️');
+                  }}
+                >
+                  <Text style={[styles.toolBtnText, { color: '#38bdf8', fontWeight: '800' }]}>👁️ Viewer</Text>
                 </TouchableOpacity>
               </View>
 
@@ -19426,39 +19516,57 @@ function CricketAddaMain() {
 
               {/* Action Buttons */}
               <View style={{ marginTop: 8 }}>
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: '#10b981',
-                    paddingVertical: 12,
-                    borderRadius: 10,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 8,
-                  }}
-                  onPress={handleStartSecondInnings}
-                >
-                  <Text style={{ color: '#022c22', fontSize: 14, fontWeight: '900' }}>
-                    ▶️ Start 2nd Innings ({firstInningsSummary?.oppTeam || bowlingTeamName} Chase) →
-                  </Text>
-                </TouchableOpacity>
+                {isOfficialScorer ? (
+                  <>
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: '#10b981',
+                        paddingVertical: 12,
+                        borderRadius: 10,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 8,
+                      }}
+                      onPress={handleStartSecondInnings}
+                    >
+                      <Text style={{ color: '#022c22', fontSize: 14, fontWeight: '900' }}>
+                        ▶️ Start 2nd Innings ({firstInningsSummary?.oppTeam || bowlingTeamName} Chase) →
+                      </Text>
+                    </TouchableOpacity>
 
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: '#7f1d1d',
-                    borderColor: '#ef4444',
-                    borderWidth: 1.5,
-                    paddingVertical: 10,
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: '#7f1d1d',
+                        borderColor: '#ef4444',
+                        borderWidth: 1.5,
+                        paddingVertical: 10,
+                        borderRadius: 10,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 8,
+                      }}
+                      onPress={handleUndoLastBall}
+                    >
+                      <Text style={{ color: '#fca5a5', fontSize: 13, fontWeight: '900' }}>
+                        ↩️ Undo / Correct Last Delivery
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <View style={{
+                    backgroundColor: '#0f172a',
+                    borderColor: '#1e293b',
+                    borderWidth: 1,
                     borderRadius: 10,
+                    padding: 12,
                     alignItems: 'center',
-                    justifyContent: 'center',
                     marginBottom: 8,
-                  }}
-                  onPress={handleUndoLastBall}
-                >
-                  <Text style={{ color: '#fca5a5', fontSize: 13, fontWeight: '900' }}>
-                    ↩️ Undo / Correct Last Delivery
-                  </Text>
-                </TouchableOpacity>
+                  }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 12.5, textAlign: 'center', fontWeight: '600' }}>
+                      ⏳ 1st Innings completed. Waiting for the Official Scorer to begin the 2nd Innings chase.
+                    </Text>
+                  </View>
+                )}
 
                 <TouchableOpacity
                   style={{
@@ -19769,23 +19877,25 @@ function CricketAddaMain() {
                 </Text>
               </TouchableOpacity>
 
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#7f1d1d',
-                  borderColor: '#ef4444',
-                  borderWidth: 1.5,
-                  paddingVertical: 10,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 8,
-                }}
-                onPress={handleUndoLastBall}
-              >
-                <Text style={{ color: '#fca5a5', fontSize: 13, fontWeight: '900' }}>
-                  ↩️ Undo / Correct Final Delivery
-                </Text>
-              </TouchableOpacity>
+              {isOfficialScorer && (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#7f1d1d',
+                    borderColor: '#ef4444',
+                    borderWidth: 1.5,
+                    paddingVertical: 10,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 8,
+                  }}
+                  onPress={handleUndoLastBall}
+                >
+                  <Text style={{ color: '#fca5a5', fontSize: 13, fontWeight: '900' }}>
+                    ↩️ Undo / Correct Final Delivery
+                  </Text>
+                </TouchableOpacity>
+              )}
 
               <TouchableOpacity
                 style={{
