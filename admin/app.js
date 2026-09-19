@@ -2037,18 +2037,74 @@ function openEditBallModal(ballIndex) {
   // Auto-fill Dismissed Batter when Striker changes or Wicket is checked
   const strikerSelect = document.getElementById('edit-ball-striker');
   const dismissedSelect = document.getElementById('edit-ball-dismissed-player');
+
+  // Resolve partner / non-striker at crease for this ball
+  let partnerVal = ball.nonStriker || '';
+  if (!partnerVal) {
+    if (match.currentNonStriker && match.currentNonStriker.toLowerCase() !== strikerVal.toLowerCase()) {
+      partnerVal = match.currentNonStriker;
+    } else {
+      for (let i = ballIndex - 1; i >= 0; i--) {
+        const h = history[i];
+        if (h && (!h.innings || h.innings === innNum)) {
+          if (h.striker && h.striker.toLowerCase() !== strikerVal.toLowerCase()) {
+            partnerVal = h.striker;
+            break;
+          }
+          if (h.nonStriker && h.nonStriker.toLowerCase() !== strikerVal.toLowerCase()) {
+            partnerVal = h.nonStriker;
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  // Update Next Strike dropdown labels & options
+  const nextStrikeSelect = document.getElementById('edit-ball-next-striker');
+  const updateNextStrikeLabels = () => {
+    if (!nextStrikeSelect) return;
+    const incomingName = (document.getElementById('edit-ball-incoming-player').value || resolvedIncoming || 'Incoming Batter').trim();
+    const dismissed = (dismissedSelect.value || dismissedBatterVal || '').trim();
+    const survivingPartner = (dismissed && partnerVal && dismissed.toLowerCase() === partnerVal.toLowerCase()) ? (strikerSelect.value || strikerVal) : (partnerVal || strikerSelect.value || strikerVal || 'Partner');
+
+    if (nextStrikeSelect.options.length >= 2) {
+      nextStrikeSelect.options[0].textContent = `${incomingName} (Incoming Batter on strike)`;
+      nextStrikeSelect.options[1].textContent = `${survivingPartner} (Non-Striker / Partner on strike)`;
+    }
+  };
+
+  let selectedNextStrike = ball.nextOnStrike || 'incoming';
+  if (!ball.nextOnStrike && ballIndex < history.length - 1) {
+    const nextBall = history[ballIndex + 1];
+    const dismissed = (dismissedBatterVal || '').trim();
+    const survivingPartner = (dismissed && partnerVal && dismissed.toLowerCase() === partnerVal.toLowerCase()) ? strikerVal : (partnerVal || strikerVal);
+    if (nextBall && survivingPartner && nextBall.striker && nextBall.striker.toLowerCase() === survivingPartner.toLowerCase()) {
+      selectedNextStrike = 'non_striker';
+    }
+  }
+  if (nextStrikeSelect) {
+    nextStrikeSelect.value = selectedNextStrike;
+    updateNextStrikeLabels();
+  }
+
+  document.getElementById('edit-ball-incoming-player').onchange = updateNextStrikeLabels;
+  dismissedSelect.onchange = updateNextStrikeLabels;
+
   wktCheckbox.onchange = () => {
     const checked = wktCheckbox.checked;
     document.getElementById('wkt-fields-group').classList.toggle('hidden', !checked);
     if (checked && !dismissedSelect.value) {
       dismissedSelect.value = strikerSelect.value || match.currentStriker || '';
     }
+    updateNextStrikeLabels();
   };
 
   strikerSelect.onchange = () => {
     if (wktCheckbox.checked && !dismissedSelect.value) {
       dismissedSelect.value = strikerSelect.value;
     }
+    updateNextStrikeLabels();
   };
 
   openModal('modal-edit-ball');
@@ -2078,6 +2134,8 @@ function handleSaveBallForm(e) {
   else if (extraType === 'bye') ballSymbol = `${runs}B`;
   else if (extraType === 'legBye') ballSymbol = `${runs}Lb`;
 
+  const nextOnStrike = isWkt ? (document.getElementById('edit-ball-next-striker')?.value || 'incoming') : null;
+
   const updatedBall = {
     ...oldBall,
     addedRuns: runs + overthrowRuns,
@@ -2090,6 +2148,7 @@ function handleSaveBallForm(e) {
     dismissedPlayerName: isWkt ? document.getElementById('edit-ball-dismissed-player').value : null,
     finalFielder: isWkt ? document.getElementById('edit-ball-fielder').value : null,
     incomingBatter: isWkt ? document.getElementById('edit-ball-incoming-player').value : null,
+    nextOnStrike,
     striker: document.getElementById('edit-ball-striker').value,
     bowler: document.getElementById('edit-ball-bowler').value,
     dismissalDesc: document.getElementById('edit-ball-commentary').value,
@@ -2097,6 +2156,62 @@ function handleSaveBallForm(e) {
   };
 
   history[idx] = updatedBall;
+
+  if (isWkt) {
+    const incoming = updatedBall.incomingBatter;
+    const dismissed = updatedBall.dismissedPlayerName;
+    const striker = updatedBall.striker;
+
+    // Resolve partner
+    let partner = oldBall.nonStriker || '';
+    if (!partner) {
+      if (match.currentNonStriker && match.currentNonStriker.toLowerCase() !== striker.toLowerCase()) {
+        partner = match.currentNonStriker;
+      } else {
+        for (let i = idx - 1; i >= 0; i--) {
+          const h = history[i];
+          if (h && (!h.innings || h.innings === match.currentInnings)) {
+            if (h.striker && h.striker.toLowerCase() !== striker.toLowerCase()) {
+              partner = h.striker;
+              break;
+            }
+            if (h.nonStriker && h.nonStriker.toLowerCase() !== striker.toLowerCase()) {
+              partner = h.nonStriker;
+              break;
+            }
+          }
+        }
+      }
+    }
+    const surviving = (dismissed && partner && dismissed.toLowerCase() === partner.toLowerCase()) ? striker : (partner || striker);
+
+    const whoOnStrike = (nextOnStrike === 'non_striker') ? surviving : incoming;
+    const whoAtNonStrike = (nextOnStrike === 'non_striker') ? incoming : surviving;
+
+    // If latest ball in match, update live active crease
+    if (idx === history.length - 1) {
+      if (whoOnStrike) {
+        match.currentStriker = whoOnStrike;
+        if (!match.liveState) match.liveState = {};
+        match.liveState.currentStriker = whoOnStrike;
+      }
+      if (whoAtNonStrike) {
+        match.currentNonStriker = whoAtNonStrike;
+        if (!match.liveState) match.liveState = {};
+        match.liveState.currentNonStriker = whoAtNonStrike;
+      }
+    }
+
+    // If subsequent ball exists in history (ball idx + 1), update who faced it
+    if (idx + 1 < history.length && history[idx + 1]) {
+      if (whoOnStrike) {
+        history[idx + 1].striker = whoOnStrike;
+      }
+      if (whoAtNonStrike) {
+        history[idx + 1].nonStriker = whoAtNonStrike;
+      }
+    }
+  }
 
   match.scoringHistory = history;
   if (!match.liveState) match.liveState = {};
