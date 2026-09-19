@@ -2094,10 +2094,48 @@ function openEditBallModal(ballIndex) {
   wktCheckbox.onchange = () => {
     const checked = wktCheckbox.checked;
     document.getElementById('wkt-fields-group').classList.toggle('hidden', !checked);
-    if (checked && !dismissedSelect.value) {
-      dismissedSelect.value = strikerSelect.value || match.currentStriker || '';
+    if (checked) {
+      if (!dismissedSelect.value) {
+        dismissedSelect.value = strikerSelect.value || match.currentStriker || '';
+      }
+      // Auto-populate incoming batter if empty
+      const incomingSelect = document.getElementById('edit-ball-incoming-player');
+      if (!incomingSelect.value) {
+        const battedNames = new Set();
+        history.forEach(h => {
+          if (!h.innings || h.innings === innNum) {
+            if (h.striker) battedNames.add(h.striker.trim().toLowerCase());
+            if (h.nonStriker) battedNames.add(h.nonStriker.trim().toLowerCase());
+          }
+        });
+        const unbatted = battingPlayers.find(p => !battedNames.has(p.toLowerCase()));
+        if (unbatted) incomingSelect.value = unbatted;
+      }
+      // Reset runs to 0 on wicket (unless run out)
+      const runsInput = document.getElementById('edit-ball-runs-custom');
+      const wktType = document.getElementById('edit-ball-wkt-type').value || 'bowled';
+      if (wktType !== 'run_out') {
+        runsInput.value = '0';
+      }
+      // Auto-set commentary
+      const commInput = document.getElementById('edit-ball-commentary');
+      const outName = dismissedSelect.value || strikerSelect.value || 'Batter';
+      const bwlName = document.getElementById('edit-ball-bowler').value || 'Bowler';
+      commInput.value = `OUT! ${outName} is dismissed (${wktType}) b ${bwlName}!`;
     }
     updateNextStrikeLabels();
+  };
+
+  document.getElementById('edit-ball-wkt-type').onchange = () => {
+    const wktType = document.getElementById('edit-ball-wkt-type').value || 'bowled';
+    const runsInput = document.getElementById('edit-ball-runs-custom');
+    if (wktType !== 'run_out') {
+      runsInput.value = '0';
+    }
+    const commInput = document.getElementById('edit-ball-commentary');
+    const outName = dismissedSelect.value || strikerSelect.value || 'Batter';
+    const bwlName = document.getElementById('edit-ball-bowler').value || 'Bowler';
+    commInput.value = `OUT! ${outName} is dismissed (${wktType}) b ${bwlName}!`;
   };
 
   strikerSelect.onchange = () => {
@@ -2122,10 +2160,14 @@ function handleSaveBallForm(e) {
   const history = [...getMatchScoringHistory(match)];
   const oldBall = history[idx] || {};
 
-  const runs = Number(document.getElementById('edit-ball-runs-custom').value) || 0;
-  const extraType = document.getElementById('edit-ball-extra-type').value;
-  const overthrowRuns = Number(document.getElementById('edit-ball-overthrow').value) || 0;
   const isWkt = document.getElementById('edit-ball-is-wkt').checked;
+  const dismissalType = isWkt ? document.getElementById('edit-ball-wkt-type').value : null;
+  const isRunOut = isWkt && dismissalType === 'run_out';
+
+  const rawRuns = Number(document.getElementById('edit-ball-runs-custom').value) || 0;
+  const runs = (isWkt && !isRunOut) ? 0 : rawRuns;
+  const extraType = document.getElementById('edit-ball-extra-type').value;
+  const overthrowRuns = (isWkt && !isRunOut) ? 0 : (Number(document.getElementById('edit-ball-overthrow').value) || 0);
 
   let ballSymbol = String(runs);
   if (isWkt) ballSymbol = 'W';
@@ -2134,48 +2176,61 @@ function handleSaveBallForm(e) {
   else if (extraType === 'bye') ballSymbol = `${runs}B`;
   else if (extraType === 'legBye') ballSymbol = `${runs}Lb`;
 
+  const runsOffBat = (isWkt && !isRunOut) ? 0 : (extraType === 'none' || !extraType ? runs : 0);
   const nextOnStrike = isWkt ? (document.getElementById('edit-ball-next-striker')?.value || 'incoming') : null;
+
+  let comm = document.getElementById('edit-ball-commentary').value;
+  const striker = document.getElementById('edit-ball-striker').value;
+  const bowler = document.getElementById('edit-ball-bowler').value;
+  const dismissedPlayerName = isWkt ? document.getElementById('edit-ball-dismissed-player').value : null;
+
+  if (isWkt && (!comm || comm.includes('FOUR') || comm.includes('SIX') || comm.includes('run'))) {
+    comm = `OUT! ${dismissedPlayerName || striker} is dismissed (${dismissalType || 'bowled'}) b ${bowler}!`;
+  }
 
   const updatedBall = {
     ...oldBall,
     addedRuns: runs + overthrowRuns,
+    runsOffBat,
     isLegalDelivery: extraType !== 'wide' && extraType !== 'noBall',
     ballSymbol,
     extraType,
     overthrowRuns,
     isWkt,
-    dismissalType: isWkt ? document.getElementById('edit-ball-wkt-type').value : null,
-    dismissedPlayerName: isWkt ? document.getElementById('edit-ball-dismissed-player').value : null,
+    dismissalType,
+    customDismissalType: dismissalType,
+    dismissedPlayerName,
     finalFielder: isWkt ? document.getElementById('edit-ball-fielder').value : null,
     incomingBatter: isWkt ? document.getElementById('edit-ball-incoming-player').value : null,
     nextOnStrike,
-    striker: document.getElementById('edit-ball-striker').value,
-    bowler: document.getElementById('edit-ball-bowler').value,
-    dismissalDesc: document.getElementById('edit-ball-commentary').value,
+    striker,
+    bowler,
+    dismissalDesc: comm,
     adminEdited: true,
   };
 
   history[idx] = updatedBall;
 
   if (isWkt) {
-    const incoming = updatedBall.incomingBatter;
-    const dismissed = updatedBall.dismissedPlayerName;
-    const striker = updatedBall.striker;
+    const incoming = (updatedBall.incomingBatter || '').trim();
+    const dismissed = (updatedBall.dismissedPlayerName || striker).trim();
+    const normDismissed = dismissed.toLowerCase();
+    const normStriker = striker.toLowerCase();
 
     // Resolve partner
-    let partner = oldBall.nonStriker || '';
+    let partner = (oldBall.nonStriker || '').trim();
     if (!partner) {
-      if (match.currentNonStriker && match.currentNonStriker.toLowerCase() !== striker.toLowerCase()) {
+      if (match.currentNonStriker && match.currentNonStriker.toLowerCase() !== normStriker) {
         partner = match.currentNonStriker;
       } else {
         for (let i = idx - 1; i >= 0; i--) {
           const h = history[i];
           if (h && (!h.innings || h.innings === match.currentInnings)) {
-            if (h.striker && h.striker.toLowerCase() !== striker.toLowerCase()) {
+            if (h.striker && h.striker.toLowerCase() !== normStriker) {
               partner = h.striker;
               break;
             }
-            if (h.nonStriker && h.nonStriker.toLowerCase() !== striker.toLowerCase()) {
+            if (h.nonStriker && h.nonStriker.toLowerCase() !== normStriker) {
               partner = h.nonStriker;
               break;
             }
@@ -2183,7 +2238,7 @@ function handleSaveBallForm(e) {
         }
       }
     }
-    const surviving = (dismissed && partner && dismissed.toLowerCase() === partner.toLowerCase()) ? striker : (partner || striker);
+    const surviving = (dismissed && partner && normDismissed === partner.toLowerCase()) ? striker : (partner || striker);
 
     const whoOnStrike = (nextOnStrike === 'non_striker') ? surviving : incoming;
     const whoAtNonStrike = (nextOnStrike === 'non_striker') ? incoming : surviving;
@@ -2202,13 +2257,22 @@ function handleSaveBallForm(e) {
       }
     }
 
-    // If subsequent ball exists in history (ball idx + 1), update who faced it
-    if (idx + 1 < history.length && history[idx + 1]) {
-      if (whoOnStrike) {
-        history[idx + 1].striker = whoOnStrike;
-      }
-      if (whoAtNonStrike) {
-        history[idx + 1].nonStriker = whoAtNonStrike;
+    // Cascade replacement across all subsequent deliveries in this innings!
+    // A dismissed batter CANNOT face any more balls or be at the crease!
+    for (let i = idx + 1; i < history.length; i++) {
+      const nextBall = history[i];
+      if (!nextBall || (nextBall.innings && nextBall.innings !== match.currentInnings)) continue;
+
+      if (i === idx + 1) {
+        if (whoOnStrike) nextBall.striker = whoOnStrike;
+        if (whoAtNonStrike) nextBall.nonStriker = whoAtNonStrike;
+      } else {
+        if (dismissed && nextBall.striker && nextBall.striker.toLowerCase() === normDismissed) {
+          nextBall.striker = incoming || surviving;
+        }
+        if (dismissed && nextBall.nonStriker && nextBall.nonStriker.toLowerCase() === normDismissed) {
+          nextBall.nonStriker = incoming || surviving;
+        }
       }
     }
   }
