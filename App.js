@@ -4250,6 +4250,17 @@ function CricketAddaMain() {
     return isUserScorerForMatch(currentMatch);
   }, [activeMatchId, matchesDb, isUserScorerForMatch]);
 
+  const isMatchInAuditMode = useMemo(() => {
+    const curMatch = (activeMatchId && matchesDb[activeMatchId]) || match;
+    return Boolean(
+      curMatch?.auditMode ||
+      curMatch?.isAuditMode ||
+      curMatch?.isPausedForAudit ||
+      curMatch?.liveState?.auditMode ||
+      curMatch?.liveState?.isPausedForAudit
+    );
+  }, [activeMatchId, matchesDb, match]);
+
   const [photoPickerVisible, setPhotoPickerVisible] = useState(false);
   const [customUrlInput, setCustomUrlInput] = useState('');
   const [editNameInput, setEditNameInput] = useState(userProfile.name);
@@ -5165,13 +5176,12 @@ function CricketAddaMain() {
     }
   }, [usersDb]);
 
-  // Live Cloud Database Auto-Sync: Automatically sync matches database to Cloud & persist locally
+  // Live Cloud Database: Persist matches database locally in AsyncStorage
   useEffect(() => {
     if (matchesDb && Object.keys(matchesDb || {}).length > 0) {
       AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(matchesDb)).catch(() => {});
-      if (isFirebaseConfigured()) {
-        syncMatchesDbToFirebase(matchesDb);
-      }
+      // ZERO-CONFLICT GUARD: Never perform blind full PUT of entire database from client app state!
+      // Active match updates are pushed authoritatively via syncMatchToFirebaseDirect by the official scorer.
     }
   }, [matchesDb]);
 
@@ -6130,6 +6140,8 @@ function CricketAddaMain() {
     setMatch(prev => ({
       ...prev,
       ...(d.match || {}),
+      auditMode: d.auditMode !== undefined ? d.auditMode : (d.match?.auditMode ?? prev.auditMode),
+      isPausedForAudit: d.isPausedForAudit !== undefined ? d.isPausedForAudit : (d.match?.isPausedForAudit ?? prev.isPausedForAudit),
       currentStriker: d.currentStriker || d.match?.currentStriker || prev.currentStriker || '',
       currentNonStriker: d.currentNonStriker || d.match?.currentNonStriker || prev.currentNonStriker || '',
       currentBowler: d.currentBowler || d.match?.currentBowler || prev.currentBowler || '',
@@ -6153,6 +6165,8 @@ function CricketAddaMain() {
           ...existingMatch,
           ...(d.match || {}),
           id: d.activeMatchId,
+          auditMode: d.auditMode !== undefined ? d.auditMode : ((d.match && d.match.auditMode) ?? existingMatch.auditMode),
+          isPausedForAudit: d.isPausedForAudit !== undefined ? d.isPausedForAudit : ((d.match && d.match.isPausedForAudit) ?? existingMatch.isPausedForAudit),
           liveRuns: typeof d.liveRuns === 'number' ? d.liveRuns : existingMatch.liveRuns,
           liveWickets: typeof d.liveWickets === 'number' ? d.liveWickets : existingMatch.liveWickets,
           liveBalls: typeof d.liveBalls === 'number' ? d.liveBalls : existingMatch.liveBalls,
@@ -6171,6 +6185,8 @@ function CricketAddaMain() {
           innings2: d.innings2 || existingMatch.innings2,
           liveState: {
             ...(existingMatch.liveState || {}),
+            auditMode: d.auditMode !== undefined ? d.auditMode : ((d.match && d.match.auditMode) ?? existingMatch.auditMode),
+            isPausedForAudit: d.isPausedForAudit !== undefined ? d.isPausedForAudit : ((d.match && d.match.isPausedForAudit) ?? existingMatch.isPausedForAudit),
             liveRuns: typeof d.liveRuns === 'number' ? d.liveRuns : existingMatch.liveRuns,
             liveWickets: typeof d.liveWickets === 'number' ? d.liveWickets : existingMatch.liveWickets,
             liveBalls: typeof d.liveBalls === 'number' ? d.liveBalls : existingMatch.liveBalls,
@@ -6859,7 +6875,11 @@ function CricketAddaMain() {
     incomingBatterName = null,
     dismissalDescParam = null
   ) => {
-    // 0. Check if current innings or match is already completed
+    // 0. Check if current innings or match is in audit mode or completed
+    if (isMatchInAuditMode) {
+      Alert.alert('🔒 Innings Audit in Progress', 'The Match Admin is currently auditing and verifying the scorecard. Scoring is temporarily paused.');
+      return;
+    }
     if (isFirstInningsFinished) {
       setInningsBreakModalVisible(true);
       return;
@@ -8376,6 +8396,11 @@ function CricketAddaMain() {
   const handleUndoLastBall = () => {
     if (!isOfficialScorer) {
       Alert.alert('👁️ Spectator Mode', 'You are in read-only Spectator Mode. Only the Official Match Scorer can undo deliveries.');
+      return;
+    }
+
+    if (isMatchInAuditMode) {
+      Alert.alert('🔒 Innings Audit in Progress', 'The Match Admin is currently auditing the scorecard. Deliveries cannot be undone until the audit is completed.');
       return;
     }
 
@@ -13925,8 +13950,64 @@ function CricketAddaMain() {
           </View>
 
           {isOfficialScorer ? (
-            <>
-              <View style={styles.quickBar}>
+            isMatchInAuditMode ? (
+              <View style={{
+                marginHorizontal: 12,
+                marginVertical: 14,
+                padding: 16,
+                borderRadius: 16,
+                backgroundColor: currentTheme.isLight ? '#fffbeb' : '#1c1917',
+                borderWidth: 1.5,
+                borderColor: '#f59e0b',
+                alignItems: 'center',
+                shadowColor: '#f59e0b',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.15,
+                shadowRadius: 10,
+              }}>
+                <View style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: 8,
+                }}>
+                  <Text style={{ fontSize: 22 }}>🔒</Text>
+                </View>
+                <Text style={{
+                  fontSize: 15,
+                  fontWeight: '900',
+                  color: '#f59e0b',
+                  letterSpacing: 0.5,
+                  textTransform: 'uppercase',
+                  marginBottom: 6,
+                  textAlign: 'center',
+                }}>
+                  Innings Audit In Progress
+                </Text>
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '600',
+                  color: currentTheme.isLight ? '#78350f' : '#fbbf24',
+                  textAlign: 'center',
+                  lineHeight: 18,
+                  marginBottom: 8,
+                }}>
+                  The Match Admin is currently reviewing and verifying the scorecard.
+                </Text>
+                <Text style={{
+                  fontSize: 11,
+                  color: currentTheme.isLight ? '#92400e' : '#a3a3a3',
+                  textAlign: 'center',
+                }}>
+                  Live scoring is temporarily paused to prevent conflicts. Scoring controls will automatically unlock once the admin finishes the review.
+                </Text>
+              </View>
+            ) : (
+              <>
+                <View style={styles.quickBar}>
                 <TouchableOpacity
                   style={[styles.toggleWheelBtn, autoWheel && styles.toggleWheelBtnOn]}
                   onPress={toggleAutoWheel}
@@ -14252,7 +14333,8 @@ function CricketAddaMain() {
                   </View>
                 </TouchableOpacity>
               </View>
-            </>
+              </>
+            )
           ) : (
             /* ========================================================================= */
             /* SPECTATOR BROADCAST VIEW (READ-ONLY LIVE DASHBOARD)                      */

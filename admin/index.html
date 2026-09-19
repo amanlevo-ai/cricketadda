@@ -320,6 +320,48 @@
         <!-- Injected via JS -->
       </div>
 
+      <!-- Post-Innings & Audit Control Center (0% Conflict Workflow) -->
+      <div id="audit-control-card" class="glass-panel rounded-xl border border-slate-800 p-4 transition-all duration-300 shadow-xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div class="flex items-start sm:items-center gap-3">
+            <div id="audit-status-icon-wrap" class="w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center shrink-0">
+              <i data-lucide="shield-alert" class="w-5 h-5"></i>
+            </div>
+            <div>
+              <div class="flex items-center gap-2 flex-wrap">
+                <span id="audit-badge" class="px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                  Live Play Active
+                </span>
+                <span id="audit-sync-status" class="text-xs text-slate-400 font-medium">Scorer has exclusive live scoring control</span>
+              </div>
+              <p id="audit-desc" class="text-xs text-slate-300 mt-1">
+                To guarantee zero conflicts, comprehensive ball corrections and scorecard edits are performed during Innings Break or when Paused for Audit.
+              </p>
+            </div>
+          </div>
+
+          <!-- Audit Action Buttons -->
+          <div class="flex items-center gap-2 shrink-0 flex-wrap">
+            <button type="button" id="btn-toggle-audit" onclick="toggleActiveMatchAuditMode()" class="px-3.5 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition">
+              <i data-lucide="pause-circle" class="w-4 h-4"></i>
+              <span id="btn-toggle-audit-text">Pause for Admin Audit</span>
+            </button>
+            <button type="button" id="btn-recalculate-all" onclick="recalculateActiveMatchStats(true)" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition" title="Audit and recalculate all batting, bowling and maiden stats">
+              <i data-lucide="calculator" class="w-3.5 h-3.5 text-sky-400"></i>
+              <span>Recalculate Stats</span>
+            </button>
+            <button type="button" id="btn-approve-seal" onclick="approveAndSealScorecard()" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition">
+              <i data-lucide="check-check" class="w-4 h-4"></i>
+              <span>Approve & Seal Scorecard</span>
+            </button>
+            <button type="button" id="btn-start-inn2" onclick="startSecondInningsFromAdmin()" class="hidden px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition">
+              <i data-lucide="play" class="w-4 h-4"></i>
+              <span>Start 2nd Innings</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Quick Crease & Live State Editor -->
       <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
         <!-- Striker & Non-Striker Control -->
@@ -952,6 +994,6 @@
   <div id="toast-container"></div>
 
   <!-- Core Admin Logic -->
-  <script src="app.js?v=4.0"></script>
+  <script src="app.js?v=4.1"></script>
 </body>
 </html>
