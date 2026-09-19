@@ -187,6 +187,116 @@ document.addEventListener('DOMContentLoaded', async () => {
 // CLOUD API & REALTIME SYNC
 // ============================================================================
 
+function parseOversToBalls(o) {
+  if (!o) return 0;
+  const p = String(o).trim().split('.');
+  return (parseInt(p[0], 10) || 0) * 6 + (parseInt(p[1], 10) || 0);
+}
+
+function getMatchScoringHistory(match) {
+  if (!match) return [];
+  if (Array.isArray(match.scoringHistory) && match.scoringHistory.length > 0) return match.scoringHistory;
+  if (Array.isArray(match.liveState?.scoringHistory) && match.liveState.scoringHistory.length > 0) return match.liveState.scoringHistory;
+  return [];
+}
+
+function generateCommentaryFromHistory(history, match) {
+  const commList = [];
+  let cumRuns = 0;
+  let cumWkts = 0;
+  let legalCount = 0;
+
+  (history || []).forEach((ball, idx) => {
+    const isLegal = ball.isLegalDelivery !== false && ball.extraType !== 'wide' && ball.extraType !== 'noBall';
+    if (isLegal) legalCount++;
+
+    const runs = Number(ball.addedRuns) || 0;
+    cumRuns += runs;
+    if (ball.isWkt) cumWkts++;
+
+    const overNum = Math.floor(Math.max(0, legalCount - (isLegal ? 1 : 0)) / 6);
+    const ballInOver = isLegal ? ((legalCount - 1) % 6) + 1 : (legalCount % 6);
+    const ovStr = `${overNum}.${ballInOver}`;
+
+    const striker = (ball.striker || 'Batter').trim();
+    const bowler = (ball.bowler || 'Bowler').trim();
+    const isWkt = Boolean(ball.isWkt);
+    const extraType = ball.extraType || 'none';
+
+    let ballSym = ball.ballSymbol;
+    if (!ballSym) {
+      if (isWkt) ballSym = 'W';
+      else if (extraType === 'wide') ballSym = runs > 1 ? `${runs}Wd` : 'Wd';
+      else if (extraType === 'noBall') ballSym = runs > 0 ? `Nb+${runs}` : 'Nb';
+      else if (extraType === 'bye') ballSym = `${runs}B`;
+      else if (extraType === 'legBye') ballSym = `${runs}Lb`;
+      else ballSym = String(runs);
+    }
+
+    let badgeType = 'dot';
+    if (isWkt) badgeType = 'wkt';
+    else if (runs === 4 && extraType === 'none') badgeType = 'four';
+    else if (runs === 6 && extraType === 'none') badgeType = 'six';
+    else if (extraType === 'wide') badgeType = 'wide';
+    else if (extraType === 'noBall') badgeType = 'noball';
+    else if (runs > 0) badgeType = 'run';
+
+    let text = ball.dismissalDesc;
+    if (!text || text.trim() === '') {
+      if (isWkt) {
+        text = `OUT! ${ball.dismissedPlayerName || striker} is dismissed by ${bowler} (${ball.dismissalType || 'bowled'})!`;
+      } else if (extraType === 'wide') {
+        text = `Wide delivery from ${bowler}. Extra run conceded.`;
+      } else if (extraType === 'noBall') {
+        text = `No ball called! ${bowler} oversteps. Free hit awarded!`;
+      } else if (runs === 4) {
+        text = `FOUR! Cracked away by ${striker} off ${bowler}, racing past the boundary rope!`;
+      } else if (runs === 6) {
+        text = `SIX! High and handsome! ${striker} dispatches ${bowler} deep into the stands!`;
+      } else if (runs === 0) {
+        text = `Tapped gently towards the fielder by ${striker} off ${bowler}. No run.`;
+      } else {
+        text = `${runs} run${runs === 1 ? '' : 's'} taken by ${striker} and running between wickets off ${bowler}.`;
+      }
+    }
+
+    commList.unshift({
+      id: ball.id ? `comm_${ball.id}` : `comm_ball_${idx}_${Date.now()}`,
+      overs: ovStr,
+      batter: striker,
+      bowler: bowler,
+      ballSymbol: ballSym,
+      badgeType,
+      runs,
+      text,
+      timestamp: 'Just now',
+    });
+
+    if (isLegal && legalCount % 6 === 0) {
+      const crr = ((cumRuns / legalCount) * 6).toFixed(2);
+      commList.unshift({
+        id: `comm_over_end_${legalCount / 6}`,
+        isOverEnd: true,
+        overNum: legalCount / 6,
+        overSummary: `End of Over ${legalCount / 6} • Match Score: ${cumRuns}/${cumWkts} (CRR: ${crr})`,
+      });
+    }
+  });
+
+  const innNum = match.currentInnings || 1;
+  const battingTeam = innNum === 2 ? (match.innings2?.team || match.teamB) : (match.innings1?.team || match.teamA);
+  commList.push({
+    id: `comm_inn_start_${match.id || 'curr'}`,
+    isMatchStart: true,
+    isOverEnd: true,
+    overNum: 0,
+    headerTitle: `${innNum === 2 ? '2ND' : '1ST'} INNINGS COMMENCES`,
+    overSummary: `🏏 ${battingTeam || 'Batting Team'} innings underway.`,
+  });
+
+  return commList;
+}
+
 async function syncFromCloud(showNotification = false) {
   const startTime = performance.now();
   try {
@@ -252,22 +362,38 @@ async function syncFromCloud(showNotification = false) {
             if (!state.matchesDb[mId]) {
               state.matchesDb[mId] = lMatch.match || lMatch;
             } else {
-              // Merge in-flight live state
+              // Merge in-flight live state without overwriting recent admin edits
+              const existing = state.matchesDb[mId];
+              const isRecentlyAdminEdited = existing.adminEditedAt && (Date.now() - existing.adminEditedAt < 6000);
+              const finalHist = lMatch.scoringHistory || lMatch.liveState?.scoringHistory || existing.scoringHistory || existing.liveState?.scoringHistory || [];
+              
               state.matchesDb[mId] = {
-                ...state.matchesDb[mId],
+                ...existing,
                 ...(lMatch.match || {}),
-                liveRuns: lMatch.liveRuns ?? state.matchesDb[mId].liveRuns,
-                liveWickets: lMatch.liveWickets ?? state.matchesDb[mId].liveWickets,
-                liveBalls: lMatch.liveBalls ?? state.matchesDb[mId].liveBalls,
-                liveThisOver: lMatch.liveThisOver ?? state.matchesDb[mId].liveThisOver,
-                activeScorer: lMatch.activeScorer ?? state.matchesDb[mId].activeScorer,
-                currentInnings: lMatch.currentInnings ?? state.matchesDb[mId].currentInnings,
-                firstInningsSummary: lMatch.firstInningsSummary ?? state.matchesDb[mId].firstInningsSummary,
+                liveRuns: isRecentlyAdminEdited ? existing.liveRuns : (lMatch.liveRuns ?? existing.liveRuns),
+                liveWickets: isRecentlyAdminEdited ? existing.liveWickets : (lMatch.liveWickets ?? existing.liveWickets),
+                liveBalls: isRecentlyAdminEdited ? existing.liveBalls : (lMatch.liveBalls ?? existing.liveBalls),
+                liveOvers: isRecentlyAdminEdited ? existing.liveOvers : (lMatch.liveOvers ?? existing.liveOvers),
+                liveThisOver: isRecentlyAdminEdited ? existing.liveThisOver : (lMatch.liveThisOver ?? existing.liveThisOver),
+                activeScorer: lMatch.activeScorer ?? existing.activeScorer,
+                currentInnings: lMatch.currentInnings ?? existing.currentInnings,
+                firstInningsSummary: isRecentlyAdminEdited ? existing.firstInningsSummary : (lMatch.firstInningsSummary ?? existing.firstInningsSummary),
+                innings1: isRecentlyAdminEdited ? existing.innings1 : (lMatch.innings1 || existing.innings1),
+                innings2: isRecentlyAdminEdited ? existing.innings2 : (lMatch.innings2 || existing.innings2),
+                liveBatters: isRecentlyAdminEdited ? existing.liveBatters : (lMatch.liveBatters || existing.liveBatters),
+                liveBowlerStats: isRecentlyAdminEdited ? existing.liveBowlerStats : (lMatch.liveBowlerStats || existing.liveBowlerStats),
+                scoringHistory: finalHist,
+                liveCommentaryList: isRecentlyAdminEdited ? (existing.liveCommentaryList || existing.liveState?.liveCommentaryList) : (lMatch.liveCommentaryList || existing.liveCommentaryList || existing.liveState?.liveCommentaryList || []),
                 liveState: {
-                  ...(state.matchesDb[mId].liveState || {}),
+                  ...(existing.liveState || {}),
                   ...(lMatch.liveState || {}),
-                  scoringHistory: lMatch.match?.liveState?.scoringHistory || lMatch.scoringHistory || state.matchesDb[mId].liveState?.scoringHistory || [],
-                  liveCommentaryList: lMatch.liveCommentaryList || state.matchesDb[mId].liveState?.liveCommentaryList || [],
+                  scoringHistory: finalHist,
+                  liveCommentaryList: isRecentlyAdminEdited ? (existing.liveCommentaryList || existing.liveState?.liveCommentaryList) : (lMatch.liveCommentaryList || existing.liveCommentaryList || existing.liveState?.liveCommentaryList || []),
+                  liveBatters: isRecentlyAdminEdited ? existing.liveBatters : (lMatch.liveBatters || existing.liveBatters),
+                  liveBowlerStats: isRecentlyAdminEdited ? existing.liveBowlerStats : (lMatch.liveBowlerStats || existing.liveBowlerStats),
+                  liveRuns: isRecentlyAdminEdited ? existing.liveRuns : (lMatch.liveRuns ?? existing.liveRuns),
+                  liveBalls: isRecentlyAdminEdited ? existing.liveBalls : (lMatch.liveBalls ?? existing.liveBalls),
+                  liveWickets: isRecentlyAdminEdited ? existing.liveWickets : (lMatch.liveWickets ?? existing.liveWickets),
                 }
               };
             }
@@ -450,8 +576,12 @@ async function pushMatchToCloud(matchId, customMatchState = null) {
   const currentMatch = customMatchState || state.matchesDb[mId];
   if (!currentMatch) return false;
 
+  const resolvedBalls = currentMatch.liveBalls !== undefined ? Number(currentMatch.liveBalls) : (currentMatch.liveState?.liveBalls || 0);
+  const resolvedOvers = currentMatch.liveOvers || `${Math.floor(resolvedBalls / 6)}.${resolvedBalls % 6}`;
+
   const updatedMatch = {
     ...currentMatch,
+    liveOvers: resolvedOvers,
     lastUpdatedAt: Date.now(),
     adminEditedAt: Date.now(),
   };
@@ -465,20 +595,37 @@ async function pushMatchToCloud(matchId, customMatchState = null) {
     });
 
     // 2. Broadcast to /matches/${mId} with remote admin sender id so all mobile clients ingest change immediately
+    const liveHistory = getMatchScoringHistory(updatedMatch);
+    const liveBatters = updatedMatch.liveBatters || buildBattersMap(updatedMatch);
+    const liveBowlers = updatedMatch.liveBowlerStats || buildBowlersMap(updatedMatch);
+    const liveComm = updatedMatch.liveCommentaryList || updatedMatch.liveState?.liveCommentaryList || [];
+    const liveBalls = updatedMatch.liveBalls !== undefined ? Number(updatedMatch.liveBalls) : (updatedMatch.liveState?.liveBalls || 0);
+    const liveRuns = updatedMatch.liveRuns !== undefined ? Number(updatedMatch.liveRuns) : (updatedMatch.liveState?.liveRuns || 0);
+    const liveWkts = updatedMatch.liveWickets !== undefined ? Number(updatedMatch.liveWickets) : (updatedMatch.liveState?.liveWickets || 0);
+    const liveOvers = updatedMatch.liveOvers || `${Math.floor(liveBalls / 6)}.${liveBalls % 6}`;
+
     const livePayload = {
       senderClientId: `admin_portal_${Date.now()}`,
       activeMatchId: mId,
       battingTeamName: getActiveBattingTeam(updatedMatch),
       bowlingTeamName: getActiveBowlingTeam(updatedMatch),
-      liveRuns: updatedMatch.liveRuns || 0,
-      liveWickets: updatedMatch.liveWickets || 0,
-      liveBalls: updatedMatch.liveBalls || 0,
-      liveThisOver: updatedMatch.liveThisOver || [],
+      liveRuns,
+      liveWickets: liveWkts,
+      liveBalls,
+      liveOvers,
+      liveThisOver: updatedMatch.liveThisOver || updatedMatch.liveState?.liveThisOver || [],
       currentInnings: updatedMatch.currentInnings || 1,
+      currentStriker: updatedMatch.currentStriker || updatedMatch.liveState?.currentStriker || '',
+      currentNonStriker: updatedMatch.currentNonStriker || updatedMatch.liveState?.currentNonStriker || '',
+      currentBowler: updatedMatch.currentBowler || updatedMatch.liveState?.currentBowler || '',
+      scoringHistory: liveHistory,
+      liveBatters,
+      liveBowlerStats: liveBowlers,
+      liveCommentaryList: liveComm,
+      firstInningsSummary: updatedMatch.firstInningsSummary || updatedMatch.liveState?.firstInningsSummary || null,
+      innings1: updatedMatch.innings1 || null,
+      innings2: updatedMatch.innings2 || null,
       match: updatedMatch,
-      liveBatters: buildBattersMap(updatedMatch),
-      liveBowlerStats: buildBowlersMap(updatedMatch),
-      liveCommentaryList: updatedMatch.liveState?.liveCommentaryList || [],
       lastSyncedAt: Date.now(),
     };
 
@@ -1747,7 +1894,7 @@ function openEditBallModal(ballIndex) {
   const match = state.matchesDb[state.activeMatchId];
   if (!match) return;
 
-  const history = match.liveState?.scoringHistory || [];
+  const history = getMatchScoringHistory(match);
   const ball = history[ballIndex];
   if (!ball) return;
 
@@ -1807,7 +1954,7 @@ function handleSaveBallForm(e) {
   const idx = state.editingBallIndex;
   if (idx == null) return;
 
-  const history = [...(match.liveState?.scoringHistory || [])];
+  const history = [...getMatchScoringHistory(match)];
   const oldBall = history[idx] || {};
 
   const runs = Number(document.getElementById('edit-ball-runs-custom').value) || 0;
@@ -1842,10 +1989,9 @@ function handleSaveBallForm(e) {
 
   history[idx] = updatedBall;
 
-  match.liveState = {
-    ...(match.liveState || {}),
-    scoringHistory: history,
-  };
+  match.scoringHistory = history;
+  if (!match.liveState) match.liveState = {};
+  match.liveState.scoringHistory = history;
 
   closeAllModals();
 
@@ -1861,13 +2007,12 @@ function handleDeleteBall() {
   if (!match) return;
 
   const idx = state.editingBallIndex;
-  const history = [...(match.liveState?.scoringHistory || [])];
+  const history = [...getMatchScoringHistory(match)];
   history.splice(idx, 1);
 
-  match.liveState = {
-    ...(match.liveState || {}),
-    scoringHistory: history,
-  };
+  match.scoringHistory = history;
+  if (!match.liveState) match.liveState = {};
+  match.liveState.scoringHistory = history;
 
   closeAllModals();
   recalculateActiveMatchStats();
@@ -1896,13 +2041,12 @@ function handleInsertMissedBall() {
     timestamp: Date.now(),
   };
 
-  const history = [...(match.liveState?.scoringHistory || [])];
+  const history = [...getMatchScoringHistory(match)];
   history.push(newBall);
 
-  match.liveState = {
-    ...(match.liveState || {}),
-    scoringHistory: history,
-  };
+  match.scoringHistory = history;
+  if (!match.liveState) match.liveState = {};
+  match.liveState.scoringHistory = history;
 
   recalculateActiveMatchStats();
   showToast('Missed ball inserted and stats updated!', 'success');
@@ -1914,7 +2058,10 @@ function recalculateActiveMatchStats() {
   if (!match) return;
 
   const innNum = match.currentInnings || 1;
-  const history = match.liveState?.scoringHistory || [];
+  const history = getMatchScoringHistory(match);
+  match.scoringHistory = history;
+  if (!match.liveState) match.liveState = {};
+  match.liveState.scoringHistory = history;
 
   let totalRuns = 0;
   let totalWickets = 0;
@@ -1926,12 +2073,20 @@ function recalculateActiveMatchStats() {
   const extras = { wides: 0, noBalls: 0, byes: 0, legByes: 0, penalty: 0, total: 0 };
   const fow = [];
 
+  // Track bowler overs for maiden calculation: bowler -> overIndex -> runsConceded
+  const bowlerOverRuns = {};
+  let currentOverIndex = 0;
+  let ballsInCurrentOver = 0;
+
   history.forEach((ball, bIdx) => {
     const runs = Number(ball.addedRuns) || 0;
+    const overthrow = Number(ball.overthrowRuns) || 0;
     totalRuns += runs;
 
-    if (ball.isLegalDelivery) {
+    const isLegal = ball.isLegalDelivery !== false && ball.extraType !== 'wide' && ball.extraType !== 'noBall';
+    if (isLegal) {
       legalBalls++;
+      ballsInCurrentOver++;
     }
 
     if (ball.ballSymbol) {
@@ -1939,44 +2094,92 @@ function recalculateActiveMatchStats() {
     }
 
     // Extras
-    if (ball.extraType === 'wide') extras.wides += runs || 1;
+    if (ball.extraType === 'wide') extras.wides += (runs || 1);
     else if (ball.extraType === 'noBall') extras.noBalls += 1;
     else if (ball.extraType === 'bye') extras.byes += runs;
     else if (ball.extraType === 'legBye') extras.legByes += runs;
     else if (ball.extraType === 'penalty') extras.penalty += runs;
 
     // Batter stats
-    const striker = ball.striker || 'Batter';
+    const striker = (ball.striker || 'Batter').trim();
     if (!battersMap[striker]) {
-      battersMap[striker] = { name: striker, runs: 0, balls: 0, fours: 0, sixes: 0, dismissal: 'not out' };
+      battersMap[striker] = {
+        name: striker,
+        runs: 0,
+        balls: 0,
+        fours: 0,
+        sixes: 0,
+        dots: 0,
+        singles: 0,
+        doubles: 0,
+        triples: 0,
+        sr: '0.00',
+        dismissal: 'not out',
+        isNotOut: true
+      };
     }
     if (ball.extraType !== 'wide') {
       battersMap[striker].balls += 1;
-      const offBatRuns = ball.extraType === 'none' ? runs - (ball.overthrowRuns || 0) : 0;
+      const offBatRuns = (ball.extraType === 'none' || !ball.extraType) ? Math.max(0, runs - overthrow) : 0;
       battersMap[striker].runs += offBatRuns;
-      if (offBatRuns === 4) battersMap[striker].fours += 1;
-      if (offBatRuns === 6) battersMap[striker].sixes += 1;
+      if (offBatRuns === 0) battersMap[striker].dots += 1;
+      else if (offBatRuns === 1) battersMap[striker].singles += 1;
+      else if (offBatRuns === 2) battersMap[striker].doubles += 1;
+      else if (offBatRuns === 3) battersMap[striker].triples += 1;
+      else if (offBatRuns === 4) battersMap[striker].fours += 1;
+      else if (offBatRuns === 6) battersMap[striker].sixes += 1;
     }
 
     // Bowler stats
-    const bowler = ball.bowler || 'Bowler';
+    const bowler = (ball.bowler || 'Bowler').trim();
     if (!bowlersMap[bowler]) {
-      bowlersMap[bowler] = { name: bowler, legalBalls: 0, runs: 0, wickets: 0, maidens: 0, wides: 0, noBalls: 0 };
+      bowlersMap[bowler] = {
+        name: bowler,
+        balls: 0,
+        overs: '0.0',
+        runs: 0,
+        wickets: 0,
+        maidens: 0,
+        wides: 0,
+        noBalls: 0,
+        econ: '0.00',
+        style: 'Right-arm Fast Medium'
+      };
     }
-    bowlersMap[bowler].runs += (ball.extraType === 'bye' || ball.extraType === 'legBye') ? 0 : runs;
-    if (ball.isLegalDelivery) {
-      bowlersMap[bowler].legalBalls += 1;
+
+    const runsConceded = (ball.extraType === 'bye' || ball.extraType === 'legBye') ? 0 : runs;
+    bowlersMap[bowler].runs += runsConceded;
+
+    if (isLegal) {
+      bowlersMap[bowler].balls += 1;
+      bowlersMap[bowler].overs = `${Math.floor(bowlersMap[bowler].balls / 6)}.${bowlersMap[bowler].balls % 6}`;
     }
-    if (ball.extraType === 'wide') bowlersMap[bowler].wides += 1;
+
+    if (ball.extraType === 'wide') bowlersMap[bowler].wides += (runs || 1);
     if (ball.extraType === 'noBall') bowlersMap[bowler].noBalls += 1;
 
-    // Wicket
+    // Track runs in this over for maiden calculation
+    if (!bowlerOverRuns[bowler]) bowlerOverRuns[bowler] = {};
+    if (!bowlerOverRuns[bowler][currentOverIndex]) bowlerOverRuns[bowler][currentOverIndex] = { balls: 0, runs: 0 };
+    if (isLegal) bowlerOverRuns[bowler][currentOverIndex].balls += 1;
+    bowlerOverRuns[bowler][currentOverIndex].runs += runsConceded;
+
+    if (isLegal && ballsInCurrentOver === 6) {
+      currentOverIndex++;
+      ballsInCurrentOver = 0;
+    }
+
+    // Wickets
     if (ball.isWkt) {
       totalWickets++;
-      bowlersMap[bowler].wickets += 1;
-      const outPlayer = ball.dismissedPlayerName || striker;
+      const isBowlerWkt = ball.dismissalType !== 'run_out' && ball.dismissalType !== 'retired' && ball.dismissalType !== 'obstructing';
+      if (isBowlerWkt) {
+        bowlersMap[bowler].wickets += 1;
+      }
+      const outPlayer = (ball.dismissedPlayerName || striker).trim();
       if (battersMap[outPlayer]) {
-        battersMap[outPlayer].dismissal = ball.dismissalDesc || `${ball.dismissalType || 'out'} b ${bowler}`;
+        battersMap[outPlayer].dismissal = ball.dismissalDesc || `${ball.dismissalType || 'bowled'} b ${bowler}`;
+        battersMap[outPlayer].isNotOut = false;
       }
       fow.push({
         wkt: totalWickets,
@@ -1987,18 +2190,59 @@ function recalculateActiveMatchStats() {
     }
   });
 
-  extras.total = extras.wides + extras.noBalls + extras.byes + extras.legByes + extras.penalty;
+  // Calculate maidens: complete overs of 6 balls with 0 runs
+  Object.keys(bowlerOverRuns).forEach(bName => {
+    let maidens = 0;
+    Object.values(bowlerOverRuns[bName]).forEach(ovData => {
+      if (ovData.balls >= 6 && ovData.runs === 0) maidens++;
+    });
+    if (bowlersMap[bName]) {
+      bowlersMap[bName].maidens = maidens;
+    }
+  });
 
-  // Format overs
+  // Calculate bowler economy and batter strike rates
+  Object.values(bowlersMap).forEach(b => {
+    b.econ = b.balls > 0 ? ((b.runs / b.balls) * 6).toFixed(2) : '0.00';
+  });
+  Object.values(battersMap).forEach(b => {
+    b.sr = b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(2) : '0.00';
+  });
+
+  extras.total = extras.wides + extras.noBalls + extras.byes + extras.legByes + extras.penalty;
   const oversFormatted = `${Math.floor(legalBalls / 6)}.${legalBalls % 6}`;
 
-  // Update in-flight live counters
+  // Keep this over display cleanly sliced
+  const ballsInLastOver = legalBalls % 6;
+  match.liveThisOver = thisOver.slice(-(ballsInLastOver === 0 && legalBalls > 0 ? 6 : Math.max(ballsInLastOver, 1)));
+
+  // Generate updated commentary from history
+  const updatedCommentary = generateCommentaryFromHistory(history, match);
+  match.liveCommentaryList = updatedCommentary;
+  if (!match.liveState) match.liveState = {};
+  match.liveState.liveCommentaryList = updatedCommentary;
+
+  // Build liveBatters and liveBowlerStats maps
+  const liveBatters = {};
+  Object.values(battersMap).forEach(b => { liveBatters[b.name] = b; });
+  const liveBowlerStats = {};
+  Object.values(bowlersMap).forEach(b => { liveBowlerStats[b.name] = b; });
+
+  // Update in-flight counters
   match.liveRuns = totalRuns;
   match.liveWickets = totalWickets;
   match.liveBalls = legalBalls;
+  match.liveOvers = oversFormatted;
+  match.liveBatters = liveBatters;
+  match.liveBowlerStats = liveBowlerStats;
 
-  // Slice this over array to max 6 legal balls + extras
-  match.liveThisOver = thisOver.slice(-8);
+  match.liveState.liveRuns = totalRuns;
+  match.liveState.liveWickets = totalWickets;
+  match.liveState.liveBalls = legalBalls;
+  match.liveState.liveOvers = oversFormatted;
+  match.liveState.liveThisOver = match.liveThisOver;
+  match.liveState.liveBatters = liveBatters;
+  match.liveState.liveBowlerStats = liveBowlerStats;
 
   // Update innings object
   const targetInn = innNum === 2 ? 'innings2' : 'innings1';
@@ -2007,16 +2251,26 @@ function recalculateActiveMatchStats() {
     runs: totalRuns,
     wickets: totalWickets,
     overs: oversFormatted,
+    balls: legalBalls,
     crr: legalBalls > 0 ? ((totalRuns / legalBalls) * 6).toFixed(2) : '0.00',
     batting: Object.values(battersMap),
-    bowling: Object.values(bowlersMap).map(b => ({
-      ...b,
-      overs: `${Math.floor(b.legalBalls / 6)}.${b.legalBalls % 6}`,
-      econ: b.legalBalls > 0 ? ((b.runs / b.legalBalls) * 6).toFixed(2) : '0.00',
-    })),
+    bowling: Object.values(bowlersMap),
     extras,
     fallOfWickets: fow,
   };
+
+  if (innNum === 1) {
+    match.firstInningsSummary = {
+      runs: totalRuns,
+      wickets: totalWickets,
+      overs: oversFormatted,
+      balls: legalBalls,
+      crr: legalBalls > 0 ? ((totalRuns / legalBalls) * 6).toFixed(2) : '0.00',
+      batting: Object.values(battersMap),
+      bowling: Object.values(bowlersMap),
+    };
+    match.liveState.firstInningsSummary = match.firstInningsSummary;
+  }
 
   // Push directly to cloud
   pushMatchToCloud(state.activeMatchId, match);
@@ -2030,6 +2284,10 @@ function swapCreaseBatters() {
   match.currentStriker = match.currentNonStriker;
   match.currentNonStriker = temp;
 
+  if (!match.liveState) match.liveState = {};
+  match.liveState.currentStriker = match.currentStriker;
+  match.liveState.currentNonStriker = match.currentNonStriker;
+
   pushMatchToCloud(state.activeMatchId, match);
   showToast(`Swapped crease: ${match.currentStriker} is now Striker`, 'success');
 }
@@ -2039,6 +2297,8 @@ function updateActiveMatchField(field, value) {
   if (!match) return;
 
   match[field] = value;
+  if (!match.liveState) match.liveState = {};
+  match.liveState[field] = value;
   pushMatchToCloud(state.activeMatchId, match);
 }
 
@@ -2050,6 +2310,31 @@ function updateBatterField(batterIdx, field, value) {
   if (!match[innKey]?.batting?.[batterIdx]) return;
 
   match[innKey].batting[batterIdx][field] = value;
+  const b = match[innKey].batting[batterIdx];
+  const bBalls = Number(b.balls) || 0;
+  const bRuns = Number(b.runs) || 0;
+  b.sr = bBalls > 0 ? ((bRuns / bBalls) * 100).toFixed(2) : '-';
+
+  // Reconcile total runs
+  const totalBatterRuns = (match[innKey].batting || []).reduce((acc, item) => acc + (Number(item.runs) || 0), 0);
+  const extraTotal = match[innKey].extras?.total || 0;
+  match[innKey].runs = totalBatterRuns + extraTotal;
+
+  if (match.currentInnings === (innKey === 'innings2' ? 2 : 1)) {
+    match.liveRuns = match[innKey].runs;
+    if (!match.liveState) match.liveState = {};
+    match.liveState.liveRuns = match.liveRuns;
+  }
+
+  match.liveBatters = buildBattersMap(match);
+  if (!match.liveState) match.liveState = {};
+  match.liveState.liveBatters = match.liveBatters;
+
+  if (innKey === 'innings1') {
+    match.firstInningsSummary = { ...(match.firstInningsSummary || {}), ...match.innings1 };
+    match.liveState.firstInningsSummary = match.firstInningsSummary;
+  }
+
   pushMatchToCloud(state.activeMatchId, match);
 }
 
@@ -2060,7 +2345,54 @@ function updateBowlerField(bowlerIdx, field, value) {
   const innKey = match.currentInnings === 2 ? 'innings2' : 'innings1';
   if (!match[innKey]?.bowling?.[bowlerIdx]) return;
 
-  match[innKey].bowling[bowlerIdx][field] = value;
+  const bw = match[innKey].bowling[bowlerIdx];
+  bw[field] = value;
+
+  if (field === 'overs') {
+    bw.balls = parseOversToBalls(value);
+  } else if (field === 'balls') {
+    bw.overs = `${Math.floor(Number(value) / 6)}.${Number(value) % 6}`;
+  } else if (!bw.balls && bw.overs) {
+    bw.balls = parseOversToBalls(bw.overs);
+  }
+
+  const bwBalls = Number(bw.balls) || 0;
+  const bwRuns = Number(bw.runs) || 0;
+  bw.econ = bwBalls > 0 ? ((bwRuns / bwBalls) * 6).toFixed(2) : '0.00';
+
+  // Reconcile total bowler balls, runs, and wickets
+  const totalBowlerBalls = (match[innKey].bowling || []).reduce((acc, item) => acc + (Number(item.balls) || parseOversToBalls(item.overs || '0.0')), 0);
+  const totalBowlerRuns = (match[innKey].bowling || []).reduce((acc, item) => acc + (Number(item.runs) || 0), 0);
+  const totalBowlerWickets = (match[innKey].bowling || []).reduce((acc, item) => acc + (Number(item.wickets) || 0), 0);
+
+  const extraTotal = match[innKey].extras?.total || 0;
+  match[innKey].runs = totalBowlerRuns + extraTotal;
+  match[innKey].balls = totalBowlerBalls;
+  match[innKey].overs = `${Math.floor(totalBowlerBalls / 6)}.${totalBowlerBalls % 6}`;
+  match[innKey].wickets = totalBowlerWickets;
+  match[innKey].crr = totalBowlerBalls > 0 ? ((match[innKey].runs / totalBowlerBalls) * 6).toFixed(2) : '0.00';
+
+  if (match.currentInnings === (innKey === 'innings2' ? 2 : 1)) {
+    match.liveRuns = match[innKey].runs;
+    match.liveBalls = totalBowlerBalls;
+    match.liveOvers = match[innKey].overs;
+    match.liveWickets = totalBowlerWickets;
+    if (!match.liveState) match.liveState = {};
+    match.liveState.liveRuns = match.liveRuns;
+    match.liveState.liveBalls = match.liveBalls;
+    match.liveState.liveOvers = match.liveOvers;
+    match.liveState.liveWickets = match.liveWickets;
+  }
+
+  match.liveBowlerStats = buildBowlersMap(match);
+  if (!match.liveState) match.liveState = {};
+  match.liveState.liveBowlerStats = match.liveBowlerStats;
+
+  if (innKey === 'innings1') {
+    match.firstInningsSummary = { ...(match.firstInningsSummary || {}), ...match.innings1 };
+    match.liveState.firstInningsSummary = match.firstInningsSummary;
+  }
+
   pushMatchToCloud(state.activeMatchId, match);
 }
 
@@ -2084,6 +2416,7 @@ function promptAddBatter() {
     dismissal: 'not out',
   });
 
+  match.liveBatters = buildBattersMap(match);
   pushMatchToCloud(state.activeMatchId, match);
   showToast(`Added ${name} to batting card`, 'success');
 }
@@ -2102,14 +2435,17 @@ function promptAddBowler() {
   match[innKey].bowling.push({
     name,
     overs: '0.0',
+    balls: 0,
     maidens: 0,
     runs: 0,
     wickets: 0,
     econ: '0.00',
     wides: 0,
     noBalls: 0,
+    style: 'Right-arm Fast Medium',
   });
 
+  match.liveBowlerStats = buildBowlersMap(match);
   pushMatchToCloud(state.activeMatchId, match);
   showToast(`Added ${name} to bowling card`, 'success');
 }
@@ -2119,6 +2455,7 @@ function removeBatterRow(idx) {
   if (!match) return;
   const innKey = match.currentInnings === 2 ? 'innings2' : 'innings1';
   match[innKey]?.batting?.splice(idx, 1);
+  match.liveBatters = buildBattersMap(match);
   pushMatchToCloud(state.activeMatchId, match);
 }
 
@@ -2127,6 +2464,7 @@ function removeBowlerRow(idx) {
   if (!match) return;
   const innKey = match.currentInnings === 2 ? 'innings2' : 'innings1';
   match[innKey]?.bowling?.splice(idx, 1);
+  match.liveBowlerStats = buildBowlersMap(match);
   pushMatchToCloud(state.activeMatchId, match);
 }
 
@@ -2214,7 +2552,21 @@ function buildBattersMap(match) {
   const inn = match.currentInnings === 2 ? match.innings2 : match.innings1;
   const map = {};
   (inn?.batting || []).forEach(b => {
-    if (b && b.name) map[b.name] = b;
+    if (b && b.name) {
+      const runs = Number(b.runs || 0);
+      const balls = Number(b.balls || 0);
+      const sr = balls > 0 ? ((runs / balls) * 100).toFixed(1) : (b.sr || '0.0');
+      map[b.name] = {
+        name: b.name,
+        runs,
+        balls,
+        fours: Number(b.fours || 0),
+        sixes: Number(b.sixes || 0),
+        sr,
+        isNotOut: b.isNotOut !== false,
+        dismissal: b.dismissal || (b.isNotOut === false ? 'Out' : 'not out')
+      };
+    }
   });
   return map;
 }
@@ -2223,7 +2575,24 @@ function buildBowlersMap(match) {
   const inn = match.currentInnings === 2 ? match.innings2 : match.innings1;
   const map = {};
   (inn?.bowling || []).forEach(b => {
-    if (b && b.name) map[b.name] = b;
+    if (b && b.name) {
+      const bBalls = b.balls !== undefined ? Number(b.balls) : parseOversToBalls(b.overs || '0.0');
+      const overs = b.overs || `${Math.floor(bBalls / 6)}.${bBalls % 6}`;
+      const runs = Number(b.runs !== undefined ? b.runs : (b.runsConceded || 0));
+      const wickets = Number(b.wickets || 0);
+      const maidens = Number(b.maidens || 0);
+      const econ = bBalls > 0 ? ((runs / (bBalls / 6))).toFixed(2) : (b.econ || '0.00');
+      map[b.name] = {
+        name: b.name,
+        overs,
+        balls: bBalls,
+        maidens,
+        runs,
+        runsConceded: runs,
+        wickets,
+        econ
+      };
+    }
   });
   return map;
 }
