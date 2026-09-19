@@ -879,17 +879,32 @@
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Dismissed Batter:</label>
-              <input type="text" id="edit-ball-dismissed-player" list="list-dismissed-batters" class="form-input" placeholder="Select or enter batter">
+              <div class="fancy-select-wrap">
+                <input type="text" id="edit-ball-dismissed-player" list="list-dismissed-batters" class="form-input pr-9" placeholder="Select or enter batter">
+                <div class="fancy-select-icon">
+                  <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                </div>
+              </div>
               <datalist id="list-dismissed-batters"></datalist>
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Fielder Involved (Catch/Run-out):</label>
-              <input type="text" id="edit-ball-fielder" list="list-fielders" class="form-input" placeholder="Select or enter fielder">
+              <div class="fancy-select-wrap">
+                <input type="text" id="edit-ball-fielder" list="list-fielders" class="form-input pr-9" placeholder="Select or enter fielder">
+                <div class="fancy-select-icon">
+                  <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                </div>
+              </div>
               <datalist id="list-fielders"></datalist>
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Incoming Batter:</label>
-              <input type="text" id="edit-ball-incoming-player" list="list-incoming-batters" class="form-input" placeholder="Select or enter next batter">
+              <div class="fancy-select-wrap">
+                <input type="text" id="edit-ball-incoming-player" list="list-incoming-batters" class="form-input pr-9" placeholder="Select or enter next batter">
+                <div class="fancy-select-icon">
+                  <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+                </div>
+              </div>
               <datalist id="list-incoming-batters"></datalist>
             </div>
           </div>
@@ -899,12 +914,22 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Striker (Faced Ball):</label>
-            <input type="text" id="edit-ball-striker" list="list-strikers" class="form-input font-bold" placeholder="Select or enter striker">
+            <div class="fancy-select-wrap">
+              <input type="text" id="edit-ball-striker" list="list-strikers" class="form-input font-bold pr-9" placeholder="Select or enter striker">
+              <div class="fancy-select-icon">
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+              </div>
+            </div>
             <datalist id="list-strikers"></datalist>
           </div>
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Bowler (Delivered Ball):</label>
-            <input type="text" id="edit-ball-bowler" list="list-bowlers" class="form-input font-bold" placeholder="Select or enter bowler">
+            <div class="fancy-select-wrap">
+              <input type="text" id="edit-ball-bowler" list="list-bowlers" class="form-input font-bold pr-9" placeholder="Select or enter bowler">
+              <div class="fancy-select-icon">
+                <i data-lucide="chevron-down" class="w-3.5 h-3.5"></i>
+              </div>
+            </div>
             <datalist id="list-bowlers"></datalist>
           </div>
         </div>

@@ -2034,6 +2034,7 @@ function openEditBallModal(ballIndex) {
   };
 
   openModal('modal-edit-ball');
+  if (window.lucide) window.lucide.createIcons();
 }
 
 function handleSaveBallForm(e) {
