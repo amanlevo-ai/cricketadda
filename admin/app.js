@@ -1548,82 +1548,40 @@ function renderAuditControlCard(match) {
   const card = document.getElementById('audit-control-card');
   if (!card) return;
 
-  const isAudit = Boolean(match.auditMode || match.isAuditMode || match.isPausedForAudit);
-  const isBreak = match.status === 'innings_break';
   const isCompleted = match.status === 'completed';
 
   const badgeEl = document.getElementById('audit-badge');
   const syncStatusEl = document.getElementById('audit-sync-status');
   const descEl = document.getElementById('audit-desc');
-  const toggleBtn = document.getElementById('btn-toggle-audit');
-  const toggleText = document.getElementById('btn-toggle-audit-text');
-  const startInn2Btn = document.getElementById('btn-start-inn2');
   const iconWrap = document.getElementById('audit-status-icon-wrap');
+  const scorerNotesBtnText = document.getElementById('btn-view-scorer-requests-text');
+
+  // Count pending scorer requests for this specific match
+  const matchReqs = Object.values(state.scorerRequests || {}).filter(r => r && (r.matchId === match.id || r.matchId === state.activeMatchId) && r.status !== 'resolved');
+  if (scorerNotesBtnText) {
+    scorerNotesBtnText.textContent = `Scorer Notes (${matchReqs.length})`;
+  }
 
   if (isCompleted) {
-    card.className = 'glass-panel rounded-xl border border-purple-800/80 bg-purple-950/20 p-4 transition-all duration-300 shadow-xl';
-    if (badgeEl) {
-      badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-purple-500/20 text-purple-400 border border-purple-500/30';
-      badgeEl.textContent = 'Match Concluded & Sealed';
-    }
-    if (syncStatusEl) syncStatusEl.textContent = 'Final tournament scorecard officially locked';
-    if (descEl) descEl.textContent = 'All deliveries and player stats are sealed. You can perform post-match audits, adjust stats, and re-seal the final scorecard.';
-    if (toggleText) toggleText.textContent = isAudit ? 'Lock Final Scorecard' : 'Re-Open for Audit';
-    if (toggleBtn) {
-      toggleBtn.className = isAudit
-        ? 'px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition'
-        : 'px-3.5 py-2 rounded-lg bg-purple-700 hover:bg-purple-600 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition';
-    }
-    if (startInn2Btn) startInn2Btn.classList.add('hidden');
-    if (iconWrap) {
-      iconWrap.className = 'w-10 h-10 rounded-xl bg-purple-500/15 border border-purple-500/30 text-purple-400 flex items-center justify-center shrink-0';
-    }
-  } else if (isBreak) {
-    card.className = 'glass-panel rounded-xl border border-amber-800/80 bg-amber-950/20 p-4 transition-all duration-300 shadow-xl';
-    if (badgeEl) {
-      badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30';
-      badgeEl.textContent = 'Innings 1 Concluded • Audit Mode';
-    }
-    if (syncStatusEl) syncStatusEl.textContent = 'Mobile scorer is paused for innings break review';
-    if (descEl) descEl.textContent = 'Ground scorer cannot record balls. Review 1st innings deliveries, verify totals, and click "Approve & Seal Scorecard" before starting 2nd Innings.';
-    if (toggleText) toggleText.textContent = isAudit ? 'Audit Mode Active' : 'Innings Break Active';
-    if (toggleBtn) {
-      toggleBtn.className = 'px-3.5 py-2 rounded-lg bg-amber-600/80 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition';
-    }
-    if (startInn2Btn) startInn2Btn.classList.remove('hidden');
-    if (iconWrap) {
-      iconWrap.className = 'w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0';
-    }
-  } else if (isAudit) {
-    card.className = 'glass-panel rounded-xl border border-amber-800/80 bg-amber-950/20 p-4 transition-all duration-300 shadow-xl';
-    if (badgeEl) {
-      badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-amber-500/20 text-amber-400 border border-amber-500/30';
-      badgeEl.textContent = 'Admin Audit Active (0% Conflicts)';
-    }
-    if (syncStatusEl) syncStatusEl.textContent = 'Mobile scorer is locked with notice';
-    if (descEl) descEl.textContent = 'You have exclusive authoring authority. Mobile scorers and spectators are locked from mutating state. Correct any deliveries or scorecard entries below.';
-    if (toggleText) toggleText.textContent = 'Resume Live Play';
-    if (toggleBtn) {
-      toggleBtn.className = 'px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition';
-    }
-    if (startInn2Btn) startInn2Btn.classList.add('hidden');
-    if (iconWrap) {
-      iconWrap.className = 'w-10 h-10 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0';
-    }
-  } else {
-    // Live Play Active
-    card.className = 'glass-panel rounded-xl border border-slate-800 p-4 transition-all duration-300 shadow-xl';
+    card.className = 'glass-panel rounded-xl border border-emerald-600/80 bg-emerald-950/20 p-4 transition-all duration-300 shadow-xl';
     if (badgeEl) {
       badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-      badgeEl.textContent = 'Live Play Active';
+      badgeEl.textContent = 'Match Finished • Post-Match Audit & Edit Unlocked';
     }
-    if (syncStatusEl) syncStatusEl.textContent = 'Scorer has exclusive live scoring control';
-    if (descEl) descEl.textContent = 'To guarantee zero conflicts, the ground scorer has primary write control. You can pause play for an emergency audit at any time.';
-    if (toggleText) toggleText.textContent = 'Pause for Admin Audit';
-    if (toggleBtn) {
-      toggleBtn.className = 'px-3.5 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition';
+    if (syncStatusEl) syncStatusEl.textContent = 'Post-match authority active (0% conflicts)';
+    if (descEl) descEl.textContent = 'Match concluded. Ground scoring has ceased. Review scorer notes from the 🔔 button, edit deliveries/scorecards below as requested, and click "Approve & Seal Final Scorecard".';
+    if (iconWrap) {
+      iconWrap.className = 'w-10 h-10 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0';
     }
-    if (startInn2Btn) startInn2Btn.classList.add('hidden');
+  } else {
+    // Live match in progress
+    card.className = 'glass-panel rounded-xl border border-slate-800 p-4 transition-all duration-300 shadow-xl';
+    if (badgeEl) {
+      badgeEl.className = 'px-2.5 py-0.5 rounded-full text-xs font-black uppercase tracking-wider bg-sky-500/20 text-sky-400 border border-sky-500/30';
+      badgeEl.textContent = 'Live Play In Progress (Read-Only)';
+    }
+    if (syncStatusEl) syncStatusEl.textContent = 'Live scorer in control • Match is never paused';
+    if (descEl) descEl.textContent = 'To guarantee 0% conflicts, deliveries and scorecard entries can only be modified after the match finishes. Scorer correction notes sent from the mobile app appear in the 🔔 button.';
     if (iconWrap) {
       iconWrap.className = 'w-10 h-10 rounded-xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center shrink-0';
     }
@@ -1632,34 +1590,18 @@ function renderAuditControlCard(match) {
   if (window.lucide) window.lucide.createIcons();
 }
 
-function toggleActiveMatchAuditMode() {
-  const match = state.matchesDb[state.activeMatchId];
-  if (!match) return;
-
-  const currentAudit = Boolean(match.auditMode || match.isAuditMode || match.isPausedForAudit);
-  const nextAudit = !currentAudit;
-
-  match.auditMode = nextAudit;
-  match.isAuditMode = nextAudit;
-  match.isPausedForAudit = nextAudit;
-  if (!match.liveState) match.liveState = {};
-  match.liveState.auditMode = nextAudit;
-  match.liveState.isAuditMode = nextAudit;
-  match.liveState.isPausedForAudit = nextAudit;
-
-  pushMatchToCloud(state.activeMatchId, match);
-  renderAuditControlCard(match);
-
-  if (nextAudit) {
-    showToast('Match paused for Admin Audit. Mobile scorer is locked.', 'warning');
-  } else {
-    showToast('Admin Audit ended. Live scorer control resumed.', 'success');
-  }
-}
-
 function approveAndSealScorecard() {
   const match = state.matchesDb[state.activeMatchId];
   if (!match) return;
+
+  if (match.status !== 'completed') {
+    if (!confirm('Match is currently marked in progress. Would you like to mark it as Completed and seal the official scorecard?')) {
+      return;
+    }
+    match.status = 'completed';
+    if (!match.liveState) match.liveState = {};
+    match.liveState.status = 'completed';
+  }
 
   // 1. Run complete automated cascading recalculation across all deliveries
   recalculateActiveMatchStats();
@@ -1674,100 +1616,30 @@ function approveAndSealScorecard() {
   match.liveState.scorecardSealed = true;
   match.liveState.lastAuditedAt = match.lastAuditedAt;
 
-  // 3. If in Innings Break or 1st innings, freeze 1st innings summary
-  if (match.status === 'innings_break' || (match.currentInnings || 1) === 1) {
-    const inn1 = match.innings1 || {};
-    match.firstInningsSummary = {
-      runs: inn1.runs ?? match.liveRuns ?? 0,
-      wickets: inn1.wickets ?? match.liveWickets ?? 0,
-      overs: inn1.overs || match.liveOvers || '0.0',
-      balls: inn1.balls ?? match.liveBalls ?? 0,
-      crr: inn1.crr || '0.00',
-      team: inn1.team || match.teamA,
-      batting: inn1.batting || [],
-      bowling: inn1.bowling || [],
-      extras: inn1.extras || {},
-      fallOfWickets: inn1.fallOfWickets || [],
-    };
-    match.liveState.firstInningsSummary = match.firstInningsSummary;
-  }
+  // 3. Freeze 1st innings summary
+  const inn1 = match.innings1 || {};
+  match.firstInningsSummary = {
+    runs: inn1.runs ?? match.liveRuns ?? 0,
+    wickets: inn1.wickets ?? match.liveWickets ?? 0,
+    overs: inn1.overs || match.liveOvers || '0.0',
+    balls: inn1.balls ?? match.liveBalls ?? 0,
+    crr: inn1.crr || '0.00',
+    team: inn1.team || match.teamA,
+    batting: inn1.batting || [],
+    bowling: inn1.bowling || [],
+    extras: inn1.extras || {},
+    fallOfWickets: inn1.fallOfWickets || [],
+  };
+  match.liveState.firstInningsSummary = match.firstInningsSummary;
 
   // 4. Push authoritative clean package to cloud
   pushMatchToCloud(state.activeMatchId, match);
   renderAuditControlCard(match);
 
-  showToast('Scorecard verified, approved, and sealed! 0% conflict guarantee.', 'success');
+  showToast('Official tournament scorecard verified, approved, and sealed!', 'success');
 }
 
-function startSecondInningsFromAdmin() {
-  const match = state.matchesDb[state.activeMatchId];
-  if (!match) return;
-
-  const inn1Runs = match.innings1?.runs ?? match.liveRuns ?? 0;
-  const target = inn1Runs + 1;
-
-  if (!confirm(`Start 2nd Innings for ${match.teamB || 'Team 2'}? Target will be ${target} runs.`)) {
-    return;
-  }
-
-  match.currentInnings = 2;
-  match.targetRuns = target;
-  match.status = 'in_progress';
-  match.auditMode = false;
-  match.isAuditMode = false;
-  match.isPausedForAudit = false;
-
-  // Reset live in-flight counters for 2nd innings
-  match.liveRuns = 0;
-  match.liveWickets = 0;
-  match.liveBalls = 0;
-  match.liveOvers = '0.0';
-  match.liveThisOver = [];
-  match.currentStriker = '';
-  match.currentNonStriker = '';
-  match.currentBowler = '';
-
-  if (!match.innings2) {
-    match.innings2 = {
-      team: match.teamB,
-      runs: 0,
-      wickets: 0,
-      overs: '0.0',
-      balls: 0,
-      crr: '0.00',
-      maxOvers: match.innings1?.maxOvers || 20,
-      targetRuns: target,
-      batting: [],
-      bowling: [],
-      extras: { wides: 0, noBalls: 0, byes: 0, legByes: 0, penalty: 0, total: 0 },
-      fallOfWickets: [],
-    };
-  }
-
-  if (!match.liveState) match.liveState = {};
-  match.liveState.currentInnings = 2;
-  match.liveState.targetRuns = target;
-  match.liveState.status = 'in_progress';
-  match.liveState.auditMode = false;
-  match.liveState.isAuditMode = false;
-  match.liveState.isPausedForAudit = false;
-  match.liveState.liveRuns = 0;
-  match.liveState.liveWickets = 0;
-  match.liveState.liveBalls = 0;
-  match.liveState.liveOvers = '0.0';
-  match.liveState.liveThisOver = [];
-  match.liveState.currentStriker = '';
-  match.liveState.currentNonStriker = '';
-  match.liveState.currentBowler = '';
-
-  pushMatchToCloud(state.activeMatchId, match);
-  renderEditorView();
-  showToast(`2nd Innings started! Target set to ${target} runs. Scorer can resume scoring.`, 'success');
-}
-
-window.toggleActiveMatchAuditMode = toggleActiveMatchAuditMode;
 window.approveAndSealScorecard = approveAndSealScorecard;
-window.startSecondInningsFromAdmin = startSecondInningsFromAdmin;
 
 function renderBallTimeline(match) {
   const container = document.getElementById('editor-timeline-container');
@@ -2141,6 +2013,11 @@ function renderSettingsView() {
 function openEditBallModal(ballIndex) {
   const match = state.matchesDb[state.activeMatchId];
   if (!match) return;
+
+  if (match.status !== 'completed') {
+    showToast('⚠️ Match is currently live. Deliveries can only be adjusted after the match is completed.', 'warning');
+    return;
+  }
 
   const history = getMatchScoringHistory(match);
   const ball = history[ballIndex];
@@ -2537,10 +2414,15 @@ function handleSaveBallForm(e) {
 }
 
 function handleDeleteBall() {
-  if (!confirm('Are you sure you want to delete this ball delivery? All match stats will automatically adjust.')) return;
-
   const match = state.matchesDb[state.activeMatchId];
   if (!match) return;
+
+  if (match.status !== 'completed') {
+    showToast('⚠️ Match is currently live. Deliveries can only be deleted after the match is completed.', 'warning');
+    return;
+  }
+
+  if (!confirm('Are you sure you want to delete this ball delivery? All match stats will automatically adjust.')) return;
 
   const idx = state.editingBallIndex;
   const history = [...getMatchScoringHistory(match)];
@@ -2558,6 +2440,11 @@ function handleDeleteBall() {
 function handleInsertMissedBall() {
   const match = state.matchesDb[state.activeMatchId];
   if (!match) return;
+
+  if (match.status !== 'completed') {
+    showToast('⚠️ Match is currently live. Deliveries can only be inserted after the match is completed.', 'warning');
+    return;
+  }
 
   const runsPrompt = prompt('Enter runs for this missed ball (0, 1, 2, 3, 4, 6):', '1');
   if (runsPrompt === null) return;

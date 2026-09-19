@@ -55,6 +55,7 @@ import {
   fetchFirebaseDeletedMatches,
   fetchFirebaseDeletedTeams,
   syncMatchToFirebaseDirect,
+  sendScorerCorrectionRequest,
 } from './firebaseSync';
 import Svg, {
   Circle,
@@ -5286,8 +5287,13 @@ function CricketAddaMain() {
   const [matchResultText, setMatchResultText] = useState('');
   const [cancelMatchModalVisible, setCancelMatchModalVisible] = useState(false);
   const [selectedCancelReasonId, setSelectedCancelReasonId] = useState('rain_wet_outfield');
-  const [customCancelReasonText, setCustomCancelReasonText] = useState('');
   const [applyDLSIfEligible, setApplyDLSIfEligible] = useState(true);
+
+  // Official Scorer Request to Admin Modal State
+  const [adminNoteModalVisible, setAdminNoteModalVisible] = useState(false);
+  const [adminNoteText, setAdminNoteText] = useState('');
+  const [adminNoteCategory, setAdminNoteCategory] = useState('Runs / Extras');
+  const [isSendingAdminNote, setIsSendingAdminNote] = useState(false);
 
   // App & Scorer Settings State
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
@@ -6875,11 +6881,7 @@ function CricketAddaMain() {
     incomingBatterName = null,
     dismissalDescParam = null
   ) => {
-    // 0. Check if current innings or match is in audit mode or completed
-    if (isMatchInAuditMode) {
-      Alert.alert('🔒 Innings Audit in Progress', 'The Match Admin is currently auditing and verifying the scorecard. Scoring is temporarily paused.');
-      return;
-    }
+    // 0. Check if current innings or match is already completed
     if (isFirstInningsFinished) {
       setInningsBreakModalVisible(true);
       return;
@@ -8399,11 +8401,6 @@ function CricketAddaMain() {
       return;
     }
 
-    if (isMatchInAuditMode) {
-      Alert.alert('🔒 Innings Audit in Progress', 'The Match Admin is currently auditing the scorecard. Deliveries cannot be undone until the audit is completed.');
-      return;
-    }
-
     // 1. RULE: OPPONENT / 2ND INNINGS CANNOT UNDO 1ST INNINGS (TEAM TOTAL IS LOCKED)
     if (currentInnings === 2) {
       if (liveBalls === 0 && liveRuns === 0 && liveWickets === 0) {
@@ -8601,6 +8598,49 @@ function CricketAddaMain() {
     }
 
     Alert.alert('↩️ Undo', 'No balls in this over to undo!');
+  };
+
+  const handleSendScorerNoteToAdmin = async () => {
+    if (!adminNoteText || !adminNoteText.trim()) {
+      Alert.alert('Please enter details', 'Type what needs to be corrected for the tournament admin.');
+      return;
+    }
+    setIsSendingAdminNote(true);
+    try {
+      const curMatch = (activeMatchId && matchesDb[activeMatchId]) || match || {};
+      const overStr = `${Math.floor(liveBalls / 6)}.${liveBalls % 6}`;
+      const matchTitle = curMatch.title || `${curMatch.teamA || battingTeamName || 'Team A'} vs ${curMatch.teamB || bowlingTeamName || 'Team B'}`;
+      const payload = {
+        matchId: activeMatchId,
+        matchTitle,
+        scorerName: activeScorer?.name || userProfile?.name || authName || 'Official Scorer',
+        scorerPhone: userProfile?.phone || authPhone || '',
+        category: adminNoteCategory,
+        description: `[${adminNoteCategory}] (Over ${overStr}, Score ${liveRuns}/${liveWickets}): ${adminNoteText.trim()}`,
+        over: overStr,
+        innings: currentInnings,
+        scoreAtRequest: `${liveRuns}/${liveWickets}`,
+        timestamp: Date.now(),
+        status: 'pending',
+      };
+
+      const success = await sendScorerCorrectionRequest(payload);
+      setIsSendingAdminNote(false);
+      setAdminNoteModalVisible(false);
+      setAdminNoteText('');
+
+      if (success) {
+        Alert.alert(
+          '✅ Request Sent to Admin',
+          'Your correction request has been sent to the Tournament Admin.\n\nLive match scoring continues normally without interruption. The Admin will review your note and make the adjustment in the official scorecard after the match finishes.'
+        );
+      } else {
+        Alert.alert('Offline / Notice', 'Unable to reach cloud database. Please verify internet connectivity.');
+      }
+    } catch (err) {
+      setIsSendingAdminNote(false);
+      Alert.alert('Error', 'Failed to send note: ' + err.message);
+    }
   };
 
   const closeChangeBowlerModal = () => {
@@ -13950,64 +13990,8 @@ function CricketAddaMain() {
           </View>
 
           {isOfficialScorer ? (
-            isMatchInAuditMode ? (
-              <View style={{
-                marginHorizontal: 12,
-                marginVertical: 14,
-                padding: 16,
-                borderRadius: 16,
-                backgroundColor: currentTheme.isLight ? '#fffbeb' : '#1c1917',
-                borderWidth: 1.5,
-                borderColor: '#f59e0b',
-                alignItems: 'center',
-                shadowColor: '#f59e0b',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.15,
-                shadowRadius: 10,
-              }}>
-                <View style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  backgroundColor: 'rgba(245, 158, 11, 0.15)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 8,
-                }}>
-                  <Text style={{ fontSize: 22 }}>🔒</Text>
-                </View>
-                <Text style={{
-                  fontSize: 15,
-                  fontWeight: '900',
-                  color: '#f59e0b',
-                  letterSpacing: 0.5,
-                  textTransform: 'uppercase',
-                  marginBottom: 6,
-                  textAlign: 'center',
-                }}>
-                  Innings Audit In Progress
-                </Text>
-                <Text style={{
-                  fontSize: 12,
-                  fontWeight: '600',
-                  color: currentTheme.isLight ? '#78350f' : '#fbbf24',
-                  textAlign: 'center',
-                  lineHeight: 18,
-                  marginBottom: 8,
-                }}>
-                  The Match Admin is currently reviewing and verifying the scorecard.
-                </Text>
-                <Text style={{
-                  fontSize: 11,
-                  color: currentTheme.isLight ? '#92400e' : '#a3a3a3',
-                  textAlign: 'center',
-                }}>
-                  Live scoring is temporarily paused to prevent conflicts. Scoring controls will automatically unlock once the admin finishes the review.
-                </Text>
-              </View>
-            ) : (
-              <>
-                <View style={styles.quickBar}>
+            <>
+              <View style={styles.quickBar}>
                 <TouchableOpacity
                   style={[styles.toggleWheelBtn, autoWheel && styles.toggleWheelBtnOn]}
                   onPress={toggleAutoWheel}
@@ -14059,6 +14043,12 @@ function CricketAddaMain() {
                   onPress={handleUndoLastBall}
                 >
                   <Text style={styles.toolBtnText}>↩️ Undo</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.toolBtn, { backgroundColor: currentTheme.isLight ? '#fef3c7' : '#292524', borderColor: '#f59e0b', borderWidth: 1 }]}
+                  onPress={() => setAdminNoteModalVisible(true)}
+                >
+                  <Text style={[styles.toolBtnText, { color: '#f59e0b', fontWeight: '800' }]}>📝 Note</Text>
                 </TouchableOpacity>
               </View>
 
@@ -14333,8 +14323,7 @@ function CricketAddaMain() {
                   </View>
                 </TouchableOpacity>
               </View>
-              </>
-            )
+            </>
           ) : (
             /* ========================================================================= */
             /* SPECTATOR BROADCAST VIEW (READ-ONLY LIVE DASHBOARD)                      */
@@ -19008,6 +18997,185 @@ function CricketAddaMain() {
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: '#38bdf8' }]} onPress={confirmNewBowler}>
                   <Text style={[styles.confirmBtnText, { color: '#020617' }]}>Start Next Over ⚡</Text>
+                </TouchableOpacity>
+              </View>
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* MODAL: OFFICIAL SCORER CORRECTION NOTE TO ADMIN */}
+      <Modal
+        visible={adminNoteModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => setAdminNoteModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
+          <View style={[styles.modalCard, {
+            width: Math.min(width - 16, 430),
+            maxHeight: safeModalCardMaxHeight,
+            padding: 20,
+            backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+            borderColor: '#f59e0b',
+            borderWidth: 1.5,
+            borderRadius: 18,
+          }]}>
+            <ScrollView showsVerticalScrollIndicator={false}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 34, height: 34, borderRadius: 10, backgroundColor: 'rgba(245, 158, 11, 0.15)', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ fontSize: 18 }}>📝</Text>
+                  </View>
+                  <View>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }}>
+                      Note to Match Admin
+                    </Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 11 }}>
+                      Post-match scorecard correction request
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity
+                  style={{ padding: 6 }}
+                  onPress={() => setAdminNoteModalVisible(false)}
+                >
+                  <Text style={{ color: '#94a3b8', fontSize: 16, fontWeight: 'bold' }}>✕</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Match Context Pill */}
+              <View style={{
+                backgroundColor: currentTheme.isLight ? '#f8fafc' : '#1e293b',
+                padding: 10,
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: currentTheme.isLight ? '#e2e8f0' : '#334155',
+                marginBottom: 12,
+              }}>
+                <Text style={{ fontSize: 11, color: '#94a3b8', fontWeight: 'bold', marginBottom: 2 }}>
+                  CURRENT MATCH STATUS:
+                </Text>
+                <Text style={{ fontSize: 12.5, fontWeight: '800', color: currentTheme.isLight ? '#0f172a' : '#f8fafc' }}>
+                  {battingTeamName} {liveRuns}/{liveWickets} • Over {Math.floor(liveBalls / 6)}.{liveBalls % 6} ({currentInnings === 2 ? '2nd Innings' : '1st Innings'})
+                </Text>
+                <Text style={{ fontSize: 11, color: '#38bdf8', marginTop: 2 }}>
+                  Striker: {striker || 'None'} • Bowler: {bowler || 'None'}
+                </Text>
+              </View>
+
+              {/* Category selector chips */}
+              <Text style={{ fontSize: 11, fontWeight: 'bold', color: currentTheme.isLight ? '#475569' : '#94a3b8', marginBottom: 6 }}>
+                SELECT CORRECTION TYPE:
+              </Text>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                {[
+                  'Runs / Extras',
+                  'Wrong Batsman on Strike',
+                  'Wicket / Dismissal Fix',
+                  'Bowler Overs Correction',
+                  'General Scorer Note',
+                ].map(cat => {
+                  const isSel = adminNoteCategory === cat;
+                  return (
+                    <TouchableOpacity
+                      key={cat}
+                      style={{
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                        borderRadius: 8,
+                        backgroundColor: isSel ? '#f59e0b' : (currentTheme.isLight ? '#f1f5f9' : '#1e293b'),
+                        borderWidth: 1,
+                        borderColor: isSel ? '#d97706' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
+                      }}
+                      onPress={() => setAdminNoteCategory(cat)}
+                    >
+                      <Text style={{
+                        fontSize: 11,
+                        fontWeight: '700',
+                        color: isSel ? '#020617' : (currentTheme.isLight ? '#334155' : '#cbd5e1'),
+                      }}>
+                        {cat}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Text Input */}
+              <Text style={{ fontSize: 11, fontWeight: 'bold', color: currentTheme.isLight ? '#475569' : '#94a3b8', marginBottom: 6 }}>
+                DETAILS FOR TOURNAMENT ADMIN:
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0b1329',
+                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  padding: 12,
+                  color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                  fontSize: 13,
+                  minHeight: 90,
+                  textAlignVertical: 'top',
+                  marginBottom: 10,
+                }}
+                multiline
+                numberOfLines={4}
+                placeholder="Explain the correction needed (e.g. Over 2 Ball 3 was recorded as 4 runs instead of 1 wide; or Tanu got out on 12 and Gagan should be on strike)..."
+                placeholderTextColor="#64748b"
+                value={adminNoteText}
+                onChangeText={setAdminNoteText}
+              />
+
+              <View style={{
+                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                padding: 10,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(245, 158, 11, 0.3)',
+                marginBottom: 14,
+              }}>
+                <Text style={{ fontSize: 11, color: '#f59e0b', lineHeight: 16 }}>
+                  ⚡ <Text style={{ fontWeight: 'bold' }}>Zero Match Interruption:</Text> Live scoring will continue without stopping. The tournament admin will review this note and edit the scorecard after the match finishes.
+                </Text>
+              </View>
+
+              {/* Actions */}
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TouchableOpacity
+                  style={{
+                    flex: 1,
+                    paddingVertical: 12,
+                    borderRadius: 10,
+                    backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => setAdminNoteModalVisible(false)}
+                >
+                  <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontWeight: 'bold', fontSize: 13 }}>
+                    Cancel
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flex: 2,
+                    paddingVertical: 12,
+                    borderRadius: 10,
+                    backgroundColor: '#f59e0b',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: isSendingAdminNote ? 0.7 : 1,
+                  }}
+                  disabled={isSendingAdminNote}
+                  onPress={handleSendScorerNoteToAdmin}
+                >
+                  <Text style={{ color: '#020617', fontWeight: '900', fontSize: 13 }}>
+                    {isSendingAdminNote ? 'Sending to Admin...' : 'Send Request to Admin 📨'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>

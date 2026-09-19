@@ -1267,3 +1267,28 @@ export async function sendVerificationOtpEmail(recipientEmail, otpCode) {
 
   return true;
 }
+
+/**
+ * Sends a text-based scorecard correction note / dispute from the official scorer directly to the Admin.
+ * Stored in /score_change_requests.json for post-match resolution.
+ */
+export async function sendScorerCorrectionRequest(requestData) {
+  if (!isFirebaseConfigured() || !requestData) return false;
+  try {
+    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const payload = {
+      ...requestData,
+      timestamp: Date.now(),
+      status: 'pending',
+    };
+    const res = await fetch(`${baseUrl}/score_change_requests.json`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch (e) {
+    console.warn('[FirebaseSync] Failed to send scorer correction request:', e);
+    return false;
+  }
+}

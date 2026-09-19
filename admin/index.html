@@ -340,23 +340,19 @@
             </div>
           </div>
 
-          <!-- Audit Action Buttons -->
+          <!-- Post-Match Audit Action Buttons -->
           <div class="flex items-center gap-2 shrink-0 flex-wrap">
-            <button type="button" id="btn-toggle-audit" onclick="toggleActiveMatchAuditMode()" class="px-3.5 py-2 rounded-lg bg-amber-600 hover:bg-amber-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition">
-              <i data-lucide="pause-circle" class="w-4 h-4"></i>
-              <span id="btn-toggle-audit-text">Pause for Admin Audit</span>
+            <button type="button" id="btn-view-scorer-requests" onclick="toggleScorerAlertsDropdown()" class="px-3 py-2 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 font-bold text-xs flex items-center gap-1.5 transition" title="View Scorer Correction Notes">
+              <i data-lucide="bell" class="w-3.5 h-3.5 text-amber-400"></i>
+              <span id="btn-view-scorer-requests-text">Scorer Notes (0)</span>
             </button>
-            <button type="button" id="btn-recalculate-all" onclick="recalculateActiveMatchStats(true)" class="px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition" title="Audit and recalculate all batting, bowling and maiden stats">
+            <button type="button" id="btn-recalculate-all" onclick="recalculateActiveMatchStats(true)" class="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs flex items-center gap-1.5 transition" title="Audit and recalculate all batting, bowling and maiden stats">
               <i data-lucide="calculator" class="w-3.5 h-3.5 text-sky-400"></i>
               <span>Recalculate Stats</span>
             </button>
             <button type="button" id="btn-approve-seal" onclick="approveAndSealScorecard()" class="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition">
               <i data-lucide="check-check" class="w-4 h-4"></i>
-              <span>Approve & Seal Scorecard</span>
-            </button>
-            <button type="button" id="btn-start-inn2" onclick="startSecondInningsFromAdmin()" class="hidden px-3.5 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-md transition">
-              <i data-lucide="play" class="w-4 h-4"></i>
-              <span>Start 2nd Innings</span>
+              <span>Approve & Seal Final Scorecard</span>
             </button>
           </div>
         </div>
@@ -994,6 +990,6 @@
   <div id="toast-container"></div>
 
   <!-- Core Admin Logic -->
-  <script src="app.js?v=4.1"></script>
+  <script src="app.js?v=4.2"></script>
 </body>
 </html>
