@@ -1927,6 +1927,46 @@ function openEditBallModal(ballIndex) {
   document.getElementById('edit-ball-extra-type').value = ball.extraType || 'none';
   document.getElementById('edit-ball-overthrow').value = ball.overthrowRuns ?? 0;
 
+  // Batting & Bowling Squad Resolution for Dropdowns
+  const innNum = ball.innings || match.currentInnings || 1;
+  const battingTeamName = innNum === 2 ? (match.innings2?.team || match.teamB) : (match.innings1?.team || match.teamA);
+  const bowlingTeamName = innNum === 2 ? (match.innings1?.team || match.teamA) : (match.innings2?.team || match.teamB);
+
+  // Batting squad players
+  const battingSquadSet = new Set();
+  const targetInn = innNum === 2 ? match.innings2 : match.innings1;
+  (targetInn?.batting || []).forEach(b => { if (b?.name) battingSquadSet.add(b.name.trim()); });
+  (match.innings1?.batting || []).forEach(b => { if (b?.name) battingSquadSet.add(b.name.trim()); });
+  (match.innings2?.batting || []).forEach(b => { if (b?.name) battingSquadSet.add(b.name.trim()); });
+  (match.battingSquad || []).forEach(p => { const n = typeof p === 'string' ? p : p?.name; if (n) battingSquadSet.add(n.trim()); });
+  const regBatTeam = (state.teams || []).find(t => t.name?.toLowerCase().trim() === (battingTeamName || '').toLowerCase().trim());
+  (regBatTeam?.squad || []).forEach(p => { const n = typeof p === 'string' ? p : p?.name; if (n) battingSquadSet.add(n.trim()); });
+  const battingPlayers = Array.from(battingSquadSet);
+
+  // Bowling & Fielding squad players
+  const fieldingSquadSet = new Set();
+  (match.fieldingSquad || []).forEach(p => { const n = typeof p === 'string' ? p : p?.name; if (n) fieldingSquadSet.add(n.trim()); });
+  (targetInn?.bowling || []).forEach(b => { if (b?.name) fieldingSquadSet.add(b.name.trim()); });
+  (match.innings1?.bowling || []).forEach(b => { if (b?.name) fieldingSquadSet.add(b.name.trim()); });
+  (match.innings2?.bowling || []).forEach(b => { if (b?.name) fieldingSquadSet.add(b.name.trim()); });
+  const regBowlTeam = (state.teams || []).find(t => t.name?.toLowerCase().trim() === (bowlingTeamName || '').toLowerCase().trim());
+  (regBowlTeam?.squad || []).forEach(p => { const n = typeof p === 'string' ? p : p?.name; if (n) fieldingSquadSet.add(n.trim()); });
+  const fieldingPlayers = Array.from(fieldingSquadSet);
+
+  // Helper to populate a <datalist>
+  const populateDatalist = (id, items) => {
+    const dl = document.getElementById(id);
+    if (!dl) return;
+    dl.innerHTML = (items || []).map(item => `<option value="${escapeHtml(item)}"></option>`).join('');
+  };
+
+  // Populate all datalists
+  populateDatalist('list-strikers', battingPlayers);
+  populateDatalist('list-dismissed-batters', battingPlayers);
+  populateDatalist('list-incoming-batters', battingPlayers);
+  populateDatalist('list-fielders', fieldingPlayers);
+  populateDatalist('list-bowlers', fieldingPlayers);
+
   // Wickets
   const isWkt = Boolean(ball.isWkt);
   const wktCheckbox = document.getElementById('edit-ball-is-wkt');
@@ -1934,14 +1974,58 @@ function openEditBallModal(ballIndex) {
   document.getElementById('wkt-fields-group').classList.toggle('hidden', !isWkt);
 
   document.getElementById('edit-ball-wkt-type').value = ball.dismissalType || 'bowled';
-  document.getElementById('edit-ball-dismissed-player').value = ball.dismissedPlayerName || '';
+  
+  // Default dismissed batter to striker if not already set
+  const dismissedBatterVal = ball.dismissedPlayerName || ball.dismissedPlayer || (isWkt ? (ball.striker || match.currentStriker || '') : '');
+  document.getElementById('edit-ball-dismissed-player').value = dismissedBatterVal;
+  
   document.getElementById('edit-ball-fielder').value = ball.finalFielder || '';
-  document.getElementById('edit-ball-incoming-player').value = ball.incomingBatter || '';
+
+  // Incoming Batter Resolution:
+  // 1. If ball already has incomingBatter saved
+  // 2. Or if scorer selected incoming batter on the next ball in history
+  // 3. Or check subsequent deliveries in this innings
+  let resolvedIncoming = ball.incomingBatter || ball.incomingBatterName || '';
+  if (!resolvedIncoming && ballIndex < history.length - 1) {
+    const nextBall = history[ballIndex + 1];
+    if (nextBall && (!nextBall.innings || nextBall.innings === innNum)) {
+      const activeCrease = [ball.striker, ball.nonStriker].filter(Boolean);
+      if (nextBall.striker && !activeCrease.includes(nextBall.striker)) {
+        resolvedIncoming = nextBall.striker;
+      } else if (nextBall.nonStriker && !activeCrease.includes(nextBall.nonStriker)) {
+        resolvedIncoming = nextBall.nonStriker;
+      }
+    }
+  }
+  // 4. If still empty and it's a wicket, find first unbatted player from squad
+  if (!resolvedIncoming && isWkt) {
+    const battedNames = new Set();
+    history.forEach(h => {
+      if (!h.innings || h.innings === innNum) {
+        if (h.striker) battedNames.add(h.striker.trim().toLowerCase());
+        if (h.nonStriker) battedNames.add(h.nonStriker.trim().toLowerCase());
+      }
+    });
+    const unbatted = battingPlayers.find(p => !battedNames.has(p.toLowerCase()));
+    if (unbatted) resolvedIncoming = unbatted;
+  }
+  document.getElementById('edit-ball-incoming-player').value = resolvedIncoming;
 
   // Batters & Bowler
   document.getElementById('edit-ball-striker').value = ball.striker || match.currentStriker || '';
   document.getElementById('edit-ball-bowler').value = ball.bowler || match.currentBowler || '';
   document.getElementById('edit-ball-commentary').value = ball.dismissalDesc || '';
+
+  // Auto-fill Dismissed Batter when Striker changes or Wicket is checked
+  const strikerInput = document.getElementById('edit-ball-striker');
+  const dismissedInput = document.getElementById('edit-ball-dismissed-player');
+  wktCheckbox.onchange = () => {
+    const checked = wktCheckbox.checked;
+    document.getElementById('wkt-fields-group').classList.toggle('hidden', !checked);
+    if (checked && !dismissedInput.value) {
+      dismissedInput.value = strikerInput.value || match.currentStriker || '';
+    }
+  };
 
   openModal('modal-edit-ball');
 }

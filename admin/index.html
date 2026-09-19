@@ -879,15 +879,18 @@
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Dismissed Batter:</label>
-              <input type="text" id="edit-ball-dismissed-player" class="form-input" placeholder="Batter name">
+              <input type="text" id="edit-ball-dismissed-player" list="list-dismissed-batters" class="form-input" placeholder="Select or enter batter">
+              <datalist id="list-dismissed-batters"></datalist>
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Fielder Involved (Catch/Run-out):</label>
-              <input type="text" id="edit-ball-fielder" class="form-input" placeholder="e.g. Jadeja">
+              <input type="text" id="edit-ball-fielder" list="list-fielders" class="form-input" placeholder="Select or enter fielder">
+              <datalist id="list-fielders"></datalist>
             </div>
             <div>
               <label class="block text-slate-400 mb-1">Incoming Batter:</label>
-              <input type="text" id="edit-ball-incoming-player" class="form-input" placeholder="New batter at crease">
+              <input type="text" id="edit-ball-incoming-player" list="list-incoming-batters" class="form-input" placeholder="Select or enter next batter">
+              <datalist id="list-incoming-batters"></datalist>
             </div>
           </div>
         </div>
@@ -896,11 +899,13 @@
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Striker (Faced Ball):</label>
-            <input type="text" id="edit-ball-striker" class="form-input font-bold">
+            <input type="text" id="edit-ball-striker" list="list-strikers" class="form-input font-bold" placeholder="Select or enter striker">
+            <datalist id="list-strikers"></datalist>
           </div>
           <div>
             <label class="block text-slate-300 font-semibold mb-1">Bowler (Delivered Ball):</label>
-            <input type="text" id="edit-ball-bowler" class="form-input font-bold">
+            <input type="text" id="edit-ball-bowler" list="list-bowlers" class="form-input font-bold" placeholder="Select or enter bowler">
+            <datalist id="list-bowlers"></datalist>
           </div>
         </div>
 
