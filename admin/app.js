@@ -2299,6 +2299,50 @@ function updateActiveMatchField(field, value) {
   match[field] = value;
   if (!match.liveState) match.liveState = {};
   match.liveState[field] = value;
+
+  // When admin edits "This Over" (e.g. 4, 4, 4), synchronize the actual deliveries in scoringHistory
+  if (field === 'liveThisOver' && Array.isArray(value)) {
+    const history = [...getMatchScoringHistory(match)];
+    const innNum = match.currentInnings || 1;
+    const curInnIndices = [];
+    history.forEach((h, idx) => {
+      if (!h.innings || h.innings === innNum) curInnIndices.push(idx);
+    });
+
+    // The current over balls are the last N deliveries matching value.length
+    const startIdx = curInnIndices.length - value.length;
+    if (startIdx >= 0) {
+      value.forEach((sym, i) => {
+        const histIdx = curInnIndices[startIdx + i];
+        if (histIdx !== undefined && history[histIdx]) {
+          const s = String(sym).trim();
+          const isWkt = s.toUpperCase() === 'W';
+          const isWide = s.toLowerCase().includes('wd');
+          const isNoBall = s.toLowerCase().includes('nb');
+          const isBye = s.toLowerCase().includes('b') && !isWide && !isNoBall;
+          const isLegBye = s.toLowerCase().includes('lb');
+          const runsVal = parseInt(s.replace(/[^0-9]/g, ''), 10) || (isWide || isNoBall ? 1 : 0);
+
+          history[histIdx] = {
+            ...history[histIdx],
+            ballSymbol: s,
+            addedRuns: runsVal,
+            runsOffBat: (isWide || isNoBall || isBye || isLegBye) ? 0 : runsVal,
+            isLegalDelivery: !isWide && !isNoBall,
+            extraType: isWide ? 'wide' : isNoBall ? 'noBall' : isBye ? 'bye' : isLegBye ? 'legBye' : 'none',
+            isWkt,
+            adminEdited: true,
+          };
+        }
+      });
+
+      match.scoringHistory = history;
+      match.liveState.scoringHistory = history;
+      recalculateActiveMatchStats();
+      return;
+    }
+  }
+
   pushMatchToCloud(state.activeMatchId, match);
 }
 
