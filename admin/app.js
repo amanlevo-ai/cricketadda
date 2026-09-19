@@ -1957,7 +1957,13 @@ function openEditBallModal(ballIndex) {
   const populateDatalist = (id, items) => {
     const dl = document.getElementById(id);
     if (!dl) return;
-    dl.innerHTML = (items || []).map(item => `<option value="${escapeHtml(item)}"></option>`).join('');
+    dl.innerHTML = '';
+    (items || []).forEach(item => {
+      if (!item) return;
+      const opt = document.createElement('option');
+      opt.value = String(item).trim();
+      dl.appendChild(opt);
+    });
   };
 
   // Populate all datalists
@@ -2635,6 +2641,16 @@ function deleteMatchPrompt(matchId) {
 // ============================================================================
 // HELPERS
 // ============================================================================
+
+function escapeHtml(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 function renderBallBadgeHtml(symbol) {
   const sym = String(symbol || '0').trim();
