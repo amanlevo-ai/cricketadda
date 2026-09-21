@@ -3718,6 +3718,10 @@ function CricketAddaMain() {
   const [matchDraft, setMatchDraft] = useState(INITIAL_MATCH_DRAFT);
   const [registeredTeams, setRegisteredTeams] = useState(REGISTERED_APP_TEAMS);
   const [wzPhase, setWzPhase] = useState(1); // 1: Select Teams (A & B), 2: Settings, 3: Toss, 4: Playing XI, 5: Confirm
+  const [matchDraftScorerPhone, setMatchDraftScorerPhone] = useState('');
+  const [claimScorerModalVisible, setClaimScorerModalVisible] = useState(false);
+  const [claimScorerInput, setClaimScorerInput] = useState('');
+  const [claimScorerError, setClaimScorerError] = useState('');
 
   // Inning Start Openers Selection Modal State
   const [inningStartModalVisible, setInningStartModalVisible] = useState(false);
@@ -4348,47 +4352,44 @@ function CricketAddaMain() {
     const assignedName = (targetMatch.scorerName || targetMatch.activeScorer?.name || '').toLowerCase().trim();
     const assignedDeviceId = targetMatch.scorerDeviceId || targetMatch.activeScorer?.deviceId;
 
-    // Check if scoring duty is currently delegated away from creator
+    // Match creator credentials
+    const creatorPhone = String(targetMatch.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const creatorEmail = (targetMatch.creatorEmail || '').toLowerCase().trim();
+    const creatorId = targetMatch.creatorId;
+
+    // Check if scoring duty is currently delegated away from creator to someone else
     const isDelegated = Boolean(
       targetMatch.isScoringDelegated ||
-      (assignedDeviceId && targetMatch.creatorDeviceId && assignedDeviceId !== targetMatch.creatorDeviceId) ||
-      (targetMatch.scorerPhone && targetMatch.creatorPhone && assignedPhone !== String(targetMatch.creatorPhone).replace(/[^0-9]/g, '').slice(-10)) ||
-      (targetMatch.scorerId && targetMatch.creatorId && assignedId !== targetMatch.creatorId) ||
-      (targetMatch.scorerEmail && targetMatch.creatorEmail && assignedEmail !== targetMatch.creatorEmail.toLowerCase().trim())
+      (assignedPhone && creatorPhone && assignedPhone !== creatorPhone) ||
+      (assignedEmail && creatorEmail && assignedEmail !== creatorEmail) ||
+      (assignedId && creatorId && assignedId !== creatorId)
     );
 
     if (isDelegated) {
-      // If delegated, ONLY the designated delegate has scoring rights!
-      if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
+      // If delegated, the delegated user can score from ANY device by logging in with their Phone or Email!
       if (assignedPhone && uPhone && assignedPhone === uPhone) return true;
       if (assignedEmail && uEmail && assignedEmail === uEmail) return true;
       if (assignedId && uId && assignedId === uId) return true;
       if (assignedName && uName && assignedName === uName && uName !== 'match creator' && uName !== 'official scorer') return true;
+      if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
       return false;
     }
 
-    // --- NON-DELEGATED MATCH (ONLY THE CREATOR PHONE/DEVICE CAN SCORE) ---
-    // 1. Creator Device ID Match (100% reliable instant lock to the phone that started the match):
+    // --- NON-DELEGATED MATCH (CREATOR OWNS SCORING RIGHTS) ---
+    // 1. Cross-Device Account Match (Phone Number or Email):
+    // Highest priority: If battery runs low, drops, or user switches phones, logging in with Phone or Email immediately grants official scoring on ANY phone!
+    if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
+    if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
+    if (creatorId && uId && creatorId === uId) return true;
+
+    // 2. Physical Device ID Fallback (For offline/guest matches created on this phone):
     if (targetMatch.creatorDeviceId && myDeviceId && targetMatch.creatorDeviceId === myDeviceId) return true;
     if (targetMatch.scorerDeviceId && myDeviceId && targetMatch.scorerDeviceId === myDeviceId) return true;
 
-    // 2. Creator verified phone match:
-    const creatorPhone = String(targetMatch.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
-    if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
-
-    // 3. Creator verified email match:
-    if (targetMatch.creatorEmail && uEmail && targetMatch.creatorEmail.toLowerCase() === uEmail) return true;
-
-    // 4. Creator user ID match:
-    if (targetMatch.creatorId && uId && targetMatch.creatorId === uId) return true;
-
-    // 5. Creator specific name match (only if non-generic):
-    if (targetMatch.creatorName && uName && targetMatch.creatorName.toLowerCase() === uName && uName !== 'match creator' && uName !== 'official scorer') {
+    // 3. Creator specific name match (only if phone/email not recorded):
+    if (!creatorPhone && !creatorEmail && targetMatch.creatorName && uName && targetMatch.creatorName.toLowerCase() === uName && uName !== 'match creator' && uName !== 'official scorer') {
       return true;
     }
-
-    // 6. Explicit authorized match ID recorded on this specific device:
-    if (activeScorer?.authorizedMatchId === targetMatch.id && activeScorer?.deviceId === myDeviceId) return true;
 
     // Any other device is strictly a Spectator:
     return false;
@@ -5533,6 +5534,10 @@ function CricketAddaMain() {
         setScorerTransferModalVisible(false);
         return true;
       }
+      if (claimScorerModalVisible) {
+        setClaimScorerModalVisible(false);
+        return true;
+      }
       if (settingsModalVisible) {
         setSettingsModalVisible(false);
         return true;
@@ -5597,6 +5602,7 @@ function CricketAddaMain() {
     universalQrScannerVisible,
     qrDisplayModalVisible,
     scorerTransferModalVisible,
+    claimScorerModalVisible,
     settingsModalVisible,
     cancelMatchModalVisible,
     dlsModalVisible,
@@ -8644,6 +8650,83 @@ function CricketAddaMain() {
     });
 
     showAppToast('You have reclaimed official scoring rights! 👑', '✅');
+  };
+
+  const handleClaimScorerSubmit = () => {
+    setClaimScorerError('');
+    const cleanInput = (claimScorerInput || '').trim();
+    const cleanPhoneDigits = cleanInput.replace(/[^0-9]/g, '').slice(-10);
+    const cleanEmailInput = cleanInput.toLowerCase();
+
+    const targetMatch = (activeMatchId && matchesDb[activeMatchId]) || match;
+    if (!targetMatch) {
+      setClaimScorerError('No active match selected');
+      return;
+    }
+
+    const cPhone = String(targetMatch.creatorPhone || targetMatch.scorerPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const cEmail = (targetMatch.creatorEmail || targetMatch.scorerEmail || '').toLowerCase().trim();
+
+    const matchesPhone = cleanPhoneDigits && cPhone && cleanPhoneDigits === cPhone;
+    const matchesEmail = cleanEmailInput && cEmail && cleanEmailInput === cEmail;
+
+    if (!matchesPhone && !matchesEmail) {
+      setClaimScorerError('Mobile number or email does not match this match’s Official Scorer credentials.');
+      return;
+    }
+
+    // Match verified! Restore user credentials on this device
+    const restoredName = targetMatch.creatorName || targetMatch.scorerName || 'Official Scorer';
+    const myDevId = clientIdRef.current;
+    const restoredScorerObj = {
+      id: targetMatch.creatorId || targetMatch.scorerId || `usr_${cleanPhoneDigits || 'scorer'}`,
+      deviceId: myDevId,
+      name: restoredName,
+      phone: cleanPhoneDigits || cPhone,
+      email: cleanEmailInput.includes('@') ? cleanEmailInput : cEmail,
+      role: 'Official Match Scorer',
+      team: targetMatch.innings1?.team || targetMatch.teamA || '',
+      flag: targetMatch.innings1?.flag || targetMatch.flagA || '🏏',
+      avatar: userProfile?.avatarUri || null,
+      authorizedMatchId: activeMatchId,
+    };
+
+    // Update user profile locally
+    setUserProfile(prev => {
+      const updated = {
+        ...prev,
+        name: prev.name && prev.name !== 'Player' ? prev.name : restoredName,
+        phone: cleanPhoneDigits || prev.phone,
+        email: cleanEmailInput.includes('@') ? cleanEmailInput : prev.email,
+      };
+      AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
+
+    if (cleanPhoneDigits) setAuthPhone(cleanPhoneDigits);
+    if (cleanEmailInput.includes('@')) setAuthEmail(cleanEmailInput);
+    setIsAuthenticated(true);
+    setActiveScorer(restoredScorerObj);
+
+    // Update match record with this new device ID as active scorer device
+    const updatedMatch = {
+      ...targetMatch,
+      activeScorer: restoredScorerObj,
+      scorerDeviceId: myDevId,
+      isScoringDelegated: false,
+    };
+
+    setMatchesDb(prev => ({ ...prev, [activeMatchId]: updatedMatch }));
+    AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...matchesDb, [activeMatchId]: updatedMatch })).catch(() => {});
+
+    if (isFirebaseConfigured()) {
+      syncMatchToFirebaseDirect(activeMatchId, updatedMatch).catch(() => {});
+    }
+
+    setClaimScorerModalVisible(false);
+    setClaimScorerInput('');
+    showAppToast(`Official scoring restored to this phone! 🏏`, '✅');
+    Alert.alert('Official Scoring Restored ✅', `You are now the active Official Scorer for "${targetMatch.title}" on this device.`);
   };
 
   // ============================================================================
@@ -12167,10 +12250,21 @@ function CricketAddaMain() {
     const fieldingPlayerNames = (bowlingXI || []).map(p => p.name);
 
     const myDeviceId = clientIdRef.current || `dev_${Platform.OS}_${Date.now()}`;
-    const myPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const rawScorerPhone = matchDraftScorerPhone || userProfile?.phone || authPhone || '';
+    const myPhone = String(rawScorerPhone).replace(/[^0-9]/g, '').slice(-10);
     const myEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
     const myName = (userProfile?.name || authName || 'Match Creator').trim() || 'Match Creator';
     const myId = userProfile?.id || `usr_${myPhone || myDeviceId}`;
+
+    // Auto-persist scorer phone to user profile if entered in setup draft
+    if (matchDraftScorerPhone && myPhone && (!userProfile?.phone || !authPhone)) {
+      setAuthPhone(myPhone);
+      setUserProfile(prev => {
+        const updated = { ...prev, phone: myPhone };
+        AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(updated)).catch(() => {});
+        return updated;
+      });
+    }
 
     const newMatchObj = {
       id: newMatchId,
@@ -14017,6 +14111,37 @@ function CricketAddaMain() {
                   </TouchableOpacity>
                 )}
 
+                {/* Claim Scorer Button for phone switch / battery low recovery */}
+                <TouchableOpacity
+                  style={{
+                    flex: 1.15,
+                    height: 36,
+                    backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#064e3b',
+                    borderColor: '#10b981',
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 4,
+                    paddingHorizontal: 6,
+                  }}
+                  onPress={() => {
+                    setClaimScorerInput('');
+                    setClaimScorerError('');
+                    setClaimScorerModalVisible(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 12 }}>📱</Text>
+                  <Text style={{
+                    color: currentTheme.isLight ? '#15803d' : '#86efac',
+                    fontSize: 11,
+                    fontWeight: 'bold',
+                  }} numberOfLines={1}>
+                    Claim Scorer
+                  </Text>
+                </TouchableOpacity>
+
                 {viewerSimulated && (
                   <TouchableOpacity
                     style={{
@@ -15230,21 +15355,57 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
 
-              {/* 3. SPECTATOR INFO CALLOUT */}
+              {/* 3. SPECTATOR INFO CALLOUT & CROSS-DEVICE SCORER RECOVERY */}
               <View style={{
                 backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a',
                 borderColor: currentTheme.cardBorder,
                 borderWidth: 1,
-                borderRadius: 10,
-                padding: 10,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
+                borderRadius: 12,
+                padding: 12,
+                gap: 10,
               }}>
-                <Text style={{ fontSize: 16 }}>🔒</Text>
-                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, flex: 1, lineHeight: 15 }}>
-                  Live ball-by-ball updates and commentary are synced live from the Official Match Scorer. Keypad scoring is disabled in Spectator Mode.
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Text style={{ fontSize: 16 }}>🔒</Text>
+                  <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, flex: 1, lineHeight: 15 }}>
+                    Live ball-by-ball updates and commentary are synced live from the Official Match Scorer. Keypad scoring is disabled in Spectator Mode.
+                  </Text>
+                </View>
+
+                {/* Cross-Device / Low Battery Scorer Claim Card */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: currentTheme.isLight ? '#eff6ff' : '#1e293b',
+                    borderColor: '#38bdf8',
+                    borderWidth: 1.2,
+                    borderRadius: 8,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                  }}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setClaimScorerInput('');
+                    setClaimScorerError('');
+                    setClaimScorerModalVisible(true);
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, marginRight: 8 }}>
+                    <Text style={{ fontSize: 16 }}>🔋</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>
+                        Low Battery or Switched Phone?
+                      </Text>
+                      <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5 }}>
+                        Claim Official Scoring on this phone with your Mobile / Email
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 10, paddingVertical: 5, borderRadius: 6 }}>
+                    <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }}>Claim ➔</Text>
+                  </View>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -22438,6 +22599,56 @@ function CricketAddaMain() {
                         </Text>
                       </View>
                     </View>
+
+                    {/* Official Scorer Account & Phone Number Binding Block */}
+                    <View style={[styles.confirmParamSection, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder, marginTop: 10 }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                        <Text style={[styles.confirmParamLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
+                          📱 Official Scorer Mobile:
+                        </Text>
+                        {(userProfile?.phone || authPhone || matchDraftScorerPhone) ? (
+                          <View style={{ backgroundColor: '#10b98122', borderColor: '#10b981', borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
+                            <Text style={{ color: '#10b981', fontSize: 10.5, fontWeight: 'bold' }}>✓ BOUND TO ACCOUNT</Text>
+                          </View>
+                        ) : null}
+                      </View>
+
+                      {(userProfile?.phone || authPhone) ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 13, fontWeight: 'bold' }}>
+                            +91 {userProfile?.phone || authPhone}
+                          </Text>
+                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11 }}>
+                            ({userProfile?.name || 'Creator'})
+                          </Text>
+                        </View>
+                      ) : (
+                        <View style={{ gap: 6 }}>
+                          <TextInput
+                            style={{
+                              backgroundColor: currentTheme.isLight ? '#ffffff' : '#1e293b',
+                              borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                              borderWidth: 1,
+                              borderRadius: 8,
+                              paddingHorizontal: 10,
+                              paddingVertical: 8,
+                              color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                              fontSize: 13,
+                              fontWeight: '600',
+                            }}
+                            placeholder="Enter 10-digit mobile number"
+                            placeholderTextColor={currentTheme.isLight ? '#94a3b8' : '#64748b'}
+                            keyboardType="phone-pad"
+                            maxLength={10}
+                            value={matchDraftScorerPhone}
+                            onChangeText={setMatchDraftScorerPhone}
+                          />
+                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5, lineHeight: 14 }}>
+                            💡 If your phone battery runs low or you switch devices, you can immediately restore official scoring on any phone using this mobile number.
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </View>
               )}
@@ -23964,6 +24175,181 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
             )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* 1.5. CLAIM OFFICIAL SCORING MODAL (BATTERY LOW / SWITCHED PHONE RECOVERY) */}
+      {/* ========================================================================= */}
+      <Modal visible={claimScorerModalVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setClaimScorerModalVisible(false)}>
+        <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
+          <View style={{
+            backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+            borderColor: currentTheme.isLight ? '#cbd5e1' : '#38bdf8',
+            borderWidth: 2,
+            borderRadius: 18,
+            padding: 18,
+            width: Math.min(width * 0.92, 400),
+            maxHeight: safeModalCardMaxHeight,
+            shadowColor: '#0284c7',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.35,
+            shadowRadius: 10,
+            elevation: 8,
+          }}>
+            {/* Modal Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <Text style={{ fontSize: 20 }}>🔋</Text>
+                <Text style={{
+                  color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                  fontSize: 16,
+                  fontWeight: '900',
+                  letterSpacing: 0.3,
+                  flex: 1,
+                }} numberOfLines={1}>
+                  Claim Official Scoring
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setClaimScorerModalVisible(false)}
+              >
+                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 13, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Explanation Note */}
+            <Text style={{
+              color: currentTheme.isLight ? '#475569' : '#94a3b8',
+              fontSize: 12,
+              lineHeight: 17,
+              marginBottom: 14,
+            }}>
+              Did your phone battery run low, drop, or did you switch devices? Enter your registered <Text style={{ fontWeight: 'bold', color: currentTheme.isLight ? '#0f172a' : '#f8fafc' }}>Mobile Number</Text> or <Text style={{ fontWeight: 'bold', color: currentTheme.isLight ? '#0f172a' : '#f8fafc' }}>Email</Text> to immediately activate official live scoring rights on this device.
+            </Text>
+
+            {/* Match Context Card */}
+            {(() => {
+              const activeTargetMatch = (activeMatchId && matchesDb[activeMatchId]) || match;
+              const creatorP = activeTargetMatch?.creatorPhone || activeTargetMatch?.scorerPhone;
+              const maskedP = creatorP ? `••••••${String(creatorP).slice(-4)}` : null;
+              return (
+                <View style={{
+                  backgroundColor: currentTheme.isLight ? '#f8fafc' : '#1e293b',
+                  borderColor: currentTheme.cardBorder,
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  padding: 10,
+                  marginBottom: 14,
+                  gap: 4,
+                }}>
+                  <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>
+                    Current Match
+                  </Text>
+                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13, fontWeight: 'bold' }} numberOfLines={1}>
+                    🏏 {activeTargetMatch?.title || 'Selected Match'}
+                  </Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11 }}>
+                      Creator: <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontWeight: 'bold' }}>{activeTargetMatch?.creatorName || 'Official Scorer'}</Text>
+                    </Text>
+                    {maskedP && (
+                      <Text style={{ color: '#0284c7', fontSize: 11, fontWeight: 'bold' }}>
+                        Linked: +91 {maskedP}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })()}
+
+            {/* Input Field */}
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11.5, fontWeight: 'bold', marginBottom: 6 }}>
+                Your Mobile Number or Email:
+              </Text>
+              <TextInput
+                style={{
+                  backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16',
+                  borderColor: claimScorerError ? '#ef4444' : currentTheme.isLight ? '#cbd5e1' : '#334155',
+                  borderWidth: 1.5,
+                  borderRadius: 10,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                  fontSize: 14,
+                  fontWeight: '600',
+                }}
+                placeholder="e.g. 9876543210 or scorer@email.com"
+                placeholderTextColor={currentTheme.isLight ? '#94a3b8' : '#64748b'}
+                value={claimScorerInput}
+                onChangeText={txt => {
+                  setClaimScorerInput(txt);
+                  if (claimScorerError) setClaimScorerError('');
+                }}
+                keyboardType="default"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              {claimScorerError ? (
+                <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: '600', marginTop: 4 }}>
+                  ⚠️ {claimScorerError}
+                </Text>
+              ) : null}
+            </View>
+
+            {/* Action Buttons */}
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                  borderColor: currentTheme.cardBorder,
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  paddingVertical: 11,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setClaimScorerModalVisible(false)}
+              >
+                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 12.5, fontWeight: 'bold' }}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 2,
+                  backgroundColor: '#0284c7',
+                  borderColor: '#38bdf8',
+                  borderWidth: 1,
+                  borderRadius: 10,
+                  paddingVertical: 11,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 6,
+                  shadowColor: '#0284c7',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 4,
+                  elevation: 3,
+                }}
+                activeOpacity={0.8}
+                onPress={handleClaimScorerSubmit}
+              >
+                <Text style={{ fontSize: 14 }}>🚀</Text>
+                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>Restore Scoring Rights</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
