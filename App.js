@@ -8520,7 +8520,7 @@ function CricketAddaMain() {
         isScoringDelegated: true,
         delegatedAt: Date.now(),
         delegatedFrom: myName,
-        // Ensure creator is recorded so they can reclaim
+        // Original match creator identity preserved for record
         creatorDeviceId: existingMatch.creatorDeviceId || clientIdRef.current,
         creatorId: existingMatch.creatorId || myId,
         creatorName: existingMatch.creatorName || myName,
@@ -8571,77 +8571,8 @@ function CricketAddaMain() {
 
     Alert.alert(
       '✅ Scoring Rights Delegated!',
-      `• Assigned Scorer: ${playerName}\n${cleanPhoneDigits ? `• Phone: +91 ${cleanPhoneDigits}\n` : ''}• Team: ${resolvedTeamFlag} ${resolvedTeamName}\n• Role: ${playerRole}\n\nLive scoring is now under ${playerName}'s control.`
+      `• Assigned Scorer: ${playerName}\n${cleanPhoneDigits ? `• Phone: +91 ${cleanPhoneDigits}\n` : ''}• Team: ${resolvedTeamFlag} ${resolvedTeamName}\n• Role: ${playerRole}\n\nLive scoring is now under ${playerName}'s control. You are now in Spectator Mode.`
     );
-  };
-
-  // Creator can reclaim scoring rights back from the delegate at any time
-  const reclaimScoringDuty = () => {
-    const myPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
-    const myEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
-    const myName = userProfile?.name || authName || 'Creator';
-    const myId = userProfile?.id || `usr_${myPhone || 'creator'}`;
-
-    const creatorScorerObj = {
-      id: myId,
-      name: myName,
-      phone: myPhone,
-      email: myEmail,
-      role: 'Match Creator & Official Scorer',
-      team: battingTeamName,
-      flag: battingTeamFlag,
-      avatar: userProfile?.avatarUri || null,
-      authorizedMatchId: activeMatchId,
-    };
-
-    setActiveScorer(creatorScorerObj);
-
-    if (activeMatchId) {
-      const existingMatch = (matchesDb && matchesDb[activeMatchId]) || {};
-      const updatedMatch = {
-        ...existingMatch,
-        activeScorer: creatorScorerObj,
-        scorerName: myName,
-        scorerPhone: myPhone,
-        scorerEmail: myEmail,
-        scorerId: myId,
-        scorerDeviceId: clientIdRef.current,
-        isScoringDelegated: false,
-        reclaimedAt: Date.now(),
-      };
-
-      setMatchesDb(prev => ({ ...prev, [activeMatchId]: updatedMatch }));
-      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...matchesDb, [activeMatchId]: updatedMatch })).catch(() => {});
-
-      if (isFirebaseConfigured()) {
-        syncMatchToFirebaseDirect(activeMatchId, updatedMatch).catch(() => {});
-      }
-    }
-
-    const reclaimComm = {
-      id: `comm_reclaim_${Date.now()}`,
-      overs: `${Math.floor(liveBalls / 6)}.${liveBalls % 6}`,
-      bowler,
-      batter: striker,
-      ballSymbol: '👑',
-      badgeType: 'special',
-      runs: 0,
-      text: `👑 SCORING RECLAIMED: Match creator ${myName} resumed official scoring duty.`,
-      timestamp: 'Just now',
-    };
-    setLiveCommentaryList(prev => [reclaimComm, ...prev]);
-
-    broadcastMatchState({
-      activeScorer: creatorScorerObj,
-      isScoringDelegated: false,
-      scorerName: myName,
-      scorerPhone: myPhone,
-      scorerEmail: myEmail,
-      scorerId: myId,
-      liveCommentaryList: [reclaimComm, ...liveCommentaryList],
-    });
-
-    showAppToast('You have reclaimed official scoring rights! 👑', '✅');
   };
 
   // ============================================================================
@@ -13978,53 +13909,6 @@ function CricketAddaMain() {
                     Wagon Wheel
                   </Text>
                 </TouchableOpacity>
-
-                {/* Reclaim Scoring Button: Shown to match creator if scoring is delegated */}
-                {Boolean(
-                  (currentMatchData?.isScoringDelegated || (matchesDb && matchesDb[activeMatchId]?.isScoringDelegated)) &&
-                  (
-                    (currentMatchData?.creatorDeviceId && clientIdRef.current && currentMatchData.creatorDeviceId === clientIdRef.current) ||
-                    (currentMatchData?.creatorPhone && String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10) === String(currentMatchData.creatorPhone).replace(/[^0-9]/g, '').slice(-10)) ||
-                    (currentMatchData?.creatorEmail && (userProfile?.email || authEmail || '').toLowerCase().trim() === String(currentMatchData.creatorEmail).toLowerCase().trim()) ||
-                    (currentMatchData?.creatorId && userProfile?.id && currentMatchData.creatorId === userProfile.id) ||
-                    (currentMatchData?.creatorName && userProfile?.name && String(currentMatchData.creatorName).toLowerCase().trim() === String(userProfile.name).toLowerCase().trim())
-                  )
-                ) && (
-                  <TouchableOpacity
-                    style={{
-                      flex: 1.3,
-                      height: 36,
-                      backgroundColor: '#7c2d12',
-                      borderColor: '#f97316',
-                      borderWidth: 1.2,
-                      borderRadius: 8,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'row',
-                      gap: 4,
-                      paddingHorizontal: 6,
-                    }}
-                    onPress={() => {
-                      Alert.alert(
-                        '👑 Reclaim Official Scoring?',
-                        'Do you want to take back official match scoring rights from the assigned scorer?',
-                        [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Reclaim Scoring', style: 'default', onPress: reclaimScoringDuty }
-                        ]
-                      );
-                    }}
-                  >
-                    <Text style={{ fontSize: 12 }}>👑</Text>
-                    <Text style={{
-                      color: '#fed7aa',
-                      fontSize: 11.5,
-                      fontWeight: '900',
-                    }} numberOfLines={1}>
-                      Reclaim Scoring
-                    </Text>
-                  </TouchableOpacity>
-                )}
 
                 {viewerSimulated && (
                   <TouchableOpacity
