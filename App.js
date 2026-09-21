@@ -14672,15 +14672,6 @@ function CricketAddaMain() {
                 >
                   <Text style={styles.toolBtnText}>↩️ Undo</Text>
                 </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.toolBtn, { backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0c4a6e', borderColor: '#38bdf8', borderWidth: 1 }]}
-                  onPress={() => {
-                    setViewerSimulated(true);
-                    showAppToast('👁️ Switched to Spectator Mode Preview', '👁️');
-                  }}
-                >
-                  <Text style={[styles.toolBtnText, { color: '#38bdf8', fontWeight: '800' }]}>👁️ Viewer</Text>
-                </TouchableOpacity>
               </View>
 
               {/* Active Extra Selection Guidance Banner */}
