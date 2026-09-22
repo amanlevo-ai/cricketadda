@@ -13,6 +13,7 @@
     "expo-status-bar": "~57.0.1",
     "jsqr": "^1.4.0",
     "qrcode": "^1.5.4",
+    "toqr": "^0.1.1",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-native": "^0.86.3",
