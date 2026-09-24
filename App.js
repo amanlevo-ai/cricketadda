@@ -3359,6 +3359,31 @@ function resolveTeamLogo(team, allTeams = [], allUsers = []) {
 }
 
 // ============================================================================
+// SMART TEAM LOGO COMPONENT (FAIL-SAFE IMAGE RENDERING WITH AUTOMATIC FLAG FALLBACK)
+// ============================================================================
+function SmartTeamLogo({ team, allTeams = [], allUsers = [], style, flagStyle, fallbackFlag = '🦁' }) {
+  const [hasError, setHasError] = useState(false);
+  const logoUri = resolveTeamLogo(team, allTeams, allUsers);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [logoUri]);
+
+  if (logoUri && !hasError) {
+    return (
+      <Image
+        source={{ uri: logoUri }}
+        style={style}
+        resizeMode="cover"
+        onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  return <Text style={flagStyle}>{team?.flag || fallbackFlag}</Text>;
+}
+
+// ============================================================================
 // STYLISH CROSS-PLATFORM TEAM BADGE PILL (CLEAN REPLACEMENT FOR BROKEN WINDOWS EMOJI FLAGS)
 // ============================================================================
 function TeamFlagBadge({ flag, logo, shortName, fullName, isBatting, theme, size = 'md' }) {
@@ -4054,6 +4079,53 @@ function CricketAddaMain() {
     return resolveTeamLogo(team, registeredTeams, usersDb);
   }, [registeredTeams, usersDb]);
 
+  const allAvailableMatchTeams = useMemo(() => {
+    const map = new Map();
+    // 1. Registered teams from cloud/local
+    (registeredTeams || []).forEach(t => {
+      if (t && t.name) map.set(String(t.id || t.name).toLowerCase(), t);
+    });
+    // 2. User profile created teams
+    (userProfile?.createdTeams || []).forEach(t => {
+      if (t && t.name) {
+        const key = String(t.id || t.name).toLowerCase();
+        if (!map.has(key)) map.set(key, t);
+      }
+    });
+    // 3. All users created teams from usersDb
+    (usersDb || []).forEach(u => {
+      if (u && Array.isArray(u.createdTeams)) {
+        u.createdTeams.forEach(t => {
+          if (t && t.name) {
+            const key = String(t.id || t.name).toLowerCase();
+            if (!map.has(key)) map.set(key, t);
+          }
+        });
+      }
+    });
+    return Array.from(map.values());
+  }, [registeredTeams, userProfile?.createdTeams, usersDb]);
+
+  const handleOpenMatchWizard = useCallback(() => {
+    setWzPhase(1);
+    setWizardVisible(true);
+    if (isFirebaseConfigured()) {
+      fetchFirebaseTeams().then(cloudTeams => {
+        if (Array.isArray(cloudTeams) && cloudTeams.length > 0) {
+          setRegisteredTeams(prev => {
+            const map = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
+            cloudTeams.forEach(ct => {
+              if (ct && ct.name) map.set(String(ct.id || ct.name).toLowerCase(), ct);
+            });
+            const nextList = Array.from(map.values());
+            AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(nextList)).catch(() => {});
+            return nextList;
+          });
+        }
+      }).catch(() => {});
+    }
+  }, []);
+
   useEffect(() => {
     let interval = null;
     if (authStep === 2 && authOtpTimer > 0) {
@@ -4184,8 +4256,30 @@ function CricketAddaMain() {
         setUserProfile(restoredProfile);
         setUserCareerData(restoredCareer);
         if (userTeams.length > 0) {
-          setRegisteredTeams(userTeams);
-          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(userTeams)).catch(() => {});
+          setRegisteredTeams(prev => {
+            const map = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
+            userTeams.forEach(t => {
+              if (t && t.name) map.set(String(t.id || t.name).toLowerCase(), t);
+            });
+            const merged = Array.from(map.values());
+            AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(merged)).catch(() => {});
+            return merged;
+          });
+        }
+        if (isFirebaseConfigured()) {
+          fetchFirebaseTeams().then(cloudTeams => {
+            if (Array.isArray(cloudTeams) && cloudTeams.length > 0) {
+              setRegisteredTeams(prev => {
+                const map = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
+                cloudTeams.forEach(ct => {
+                  if (ct && ct.name) map.set(String(ct.id || ct.name).toLowerCase(), ct);
+                });
+                const nextList = Array.from(map.values());
+                AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(nextList)).catch(() => {});
+                return nextList;
+              });
+            }
+          }).catch(() => {});
         }
         AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(restoredProfile)).catch(() => {});
         AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(restoredCareer)).catch(() => {});
@@ -12081,7 +12175,7 @@ function CricketAddaMain() {
     const cleanName = name.trim();
 
     // Check for duplicate team name (case-insensitive)
-    const isDuplicate = registeredTeams.some(
+    const isDuplicate = allAvailableMatchTeams.some(
       t => t.name && t.name.trim().toLowerCase() === cleanName.toLowerCase()
     );
     if (isDuplicate) {
@@ -13162,10 +13256,7 @@ function CricketAddaMain() {
                       paddingHorizontal: 20,
                       borderRadius: 10,
                     }}
-                    onPress={() => {
-                      setWzPhase(1);
-                      setWizardVisible(true);
-                    }}
+                    onPress={handleOpenMatchWizard}
                   >
                     <Text style={{ color: currentTheme.primaryText, fontWeight: '900', fontSize: 13 }}>
                       ➕ Start New Match
@@ -15719,10 +15810,7 @@ function CricketAddaMain() {
 
               <TouchableOpacity
                 style={[styles.emptyScorecardActionBtn, { backgroundColor: currentTheme.primary }]}
-                onPress={() => {
-                  setWzPhase(1);
-                  setWizardVisible(true);
-                }}
+                onPress={handleOpenMatchWizard}
               >
                 <Text style={[styles.emptyScorecardActionBtnText, { color: currentTheme.primaryText }]}>
                   ➕ Start New Match
@@ -21537,13 +21625,14 @@ function CricketAddaMain() {
                     }}
                   >
                     {matchDraft.myTeam ? (
-                      (() => {
-                        const rawLogo = getResolvedTeamLogo(matchDraft.myTeam);
-                        if (rawLogo) {
-                          return <Image source={{ uri: rawLogo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />;
-                        }
-                        return <Text style={{ fontSize: 36 }}>{matchDraft.myTeam.flag || '🦁'}</Text>;
-                      })()
+                      <SmartTeamLogo
+                        team={matchDraft.myTeam}
+                        allTeams={allAvailableMatchTeams}
+                        allUsers={usersDb}
+                        style={{ width: '100%', height: '100%' }}
+                        flagStyle={{ fontSize: 36 }}
+                        fallbackFlag="🦁"
+                      />
                     ) : (
                       <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
                     )}
@@ -21639,7 +21728,7 @@ function CricketAddaMain() {
                       </View>
 
                       {/* 1-Tap Create & Select Custom Team when typed */}
-                      {(teamSearchQuery || '').trim().length > 0 && !registeredTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
+                      {(teamSearchQuery || '').trim().length > 0 && !allAvailableMatchTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
                         <TouchableOpacity
                           style={styles.dropdownAddNewTeamBtn}
                           onPress={() => handleAddNewCustomTeam('teamA', teamSearchQuery)}
@@ -21656,7 +21745,7 @@ function CricketAddaMain() {
                       )}
 
                       <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-                        {(registeredTeams || []).filter(t => {
+                        {(allAvailableMatchTeams || []).filter(t => {
                           const q = (teamSearchQuery || '').toLowerCase().trim();
                           if (!q) return true;
                           const matchName = (t.name || '').toLowerCase().includes(q);
@@ -21679,17 +21768,16 @@ function CricketAddaMain() {
                                 setTeamSearchQuery('');
                               }}
                             >
-                              {(() => {
-                                const tLogo = getResolvedTeamLogo(t);
-                                if (tLogo) {
-                                  return (
-                                    <View style={{ width: 24, height: 24, borderRadius: 12, overflow: 'hidden', marginRight: 8 }}>
-                                      <Image source={{ uri: tLogo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                                    </View>
-                                  );
-                                }
-                                return <Text style={{ fontSize: 20, marginRight: 8 }}>{t.flag || '🦁'}</Text>;
-                              })()}
+                              <View style={{ width: 24, height: 24, borderRadius: 12, overflow: 'hidden', marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
+                                <SmartTeamLogo
+                                  team={t}
+                                  allTeams={allAvailableMatchTeams}
+                                  allUsers={usersDb}
+                                  style={{ width: '100%', height: '100%' }}
+                                  flagStyle={{ fontSize: 18 }}
+                                  fallbackFlag={t.flag || '🦁'}
+                                />
+                              </View>
                               <View style={{ flex: 1 }}>
                                 <Text style={[styles.dropdownItemName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }, isSelected ? { color: currentTheme.primary } : null]}>{t.name}</Text>
                                 <Text style={[styles.dropdownItemSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>{t.city} • Capt: {t.captain}</Text>
@@ -21723,13 +21811,14 @@ function CricketAddaMain() {
                     }}
                   >
                     {matchDraft.opponentTeam ? (
-                      (() => {
-                        const rawLogo = getResolvedTeamLogo(matchDraft.opponentTeam);
-                        if (rawLogo) {
-                          return <Image source={{ uri: rawLogo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />;
-                        }
-                        return <Text style={{ fontSize: 36 }}>{matchDraft.opponentTeam.flag || '⚡'}</Text>;
-                      })()
+                      <SmartTeamLogo
+                        team={matchDraft.opponentTeam}
+                        allTeams={allAvailableMatchTeams}
+                        allUsers={usersDb}
+                        style={{ width: '100%', height: '100%' }}
+                        flagStyle={{ fontSize: 36 }}
+                        fallbackFlag="⚡"
+                      />
                     ) : (
                       <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
                     )}
@@ -21825,7 +21914,7 @@ function CricketAddaMain() {
                       </View>
 
                       {/* 1-Tap Create & Select Custom Team when typed */}
-                      {(teamSearchQuery || '').trim().length > 0 && !registeredTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
+                      {(teamSearchQuery || '').trim().length > 0 && !allAvailableMatchTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
                         <TouchableOpacity
                           style={styles.dropdownAddNewTeamBtn}
                           onPress={() => handleAddNewCustomTeam('teamB', teamSearchQuery)}
@@ -21842,7 +21931,7 @@ function CricketAddaMain() {
                       )}
 
                       <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-                        {(registeredTeams || []).filter(t => {
+                        {(allAvailableMatchTeams || []).filter(t => {
                           const q = (teamSearchQuery || '').toLowerCase().trim();
                           if (!q) return true;
                           const matchName = (t.name || '').toLowerCase().includes(q);
@@ -21865,17 +21954,16 @@ function CricketAddaMain() {
                                 setTeamSearchQuery('');
                               }}
                             >
-                              {(() => {
-                                const tLogo = getResolvedTeamLogo(t);
-                                if (tLogo) {
-                                  return (
-                                    <View style={{ width: 24, height: 24, borderRadius: 12, overflow: 'hidden', marginRight: 8 }}>
-                                      <Image source={{ uri: tLogo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                                    </View>
-                                  );
-                                }
-                                return <Text style={{ fontSize: 20, marginRight: 8 }}>{t.flag || '⚡'}</Text>;
-                              })()}
+                              <View style={{ width: 24, height: 24, borderRadius: 12, overflow: 'hidden', marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
+                                <SmartTeamLogo
+                                  team={t}
+                                  allTeams={allAvailableMatchTeams}
+                                  allUsers={usersDb}
+                                  style={{ width: '100%', height: '100%' }}
+                                  flagStyle={{ fontSize: 18 }}
+                                  fallbackFlag={t.flag || '⚡'}
+                                />
+                              </View>
                               <View style={{ flex: 1 }}>
                                 <Text style={[styles.dropdownItemName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }, isSelected ? { color: currentTheme.primary } : null]}>{t.name}</Text>
                                 <Text style={[styles.dropdownItemSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>{t.city} • Capt: {t.captain}</Text>
@@ -22143,39 +22231,15 @@ function CricketAddaMain() {
                           {(() => {
                             const targetTeam = coinDisplayedSide === 'opponentTeam' ? matchDraft.opponentTeam : matchDraft.myTeam;
                             if (!targetTeam) return <Text style={{ fontSize: 34 }}>🪙</Text>;
-                            const teamLogo = getResolvedTeamLogo(targetTeam);
-                            const teamFlag = targetTeam.flag;
-
-                            if (teamLogo) {
-                              return (
-                                <Image
-                                  source={{ uri: teamLogo }}
-                                  style={{ width: '100%', height: '100%' }}
-                                  resizeMode="cover"
-                                />
-                              );
-                            }
-
-                            if (teamFlag && String(teamFlag).trim().length > 0) {
-                              return (
-                                <Text style={{ fontSize: 40 }}>{String(teamFlag).trim()}</Text>
-                              );
-                            }
-
                             return (
-                              <Text
-                                style={{
-                                  color: '#ffffff',
-                                  fontSize: 12.5,
-                                  fontWeight: '900',
-                                  textAlign: 'center',
-                                  paddingHorizontal: 4,
-                                  textTransform: 'uppercase',
-                                }}
-                                numberOfLines={2}
-                              >
-                                {targetTeam.shortName || targetTeam.name}
-                              </Text>
+                              <SmartTeamLogo
+                                team={targetTeam}
+                                allTeams={allAvailableMatchTeams}
+                                allUsers={usersDb}
+                                style={{ width: '100%', height: '100%' }}
+                                flagStyle={{ fontSize: 40 }}
+                                fallbackFlag={targetTeam.flag || '🪙'}
+                              />
                             );
                           })()}
                         </View>

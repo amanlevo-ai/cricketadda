@@ -790,9 +790,10 @@ export async function fetchFirebaseTeams() {
   if (!isFirebaseConfigured()) return null;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const [teamsRes, indexRes, deletedRes] = await Promise.allSettled([
+    const [teamsRes, indexRes, usersRes, deletedRes] = await Promise.allSettled([
       fetch(`${baseUrl}/teams.json?t=${Date.now()}`),
       fetch(`${baseUrl}/teams_index.json?t=${Date.now()}`),
+      fetch(`${baseUrl}/users.json?t=${Date.now()}`),
       fetch(`${baseUrl}/deleted_teams.json?t=${Date.now()}`),
     ]);
 
@@ -841,6 +842,17 @@ export async function fetchFirebaseTeams() {
     if (indexRes.status === 'fulfilled' && indexRes.value.ok) {
       const idxData = await indexRes.value.json();
       if (idxData && typeof idxData === 'object') Object.values(idxData).forEach(addTeam);
+    }
+
+    if (usersRes.status === 'fulfilled' && usersRes.value.ok) {
+      const uData = await usersRes.value.json();
+      if (uData && typeof uData === 'object') {
+        Object.values(uData).forEach(u => {
+          if (u && Array.isArray(u.createdTeams)) {
+            u.createdTeams.forEach(addTeam);
+          }
+        });
+      }
     }
 
     return Array.from(teamMap.values());
