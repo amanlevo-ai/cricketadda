@@ -3387,13 +3387,18 @@ function SmartTeamLogo({ team, allTeams = [], allUsers = [], style, flagStyle, f
 // STYLISH CROSS-PLATFORM TEAM BADGE PILL (CLEAN REPLACEMENT FOR BROKEN WINDOWS EMOJI FLAGS)
 // ============================================================================
 function TeamFlagBadge({ flag, logo, shortName, fullName, isBatting, theme, size = 'md' }) {
+  const [imageError, setImageError] = useState(false);
   const isSmall = size === 'sm';
   const dim = isSmall ? 28 : 34;
   const borderColor = isBatting ? (theme?.primary || '#10b981') : (theme?.secondary || '#38bdf8');
   const bgColor = isBatting ? 'rgba(16, 185, 129, 0.15)' : 'rgba(56, 189, 248, 0.15)';
 
+  useEffect(() => {
+    setImageError(false);
+  }, [logo]);
+
   // 1. Priority 1: User-Uploaded Custom Team Logo (Image URI / URL)
-  if (logo && typeof logo === 'string' && (logo.startsWith('http') || logo.startsWith('data:') || logo.startsWith('file:') || logo.startsWith('blob:'))) {
+  if (!imageError && logo && typeof logo === 'string' && (logo.startsWith('http') || logo.startsWith('data:') || logo.startsWith('file:') || logo.startsWith('blob:') || logo.startsWith('content:'))) {
     return (
       <View
         style={{
@@ -3413,7 +3418,12 @@ function TeamFlagBadge({ flag, logo, shortName, fullName, isBatting, theme, size
           elevation: 2,
         }}
       >
-        <Image source={{ uri: logo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+        <Image
+          source={{ uri: logo }}
+          style={{ width: '100%', height: '100%' }}
+          resizeMode="cover"
+          onError={() => setImageError(true)}
+        />
       </View>
     );
   }
@@ -6355,13 +6365,25 @@ function CricketAddaMain() {
     ? (currentMatchData.innings2?.flag || currentMatchData.flagB || '🇦🇺')
     : (currentMatchData.innings1?.flag || currentMatchData.flagA || '🇮🇳');
 
-  const battingTeamLogo = currentInnings === 1
-    ? (currentMatchData.innings1?.logo || currentMatchData.innings1?.logoUri || currentMatchData.logoA || registeredTeams.find(t => t.name.toLowerCase() === battingTeamName.toLowerCase())?.logoUri || null)
-    : (currentMatchData.innings2?.logo || currentMatchData.innings2?.logoUri || currentMatchData.logoB || registeredTeams.find(t => t.name.toLowerCase() === battingTeamName.toLowerCase())?.logoUri || null);
+  const battingTeamLogo = resolveTeamLogo(
+    {
+      name: battingTeamName,
+      logo: currentInnings === 1 ? (currentMatchData.innings1?.logo || currentMatchData.innings1?.logoUri || currentMatchData.logoA) : (currentMatchData.innings2?.logo || currentMatchData.innings2?.logoUri || currentMatchData.logoB),
+      logoUri: currentInnings === 1 ? (currentMatchData.innings1?.logoUri || currentMatchData.innings1?.logo || currentMatchData.logoA) : (currentMatchData.innings2?.logoUri || currentMatchData.innings2?.logo || currentMatchData.logoB),
+    },
+    allAvailableMatchTeams,
+    usersDb
+  );
 
-  const bowlingTeamLogo = currentInnings === 1
-    ? (currentMatchData.innings2?.logo || currentMatchData.innings2?.logoUri || currentMatchData.logoB || registeredTeams.find(t => t.name.toLowerCase() === bowlingTeamName.toLowerCase())?.logoUri || null)
-    : (currentMatchData.innings1?.logo || currentMatchData.innings1?.logoUri || currentMatchData.logoA || registeredTeams.find(t => t.name.toLowerCase() === bowlingTeamName.toLowerCase())?.logoUri || null);
+  const bowlingTeamLogo = resolveTeamLogo(
+    {
+      name: bowlingTeamName,
+      logo: currentInnings === 1 ? (currentMatchData.innings2?.logo || currentMatchData.innings2?.logoUri || currentMatchData.logoB) : (currentMatchData.innings1?.logo || currentMatchData.innings1?.logoUri || currentMatchData.logoA),
+      logoUri: currentInnings === 1 ? (currentMatchData.innings2?.logoUri || currentMatchData.innings2?.logo || currentMatchData.logoB) : (currentMatchData.innings1?.logoUri || currentMatchData.innings1?.logo || currentMatchData.logoA),
+    },
+    allAvailableMatchTeams,
+    usersDb
+  );
 
   const getTeamShortName = (fullName, fallbackFlag) => {
     if (!fullName) return 'TEAM';
@@ -9035,8 +9057,8 @@ function CricketAddaMain() {
       });
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         const asset = result.assets[0];
-        let logoUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-        if (!asset.base64 && asset.uri) {
+        let logoUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : null;
+        if (!logoUri && asset.uri) {
           try {
             const FileSystem = require('expo-file-system');
             if (FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
@@ -9046,6 +9068,20 @@ function CricketAddaMain() {
             }
           } catch (e) {}
         }
+        if (!logoUri && asset.uri) {
+          try {
+            const resp = await fetch(asset.uri);
+            const blob = await resp.blob();
+            const b64 = await new Promise(res => {
+              const reader = new FileReader();
+              reader.onloadend = () => res(reader.result);
+              reader.onerror = () => res(null);
+              reader.readAsDataURL(blob);
+            });
+            if (b64) logoUri = b64;
+          } catch (e) {}
+        }
+        if (!logoUri) logoUri = asset.uri;
         setCaptainEditTeamLogo(logoUri);
         showAppToast('Team picture updated! 🖼️', '🎉', 'success');
       }
@@ -10924,8 +10960,8 @@ function CricketAddaMain() {
       });
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         const asset = result.assets[0];
-        let logoUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-        if (!asset.base64 && asset.uri) {
+        let logoUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : null;
+        if (!logoUri && asset.uri) {
           try {
             const FileSystem = require('expo-file-system');
             if (FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
@@ -10935,6 +10971,20 @@ function CricketAddaMain() {
             }
           } catch (e) {}
         }
+        if (!logoUri && asset.uri) {
+          try {
+            const resp = await fetch(asset.uri);
+            const blob = await resp.blob();
+            const b64 = await new Promise(res => {
+              const reader = new FileReader();
+              reader.onloadend = () => res(reader.result);
+              reader.onerror = () => res(null);
+              reader.readAsDataURL(blob);
+            });
+            if (b64) logoUri = b64;
+          } catch (e) {}
+        }
+        if (!logoUri) logoUri = asset.uri;
         setNewTeamLogo(logoUri);
         setNewTeamCustomLogoUrl('');
         showAppToast('Custom team picture selected! 🖼️', '🎉', 'success');
@@ -10972,8 +11022,8 @@ function CricketAddaMain() {
       });
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
         const asset = result.assets[0];
-        let logoUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
-        if (!asset.base64 && asset.uri) {
+        let logoUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : null;
+        if (!logoUri && asset.uri) {
           try {
             const FileSystem = require('expo-file-system');
             if (FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
@@ -10983,6 +11033,20 @@ function CricketAddaMain() {
             }
           } catch (e) {}
         }
+        if (!logoUri && asset.uri) {
+          try {
+            const resp = await fetch(asset.uri);
+            const blob = await resp.blob();
+            const b64 = await new Promise(res => {
+              const reader = new FileReader();
+              reader.onloadend = () => res(reader.result);
+              reader.onerror = () => res(null);
+              reader.readAsDataURL(blob);
+            });
+            if (b64) logoUri = b64;
+          } catch (e) {}
+        }
+        if (!logoUri) logoUri = asset.uri;
         setNewTeamLogo(logoUri);
         setNewTeamCustomLogoUrl('');
         showAppToast('Team photo captured! 📸', '🎉', 'success');
@@ -12419,6 +12483,9 @@ function CricketAddaMain() {
       });
     }
 
+    const myTeamLogo = resolveTeamLogo(d.myTeam, allAvailableMatchTeams, usersDb);
+    const oppTeamLogo = resolveTeamLogo(d.opponentTeam, allAvailableMatchTeams, usersDb);
+
     const newMatchObj = {
       id: newMatchId,
       title: d.title || `${d.myTeam.name} vs ${d.opponentTeam.name}`,
@@ -12429,6 +12496,8 @@ function CricketAddaMain() {
       teamB: d.opponentTeam.name,
       flagA: d.myTeam.flag || '🦁',
       flagB: d.opponentTeam.flag || '⚡',
+      logoA: myTeamLogo,
+      logoB: oppTeamLogo,
       toss: `${tossWinnerName} won the toss & elected to ${d.tossDecision.toUpperCase()}`,
       fieldingWicketkeeper: fieldingWk,
       battingWicketkeeper: battingWk,
@@ -12462,6 +12531,8 @@ function CricketAddaMain() {
       innings1: {
         team: battingTeamObj.name,
         flag: battingTeamObj.flag,
+        logo: battingIsMyTeam ? myTeamLogo : oppTeamLogo,
+        logoUri: battingIsMyTeam ? myTeamLogo : oppTeamLogo,
         runs: 0,
         wickets: 0,
         overs: '0.0',
@@ -12475,6 +12546,8 @@ function CricketAddaMain() {
       innings2: {
         team: bowlingTeamObj.name,
         flag: bowlingTeamObj.flag,
+        logo: battingIsMyTeam ? oppTeamLogo : myTeamLogo,
+        logoUri: battingIsMyTeam ? oppTeamLogo : myTeamLogo,
         runs: 0,
         wickets: 0,
         overs: '0.0',
