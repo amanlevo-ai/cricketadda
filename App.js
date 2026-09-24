@@ -3806,6 +3806,15 @@ function CricketAddaMain() {
   const activeTabRef = useRef(activeTab);
   activeTabRef.current = activeTab;
 
+  // Real-time sync engine refs & persistent device identity (declared at top so they are never accessed before initialization)
+  const clientIdRef = useRef(`client_${Platform.OS}_${Date.now()}_${Math.floor(Math.random() * 1000)}`);
+  const wsRef = useRef(null);
+  const isApplyingRemoteSyncRef = useRef(false);
+  const inn1ScorecardDataRef = useRef(null);
+  const inn2ScorecardDataRef = useRef(null);
+  const lastCelebrationIdRef = useRef(null);
+  const [syncConnected, setSyncConnected] = useState(false);
+
   const [matchFilter, setMatchFilter] = useState('all');
   const [statsFilter, setStatsFilter] = useState('all');
   const [showMvpLeaderboard, setShowMvpLeaderboard] = useState(false);
@@ -4437,7 +4446,7 @@ function CricketAddaMain() {
     const uName = (userProfile?.name || '').toLowerCase().trim();
     const uPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const uId = userProfile?.id;
-    const myDeviceId = clientIdRef.current;
+    const myDeviceId = clientIdRef?.current || '';
 
     // Delegated / Assigned Scorer metadata on the match
     const assignedPhone = String(targetMatch.scorerPhone || targetMatch.activeScorer?.phone || '').replace(/[^0-9]/g, '').slice(-10);
@@ -5035,7 +5044,7 @@ function CricketAddaMain() {
           devId = `dev_${Platform.OS}_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
           await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_ID, devId);
         }
-        clientIdRef.current = devId;
+        if (clientIdRef) clientIdRef.current = devId;
 
         // Load Stored Theme Preference
         const storedTheme = await AsyncStorage.getItem(STORAGE_KEYS.THEME);
@@ -6378,21 +6387,12 @@ function CricketAddaMain() {
   // ============================================================================
   // MULTI-USER REAL-TIME DUAL-CHANNEL SYNC ENGINE (PC <-> PHONE INSTANT SYNC)
   // ============================================================================
-  const [syncConnected, setSyncConnected] = useState(false);
-  const wsRef = useRef(null);
-  const clientIdRef = useRef(`client_${Platform.OS}_${Date.now()}_${Math.floor(Math.random() * 1000)}`);
-  const isApplyingRemoteSyncRef = useRef(false);
-  const inn1ScorecardDataRef = useRef(null);
-  const inn2ScorecardDataRef = useRef(null);
-
   const getSyncHost = () => {
     if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
       return window.location.hostname || 'localhost';
     }
     return '192.168.1.54';
   };
-
-  const lastCelebrationIdRef = useRef(null);
 
   const applyRemoteState = d => {
     if (!d) return;
@@ -6403,7 +6403,7 @@ function CricketAddaMain() {
     if (typeof d.liveBalls === 'number') setLiveBalls(d.liveBalls);
     if (Array.isArray(d.liveThisOver)) setLiveThisOver(d.liveThisOver);
     if (d.activeScorer) {
-      const myDevId = clientIdRef.current;
+      const myDevId = clientIdRef?.current || '';
       const myPh = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
       const myEm = (userProfile?.email || authEmail || '').toLowerCase().trim();
       const myUid = userProfile?.id;
@@ -6491,9 +6491,9 @@ function CricketAddaMain() {
     }
 
     // Live celebration effect for remote viewers (never for the scorer who submitted the ball)
-    const isSelfSender = Boolean(d.senderClientId && d.senderClientId === clientIdRef.current);
-    if (!isSelfSender && !isOfficialScorer && d.celebrationEvent && d.celebrationEvent.id && d.celebrationEvent.id !== lastCelebrationIdRef.current) {
-      lastCelebrationIdRef.current = d.celebrationEvent.id;
+    const isSelfSender = Boolean(d.senderClientId && d.senderClientId === clientIdRef?.current);
+    if (!isSelfSender && !isOfficialScorer && d.celebrationEvent && d.celebrationEvent.id && d.celebrationEvent.id !== lastCelebrationIdRef?.current) {
+      if (lastCelebrationIdRef) lastCelebrationIdRef.current = d.celebrationEvent.id;
       triggerCelebration(
         d.celebrationEvent.type,
         d.celebrationEvent.player,
@@ -6505,13 +6505,13 @@ function CricketAddaMain() {
     }
 
     setTimeout(() => {
-      isApplyingRemoteSyncRef.current = false;
+      if (isApplyingRemoteSyncRef) isApplyingRemoteSyncRef.current = false;
     }, 150);
   };
 
   const broadcastMatchState = (customPayload = {}) => {
     const payload = {
-      senderClientId: clientIdRef.current,
+      senderClientId: clientIdRef?.current || '',
       activeMatchId,
       battingTeamName,
       battingTeamFlag,
@@ -6534,8 +6534,8 @@ function CricketAddaMain() {
       currentStriker: customPayload.currentStriker || (match && match.currentStriker) || striker,
       currentNonStriker: customPayload.currentNonStriker || (match && match.currentNonStriker) || nonStriker,
       currentBowler: customPayload.currentBowler || (match && match.currentBowler) || bowler,
-      innings1: customPayload.innings1 || inn1ScorecardDataRef.current,
-      innings2: customPayload.innings2 || inn2ScorecardDataRef.current,
+      innings1: customPayload.innings1 || inn1ScorecardDataRef?.current,
+      innings2: customPayload.innings2 || inn2ScorecardDataRef?.current,
       ...customPayload,
     };
 
@@ -6549,7 +6549,7 @@ function CricketAddaMain() {
     if (!isFirebaseConfigured() || !activeMatchId) return;
     const unsubscribe = subscribeToFirebaseMatch(activeMatchId, cloudData => {
       if (!cloudData) return;
-      const isRemote = cloudData.senderClientId && cloudData.senderClientId !== clientIdRef.current;
+      const isRemote = cloudData.senderClientId && cloudData.senderClientId !== clientIdRef?.current;
       if (!isOfficialScorer || isRemote) {
         applyRemoteState(cloudData);
       }
@@ -8618,7 +8618,7 @@ function CricketAddaMain() {
         delegatedAt: Date.now(),
         delegatedFrom: myName,
         // Original match creator identity preserved for record
-        creatorDeviceId: existingMatch.creatorDeviceId || clientIdRef.current,
+        creatorDeviceId: existingMatch.creatorDeviceId || clientIdRef?.current || '',
         creatorId: existingMatch.creatorId || myId,
         creatorName: existingMatch.creatorName || myName,
         creatorPhone: existingMatch.creatorPhone || myPhone,
@@ -12192,7 +12192,7 @@ function CricketAddaMain() {
     const battingCaptain = battingIsMyTeam ? d.myCaptain : d.oppCaptain;
     const fieldingPlayerNames = (bowlingXI || []).map(p => p.name);
 
-    const myDeviceId = clientIdRef.current || `dev_${Platform.OS}_${Date.now()}`;
+    const myDeviceId = clientIdRef?.current || `dev_${Platform.OS}_${Date.now()}`;
     const rawScorerPhone = matchDraftScorerPhone || userProfile?.phone || authPhone || '';
     const myPhone = String(rawScorerPhone).replace(/[^0-9]/g, '').slice(-10);
     const myEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
@@ -21421,11 +21421,14 @@ function CricketAddaMain() {
                     }}
                   >
                     {matchDraft.myTeam ? (
-                      (matchDraft.myTeam.logo || matchDraft.myTeam.logoUri) ? (
-                        <Image key={matchDraft.myTeam.logo || matchDraft.myTeam.logoUri} source={{ uri: matchDraft.myTeam.logo || matchDraft.myTeam.logoUri }} style={{ width: 44, height: 44, borderRadius: 22 }} resizeMode="cover" />
-                      ) : (
-                        <Text style={{ fontSize: 32 }}>{matchDraft.myTeam.flag}</Text>
-                      )
+                      (() => {
+                        const rawLogo = matchDraft.myTeam.logo || matchDraft.myTeam.logoUri;
+                        const hasValidLogo = rawLogo && typeof rawLogo === 'string' && rawLogo !== 'null' && rawLogo !== 'undefined' && (rawLogo.startsWith('http') || rawLogo.startsWith('data:') || rawLogo.startsWith('file:') || rawLogo.startsWith('blob:'));
+                        if (hasValidLogo) {
+                          return <Image source={{ uri: rawLogo }} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="cover" />;
+                        }
+                        return <Text style={{ fontSize: 34 }}>{matchDraft.myTeam.flag || '🦁'}</Text>;
+                      })()
                     ) : (
                       <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
                     )}
@@ -21595,11 +21598,14 @@ function CricketAddaMain() {
                     }}
                   >
                     {matchDraft.opponentTeam ? (
-                      (matchDraft.opponentTeam.logo || matchDraft.opponentTeam.logoUri) ? (
-                        <Image key={matchDraft.opponentTeam.logo || matchDraft.opponentTeam.logoUri} source={{ uri: matchDraft.opponentTeam.logo || matchDraft.opponentTeam.logoUri }} style={{ width: 44, height: 44, borderRadius: 22 }} resizeMode="cover" />
-                      ) : (
-                        <Text style={{ fontSize: 32 }}>{matchDraft.opponentTeam.flag}</Text>
-                      )
+                      (() => {
+                        const rawLogo = matchDraft.opponentTeam.logo || matchDraft.opponentTeam.logoUri;
+                        const hasValidLogo = rawLogo && typeof rawLogo === 'string' && rawLogo !== 'null' && rawLogo !== 'undefined' && (rawLogo.startsWith('http') || rawLogo.startsWith('data:') || rawLogo.startsWith('file:') || rawLogo.startsWith('blob:'));
+                        if (hasValidLogo) {
+                          return <Image source={{ uri: rawLogo }} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="cover" />;
+                        }
+                        return <Text style={{ fontSize: 34 }}>{matchDraft.opponentTeam.flag || '⚡'}</Text>;
+                      })()
                     ) : (
                       <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
                     )}
