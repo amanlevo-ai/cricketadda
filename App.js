@@ -3284,6 +3284,81 @@ const INITIAL_MATCH_DRAFT = {
 };
 
 // ============================================================================
+// COMPREHENSIVE TEAM LOGO RESOLVER (CHECKS DIRECT PROPS, REGISTERED TEAMS, & USERS DB)
+// ============================================================================
+function resolveTeamLogo(team, allTeams = [], allUsers = []) {
+  if (!team) return null;
+  const isGoodUri = (val) => {
+    return Boolean(
+      val &&
+      typeof val === 'string' &&
+      val !== 'null' &&
+      val !== 'undefined' &&
+      val.trim().length > 0 &&
+      (val.startsWith('http') || val.startsWith('data:') || val.startsWith('file:') || val.startsWith('blob:') || val.startsWith('content:'))
+    );
+  };
+
+  // 1. Direct property on team object
+  const candidates = [
+    team.logo,
+    team.logoUri,
+    team.logoUrl,
+    team.customLogoUrl,
+    team.photo,
+    team.photoUri,
+    team.avatar,
+    team.avatarUri,
+    team.image,
+    team.imageUri,
+  ];
+  for (const c of candidates) {
+    if (isGoodUri(c)) return c.trim();
+  }
+
+  // 2. Lookup in all registered teams by ID or name
+  const teamName = String(team.name || '').trim().toLowerCase();
+  const teamId = team.id ? String(team.id).trim().toLowerCase() : '';
+  if (Array.isArray(allTeams) && (teamName || teamId)) {
+    const match = allTeams.find(t => t && ((teamId && String(t.id).toLowerCase() === teamId) || (teamName && String(t.name || '').trim().toLowerCase() === teamName)));
+    if (match && match !== team) {
+      const matchCandidates = [
+        match.logo,
+        match.logoUri,
+        match.logoUrl,
+        match.customLogoUrl,
+        match.photo,
+        match.photoUri,
+        match.avatar,
+        match.avatarUri,
+        match.image,
+        match.imageUri,
+      ];
+      for (const c of matchCandidates) {
+        if (isGoodUri(c)) return c.trim();
+      }
+    }
+  }
+
+  // 3. Lookup in all users' createdTeams (usersDb)
+  if (Array.isArray(allUsers) && teamName) {
+    for (const u of allUsers) {
+      if (u && Array.isArray(u.createdTeams)) {
+        const uTeam = u.createdTeams.find(t => t && String(t.name || '').trim().toLowerCase() === teamName);
+        if (uTeam) {
+          const uCandidates = [uTeam.logo, uTeam.logoUri, uTeam.customLogoUrl, uTeam.photo];
+          for (const c of uCandidates) {
+            if (isGoodUri(c)) return c.trim();
+          }
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+// ============================================================================
 // STYLISH CROSS-PLATFORM TEAM BADGE PILL (CLEAN REPLACEMENT FOR BROKEN WINDOWS EMOJI FLAGS)
 // ============================================================================
 function TeamFlagBadge({ flag, logo, shortName, fullName, isBatting, theme, size = 'md' }) {
@@ -3974,6 +4049,10 @@ function CricketAddaMain() {
   const [usersDb, setUsersDb] = useState(INITIAL_USERS_DATABASE);
   const [isExistingUser, setIsExistingUser] = useState(false);
   const otpInputRefs = useRef([]);
+
+  const getResolvedTeamLogo = useCallback((team) => {
+    return resolveTeamLogo(team, registeredTeams, usersDb);
+  }, [registeredTeams, usersDb]);
 
   useEffect(() => {
     let interval = null;
@@ -8857,10 +8936,23 @@ function CricketAddaMain() {
         mediaTypes: picker.MediaTypeOptions ? picker.MediaTypeOptions.Images : 'Images',
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.85,
+        quality: 0.65,
+        base64: true,
       });
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
-        setCaptainEditTeamLogo(result.assets[0].uri);
+        const asset = result.assets[0];
+        let logoUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        if (!asset.base64 && asset.uri) {
+          try {
+            const FileSystem = require('expo-file-system');
+            if (FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
+              const enc = (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ? FileSystem.EncodingType.Base64 : 'base64';
+              const b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: enc });
+              if (b64) logoUri = `data:image/jpeg;base64,${b64}`;
+            }
+          } catch (e) {}
+        }
+        setCaptainEditTeamLogo(logoUri);
         showAppToast('Team picture updated! 🖼️', '🎉', 'success');
       }
     } catch (err) {
@@ -10733,10 +10825,22 @@ function CricketAddaMain() {
         mediaTypes: picker.MediaTypeOptions ? picker.MediaTypeOptions.Images : 'Images',
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.85,
+        quality: 0.65,
+        base64: true,
       });
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
-        const logoUri = result.assets[0].uri;
+        const asset = result.assets[0];
+        let logoUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        if (!asset.base64 && asset.uri) {
+          try {
+            const FileSystem = require('expo-file-system');
+            if (FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
+              const enc = (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ? FileSystem.EncodingType.Base64 : 'base64';
+              const b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: enc });
+              if (b64) logoUri = `data:image/jpeg;base64,${b64}`;
+            }
+          } catch (e) {}
+        }
         setNewTeamLogo(logoUri);
         setNewTeamCustomLogoUrl('');
         showAppToast('Custom team picture selected! 🖼️', '🎉', 'success');
@@ -10769,10 +10873,22 @@ function CricketAddaMain() {
       const result = await picker.launchCameraAsync({
         allowsEditing: true,
         aspect: [1, 1],
-        quality: 0.85,
+        quality: 0.65,
+        base64: true,
       });
       if (!result.canceled && result.assets && (result?.assets || []).length > 0) {
-        const logoUri = result.assets[0].uri;
+        const asset = result.assets[0];
+        let logoUri = asset.base64 ? `data:image/jpeg;base64,${asset.base64}` : asset.uri;
+        if (!asset.base64 && asset.uri) {
+          try {
+            const FileSystem = require('expo-file-system');
+            if (FileSystem && typeof FileSystem.readAsStringAsync === 'function') {
+              const enc = (FileSystem.EncodingType && FileSystem.EncodingType.Base64) ? FileSystem.EncodingType.Base64 : 'base64';
+              const b64 = await FileSystem.readAsStringAsync(asset.uri, { encoding: enc });
+              if (b64) logoUri = `data:image/jpeg;base64,${b64}`;
+            }
+          } catch (e) {}
+        }
         setNewTeamLogo(logoUri);
         setNewTeamCustomLogoUrl('');
         showAppToast('Team photo captured! 📸', '🎉', 'success');
@@ -21422,12 +21538,11 @@ function CricketAddaMain() {
                   >
                     {matchDraft.myTeam ? (
                       (() => {
-                        const rawLogo = matchDraft.myTeam.logo || matchDraft.myTeam.logoUri;
-                        const hasValidLogo = rawLogo && typeof rawLogo === 'string' && rawLogo !== 'null' && rawLogo !== 'undefined' && (rawLogo.startsWith('http') || rawLogo.startsWith('data:') || rawLogo.startsWith('file:') || rawLogo.startsWith('blob:'));
-                        if (hasValidLogo) {
-                          return <Image source={{ uri: rawLogo }} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="cover" />;
+                        const rawLogo = getResolvedTeamLogo(matchDraft.myTeam);
+                        if (rawLogo) {
+                          return <Image source={{ uri: rawLogo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />;
                         }
-                        return <Text style={{ fontSize: 34 }}>{matchDraft.myTeam.flag || '🦁'}</Text>;
+                        return <Text style={{ fontSize: 36 }}>{matchDraft.myTeam.flag || '🦁'}</Text>;
                       })()
                     ) : (
                       <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
@@ -21564,7 +21679,17 @@ function CricketAddaMain() {
                                 setTeamSearchQuery('');
                               }}
                             >
-                              <Text style={{ fontSize: 20, marginRight: 8 }}>{t.flag}</Text>
+                              {(() => {
+                                const tLogo = getResolvedTeamLogo(t);
+                                if (tLogo) {
+                                  return (
+                                    <View style={{ width: 24, height: 24, borderRadius: 12, overflow: 'hidden', marginRight: 8 }}>
+                                      <Image source={{ uri: tLogo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                                    </View>
+                                  );
+                                }
+                                return <Text style={{ fontSize: 20, marginRight: 8 }}>{t.flag || '🦁'}</Text>;
+                              })()}
                               <View style={{ flex: 1 }}>
                                 <Text style={[styles.dropdownItemName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }, isSelected ? { color: currentTheme.primary } : null]}>{t.name}</Text>
                                 <Text style={[styles.dropdownItemSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>{t.city} • Capt: {t.captain}</Text>
@@ -21599,12 +21724,11 @@ function CricketAddaMain() {
                   >
                     {matchDraft.opponentTeam ? (
                       (() => {
-                        const rawLogo = matchDraft.opponentTeam.logo || matchDraft.opponentTeam.logoUri;
-                        const hasValidLogo = rawLogo && typeof rawLogo === 'string' && rawLogo !== 'null' && rawLogo !== 'undefined' && (rawLogo.startsWith('http') || rawLogo.startsWith('data:') || rawLogo.startsWith('file:') || rawLogo.startsWith('blob:'));
-                        if (hasValidLogo) {
-                          return <Image source={{ uri: rawLogo }} style={{ width: 64, height: 64, borderRadius: 32 }} resizeMode="cover" />;
+                        const rawLogo = getResolvedTeamLogo(matchDraft.opponentTeam);
+                        if (rawLogo) {
+                          return <Image source={{ uri: rawLogo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />;
                         }
-                        return <Text style={{ fontSize: 34 }}>{matchDraft.opponentTeam.flag || '⚡'}</Text>;
+                        return <Text style={{ fontSize: 36 }}>{matchDraft.opponentTeam.flag || '⚡'}</Text>;
                       })()
                     ) : (
                       <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
@@ -21741,7 +21865,17 @@ function CricketAddaMain() {
                                 setTeamSearchQuery('');
                               }}
                             >
-                              <Text style={{ fontSize: 20, marginRight: 8 }}>{t.flag}</Text>
+                              {(() => {
+                                const tLogo = getResolvedTeamLogo(t);
+                                if (tLogo) {
+                                  return (
+                                    <View style={{ width: 24, height: 24, borderRadius: 12, overflow: 'hidden', marginRight: 8 }}>
+                                      <Image source={{ uri: tLogo }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                                    </View>
+                                  );
+                                }
+                                return <Text style={{ fontSize: 20, marginRight: 8 }}>{t.flag || '⚡'}</Text>;
+                              })()}
                               <View style={{ flex: 1 }}>
                                 <Text style={[styles.dropdownItemName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }, isSelected ? { color: currentTheme.primary } : null]}>{t.name}</Text>
                                 <Text style={[styles.dropdownItemSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>{t.city} • Capt: {t.captain}</Text>
@@ -22009,14 +22143,14 @@ function CricketAddaMain() {
                           {(() => {
                             const targetTeam = coinDisplayedSide === 'opponentTeam' ? matchDraft.opponentTeam : matchDraft.myTeam;
                             if (!targetTeam) return <Text style={{ fontSize: 34 }}>🪙</Text>;
-                            const teamLogo = targetTeam.logo || targetTeam.logoUri || targetTeam.logoUrl;
+                            const teamLogo = getResolvedTeamLogo(targetTeam);
                             const teamFlag = targetTeam.flag;
 
                             if (teamLogo) {
                               return (
                                 <Image
                                   source={{ uri: teamLogo }}
-                                  style={{ width: 56, height: 56, borderRadius: 28 }}
+                                  style={{ width: '100%', height: '100%' }}
                                   resizeMode="cover"
                                 />
                               );
@@ -22433,56 +22567,6 @@ function CricketAddaMain() {
                           {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} ({matchDraft.tossDecision?.toUpperCase()} FIRST)
                         </Text>
                       </View>
-                    </View>
-
-                    {/* Official Scorer Account & Phone Number Binding Block */}
-                    <View style={[styles.confirmParamSection, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder, marginTop: 10 }]}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                        <Text style={[styles.confirmParamLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-                          📱 Official Scorer Mobile:
-                        </Text>
-                        {(userProfile?.phone || authPhone || matchDraftScorerPhone) ? (
-                          <View style={{ backgroundColor: '#10b98122', borderColor: '#10b981', borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2 }}>
-                            <Text style={{ color: '#10b981', fontSize: 10.5, fontWeight: 'bold' }}>✓ BOUND TO ACCOUNT</Text>
-                          </View>
-                        ) : null}
-                      </View>
-
-                      {(userProfile?.phone || authPhone) ? (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 13, fontWeight: 'bold' }}>
-                            +91 {userProfile?.phone || authPhone}
-                          </Text>
-                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11 }}>
-                            ({userProfile?.name || 'Creator'})
-                          </Text>
-                        </View>
-                      ) : (
-                        <View style={{ gap: 6 }}>
-                          <TextInput
-                            style={{
-                              backgroundColor: currentTheme.isLight ? '#ffffff' : '#1e293b',
-                              borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                              borderWidth: 1,
-                              borderRadius: 8,
-                              paddingHorizontal: 10,
-                              paddingVertical: 8,
-                              color: currentTheme.isLight ? '#0f172a' : '#ffffff',
-                              fontSize: 13,
-                              fontWeight: '600',
-                            }}
-                            placeholder="Enter 10-digit mobile number"
-                            placeholderTextColor={currentTheme.isLight ? '#94a3b8' : '#64748b'}
-                            keyboardType="phone-pad"
-                            maxLength={10}
-                            value={matchDraftScorerPhone}
-                            onChangeText={setMatchDraftScorerPhone}
-                          />
-                          <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5, lineHeight: 14 }}>
-                            💡 If your phone battery runs low or you switch devices, you can immediately restore official scoring on any phone using this mobile number.
-                          </Text>
-                        </View>
-                      )}
                     </View>
                   </View>
                 </View>
@@ -28435,6 +28519,7 @@ const styles = StyleSheet.create({
     borderColor: '#fde68a',
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
   coinFaceText: {
     color: '#ffffff',
@@ -29007,23 +29092,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   cricTeamCircle: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 84,
+    height: 84,
+    borderRadius: 42,
     backgroundColor: '#0f172a',
-    borderWidth: 1.5,
+    borderWidth: 2,
     borderColor: '#334155',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#38bdf8',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
-    shadowRadius: 4,
-    elevation: 3,
+    overflow: 'hidden',
   },
   cricTeamCircleFilled: {
     borderColor: '#10b981',
-    backgroundColor: 'rgba(16,185,129,0.12)',
+    borderWidth: 2.5,
+    backgroundColor: '#0f172a',
   },
   cricTeamCirclePlus: {
     color: '#38bdf8',
