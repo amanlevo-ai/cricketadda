@@ -4677,6 +4677,11 @@ function CricketAddaMain() {
       return true;
     }
 
+    // 4. Active local scoring session safeguard: If user is actively scoring this match on this device and hasn't delegated:
+    if (activeMatchId && targetMatch.id === activeMatchId && !targetMatch.isScoringDelegated) {
+      return true;
+    }
+
     // Any other device is strictly a Spectator:
     return false;
   }, [userProfile, authEmail, authPhone, activeScorer, viewerSimulated, activeMatchId]);
@@ -5282,6 +5287,10 @@ function CricketAddaMain() {
               if (parsedMatches && typeof parsedMatches === 'object') setMatchesDb(parsedMatches);
             } catch (e) {}
           }
+          const storedActiveMatch = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_MATCH_ID);
+          if (storedActiveMatch) {
+            setActiveMatchId(storedActiveMatch);
+          }
           const storedPlayers = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_PLAYERS);
           if (storedPlayers) {
             try {
@@ -5501,7 +5510,14 @@ function CricketAddaMain() {
             const existing = currentMap.get(key);
             const ctLen = Array.isArray(ct.squad) ? ct.squad.length : 0;
             const exLen = Array.isArray(existing?.squad) ? existing.squad.length : 0;
-            if (ctLen > exLen || (ct.updatedAt && ct.updatedAt > (existing?.updatedAt || 0))) {
+            if (
+              ctLen !== exLen ||
+              ct.logo !== existing?.logo ||
+              ct.logoUri !== existing?.logoUri ||
+              ct.flag !== existing?.flag ||
+              ct.name !== existing?.name ||
+              (ct.updatedAt && ct.updatedAt > (existing?.updatedAt || 0))
+            ) {
               currentMap.set(key, { ...existing, ...ct });
               hasChanges = true;
             }
@@ -5553,7 +5569,16 @@ function CricketAddaMain() {
 
     // 3. Matches DB Real-Time Subscription
     const unsubMatches = subscribeToFirebaseMatchesDb(cloudMatches => {
-      if (!cloudMatches || typeof cloudMatches !== 'object') return;
+      if (!cloudMatches || typeof cloudMatches !== 'object' || Object.keys(cloudMatches).length === 0) {
+        setMatchesDb(prev => {
+          if (prev && Object.keys(prev).length > 0) {
+            AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({})).catch(() => {});
+            return {};
+          }
+          return prev;
+        });
+        return;
+      }
       setMatchesDb(prev => {
         let hasChanges = false;
         // Start with cloudMatches as authority for existing keys
@@ -5628,6 +5653,13 @@ function CricketAddaMain() {
       // Active match updates are pushed authoritatively via syncMatchToFirebaseDirect by the official scorer.
     }
   }, [matchesDb]);
+
+  // Persist active match ID so hard refresh or tab switch preserves current match
+  useEffect(() => {
+    if (activeMatchId) {
+      AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_MATCH_ID, activeMatchId).catch(() => {});
+    }
+  }, [activeMatchId]);
 
   const toggleAutoWheel = () => {
     setAutoWheel(prev => {
@@ -6705,15 +6737,31 @@ function CricketAddaMain() {
   };
 
   const broadcastMatchState = (customPayload = {}) => {
+    const currentMatchInDb = (activeMatchId && matchesDb[activeMatchId]) || {};
+    const effectiveBatLogo = battingTeamLogo || resolveTeamLogo({ name: battingTeamName }, registeredTeams, usersDb);
+    const effectiveBowlLogo = bowlingTeamLogo || resolveTeamLogo({ name: bowlingTeamName }, registeredTeams, usersDb);
+    const teamAName = match?.teamA || currentMatchInDb.teamA || (currentInnings === 2 ? bowlingTeamName : battingTeamName);
+    const teamBName = match?.teamB || currentMatchInDb.teamB || (currentInnings === 2 ? battingTeamName : bowlingTeamName);
+    const teamAFlag = match?.flagA || currentMatchInDb.flagA || (currentInnings === 2 ? bowlingTeamFlag : battingTeamFlag);
+    const teamBFlag = match?.flagB || currentMatchInDb.flagB || (currentInnings === 2 ? battingTeamFlag : bowlingTeamFlag);
+    const matchTitle = match?.title || currentMatchInDb.title || `${teamAName} vs ${teamBName}`;
+
     const payload = {
       senderClientId: clientIdRef?.current || '',
       activeMatchId,
+      title: matchTitle,
+      teamA: teamAName,
+      teamB: teamBName,
+      flagA: teamAFlag,
+      flagB: teamBFlag,
+      logoA: match?.logoA || currentMatchInDb.logoA || (currentInnings === 2 ? effectiveBowlLogo : effectiveBatLogo),
+      logoB: match?.logoB || currentMatchInDb.logoB || (currentInnings === 2 ? effectiveBatLogo : effectiveBowlLogo),
       battingTeamName,
       battingTeamFlag,
-      battingTeamLogo,
+      battingTeamLogo: effectiveBatLogo,
       bowlingTeamName,
       bowlingTeamFlag,
-      bowlingTeamLogo,
+      bowlingTeamLogo: effectiveBowlLogo,
       liveRuns,
       liveWickets,
       liveBalls,
@@ -6721,10 +6769,37 @@ function CricketAddaMain() {
       activeScorer,
       currentInnings,
       firstInningsSummary,
-      match,
-      liveCommentaryList,
-      liveBatters,
-      liveBowlerStats,
+      match: {
+        ...(match || {}),
+        title: matchTitle,
+        teamA: teamAName,
+        teamB: teamBName,
+        flagA: teamAFlag,
+        flagB: teamBFlag,
+        creatorId: match?.creatorId || currentMatchInDb.creatorId || userProfile?.id,
+        creatorDeviceId: match?.creatorDeviceId || currentMatchInDb.creatorDeviceId || clientIdRef?.current,
+        creatorPhone: match?.creatorPhone || currentMatchInDb.creatorPhone || userProfile?.phone || authPhone || '',
+        creatorEmail: match?.creatorEmail || currentMatchInDb.creatorEmail || userProfile?.email || authEmail || '',
+        creatorName: match?.creatorName || currentMatchInDb.creatorName || userProfile?.name || authName || '',
+        scorerId: match?.scorerId || currentMatchInDb.scorerId || userProfile?.id,
+        scorerDeviceId: match?.scorerDeviceId || currentMatchInDb.scorerDeviceId || clientIdRef?.current,
+        scorerPhone: match?.scorerPhone || currentMatchInDb.scorerPhone || userProfile?.phone || authPhone || '',
+        scorerEmail: match?.scorerEmail || currentMatchInDb.scorerEmail || userProfile?.email || authEmail || '',
+        scorerName: match?.scorerName || currentMatchInDb.scorerName || userProfile?.name || authName || '',
+      },
+      creatorId: match?.creatorId || currentMatchInDb.creatorId || userProfile?.id,
+      creatorDeviceId: match?.creatorDeviceId || currentMatchInDb.creatorDeviceId || clientIdRef?.current,
+      creatorPhone: match?.creatorPhone || currentMatchInDb.creatorPhone || userProfile?.phone || authPhone || '',
+      creatorEmail: match?.creatorEmail || currentMatchInDb.creatorEmail || userProfile?.email || authEmail || '',
+      creatorName: match?.creatorName || currentMatchInDb.creatorName || userProfile?.name || authName || '',
+      scorerId: match?.scorerId || currentMatchInDb.scorerId || userProfile?.id,
+      scorerDeviceId: match?.scorerDeviceId || currentMatchInDb.scorerDeviceId || clientIdRef?.current,
+      scorerPhone: match?.scorerPhone || currentMatchInDb.scorerPhone || userProfile?.phone || authPhone || '',
+      scorerEmail: match?.scorerEmail || currentMatchInDb.scorerEmail || userProfile?.email || authEmail || '',
+      scorerName: match?.scorerName || currentMatchInDb.scorerName || userProfile?.name || authName || '',
+      liveCommentaryList: customPayload.liveCommentaryList || liveCommentaryList,
+      liveBatters: customPayload.liveBatters || liveBatters,
+      liveBowlerStats: customPayload.liveBowlerStats || liveBowlerStats,
       scoringHistory: (customPayload.scoringHistory !== undefined ? customPayload.scoringHistory : scoringHistory) || [],
       currentStriker: customPayload.currentStriker || (match && match.currentStriker) || striker,
       currentNonStriker: customPayload.currentNonStriker || (match && match.currentNonStriker) || nonStriker,
@@ -8304,7 +8379,12 @@ function CricketAddaMain() {
     if (str === '6') return { runs: 6, isWkt: false, isLegal: true };
     if (str === '4') return { runs: 4, isWkt: false, isLegal: true };
     if (str === '0' || str === '•') return { runs: 0, isWkt: false, isLegal: true };
-    if (str.includes('Wd')) {
+    if (str.toLowerCase().includes('wd')) {
+      if (str.includes('+')) {
+        const parts = str.split('+');
+        const extra = parseInt(parts[1]) || 0;
+        return { runs: 1 + extra, isWkt: false, isLegal: false };
+      }
       const num = parseInt(str) || 1;
       return { runs: num, isWkt: false, isLegal: false };
     }
@@ -9766,8 +9846,58 @@ function CricketAddaMain() {
       };
     });
 
-    // Save drop catch snapshot to undo history
     const ballSymbol = String(dropRuns);
+    const nextBalls = liveBalls + 1;
+    const nextRuns = liveRuns + dropRuns;
+    const isOverEnd = nextBalls % 6 === 0;
+
+    // Batters stats update
+    const curStrikerStats = liveBatters[striker] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0 };
+    const updatedLiveBatters = {
+      ...liveBatters,
+      [striker]: {
+        ...curStrikerStats,
+        runs: (curStrikerStats.runs || 0) + dropRuns,
+        balls: (curStrikerStats.balls || 0) + 1,
+        fours: (curStrikerStats.fours || 0) + (dropRuns === 4 ? 1 : 0),
+        sixes: (curStrikerStats.sixes || 0) + (dropRuns === 6 ? 1 : 0),
+        dots: (curStrikerStats.dots || 0) + (dropRuns === 0 ? 1 : 0),
+        singles: (curStrikerStats.singles || 0) + (dropRuns === 1 ? 1 : 0),
+        doubles: (curStrikerStats.doubles || 0) + (dropRuns === 2 ? 1 : 0),
+        triples: (curStrikerStats.triples || 0) + (dropRuns === 3 ? 1 : 0),
+      },
+    };
+    setLiveBatters(updatedLiveBatters);
+
+    // Bowler stats update
+    const curBowlerStats = liveBowlerStats[bowler] || { runs: 0, wickets: 0, balls: 0, maidens: 0 };
+    const updatedLiveBowlers = {
+      ...liveBowlerStats,
+      [bowler]: {
+        ...curBowlerStats,
+        runs: (curBowlerStats.runs || 0) + dropRuns,
+        balls: (curBowlerStats.balls || 0) + 1,
+      },
+    };
+    setLiveBowlerStats(updatedLiveBowlers);
+
+    // Strike rotation on odd runs, and swap on over completion
+    const isOddRuns = dropRuns % 2 === 1;
+    let nextStriker = striker;
+    let nextNonStriker = nonStriker;
+    if (isOddRuns) {
+      nextStriker = nonStriker;
+      nextNonStriker = striker;
+    }
+    if (isOverEnd) {
+      const temp = nextStriker;
+      nextStriker = nextNonStriker;
+      nextNonStriker = temp;
+    }
+    setStriker(nextStriker);
+    setNonStriker(nextNonStriker);
+
+    // Save drop catch snapshot to undo history
     const dropSnapshot = {
       id: `act_drop_${Date.now()}`,
       liveRuns,
@@ -9790,16 +9920,16 @@ function CricketAddaMain() {
     };
     setScoringHistory(prev => [...prev, dropSnapshot]);
 
-    // 3. Record ball and runs (Clean cricket ball number in This Over)
-    const addedRuns = dropRuns;
-    setLiveRuns(r => r + addedRuns);
-    setLiveBalls(b => b + 1);
-    setLiveThisOver(prev => [...prev.slice(-5), ballSymbol]);
+    // 3. Record ball and runs
+    setLiveRuns(nextRuns);
+    setLiveBalls(nextBalls);
+    const nextThisOver = isOverEnd ? [] : [...liveThisOver.slice(-5), ballSymbol];
+    setLiveThisOver(nextThisOver);
 
     // Generate real-time text commentary for dropped catch
     const dropCommEntry = {
       id: `comm_drop_${Date.now()}`,
-      overs: `${Math.floor((liveBalls + 1) / 6)}.${(liveBalls + 1) % 6}`,
+      overs: `${Math.floor(nextBalls / 6)}.${nextBalls % 6}`,
       bowler,
       batter: striker,
       ballSymbol,
@@ -9809,7 +9939,66 @@ function CricketAddaMain() {
       text: `DROPPED CATCH! ${finalFielder} puts down a catch from ${striker} at ${dropPosition}! Batters complete ${dropRuns} run${dropRuns > 1 ? 's' : ''}.`,
       timestamp: 'Just now',
     };
-    setLiveCommentaryList(prev => [dropCommEntry, ...prev]);
+    const updatedCommList = [dropCommEntry, ...liveCommentaryList];
+    setLiveCommentaryList(updatedCommList);
+
+    // Persist to matchesDb
+    const oversFormatted = `${Math.floor(nextBalls / 6)}.${nextBalls % 6}`;
+    setMatchesDb(prev => {
+      const cur = prev[activeMatchId] || {};
+      const updatedMatch = {
+        ...cur,
+        innings1: {
+          ...(cur.innings1 || {}),
+          runs: currentInnings === 1 ? nextRuns : (cur.innings1?.runs || 0),
+          overs: currentInnings === 1 ? oversFormatted : (cur.innings1?.overs || '0.0'),
+        },
+        innings2: {
+          ...(cur.innings2 || {}),
+          runs: currentInnings === 2 ? nextRuns : (cur.innings2?.runs || 0),
+          overs: currentInnings === 2 ? oversFormatted : (cur.innings2?.overs || '0.0'),
+        },
+        liveState: {
+          currentInnings,
+          liveRuns: nextRuns,
+          liveWickets,
+          liveBalls: nextBalls,
+          liveThisOver: nextThisOver,
+          liveBatters: updatedLiveBatters,
+          liveBowlerStats: updatedLiveBowlers,
+          currentStriker: nextStriker,
+          currentNonStriker: nextNonStriker,
+          currentBowler: bowler,
+          scoringHistory: [...scoringHistory, dropSnapshot],
+          liveCommentaryList: updatedCommList,
+        },
+        lastUpdatedAt: Date.now(),
+      };
+      const updatedDb = { ...prev, [activeMatchId]: updatedMatch };
+      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
+      return updatedDb;
+    });
+
+    if (isOverEnd) {
+      setNeedsNewBowler(true);
+      const eligible = activeOppBowlers.filter(b => b.toLowerCase() !== bowler.toLowerCase());
+      if (eligible.length > 0) {
+        setNextBowler(eligible[0]);
+      }
+      setChangeBowlerModalVisible(true);
+    }
+
+    // Immediate Broadcast to Cloud & Spectators
+    broadcastMatchState({
+      liveRuns: nextRuns,
+      liveBalls: nextBalls,
+      liveThisOver: nextThisOver,
+      liveBatters: updatedLiveBatters,
+      liveBowlerStats: updatedLiveBowlers,
+      currentStriker: nextStriker,
+      currentNonStriker: nextNonStriker,
+      liveCommentaryList: updatedCommList,
+    });
 
     setDropCatchModalVisible(false);
     setCustomFielderInput('');
@@ -9828,7 +10017,7 @@ function CricketAddaMain() {
 
     Alert.alert(
       '🧤 Dropped Catch Saved in Database!',
-      `• Fielder: ${finalFielder}\n• Batter Spared: ${striker}\n• Position: ${dropPosition}\n• Runs: ${dropRuns}\n\n✅ Stored in Player Career Fielding Records.`
+      `• Fielder: ${finalFielder}\n• Batter Spared: ${striker}\n• Position: ${dropPosition}\n• Runs: ${dropRuns}\n\n✅ Stored in Player Career Fielding Records & Scorecard Updated.`
     );
   };
 
@@ -9916,7 +10105,13 @@ function CricketAddaMain() {
       overNum: Math.floor(liveBalls / 6),
       overSummary: commSummary,
     };
-    setLiveCommentaryList(prev => [cancelComm, ...prev]);
+    const updatedCancelCommList = [cancelComm, ...liveCommentaryList];
+    setLiveCommentaryList(updatedCancelCommList);
+    broadcastMatchState({
+      status: finalStatus,
+      result: finalResultText,
+      liveCommentaryList: updatedCancelCommList,
+    });
 
     // 3. Reset and navigate back
     setCancelMatchModalVisible(false);
@@ -12160,14 +12355,13 @@ function CricketAddaMain() {
     showAppToast(`Added "${cleanName}" (${newTeamPlayerRole}) to ${team.name}!`, '✅');
   };
 
-  // Delete custom team - Opens custom themed in-app confirmation modal (ONLY if 0 matches played)
+  // Delete custom team - Opens custom themed in-app confirmation modal (strictly for creator/owner)
   const handleDeleteCustomTeam = (teamId) => {
     const team = registeredTeams.find(t => t.id === teamId);
     if (!team) return;
 
-    const matchesPlayed = getTeamMatchesPlayedCount(team);
-    if (matchesPlayed > 0) {
-      showAppToast(`Cannot delete "${team.name}" — ${matchesPlayed} match${matchesPlayed > 1 ? 'es' : ''} already recorded!`, '🔒', 'error');
+    if (!isCreatedByMe(team)) {
+      showAppToast('You can only delete teams created by you', '🔒', 'error');
       return;
     }
 
@@ -12184,6 +12378,10 @@ function CricketAddaMain() {
     const updated = registeredTeams.filter(t => t.id !== teamId);
     setRegisteredTeams(updated);
     AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
+
+    if (isFirebaseConfigured()) {
+      recordDeletedTeamTombstone(teamId, teamName).catch(() => {});
+    }
 
     // Also delete from usersDb for the active user
     setUsersDb(prev => {
@@ -14019,8 +14217,8 @@ function CricketAddaMain() {
                       <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '800' }}>Team QR</Text>
                     </TouchableOpacity>
 
-                    {/* Delete button (only when 0 matches played) */}
-                    {(t.isCustomCreated || String(t.id).startsWith('custom_') || isOwner) && getTeamMatchesPlayedCount(t) === 0 && (
+                    {/* Delete button (strictly owner only) */}
+                    {isOwner && (
                       <TouchableOpacity
                         style={{
                           width: 42,
@@ -15072,7 +15270,7 @@ function CricketAddaMain() {
                       {selectedExtraType === 'legBye' && '🟣 LB ACTIVE'}
                     </Text>
                     <Text style={styles.extraSelectedBannerSub}>
-                      {selectedExtraType === 'wide' && 'Tap runs taken (0 for 1 Wd, 4 for 5 Wd)'}
+                      {selectedExtraType === 'wide' && 'Tap runs taken (WD = 1 run, WD+4 = 5 runs)'}
                       {selectedExtraType === 'noBall' && 'Tap runs scored by batter off bat (+0, +1, +2, +3, +4, +6)'}
                       {selectedExtraType === 'bye' && 'Tap total byes completed (1, 2, 3, 4)'}
                       {selectedExtraType === 'legBye' && 'Tap total leg byes completed (1, 2, 3, 4)'}
@@ -15174,8 +15372,8 @@ function CricketAddaMain() {
                   let subLabel = null;
 
                   if (selectedExtraType === 'wide') {
-                    label = r === 0 ? '1 Wd' : `${r + 1} Wd`;
-                    subLabel = null;
+                    label = r === 0 ? 'WD' : `WD+${r}`;
+                    subLabel = `${r + 1} Run${r + 1 > 1 ? 's' : ''}${r === 4 ? ' • 4s' : ''}`;
                   } else if (selectedExtraType === 'noBall') {
                     if (nbSubMode === 'bye') {
                       label = `Nb+${r} B`;

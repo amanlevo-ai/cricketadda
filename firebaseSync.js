@@ -288,6 +288,7 @@ export async function recordDeletedTeamTombstone(teamId, teamName = null) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ deletedAt: Date.now(), id, teamName }),
       }),
+      fetch(`${baseUrl}/teams/${id}.json`, { method: 'DELETE' }),
       fetch(`${baseUrl}/teams_index/${id}.json`, { method: 'DELETE' }),
     ]);
     return true;

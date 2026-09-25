@@ -200,6 +200,28 @@ function getMatchScoringHistory(match) {
   return [];
 }
 
+function getMatchTeamA(m) {
+  if (!m) return 'Team A';
+  if (m.teamA && m.teamA !== 'undefined' && m.teamA !== 'null') return m.teamA;
+  if (m.currentInnings === 2 && m.bowlingTeamName) return m.bowlingTeamName;
+  if (m.battingTeamName) return m.battingTeamName;
+  if (m.innings1?.team) return m.innings1.team;
+  if (m.title && m.title.includes(' vs ')) return m.title.split(' vs ')[0].trim();
+  if (m.match?.title && m.match.title.includes(' vs ')) return m.match.title.split(' vs ')[0].trim();
+  return 'Team A';
+}
+
+function getMatchTeamB(m) {
+  if (!m) return 'Team B';
+  if (m.teamB && m.teamB !== 'undefined' && m.teamB !== 'null') return m.teamB;
+  if (m.currentInnings === 2 && m.battingTeamName) return m.battingTeamName;
+  if (m.bowlingTeamName) return m.bowlingTeamName;
+  if (m.innings2?.team) return m.innings2.team;
+  if (m.title && m.title.includes(' vs ')) return m.title.split(' vs ')[1].trim();
+  if (m.match?.title && m.match.title.includes(' vs ')) return m.match.title.split(' vs ')[1].trim();
+  return 'Team B';
+}
+
 function generateCommentaryFromHistory(history, match) {
   const commList = [];
   let cumRuns = 0;
@@ -401,6 +423,20 @@ async function syncFromCloud(showNotification = false) {
         });
       }
     }
+
+    // Normalize team names, flags, and titles across all matches to prevent 'undefined'
+    Object.keys(state.matchesDb).forEach(id => {
+      const m = state.matchesDb[id];
+      if (!m) return;
+      m.id = m.id || id;
+      const tA = getMatchTeamA(m);
+      const tB = getMatchTeamB(m);
+      m.teamA = tA;
+      m.teamB = tB;
+      m.flagA = m.flagA || (m.currentInnings === 2 ? m.bowlingTeamFlag : m.battingTeamFlag) || m.innings1?.flag || '🇮🇳';
+      m.flagB = m.flagB || (m.currentInnings === 2 ? m.battingTeamFlag : m.bowlingTeamFlag) || m.innings2?.flag || '🇦🇺';
+      m.title = m.title || `${tA} vs ${tB}`;
+    });
 
     // 3. Process Teams & Squads (Merge /teams.json AND /teams_index.json)
     const isTeamDeleted = (t) => {
@@ -1406,11 +1442,11 @@ function renderMatchesView(query = null) {
 
           <div class="space-y-1.5">
             <div class="flex items-center justify-between text-sm font-bold text-white">
-              <span class="flex items-center gap-1.5">${m.flagA || ''} ${m.teamA}</span>
+              <span class="flex items-center gap-1.5">${m.flagA || ''} ${getMatchTeamA(m)}</span>
               <span class="text-sky-300 font-mono">${inn1.runs != null ? `${inn1.runs}/${inn1.wickets || 0} (${inn1.overs || '0.0'})` : '-'}</span>
             </div>
             <div class="flex items-center justify-between text-sm font-bold text-white">
-              <span class="flex items-center gap-1.5">${m.flagB || ''} ${m.teamB}</span>
+              <span class="flex items-center gap-1.5">${m.flagB || ''} ${getMatchTeamB(m)}</span>
               <span class="text-sky-300 font-mono">${inn2.runs != null ? `${inn2.runs}/${inn2.wickets || 0} (${inn2.overs || '0.0'})` : '-'}</span>
             </div>
           </div>
@@ -1443,7 +1479,7 @@ function renderEditorView() {
 
   // Populate Match Select
   matchSelect.innerHTML = matches.map(m => {
-    return `<option value="${m.id}" ${m.id === state.activeMatchId ? 'selected' : ''}>${m.teamA} vs ${m.teamB} (${m.tournament || 'Match'})</option>`;
+    return `<option value="${m.id}" ${m.id === state.activeMatchId ? 'selected' : ''}>${getMatchTeamA(m)} vs ${getMatchTeamB(m)} (${m.tournament || 'Match'})</option>`;
   }).join('');
 
   const match = state.matchesDb[state.activeMatchId];
