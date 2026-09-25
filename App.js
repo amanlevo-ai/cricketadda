@@ -7709,10 +7709,7 @@ function CricketAddaMain() {
         setNextBowler(eligible[0]);
       }
       setChangeBowlerModalVisible(true);
-      Alert.alert(
-        '🔴 Select Next Bowler',
-        'Over completed. Please select the next bowler before scoring.'
-      );
+      showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
       return;
     }
 
