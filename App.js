@@ -4695,6 +4695,25 @@ function CricketAddaMain() {
     return isUserScorerForMatch(currentMatch);
   }, [activeMatchId, matchesDb, isUserScorerForMatch]);
 
+  const isMatchCreator = useMemo(() => {
+    const targetMatch = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb || {})[0] || match;
+    if (!targetMatch) return false;
+    const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
+    const uPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const uId = userProfile?.id;
+    const myDeviceId = clientIdRef?.current || '';
+
+    const creatorPhone = String(targetMatch.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const creatorEmail = (targetMatch.creatorEmail || '').toLowerCase().trim();
+    const creatorId = targetMatch.creatorId;
+
+    if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
+    if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
+    if (creatorId && uId && creatorId === uId) return true;
+    if (targetMatch.creatorDeviceId && myDeviceId && targetMatch.creatorDeviceId === myDeviceId) return true;
+    return false;
+  }, [activeMatchId, matchesDb, userProfile, authEmail, authPhone, match]);
+
   const isMatchInAuditMode = useMemo(() => {
     const curMatch = (activeMatchId && matchesDb[activeMatchId]) || match;
     return Boolean(
@@ -8941,10 +8960,81 @@ function CricketAddaMain() {
     setTransferSearchQuery('');
     setScorerTransferModalVisible(false);
 
-    Alert.alert(
-      '✅ Scoring Rights Delegated!',
-      `• Assigned Scorer: ${playerName}\n${cleanPhoneDigits ? `• Phone: +91 ${cleanPhoneDigits}\n` : ''}• Team: ${resolvedTeamFlag} ${resolvedTeamName}\n• Role: ${playerRole}\n\nLive scoring is now under ${playerName}'s control. You are now in Spectator Mode.`
-    );
+    showAppToast(`Scoring delegated to ${playerName}! You are now in Spectator Mode 👁️`, '🔄', 'info');
+  };
+
+  // Match Creator Emergency Reclaim of Scoring Rights
+  const handleReclaimScoringRights = () => {
+    if (!activeMatchId) return;
+    const existingMatch = (matchesDb && matchesDb[activeMatchId]) || {};
+    const myPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const myEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
+    const myName = userProfile?.name || authName || 'Match Creator';
+    const myId = userProfile?.id || `usr_${myPhone || 'admin'}`;
+    const myDeviceId = clientIdRef?.current || '';
+
+    const reclaimedScorer = {
+      id: myId,
+      deviceId: myDeviceId,
+      name: myName,
+      phone: myPhone,
+      email: myEmail,
+      role: 'Match Creator & Official Scorer',
+      team: existingMatch.teamA || battingTeamName,
+      flag: existingMatch.innings1?.flag || battingTeamFlag,
+      avatar: userProfile?.avatarUri || null,
+      authorizedMatchId: activeMatchId,
+    };
+
+    setActiveScorer(reclaimedScorer);
+
+    const updatedMatch = {
+      ...existingMatch,
+      activeScorer: reclaimedScorer,
+      scorerName: myName,
+      scorerPhone: myPhone,
+      scorerEmail: myEmail,
+      scorerId: myId,
+      scorerDeviceId: myDeviceId,
+      isScoringDelegated: false,
+      reclaimedAt: Date.now(),
+      lastUpdatedAt: Date.now(),
+    };
+
+    setMatchesDb(prev => {
+      const nextDb = { ...prev, [activeMatchId]: updatedMatch };
+      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(nextDb)).catch(() => {});
+      return nextDb;
+    });
+
+    if (isFirebaseConfigured()) {
+      syncMatchToFirebaseDirect(activeMatchId, updatedMatch).catch(() => {});
+    }
+
+    const reclaimComm = {
+      id: `comm_reclaim_${Date.now()}`,
+      overs: `${Math.floor(liveBalls / 6)}.${liveBalls % 6}`,
+      bowler,
+      batter: striker,
+      ballSymbol: '👑',
+      badgeType: 'special',
+      runs: 0,
+      text: `👑 SCORING RECLAIMED: Match Creator (${myName}) has reclaimed official live scoring rights.`,
+      timestamp: 'Just now',
+    };
+    setLiveCommentaryList(prev => [reclaimComm, ...prev]);
+
+    broadcastMatchState({
+      activeScorer: reclaimedScorer,
+      isScoringDelegated: false,
+      scorerName: myName,
+      scorerPhone: myPhone,
+      scorerEmail: myEmail,
+      scorerId: myId,
+      liveCommentaryList: [reclaimComm, ...liveCommentaryList],
+    });
+
+    showAppToast('👑 Scoring rights successfully reclaimed by Match Creator!', '👑', 'success');
   };
 
   // ============================================================================
@@ -9567,16 +9657,13 @@ function CricketAddaMain() {
       setAdminNoteText('');
 
       if (success) {
-        Alert.alert(
-          '✅ Request Sent to Admin',
-          'Your correction request has been sent to the Tournament Admin.\n\nLive match scoring continues normally without interruption. The Admin will review your note and make the adjustment in the official scorecard after the match finishes.'
-        );
+        showAppToast('✅ Correction request sent to Tournament Admin!', '✅', 'success');
       } else {
-        Alert.alert('Offline / Notice', 'Unable to reach cloud database. Please verify internet connectivity.');
+        showAppToast('Offline / Notice: Unable to reach cloud database ⚠️', '⚠️', 'warning');
       }
     } catch (err) {
       setIsSendingAdminNote(false);
-      Alert.alert('Error', 'Failed to send note: ' + err.message);
+      showAppToast('Failed to send note: ' + err.message, '⚠️', 'error');
     }
   };
 
@@ -9591,25 +9678,19 @@ function CricketAddaMain() {
     const lastOverBowler = match.lastOverBowler || match.previousBowler || bowler;
 
     if (!finalBowler) {
-      Alert.alert('Bowler Required', 'Please select or enter the next bowler.');
+      showAppToast('Please select or enter the next bowler ⚾', '⚾', 'warning');
       return;
     }
 
     if (isBowlerQuotaMaxed(finalBowler)) {
       const bw = liveBowlerStats[finalBowler];
       const bowledOv = `${Math.floor((bw?.balls || 0) / 6)}.${(bw?.balls || 0) % 6}`;
-      Alert.alert(
-        '⛔ Maximum Over Quota Reached',
-        `• Under official ICC/MCC T20 rules (Clause 13.9), a bowler cannot bowl more than 1/5th of the match overs (${maxBowlerOversQuota} overs in a ${maxOvers}-over match).\n• ${finalBowler} has already bowled ${bowledOv} overs.\n• Please select a bowler with remaining over quota.`
-      );
+      showAppToast(`Max quota reached for ${finalBowler} (${bowledOv} bowled, max ${maxBowlerOversQuota} ov) ⛔`, '⛔', 'warning');
       return;
     }
 
     if (finalBowler.toLowerCase() === lastOverBowler.toLowerCase() && (activeOppBowlers || []).length > 1) {
-      Alert.alert(
-        '🚫 Consecutive Overs Not Allowed',
-        `• ${finalBowler} bowled the previous over.\n• Under cricket rules, a bowler cannot bowl two consecutive overs.\n• You must choose a different bowler from the bowling team.`
-      );
+      showAppToast(`${finalBowler} bowled the previous over. Consecutive overs not allowed 🚫`, '🚫', 'warning');
       return;
     }
 
@@ -10082,33 +10163,39 @@ function CricketAddaMain() {
       : `⛔ Match Abandoned due to ${baseReason} (No Result)`;
 
     // 1. Update matches database
+    const cur = matchesDb[activeMatchId] || {};
+    const updatedMatch = {
+      ...cur,
+      status: finalStatus,
+      result: finalResultText,
+      cancelReason: baseReason,
+      dlsApplied: willApplyDLS,
+      dlsParScore: dls.isApplicable ? dls.parScore : null,
+      cancelledAt: `${oversStr} ov`,
+      innings1: {
+        ...(cur.innings1 || {}),
+        runs: currentInnings === 1 ? liveRuns : (firstInningsSummary ? firstInningsSummary.runs : (cur.innings1?.runs || liveRuns)),
+        wickets: currentInnings === 1 ? liveWickets : (firstInningsSummary ? firstInningsSummary.wickets : (cur.innings1?.wickets || liveWickets)),
+        overs: currentInnings === 1 ? oversStr : (firstInningsSummary ? firstInningsSummary.overs : (cur.innings1?.overs || oversStr)),
+      },
+      innings2: {
+        ...(cur.innings2 || {}),
+        runs: currentInnings === 2 ? liveRuns : (cur.innings2?.runs || 0),
+        wickets: currentInnings === 2 ? liveWickets : (cur.innings2?.wickets || 0),
+        overs: currentInnings === 2 ? oversStr : (cur.innings2?.overs || '0.0'),
+      },
+      lastUpdatedAt: Date.now(),
+    };
+
     setMatchesDb(prev => {
-      const cur = prev[activeMatchId] || {};
-      return {
-        ...prev,
-        [activeMatchId]: {
-          ...cur,
-          status: finalStatus,
-          result: finalResultText,
-          cancelReason: baseReason,
-          dlsApplied: willApplyDLS,
-          dlsParScore: dls.isApplicable ? dls.parScore : null,
-          cancelledAt: `${oversStr} ov`,
-          innings1: {
-            ...(cur.innings1 || {}),
-            runs: currentInnings === 1 ? liveRuns : (firstInningsSummary ? firstInningsSummary.runs : (cur.innings1?.runs || liveRuns)),
-            wickets: currentInnings === 1 ? liveWickets : (firstInningsSummary ? firstInningsSummary.wickets : (cur.innings1?.wickets || liveWickets)),
-            overs: currentInnings === 1 ? oversStr : (firstInningsSummary ? firstInningsSummary.overs : (cur.innings1?.overs || oversStr)),
-          },
-          innings2: {
-            ...(cur.innings2 || {}),
-            runs: currentInnings === 2 ? liveRuns : (cur.innings2?.runs || 0),
-            wickets: currentInnings === 2 ? liveWickets : (cur.innings2?.wickets || 0),
-            overs: currentInnings === 2 ? oversStr : (cur.innings2?.overs || '0.0'),
-          },
-        },
-      };
+      const nextDb = { ...prev, [activeMatchId]: updatedMatch };
+      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(nextDb)).catch(() => {});
+      return nextDb;
     });
+
+    if (isFirebaseConfigured()) {
+      syncMatchToFirebaseDirect(activeMatchId, updatedMatch).catch(() => {});
+    }
 
     // 2. Append commentary
     const commSummary = willApplyDLS
@@ -10134,19 +10221,13 @@ function CricketAddaMain() {
     setCustomCancelReasonText('');
     setSelectedCancelReasonId('rain_wet_outfield');
 
-    Alert.alert(
-      willApplyDLS ? '🏆 Match Decided via DLS Method' : '⛔ Match Abandoned & Saved',
-      `• Match: ${currentMatchData?.title || 'Live Match'}\n• Result: ${finalResultText}\n• Reason: ${baseReason}\n• Score at Stoppage: ${liveRuns}/${liveWickets} (${oversStr} ov)${willApplyDLS ? `\n• DLS Par Score: ${dls.parScore} runs` : `\n• DLS Status: ${dls.reason}`}\n\nSaved to Tournament Records.`,
-      [
-        {
-          text: 'Go to Matches Hub',
-          onPress: () => {
-            setActiveTab('matches');
-            setNavHistory(['matches']);
-          },
-        },
-      ]
+    showAppToast(
+      willApplyDLS ? `🏆 Match Decided via DLS: ${finalResultText}` : `⛔ Match Abandoned (${baseReason})`,
+      willApplyDLS ? '🏆' : '⛔',
+      'warning'
     );
+    setActiveTab('matches');
+    setNavHistory(['matches']);
   };
 
   // Open Detailed Performance & Wagon Wheel for a Clicked Batter
@@ -15730,6 +15811,34 @@ function CricketAddaMain() {
                   Live ball-by-ball updates and commentary are synced live from the Official Match Scorer. Keypad scoring is disabled in Spectator Mode.
                 </Text>
               </View>
+
+              {/* 4. MATCH CREATOR RECLAIM SCORING ACTION */}
+              {isMatchCreator && (currentMatchData?.isScoringDelegated || currentMatch?.isScoringDelegated) && (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={{
+                    marginTop: 10,
+                    backgroundColor: '#f59e0b',
+                    borderRadius: 10,
+                    paddingVertical: 11,
+                    paddingHorizontal: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 8,
+                    elevation: 3,
+                    shadowColor: '#f59e0b',
+                    shadowOpacity: 0.35,
+                    shadowRadius: 5,
+                  }}
+                  onPress={handleReclaimScoringRights}
+                >
+                  <Text style={{ fontSize: 16 }}>👑</Text>
+                  <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 13, letterSpacing: 0.2 }}>
+                    Reclaim Scoring Rights (स्कोरिंग वापस लें)
+                  </Text>
+                </TouchableOpacity>
+              )}
             </View>
           )}
 
