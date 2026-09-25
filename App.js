@@ -5787,10 +5787,10 @@ function CricketAddaMain() {
   const [selectedCancelReasonId, setSelectedCancelReasonId] = useState('rain_wet_outfield');
   const [applyDLSIfEligible, setApplyDLSIfEligible] = useState(true);
 
-  // DLS Mid-Match Interruption & Over Reduction State
   const [dlsModalVisible, setDlsModalVisible] = useState(false);
   const [dlsInterruptionMode, setDlsInterruptionMode] = useState('terminate_inn1'); // 'terminate_inn1' | 'curtail_both' | 'curtail_inn2'
   const [dlsRevisedOversInput, setDlsRevisedOversInput] = useState('12');
+  const [earlyEndTargetMode, setEarlyEndTargetMode] = useState('local'); // 'local' (Current + 1) | 'dls' (ICC Formula)
 
   // Official Scorer Request to Admin Modal State
   const [adminNoteModalVisible, setAdminNoteModalVisible] = useState(false);
@@ -7319,7 +7319,7 @@ function CricketAddaMain() {
     const origOvers = match.totalOvers || match.overs || 20;
 
     if (isNaN(revisedOv) || revisedOv <= 0) {
-      Alert.alert('Invalid Overs', 'Please enter a valid number of overs.');
+      showAppToast('Please enter a valid number of overs.', '⚠️', 'warning');
       return;
     }
 
@@ -7327,13 +7327,184 @@ function CricketAddaMain() {
     const currentOversBowledNum = Math.floor(currentBallsBowled / 6);
 
     if (dlsInterruptionMode === 'curtail_both' && revisedOv <= currentOversBowledNum) {
-      Alert.alert(
-        'Overs Already Exceeded',
-        `${battingTeamName} has already batted ${oversStr} overs. If you want to conclude the 1st innings now, please select "Terminate 1st Innings".`
+      showAppToast(
+        `${battingTeamName} already batted ${oversStr} ov. Use "End 1st Innings" to close early.`,
+        '⚠️',
+        'warning'
       );
       return;
     }
 
+    if (earlyEndTargetMode === 'local') {
+      // =========================================================================
+      // OPTION 1: LOCAL CRICKET RULE (Direct Target: Current Runs + 1)
+      // =========================================================================
+      if (currentInnings === 1 && dlsInterruptionMode === 'terminate_inn1') {
+        const localTarget = (Number(liveRuns) || 0) + 1;
+        const localRrr = revisedOv > 0 ? (localTarget / revisedOv).toFixed(2) : '0.00';
+        const commText = `🏁 1ST INNINGS CONCLUDED (LOCAL RULE)!\n• 1st Innings concluded at ${liveRuns}/${liveWickets} (${oversStr} ov).\n• Target for ${bowlingTeamName}: ${localTarget} runs in ${revisedOv}.0 overs (RRR: ${localRrr}).\n• Rule: Direct Target (Runs + 1).`;
+
+        const commEntry = {
+          id: `comm_end1_${Date.now()}`,
+          isOverEnd: true,
+          isDLS: false,
+          headerTitle: '🏁 1ST INNINGS CONCLUDED',
+          overNum: Math.floor(liveBalls / 6),
+          battersText: `Target: ${localTarget} runs in ${revisedOv}.0 ov (Local Rule).`,
+          bowlerText: `1st Innings closed at ${oversStr} ov.`,
+          overSummary: commText,
+        };
+
+        const updatedComm = [commEntry, ...liveCommentaryList];
+        setLiveCommentaryList(updatedComm);
+
+        const updatedMatch = {
+          ...match,
+          totalOvers: revisedOv,
+          target: localTarget,
+          dlsApplied: false,
+          isLocalRuleTarget: true,
+          dlsRevisedOvers: revisedOv,
+          dlsOrigOvers: origOvers,
+          interruptionSummary: commText,
+        };
+        setMatch(updatedMatch);
+
+        const dynamicBatting = typeof getDynamicBatting === 'function' ? getDynamicBatting(currentMatchData?.innings1?.batting) : (currentMatchData?.innings1?.batting || []);
+        const dynamicBowling = typeof getDynamicBowling === 'function' ? getDynamicBowling(currentMatchData?.innings1?.bowling) : (currentMatchData?.innings1?.bowling || []);
+
+        const summary = {
+          team: battingTeamName,
+          oppTeam: bowlingTeamName,
+          runs: liveRuns,
+          wickets: liveWickets,
+          overs: oversStr,
+          maxOvers: revisedOv,
+          origOvers: origOvers,
+          target: localTarget,
+          rrr: localRrr,
+          dlsApplied: false,
+          isLocalRuleTarget: true,
+          isDeclared: true,
+        };
+
+        setFirstInningsSummary(summary);
+        setCurrentMatchData(prev => ({
+          ...prev,
+          ...updatedMatch,
+          target: localTarget,
+          innings1: {
+            ...(prev?.innings1 || {}),
+            runs: liveRuns,
+            wickets: liveWickets,
+            oversBowled: oversStr,
+            maxOvers: origOvers,
+            batting: dynamicBatting,
+            bowling: dynamicBowling,
+          },
+        }));
+
+        broadcastMatchState({
+          ...updatedMatch,
+          target: localTarget,
+          firstInningsSummary: summary,
+          liveCommentaryList: updatedComm,
+        });
+
+        setDlsModalVisible(false);
+        setInningsBreakModalVisible(true);
+        showAppToast(`🏁 1st Innings Ended! Target: ${localTarget} runs in ${revisedOv} ov`, '🏁', 'success');
+        return;
+      } else if (dlsInterruptionMode === 'curtail_both') {
+        const commText = `⏱️ MATCH CURTAILED!\n• Match reduced to ${revisedOv}.0 overs per side.\n• ${battingTeamName} will bat up to ${revisedOv}.0 overs.`;
+        const commEntry = {
+          id: `comm_curtail_${Date.now()}`,
+          isOverEnd: true,
+          headerTitle: '⏱️ MATCH CURTAILED',
+          overNum: Math.floor(liveBalls / 6),
+          battersText: `Curtailed to ${revisedOv}.0 ov per side.`,
+          bowlerText: '',
+          overSummary: commText,
+        };
+
+        const updatedComm = [commEntry, ...liveCommentaryList];
+        setLiveCommentaryList(updatedComm);
+
+        const updatedMatch = {
+          ...match,
+          totalOvers: revisedOv,
+          dlsRevisedOvers: revisedOv,
+          dlsOrigOvers: origOvers,
+        };
+        setMatch(updatedMatch);
+
+        setCurrentMatchData(prev => ({
+          ...prev,
+          ...updatedMatch,
+          innings1: {
+            ...(prev?.innings1 || {}),
+            maxOvers: revisedOv,
+          },
+        }));
+
+        broadcastMatchState({
+          ...updatedMatch,
+          liveCommentaryList: updatedComm,
+        });
+
+        setDlsModalVisible(false);
+        showAppToast(`⏱️ Match curtailed to ${revisedOv}.0 ov per side!`, '⏱️');
+        return;
+      } else {
+        // curtail_inn2 in local mode
+        const inn1Runs = Number(firstInningsSummary?.runs || currentMatchData?.innings1?.runs || 0);
+        const localTarget = Math.max(1, Math.round((inn1Runs / origOvers) * revisedOv) + 1);
+        const localRrr = revisedOv > 0 ? (localTarget / revisedOv).toFixed(2) : '0.00';
+        const commText = `⏱️ 2ND INNINGS CURTAILED (LOCAL RULE)!\n• Overs reduced to ${revisedOv}.0 overs.\n• Revised Target for ${battingTeamName}: ${localTarget} runs (RRR: ${localRrr}).`;
+
+        const commEntry = {
+          id: `comm_curtail2_${Date.now()}`,
+          isOverEnd: true,
+          headerTitle: '⏱️ TARGET REVISED',
+          overNum: Math.floor(liveBalls / 6),
+          battersText: `Target revised to ${localTarget} runs in ${revisedOv}.0 ov.`,
+          bowlerText: '',
+          overSummary: commText,
+        };
+
+        const updatedComm = [commEntry, ...liveCommentaryList];
+        setLiveCommentaryList(updatedComm);
+
+        const updatedMatch = {
+          ...match,
+          totalOvers: revisedOv,
+          target: localTarget,
+          dlsRevisedOvers: revisedOv,
+        };
+        setMatch(updatedMatch);
+
+        setCurrentMatchData(prev => ({
+          ...prev,
+          ...updatedMatch,
+          target: localTarget,
+          dlsRevisedOvers: revisedOv,
+        }));
+
+        broadcastMatchState({
+          ...updatedMatch,
+          target: localTarget,
+          liveCommentaryList: updatedComm,
+        });
+
+        setDlsModalVisible(false);
+        showAppToast(`🏁 Revised Target: ${localTarget} runs in ${revisedOv} ov!`, '🏁');
+        return;
+      }
+    }
+
+    // =========================================================================
+    // OPTION 2: OFFICIAL ICC DLS METHOD (Duckworth-Lewis-Stern)
+    // =========================================================================
     // 1. Calculate DLS target and bowler quota
     let dlsResult;
     if (currentInnings === 1) {
@@ -14632,10 +14803,47 @@ function CricketAddaMain() {
             ) : (
               /* Scorer Controls for Official Match Scorer */
               <>
+                {/* 1. End Inning / Revise Overs (DLS or Local Rule) */}
+                <TouchableOpacity
+                  style={{
+                    flex: 1.25,
+                    height: 36,
+                    backgroundColor: '#6d28d9',
+                    borderColor: '#a78bfa',
+                    borderWidth: 1,
+                    borderRadius: 8,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 3,
+                    paddingHorizontal: 4,
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  onPress={() => {
+                    const currOv = Math.floor(liveBalls / 6) + (liveBalls % 6 > 0 ? 1 : 0);
+                    if (currOv > 0) {
+                      setDlsRevisedOversInput(String(currOv));
+                    }
+                    if (currentInnings === 1) {
+                      setDlsInterruptionMode('terminate_inn1');
+                    }
+                    setDlsModalVisible(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 12 }}>{currentInnings === 1 ? '🏁' : '🌧️'}</Text>
+                  <Text style={{
+                    color: '#ffffff',
+                    fontSize: 11,
+                    fontWeight: '900',
+                  }} numberOfLines={1}>
+                    {currentInnings === 1 ? 'End 1st Inn' : 'Revise Overs'}
+                  </Text>
+                </TouchableOpacity>
+
                 {/* 2. Transfer Scoring Button */}
                 <TouchableOpacity
                   style={{
-                    flex: 1.35,
+                    flex: 1.25,
                     height: 36,
                     backgroundColor: '#0284c7',
                     borderColor: '#38bdf8',
@@ -14644,26 +14852,26 @@ function CricketAddaMain() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexDirection: 'row',
-                    gap: 4,
-                    paddingHorizontal: 6,
+                    gap: 3,
+                    paddingHorizontal: 4,
                   }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   onPress={() => setScorerTransferModalVisible(true)}
                 >
-                  <Text style={{ fontSize: 13 }}>🔄</Text>
+                  <Text style={{ fontSize: 12 }}>🔄</Text>
                   <Text style={{
                     color: '#ffffff',
-                    fontSize: 11.5,
+                    fontSize: 11,
                     fontWeight: '900',
                   }} numberOfLines={1}>
-                    Transfer Scoring
+                    Transfer
                   </Text>
                 </TouchableOpacity>
 
                 {/* 3. Cancel Match Button */}
                 <TouchableOpacity
                   style={{
-                    flex: 1.15,
+                    flex: 1.05,
                     height: 36,
                     backgroundColor: '#450a0a',
                     borderColor: '#ef4444',
@@ -14672,19 +14880,19 @@ function CricketAddaMain() {
                     alignItems: 'center',
                     justifyContent: 'center',
                     flexDirection: 'row',
-                    gap: 4,
-                    paddingHorizontal: 6,
+                    gap: 3,
+                    paddingHorizontal: 4,
                   }}
                   hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   onPress={() => setCancelMatchModalVisible(true)}
                 >
-                  <Text style={{ fontSize: 12 }}>⛔</Text>
+                  <Text style={{ fontSize: 11 }}>⛔</Text>
                   <Text style={{
                     color: '#fca5a5',
-                    fontSize: 11.5,
+                    fontSize: 11,
                     fontWeight: 'bold',
                   }} numberOfLines={1}>
-                    Cancel Match
+                    Cancel
                   </Text>
                 </TouchableOpacity>
               </>
@@ -20716,10 +20924,10 @@ function CricketAddaMain() {
                   </View>
                   <View>
                     <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 16, fontWeight: '900' }}>
-                      DLS Target Revision
+                      {currentInnings === 1 ? '🏁 End 1st Innings / Revise Overs' : '🌧️ Revise Target / Overs'}
                     </Text>
                     <Text style={{ color: '#a78bfa', fontSize: 11, fontWeight: '700' }}>
-                      Duckworth-Lewis-Stern Engine (ICC Clause 13.9)
+                      Local Cricket Rule (Runs + 1) or ICC DLS Method
                     </Text>
                   </View>
                 </View>
@@ -20758,7 +20966,7 @@ function CricketAddaMain() {
 
               {/* Interruption Scenario Options */}
               <Text style={{ fontSize: 11.5, fontWeight: '800', color: currentTheme.isLight ? '#475569' : '#cbd5e1', marginBottom: 6, textTransform: 'uppercase' }}>
-                Select Interruption Scenario:
+                Select Action / Scenario:
               </Text>
               {currentInnings === 1 ? (
                 <View style={{ gap: 6, marginBottom: 14 }}>
@@ -20776,12 +20984,12 @@ function CricketAddaMain() {
                   >
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Text style={{ color: dlsInterruptionMode === 'terminate_inn1' ? (currentTheme.isLight ? '#6d28d9' : '#c4b5fd') : (currentTheme.isLight ? '#0f172a' : '#e2e8f0'), fontSize: 13, fontWeight: '800' }}>
-                        🏁 End 1st Innings & Set 2nd Innings Target
+                        🏁 End 1st Innings Now & Set 2nd Innings Target
                       </Text>
                       {dlsInterruptionMode === 'terminate_inn1' && <Text style={{ color: '#8b5cf6', fontWeight: 'bold' }}>✓</Text>}
                     </View>
                     <Text style={{ color: '#94a3b8', fontSize: 10.5, marginTop: 2 }}>
-                      1st Innings closes at {liveRuns}/{liveWickets} ({oversStr} ov). {bowlingTeamName} chases revised DLS target in reduced overs.
+                      1st Innings closes at {liveRuns}/{liveWickets} ({oversStr} ov). {bowlingTeamName} chases target in revised overs.
                     </Text>
                   </TouchableOpacity>
 
@@ -20804,7 +21012,7 @@ function CricketAddaMain() {
                       {dlsInterruptionMode === 'curtail_both' && <Text style={{ color: '#8b5cf6', fontWeight: 'bold' }}>✓</Text>}
                     </View>
                     <Text style={{ color: '#94a3b8', fontSize: 10.5, marginTop: 2 }}>
-                      Both teams play reduced overs. {battingTeamName} resumes and will bat up to the revised overs limit.
+                      Both teams play reduced overs. {battingTeamName} resumes and will bat up to revised overs limit.
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -20829,6 +21037,96 @@ function CricketAddaMain() {
                 </View>
               )}
 
+              {/* TARGET CALCULATION METHOD SELECTOR (Option 1 vs Option 2 Radio Buttons) */}
+              <Text style={{ fontSize: 11.5, fontWeight: '800', color: currentTheme.isLight ? '#475569' : '#cbd5e1', marginBottom: 6, textTransform: 'uppercase' }}>
+                Select Target Rule / Formula (नियम चुनें):
+              </Text>
+              <View style={{ gap: 8, marginBottom: 14 }}>
+                {/* Radio Option 1: Local Cricket Rule */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: earlyEndTargetMode === 'local'
+                      ? (currentTheme.isLight ? '#f0fdf4' : '#064e3b')
+                      : (currentTheme.isLight ? '#f8fafc' : '#1e293b'),
+                    borderColor: earlyEndTargetMode === 'local' ? '#10b981' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
+                    borderWidth: 1.5,
+                    borderRadius: 12,
+                    padding: 11,
+                  }}
+                  onPress={() => setEarlyEndTargetMode('local')}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <View style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        borderWidth: 2,
+                        borderColor: earlyEndTargetMode === 'local' ? '#10b981' : '#94a3b8',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {earlyEndTargetMode === 'local' && (
+                          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#10b981' }} />
+                        )}
+                      </View>
+                      <Text style={{ color: earlyEndTargetMode === 'local' ? (currentTheme.isLight ? '#166534' : '#6ee7b7') : (currentTheme.isLight ? '#0f172a' : '#e2e8f0'), fontSize: 13, fontWeight: '900' }}>
+                        Option 1: 🏏 Local Cricket Rule (Direct Target)
+                      </Text>
+                    </View>
+                    <View style={{ backgroundColor: '#10b981', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>
+                      <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>Runs + 1</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, marginTop: 4, marginLeft: 28 }}>
+                    {currentInnings === 1
+                      ? `Jitne run bane usme +1 target (${liveRuns} runs + 1 = ${(Number(liveRuns) || 0) + 1} runs). Local matches ka saral v standard niyam.`
+                      : `Proportional run rate target based on revised overs.`}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* Radio Option 2: Official ICC DLS Method */}
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: earlyEndTargetMode === 'dls'
+                      ? (currentTheme.isLight ? '#ede9fe' : '#2e1065')
+                      : (currentTheme.isLight ? '#f8fafc' : '#1e293b'),
+                    borderColor: earlyEndTargetMode === 'dls' ? '#8b5cf6' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
+                    borderWidth: 1.5,
+                    borderRadius: 12,
+                    padding: 11,
+                  }}
+                  onPress={() => setEarlyEndTargetMode('dls')}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                      <View style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        borderWidth: 2,
+                        borderColor: earlyEndTargetMode === 'dls' ? '#8b5cf6' : '#94a3b8',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {earlyEndTargetMode === 'dls' && (
+                          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#8b5cf6' }} />
+                        )}
+                      </View>
+                      <Text style={{ color: earlyEndTargetMode === 'dls' ? (currentTheme.isLight ? '#6d28d9' : '#c4b5fd') : (currentTheme.isLight ? '#0f172a' : '#e2e8f0'), fontSize: 13, fontWeight: '900' }}>
+                        Option 2: 🌧️ Official ICC DLS Method
+                      </Text>
+                    </View>
+                    <View style={{ backgroundColor: '#8b5cf6', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>
+                      <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>ICC DLS 5.0</Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, marginTop: 4, marginLeft: 28 }}>
+                    Resource percentages aur wickets down ke hisaab se fair scientific target calculation.
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
               {/* Revised Overs Selection */}
               <Text style={{ fontSize: 11.5, fontWeight: '800', color: currentTheme.isLight ? '#475569' : '#cbd5e1', marginBottom: 6, textTransform: 'uppercase' }}>
                 Set Revised Match Overs:
@@ -20847,10 +21145,10 @@ function CricketAddaMain() {
                         paddingVertical: 7,
                         borderRadius: 8,
                         backgroundColor: isSel
-                          ? '#8b5cf6'
+                          ? (earlyEndTargetMode === 'local' ? '#10b981' : '#8b5cf6')
                           : (currentTheme.isLight ? '#f1f5f9' : '#1e293b'),
                         borderWidth: 1,
-                        borderColor: isSel ? '#8b5cf6' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
+                        borderColor: isSel ? (earlyEndTargetMode === 'local' ? '#10b981' : '#8b5cf6') : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
                       }}
                       onPress={() => setDlsRevisedOversInput(String(ov))}
                     >
@@ -20896,12 +21194,64 @@ function CricketAddaMain() {
                 </Text>
               </View>
 
-              {/* Real-time Dynamic DLS Preview Card */}
+              {/* Real-time Dynamic Target Preview Card */}
               {(() => {
                 const parsedOv = parseInt(dlsRevisedOversInput, 10);
                 const origOv = match.totalOvers || match.overs || 20;
                 const safeOv = (!isNaN(parsedOv) && parsedOv > 0) ? parsedOv : 12;
 
+                if (earlyEndTargetMode === 'local') {
+                  const targetRuns = currentInnings === 1
+                    ? (Number(liveRuns) || 0) + 1
+                    : Math.max(1, Math.round(((firstInningsSummary?.runs || 0) / origOv) * safeOv) + 1);
+                  const reqRunRate = safeOv > 0 ? (targetRuns / safeOv).toFixed(2) : '0.00';
+
+                  return (
+                    <View style={{
+                      backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#022c22',
+                      borderColor: '#10b981',
+                      borderWidth: 1.5,
+                      borderRadius: 12,
+                      padding: 12,
+                      marginBottom: 14,
+                    }}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: currentTheme.isLight ? '#15803d' : '#86efac', textTransform: 'uppercase' }}>
+                          🎯 Option 1 Target Preview:
+                        </Text>
+                        <View style={{ backgroundColor: '#10b981', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>
+                            LOCAL RULE (RUNS + 1)
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Big Target Output */}
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginVertical: 4 }}>
+                        <Text style={{ fontSize: 32, fontWeight: '900', color: currentTheme.isLight ? '#15803d' : '#4ade80' }}>
+                          {targetRuns}
+                        </Text>
+                        <Text style={{ fontSize: 13, color: currentTheme.isLight ? '#166534' : '#dcfce7', fontWeight: 'bold' }}>
+                          runs to win in {safeOv}.0 ov
+                        </Text>
+                      </View>
+
+                      <Text style={{ fontSize: 11.5, color: currentTheme.isLight ? '#166534' : '#bbf7d0', fontWeight: '700' }}>
+                        Required Run Rate: <Text style={{ fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }}>{reqRunRate} rpo</Text>
+                      </Text>
+
+                      <View style={{ borderTopWidth: 1, borderTopColor: currentTheme.isLight ? '#bbf7d0' : '#065f46', marginTop: 8, paddingTop: 8 }}>
+                        <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#15803d' : '#86efac', fontWeight: '700' }}>
+                          {currentInnings === 1
+                            ? `✓ 1st Innings ${liveRuns}/${liveWickets} (${oversStr} ov) par conclude hogi. 2nd Innings target: ${targetRuns} runs.`
+                            : `✓ 2nd Innings revised overs: ${safeOv}.0 ov. Target: ${targetRuns} runs.`}
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                }
+
+                // DLS Calculation Preview
                 const preview = currentInnings === 1
                   ? calculateDLSTarget({
                       firstInnRuns: liveRuns,
@@ -20934,7 +21284,7 @@ function CricketAddaMain() {
                   }}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
                       <Text style={{ fontSize: 11, fontWeight: '800', color: currentTheme.isLight ? '#6d28d9' : '#c4b5fd', textTransform: 'uppercase' }}>
-                        🎯 Official DLS Calculation:
+                        🎯 Option 2 Target Preview:
                       </Text>
                       <View style={{ backgroundColor: '#8b5cf6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                         <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>
@@ -20945,7 +21295,7 @@ function CricketAddaMain() {
 
                     {/* Big Target Output */}
                     <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginVertical: 4 }}>
-                      <Text style={{ fontSize: 28, fontWeight: '900', color: '#fde047' }}>
+                      <Text style={{ fontSize: 30, fontWeight: '900', color: '#fde047' }}>
                         {preview.revisedTarget}
                       </Text>
                       <Text style={{ fontSize: 13, color: currentTheme.isLight ? '#4c1d95' : '#e0e7ff', fontWeight: 'bold' }}>
@@ -20998,12 +21348,12 @@ function CricketAddaMain() {
                 <TouchableOpacity
                   style={{
                     flex: 2,
-                    backgroundColor: '#8b5cf6',
+                    backgroundColor: earlyEndTargetMode === 'local' ? '#059669' : '#8b5cf6',
                     paddingVertical: 12,
                     borderRadius: 10,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    shadowColor: '#8b5cf6',
+                    shadowColor: earlyEndTargetMode === 'local' ? '#059669' : '#8b5cf6',
                     shadowOffset: { width: 0, height: 3 },
                     shadowOpacity: 0.35,
                     shadowRadius: 5,
@@ -21012,7 +21362,7 @@ function CricketAddaMain() {
                   onPress={handleApplyDLSReduction}
                 >
                   <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
-                    🌧️ Apply DLS Target 🚀
+                    {earlyEndTargetMode === 'local' ? '🏁 Apply Local Target 🚀' : '🌧️ Apply DLS Target 🚀'}
                   </Text>
                 </TouchableOpacity>
               </View>
