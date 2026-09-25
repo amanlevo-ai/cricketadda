@@ -11057,11 +11057,11 @@ function CricketAddaMain() {
     // Phase 1 Validation: Both Team A and Team B must be selected and distinct
     if (wzPhase === 1) {
       if (!matchDraft.myTeam || !matchDraft.opponentTeam) {
-        Alert.alert('Teams Required', 'Please select both Team A and Team B to proceed.');
+        showAppToast('Please select both Team A and Team B to proceed 👥', '👥', 'warning');
         return;
       }
       if (matchDraft.myTeam.name === matchDraft.opponentTeam.name) {
-        Alert.alert('Duplicate Teams', 'Team A and Team B cannot be the same team.');
+        showAppToast('Team A and Team B cannot be the same team 🚫', '🚫', 'warning');
         return;
       }
       setWzPhase(2);
@@ -11071,7 +11071,7 @@ function CricketAddaMain() {
     // Phase 2 Validation: Settings
     if (wzPhase === 2) {
       if (!matchDraft.totalOvers || matchDraft.totalOvers < 1) {
-        Alert.alert('Overs Required', 'Please set valid match overs.');
+        showAppToast('Please set valid match overs ⏱️', '⏱️', 'warning');
         return;
       }
       setWzPhase(3);
@@ -11081,18 +11081,11 @@ function CricketAddaMain() {
     // Phase 3 Validation: Toss Winner & Toss Decision are COMPULSORY!
     if (wzPhase === 3) {
       if (!matchDraft.tossWinner) {
-        Alert.alert(
-          '🪙 Toss Winner Compulsory',
-          'Please flip the cricket coin or select which team won the toss before continuing.'
-        );
+        showAppToast('Please flip coin or select toss winner 🪙', '🪙', 'warning');
         return;
       }
       if (!matchDraft.tossDecision) {
-        const winnerName = matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name;
-        Alert.alert(
-          '🏏 Toss Decision Compulsory',
-          `Please select the toss decision (Elected to Bat or Bowl) for ${winnerName || 'the toss winner'} before continuing.`
-        );
+        showAppToast('Please select Toss Decision (Elected to Bat/Bowl) 🏏', '🏏', 'warning');
         return;
       }
       setWzPhase(4);
@@ -11102,27 +11095,50 @@ function CricketAddaMain() {
     // Phase 4 Validation: Playing XI & Roles (Captain & Keeper for both teams)
     if (wzPhase === 4) {
       if (!matchDraft.myPlayingXI || (matchDraft?.myPlayingXI || []).length < 2) {
-        Alert.alert('Playing XI Required', `Please select at least 2 players in Playing XI for ${matchDraft.myTeam?.name || 'Team A'}.`);
+        showAppToast(`Select at least 2 players in Playing XI for ${matchDraft.myTeam?.name || 'Team A'} 👥`, '👥', 'warning');
         return;
       }
       if (!matchDraft.opponentPlayingXI || (matchDraft?.opponentPlayingXI || []).length < 2) {
-        Alert.alert('Playing XI Required', `Please select at least 2 players in Playing XI for ${matchDraft.opponentTeam?.name || 'Team B'}.`);
+        showAppToast(`Select at least 2 players in Playing XI for ${matchDraft.opponentTeam?.name || 'Team B'} 👥`, '👥', 'warning');
         return;
       }
+
+      // CRITICAL RULE: A player CANNOT play on both sides in the SAME MATCH!
+      const conflictingPlayer = (matchDraft.myPlayingXI || []).find(pA => {
+        const rawA = typeof pA === 'object' ? (pA.name || '') : String(pA || '');
+        const cleanA = rawA.replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
+        const phoneA = typeof pA === 'object' ? String(pA.phone || '').replace(/[^0-9]/g, '').slice(-10) : '';
+
+        return (matchDraft.opponentPlayingXI || []).some(pB => {
+          const rawB = typeof pB === 'object' ? (pB.name || '') : String(pB || '');
+          const cleanB = rawB.replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
+          const phoneB = typeof pB === 'object' ? String(pB.phone || '').replace(/[^0-9]/g, '').slice(-10) : '';
+
+          if (phoneA && phoneB && phoneA === phoneB) return true;
+          return cleanA && cleanB && cleanA === cleanB;
+        });
+      });
+
+      if (conflictingPlayer) {
+        const conflictName = typeof conflictingPlayer === 'object' ? conflictingPlayer.name : conflictingPlayer;
+        showAppToast(`🚫 Conflict: "${conflictName}" cannot play for both teams in the same match!`, '🚫', 'warning');
+        return;
+      }
+
       if (!matchDraft.myCaptain) {
-        Alert.alert('Captain Required', `Please select a Captain (C) for ${matchDraft.myTeam?.name || 'Team A'}.`);
+        showAppToast(`Please select a Captain (C) for ${matchDraft.myTeam?.name || 'Team A'} 👑`, '👑', 'warning');
         return;
       }
       if (!matchDraft.myWicketkeeper) {
-        Alert.alert('Wicketkeeper Required', `Please select a Wicketkeeper (WK) for ${matchDraft.myTeam?.name || 'Team A'}.`);
+        showAppToast(`Please select a Wicketkeeper (WK) for ${matchDraft.myTeam?.name || 'Team A'} 🧤`, '🧤', 'warning');
         return;
       }
       if (!matchDraft.oppCaptain) {
-        Alert.alert('Captain Required', `Please select a Captain (C) for ${matchDraft.opponentTeam?.name || 'Team B'}.`);
+        showAppToast(`Please select a Captain (C) for ${matchDraft.opponentTeam?.name || 'Team B'} 👑`, '👑', 'warning');
         return;
       }
       if (!matchDraft.oppWicketkeeper) {
-        Alert.alert('Wicketkeeper Required', `Please select a Wicketkeeper (WK) for ${matchDraft.opponentTeam?.name || 'Team B'}.`);
+        showAppToast(`Please select a Wicketkeeper (WK) for ${matchDraft.opponentTeam?.name || 'Team B'} 🧤`, '🧤', 'warning');
         return;
       }
       setWzPhase(5); // Direct to Match Confirmation
