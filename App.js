@@ -3857,10 +3857,10 @@ const STORAGE_KEYS = {
   MATCHES_DB: '@cricketadda_matches_db',
   LAST_ACTIVE_TIME: '@cricketadda_last_active_time',
   OFFLINE_SYNC_QUEUE: '@cricketadda_offline_sync_queue',
-  RESET_VERSION: '@cricketadda_reset_test_data_v3',
+  RESET_VERSION: '@cricketadda_reset_test_data_v4',
 };
 
-const DB_CLEAN_EPOCH = 1790200000000; // Sept 24/25, 2026 DB cleanup epoch
+const DB_CLEAN_EPOCH = 1790319500000; // Sept 25, 2026 DB full wipe epoch
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 days inactivity limit (2,592,000,000 ms)
 
@@ -5279,20 +5279,28 @@ function CricketAddaMain() {
         }
                 // One-time automatic cleanup for fresh testing mode & stale cache purge
         const resetDone = await AsyncStorage.getItem(STORAGE_KEYS.RESET_VERSION);
-        if (resetDone !== 'v3_done') {
-          console.log('[Storage] 🧹 Purging stale pre-v3 test data from local storage...');
+        if (resetDone !== 'v4_done') {
+          console.log('[Storage] 🧹 Purging stale pre-v4 test data from local storage for 100% fresh testing...');
           await AsyncStorage.multiRemove([
             STORAGE_KEYS.REGISTERED_TEAMS,
             STORAGE_KEYS.MATCHES_DB,
             STORAGE_KEYS.ACTIVE_MATCH_ID,
             STORAGE_KEYS.USER_CAREER,
             STORAGE_KEYS.ACTIVE_SCORER,
+            STORAGE_KEYS.USERS_DB,
+            STORAGE_KEYS.OFFLINE_SYNC_QUEUE,
+            STORAGE_KEYS.USER_PROFILE,
+            STORAGE_KEYS.LAST_ACTIVE_TIME,
           ]);
-          await AsyncStorage.setItem(STORAGE_KEYS.RESET_VERSION, 'v3_done');
+          await AsyncStorage.setItem(STORAGE_KEYS.RESET_VERSION, 'v4_done');
           setRegisteredTeams([]);
           setMatchesDb({});
+          setUsersDb([]);
           setActiveMatchId(null);
           setUserCareerData(EMPTY_USER_CAREER_DATA);
+          setUserProfile({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
+          setIsAuthenticated(false);
+          setAuthStep(1);
         } else {
           const storedTeams = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_TEAMS);
           if (storedTeams) {
