@@ -3857,8 +3857,10 @@ const STORAGE_KEYS = {
   MATCHES_DB: '@cricketadda_matches_db',
   LAST_ACTIVE_TIME: '@cricketadda_last_active_time',
   OFFLINE_SYNC_QUEUE: '@cricketadda_offline_sync_queue',
-  RESET_VERSION: '@cricketadda_reset_test_data_v2',
+  RESET_VERSION: '@cricketadda_reset_test_data_v3',
 };
+
+const DB_CLEAN_EPOCH = 1790200000000; // Sept 24/25, 2026 DB cleanup epoch
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 days inactivity limit (2,592,000,000 ms)
 
@@ -3933,6 +3935,8 @@ function CricketAddaMain() {
   const [matchesDb, setMatchesDb] = useState(MATCH_DATABASE);
   const [matchDraft, setMatchDraft] = useState(INITIAL_MATCH_DRAFT);
   const [registeredTeams, setRegisteredTeams] = useState(REGISTERED_APP_TEAMS);
+  const hasReceivedInitialCloudTeamsRef = useRef(false);
+  const hasReceivedInitialCloudUsersRef = useRef(false);
   const [wzPhase, setWzPhase] = useState(1); // 1: Select Teams (A & B), 2: Settings, 3: Toss, 4: Playing XI, 5: Confirm
   const [matchDraftScorerPhone, setMatchDraftScorerPhone] = useState('');
 
@@ -5273,9 +5277,10 @@ function CricketAddaMain() {
         if (storedSwap !== null) {
           setSwapBattersOnOverEnd(storedSwap === 'true');
         }
-                // One-time automatic cleanup for fresh testing mode
+                // One-time automatic cleanup for fresh testing mode & stale cache purge
         const resetDone = await AsyncStorage.getItem(STORAGE_KEYS.RESET_VERSION);
-        if (!resetDone) {
+        if (resetDone !== 'v3_done') {
+          console.log('[Storage] 🧹 Purging stale pre-v3 test data from local storage...');
           await AsyncStorage.multiRemove([
             STORAGE_KEYS.REGISTERED_TEAMS,
             STORAGE_KEYS.MATCHES_DB,
@@ -5283,7 +5288,7 @@ function CricketAddaMain() {
             STORAGE_KEYS.USER_CAREER,
             STORAGE_KEYS.ACTIVE_SCORER,
           ]);
-          await AsyncStorage.setItem(STORAGE_KEYS.RESET_VERSION, 'done');
+          await AsyncStorage.setItem(STORAGE_KEYS.RESET_VERSION, 'v3_done');
           setRegisteredTeams([]);
           setMatchesDb({});
           setActiveMatchId(null);
@@ -5502,11 +5507,17 @@ function CricketAddaMain() {
 
     // 1. Teams Real-Time Continuous Subscription (No refresh or app restart required)
     const unsubTeams = subscribeToFirebaseTeams(cloudTeams => {
+      hasReceivedInitialCloudTeamsRef.current = true;
       if (!Array.isArray(cloudTeams)) return;
       const cleanTeams = cloudTeams.filter(Boolean);
       setRegisteredTeams(prev => {
-        // If cloud is empty or cleared, update immediately
+        // If cloud is empty or cleared, check if there are newly created offline teams
         if (cleanTeams.length === 0 && (prev || []).length > 0) {
+          const pendingOfflineTeams = (prev || []).filter(t => t && t.isPendingSync && t.createdAt && t.createdAt >= DB_CLEAN_EPOCH);
+          if (pendingOfflineTeams.length > 0) {
+            syncTeamsToFirebase(pendingOfflineTeams);
+            return pendingOfflineTeams;
+          }
           AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify([])).catch(() => {});
           return [];
         }
@@ -5547,8 +5558,20 @@ function CricketAddaMain() {
           }
         });
 
-        // Retain only teams that exist in cloud
-        const nextList = Array.from(currentMap.values()).filter(t => cloudMap.has(String(t.id || t.name).toLowerCase()));
+        // Retain teams that exist in cloud + newly created offline teams
+        const nextList = Array.from(currentMap.values()).filter(t => {
+          if (!t) return false;
+          if (cloudMap.has(String(t.id || t.name).toLowerCase())) return true;
+          if (t.isPendingSync && t.createdAt && t.createdAt >= DB_CLEAN_EPOCH) return true;
+          return false;
+        });
+
+        // Sync any legitimate pending offline teams now that connection is active
+        const pendingOffline = nextList.filter(t => t.isPendingSync);
+        if (pendingOffline.length > 0) {
+          syncTeamsToFirebase(nextList);
+          nextList.forEach(t => { t.isPendingSync = false; });
+        }
 
         if (hasChanges || nextList.length !== (prev || []).length) {
           AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(nextList)).catch(() => {});
@@ -5560,6 +5583,7 @@ function CricketAddaMain() {
 
     // 2. Users & Registered Players Real-Time Subscription
     const unsubUsers = subscribeToFirebaseUsers(cloudUsers => {
+      hasReceivedInitialCloudUsersRef.current = true;
       if (!Array.isArray(cloudUsers) || cloudUsers.length === 0) return;
       const cleanUsers = cloudUsers.filter(Boolean);
       setUsersDb(cleanUsers);
@@ -5654,16 +5678,20 @@ function CricketAddaMain() {
     };
   }, []);
 
-  // Live Cloud Database Auto-Sync: Automatically sync teams to Cloud
+  // Live Cloud Database Auto-Sync: Automatically sync teams to Cloud (Guarded against stale boot push)
   useEffect(() => {
-    if (isFirebaseConfigured() && Array.isArray(registeredTeams) && (registeredTeams || []).length > 0) {
+    if (!isFirebaseConfigured()) return;
+    if (!hasReceivedInitialCloudTeamsRef.current) return;
+    if (Array.isArray(registeredTeams) && (registeredTeams || []).length > 0) {
       syncTeamsToFirebase(registeredTeams);
     }
   }, [registeredTeams]);
 
-  // Live Cloud Database Auto-Sync: Automatically sync users to Cloud
+  // Live Cloud Database Auto-Sync: Automatically sync users to Cloud (Guarded against stale boot push)
   useEffect(() => {
-    if (isFirebaseConfigured() && Array.isArray(usersDb) && (usersDb || []).length > 0) {
+    if (!isFirebaseConfigured()) return;
+    if (!hasReceivedInitialCloudUsersRef.current) return;
+    if (Array.isArray(usersDb) && (usersDb || []).length > 0) {
       syncUsersToFirebase(usersDb);
     }
   }, [usersDb]);
@@ -9295,6 +9323,8 @@ function CricketAddaMain() {
         city: 'Match Team',
         squad: cleanSquad,
         isCustomCreated: true,
+        createdAt: Date.now(),
+        isPendingSync: true,
       };
       setRegisteredTeams(prev => [newCustomTeam, ...prev]);
       openNewTeamModal(isBowling ? 'teamB' : 'teamA', '', newCustomTeam);
@@ -12725,7 +12755,7 @@ function CricketAddaMain() {
       t => t.name && t.name.trim().toLowerCase() === cleanName.toLowerCase()
     );
     if (isDuplicate) {
-      Alert.alert('Duplicate Team Name', `A team named "${cleanName}" already exists. Please choose a unique name.`);
+      showAppToast(`Team "${cleanName}" already exists. Choose a unique name.`, '⚠️', 'warning');
       return;
     }
 
@@ -12752,6 +12782,8 @@ function CricketAddaMain() {
       captain: userProfile.name || `${cleanName} Captain`,
       wicketkeeper: '',
       squad: customSquad,
+      createdAt: Date.now(),
+      isPendingSync: true,
     };
 
     setRegisteredTeams(prev => [customTeamObj, ...prev]);
