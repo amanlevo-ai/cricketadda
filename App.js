@@ -7337,12 +7337,12 @@ function CricketAddaMain() {
 
     if (earlyEndTargetMode === 'local') {
       // =========================================================================
-      // OPTION 1: LOCAL CRICKET RULE (Direct Target: Current Runs + 1)
+      // OPTION 1: STANDARD MATCH TARGET (Direct Target: Current Runs + 1)
       // =========================================================================
       if (currentInnings === 1 && dlsInterruptionMode === 'terminate_inn1') {
         const localTarget = (Number(liveRuns) || 0) + 1;
         const localRrr = revisedOv > 0 ? (localTarget / revisedOv).toFixed(2) : '0.00';
-        const commText = `🏁 1ST INNINGS CONCLUDED (LOCAL RULE)!\n• 1st Innings concluded at ${liveRuns}/${liveWickets} (${oversStr} ov).\n• Target for ${bowlingTeamName}: ${localTarget} runs in ${revisedOv}.0 overs (RRR: ${localRrr}).\n• Rule: Direct Target (Runs + 1).`;
+        const commText = `🏁 1ST INNINGS CONCLUDED (STANDARD TARGET)!\n• 1st Innings concluded at ${liveRuns}/${liveWickets} (${oversStr} ov).\n• Target for ${bowlingTeamName}: ${localTarget} runs in ${revisedOv}.0 overs (RRR: ${localRrr}).\n• Method: Standard Direct Target (Runs + 1).`;
 
         const commEntry = {
           id: `comm_end1_${Date.now()}`,
@@ -7350,7 +7350,7 @@ function CricketAddaMain() {
           isDLS: false,
           headerTitle: '🏁 1ST INNINGS CONCLUDED',
           overNum: Math.floor(liveBalls / 6),
-          battersText: `Target: ${localTarget} runs in ${revisedOv}.0 ov (Local Rule).`,
+          battersText: `Target: ${localTarget} runs in ${revisedOv}.0 ov (Standard Target).`,
           bowlerText: `1st Innings closed at ${oversStr} ov.`,
           overSummary: commText,
         };
@@ -7456,18 +7456,18 @@ function CricketAddaMain() {
         showAppToast(`⏱️ Match curtailed to ${revisedOv}.0 ov per side!`, '⏱️');
         return;
       } else {
-        // curtail_inn2 in local mode
+        // curtail_inn2 in standard direct/proportional mode
         const inn1Runs = Number(firstInningsSummary?.runs || currentMatchData?.innings1?.runs || 0);
         const localTarget = Math.max(1, Math.round((inn1Runs / origOvers) * revisedOv) + 1);
         const localRrr = revisedOv > 0 ? (localTarget / revisedOv).toFixed(2) : '0.00';
-        const commText = `⏱️ 2ND INNINGS CURTAILED (LOCAL RULE)!\n• Overs reduced to ${revisedOv}.0 overs.\n• Revised Target for ${battingTeamName}: ${localTarget} runs (RRR: ${localRrr}).`;
+        const commText = `⏱️ 2ND INNINGS CURTAILED (STANDARD REVISED TARGET)!\n• Overs reduced to ${revisedOv}.0 overs.\n• Revised Target for ${battingTeamName}: ${localTarget} runs (RRR: ${localRrr}).`;
 
         const commEntry = {
           id: `comm_curtail2_${Date.now()}`,
           isOverEnd: true,
           headerTitle: '⏱️ TARGET REVISED',
           overNum: Math.floor(liveBalls / 6),
-          battersText: `Target revised to ${localTarget} runs in ${revisedOv}.0 ov.`,
+          battersText: `Target revised to ${localTarget} runs in ${revisedOv}.0 ov (Standard Target).`,
           bowlerText: '',
           overSummary: commText,
         };
@@ -14803,7 +14803,7 @@ function CricketAddaMain() {
             ) : (
               /* Scorer Controls for Official Match Scorer */
               <>
-                {/* 1. End Inning / Revise Overs (DLS or Local Rule) */}
+                {/* 1. End Inning / Revise Overs (DLS or Standard Target) */}
                 <TouchableOpacity
                   style={{
                     flex: 1.25,
@@ -20927,7 +20927,7 @@ function CricketAddaMain() {
                       {currentInnings === 1 ? '🏁 End 1st Innings / Revise Overs' : '🌧️ Revise Target / Overs'}
                     </Text>
                     <Text style={{ color: '#a78bfa', fontSize: 11, fontWeight: '700' }}>
-                      Local Cricket Rule (Runs + 1) or ICC DLS Method
+                      Standard Target (Runs + 1) or Official ICC DLS Method
                     </Text>
                   </View>
                 </View>
@@ -21042,7 +21042,7 @@ function CricketAddaMain() {
                 Select Target Rule / Formula (नियम चुनें):
               </Text>
               <View style={{ gap: 8, marginBottom: 14 }}>
-                {/* Radio Option 1: Local Cricket Rule */}
+                {/* Radio Option 1: Standard Match Target */}
                 <TouchableOpacity
                   style={{
                     backgroundColor: earlyEndTargetMode === 'local'
@@ -21071,7 +21071,7 @@ function CricketAddaMain() {
                         )}
                       </View>
                       <Text style={{ color: earlyEndTargetMode === 'local' ? (currentTheme.isLight ? '#166534' : '#6ee7b7') : (currentTheme.isLight ? '#0f172a' : '#e2e8f0'), fontSize: 13, fontWeight: '900' }}>
-                        Option 1: 🏏 Local Cricket Rule (Direct Target)
+                        Option 1: 🏏 Standard Match Target (Direct Target)
                       </Text>
                     </View>
                     <View style={{ backgroundColor: '#10b981', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>
@@ -21080,7 +21080,7 @@ function CricketAddaMain() {
                   </View>
                   <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, marginTop: 4, marginLeft: 28 }}>
                     {currentInnings === 1
-                      ? `Jitne run bane usme +1 target (${liveRuns} runs + 1 = ${(Number(liveRuns) || 0) + 1} runs). Local matches ka saral v standard niyam.`
+                      ? `Direct target calculation (${liveRuns} runs + 1 = ${(Number(liveRuns) || 0) + 1} runs). Standard match chase formula.`
                       : `Proportional run rate target based on revised overs.`}
                   </Text>
                 </TouchableOpacity>
@@ -21221,7 +21221,7 @@ function CricketAddaMain() {
                         </Text>
                         <View style={{ backgroundColor: '#10b981', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
                           <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>
-                            LOCAL RULE (RUNS + 1)
+                            STANDARD TARGET (RUNS + 1)
                           </Text>
                         </View>
                       </View>
@@ -21362,7 +21362,7 @@ function CricketAddaMain() {
                   onPress={handleApplyDLSReduction}
                 >
                   <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
-                    {earlyEndTargetMode === 'local' ? '🏁 Apply Local Target 🚀' : '🌧️ Apply DLS Target 🚀'}
+                    {earlyEndTargetMode === 'local' ? '🏁 Apply Standard Target 🚀' : '🌧️ Apply DLS Target 🚀'}
                   </Text>
                 </TouchableOpacity>
               </View>
