@@ -25136,7 +25136,7 @@ function CricketAddaMain() {
             ]}
           >
             {/* Header Icon & Title */}
-            <View style={{ alignItems: 'center', marginBottom: 14 }}>
+            <View style={{ alignItems: 'center', marginBottom: 20 }}>
               <View
                 style={{
                   width: 56,
@@ -25147,7 +25147,7 @@ function CricketAddaMain() {
                   borderColor: currentTheme.primary || '#38bdf8',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginBottom: 10,
+                  marginBottom: 12,
                 }}
               >
                 <Text style={{ fontSize: 26 }}>↩️</Text>
@@ -25164,87 +25164,16 @@ function CricketAddaMain() {
               </Text>
               <Text
                 style={{
-                  fontSize: 12.5,
+                  fontSize: 13,
                   color: currentTheme.isLight ? '#64748b' : '#94a3b8',
                   textAlign: 'center',
-                  marginTop: 4,
-                  lineHeight: 18,
+                  marginTop: 6,
+                  lineHeight: 19,
                 }}
               >
-                Reverting this delivery will restore the previous ball's score, batter & bowler figures.
+                Are you sure you want to revert the last delivery?
               </Text>
             </View>
-
-            {/* Delivery Snapshot Card */}
-            {undoPendingAction && (
-              <View
-                style={{
-                  backgroundColor: currentTheme.isLight ? '#f8fafc' : '#131d2e',
-                  borderRadius: 12,
-                  padding: 14,
-                  borderWidth: 1,
-                  borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
-                  marginBottom: 18,
-                }}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={{ fontSize: 13, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: '600' }}>
-                    Reverting Delivery:
-                  </Text>
-                  <View
-                    style={{
-                      paddingHorizontal: 10,
-                      paddingVertical: 4,
-                      borderRadius: 8,
-                      backgroundColor: currentTheme.primary ? `${currentTheme.primary}22` : 'rgba(56, 189, 248, 0.2)',
-                      borderWidth: 1,
-                      borderColor: currentTheme.primary || '#38bdf8',
-                    }}
-                  >
-                    <Text
-                      style={{
-                        fontSize: 13,
-                        fontWeight: '900',
-                        color: currentTheme.primary || '#38bdf8',
-                      }}
-                    >
-                      {undoPendingAction.ballSymbol || 'Last Ball'}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Bowler & Striker Info */}
-                <View style={{ gap: 4, marginBottom: 8 }}>
-                  <Text style={{ fontSize: 12, color: currentTheme.isLight ? '#334155' : '#cbd5e1' }}>
-                    🎳 <Text style={{ fontWeight: '700' }}>Bowler:</Text> {undoPendingAction.bowler || bowler || 'Bowler'}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: currentTheme.isLight ? '#334155' : '#cbd5e1' }}>
-                    🏏 <Text style={{ fontWeight: '700' }}>Striker:</Text> {undoPendingAction.striker || striker || 'Batter'}
-                  </Text>
-                </View>
-
-                <View
-                  style={{
-                    height: 1,
-                    backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
-                    marginVertical: 6,
-                  }}
-                />
-
-                {/* Restored Score Preview */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-                  <Text style={{ fontSize: 12, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>
-                    Score Restores To:
-                  </Text>
-                  <Text style={{ fontSize: 14, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#38bdf8' }}>
-                    {undoPendingAction.liveRuns}/{undoPendingAction.liveWickets}
-                    <Text style={{ fontSize: 11, fontWeight: 'normal', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>
-                      {' '}({Math.floor((undoPendingAction.liveBalls || 0) / 6)}.{(undoPendingAction.liveBalls || 0) % 6} ov)
-                    </Text>
-                  </Text>
-                </View>
-              </View>
-            )}
 
             {/* Action Buttons */}
             <View style={{ flexDirection: 'row', gap: 10 }}>
