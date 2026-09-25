@@ -3858,6 +3858,7 @@ const STORAGE_KEYS = {
   LAST_ACTIVE_TIME: '@cricketadda_last_active_time',
   OFFLINE_SYNC_QUEUE: '@cricketadda_offline_sync_queue',
   RESET_VERSION: '@cricketadda_reset_test_data_v4',
+  MY_SCORING_MATCHES: '@cricketadda_my_scoring_matches',
 };
 
 const DB_CLEAN_EPOCH = 1790319500000; // Sept 25, 2026 DB full wipe epoch
@@ -3935,6 +3936,7 @@ function CricketAddaMain() {
   const [matchesDb, setMatchesDb] = useState(MATCH_DATABASE);
   const [matchDraft, setMatchDraft] = useState(INITIAL_MATCH_DRAFT);
   const [registeredTeams, setRegisteredTeams] = useState(REGISTERED_APP_TEAMS);
+  const [myScoringMatchIds, setMyScoringMatchIds] = useState([]);
   const hasReceivedInitialCloudTeamsRef = useRef(false);
   const hasReceivedInitialCloudUsersRef = useRef(false);
   const [wzPhase, setWzPhase] = useState(1); // 1: Select Teams (A & B), 2: Settings, 3: Toss, 4: Playing XI, 5: Confirm
@@ -4634,89 +4636,119 @@ function CricketAddaMain() {
     if (viewerSimulated) return false;
 
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
-    const uName = (userProfile?.name || '').toLowerCase().trim();
+    const uName = (userProfile?.name || authName || '').toLowerCase().trim();
     const uPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const uId = userProfile?.id;
     const myDeviceId = clientIdRef?.current || '';
 
+    const matchObj = targetMatch.match || {};
+
     // Delegated / Assigned Scorer metadata on the match
-    const assignedPhone = String(targetMatch.scorerPhone || targetMatch.activeScorer?.phone || '').replace(/[^0-9]/g, '').slice(-10);
-    const assignedEmail = (targetMatch.scorerEmail || targetMatch.activeScorer?.email || '').toLowerCase().trim();
-    const assignedId = targetMatch.scorerId || targetMatch.activeScorer?.id;
-    const assignedName = (targetMatch.scorerName || targetMatch.activeScorer?.name || '').toLowerCase().trim();
-    const assignedDeviceId = targetMatch.scorerDeviceId || targetMatch.activeScorer?.deviceId;
+    const assignedPhone = String(
+      targetMatch.scorerPhone ||
+      matchObj.scorerPhone ||
+      targetMatch.activeScorer?.phone ||
+      matchObj.activeScorer?.phone ||
+      ''
+    ).replace(/[^0-9]/g, '').slice(-10);
+
+    const assignedEmail = (
+      targetMatch.scorerEmail ||
+      matchObj.scorerEmail ||
+      targetMatch.activeScorer?.email ||
+      matchObj.activeScorer?.email ||
+      ''
+    ).toLowerCase().trim();
+
+    const assignedId = targetMatch.scorerId || matchObj.scorerId || targetMatch.activeScorer?.id || matchObj.activeScorer?.id;
+    const assignedName = (
+      targetMatch.scorerName ||
+      matchObj.scorerName ||
+      targetMatch.activeScorer?.name ||
+      matchObj.activeScorer?.name ||
+      ''
+    ).toLowerCase().trim();
+
+    const assignedDeviceId = targetMatch.scorerDeviceId || matchObj.scorerDeviceId || targetMatch.activeScorer?.deviceId || matchObj.activeScorer?.deviceId;
 
     // Match creator credentials
-    const creatorPhone = String(targetMatch.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
-    const creatorEmail = (targetMatch.creatorEmail || '').toLowerCase().trim();
-    const creatorId = targetMatch.creatorId;
+    const creatorPhone = String(targetMatch.creatorPhone || matchObj.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const creatorEmail = (targetMatch.creatorEmail || matchObj.creatorEmail || '').toLowerCase().trim();
+    const creatorId = targetMatch.creatorId || matchObj.creatorId;
+    const creatorDeviceId = targetMatch.creatorDeviceId || matchObj.creatorDeviceId;
+    const creatorName = (targetMatch.creatorName || matchObj.creatorName || '').toLowerCase().trim();
 
     // Check if scoring duty is currently delegated away from creator to someone else
     const isDelegated = Boolean(
       targetMatch.isScoringDelegated ||
+      matchObj.isScoringDelegated ||
       (assignedPhone && creatorPhone && assignedPhone !== creatorPhone) ||
       (assignedEmail && creatorEmail && assignedEmail !== creatorEmail) ||
       (assignedId && creatorId && assignedId !== creatorId)
     );
 
     if (isDelegated) {
-      // If delegated, the delegated user can score from ANY device by logging in with their Phone or Email!
+      // If delegated, ONLY the designated delegated user can score!
       if (assignedPhone && uPhone && assignedPhone === uPhone) return true;
       if (assignedEmail && uEmail && assignedEmail === uEmail) return true;
       if (assignedId && uId && assignedId === uId) return true;
-      if (assignedName && uName && assignedName === uName && uName !== 'match creator' && uName !== 'official scorer') return true;
       if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
+      if (assignedName && uName && assignedName === uName && uName !== 'match creator' && uName !== 'official scorer') return true;
       return false;
     }
 
     // --- NON-DELEGATED MATCH (CREATOR OWNS SCORING RIGHTS) ---
-    // 1. Cross-Device Account Match (Phone Number or Email):
+    // 1. Local Device Match Ownership (Explicitly created on this phone):
+    if (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) {
+      return true;
+    }
+
+    // 2. Cross-Device Account Match (Phone Number, Email, or User ID):
     // Highest priority: If battery runs low, drops, or user switches phones, logging in with Phone or Email immediately grants official scoring on ANY phone!
     if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
     if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
     if (creatorId && uId && creatorId === uId) return true;
 
-    // 2. Physical Device ID Fallback (For offline/guest matches created on this phone):
-    if (targetMatch.creatorDeviceId && myDeviceId && targetMatch.creatorDeviceId === myDeviceId) return true;
-    if (targetMatch.scorerDeviceId && myDeviceId && targetMatch.scorerDeviceId === myDeviceId) return true;
+    // 3. Physical Device ID Fallback (For offline/guest matches created on this phone):
+    if (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) return true;
+    if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
 
-    // 3. Creator specific name match (only if phone/email not recorded):
-    if (!creatorPhone && !creatorEmail && targetMatch.creatorName && uName && targetMatch.creatorName.toLowerCase() === uName && uName !== 'match creator' && uName !== 'official scorer') {
+    // 4. Creator specific name match (only if phone/email not recorded):
+    if (!creatorPhone && !creatorEmail && creatorName && uName && creatorName === uName && uName !== 'match creator' && uName !== 'official scorer') {
       return true;
     }
 
-    // 4. Active local scoring session safeguard: If user is actively scoring this match on this device and hasn't delegated:
-    if (activeMatchId && targetMatch.id === activeMatchId && !targetMatch.isScoringDelegated) {
-      return true;
-    }
-
-    // Any other device is strictly a Spectator:
+    // Any other device is strictly a Spectator (read-only):
     return false;
-  }, [userProfile, authEmail, authPhone, activeScorer, viewerSimulated, activeMatchId]);
+  }, [userProfile, authEmail, authPhone, authName, activeScorer, viewerSimulated, myScoringMatchIds]);
 
   const isOfficialScorer = useMemo(() => {
-    const currentMatch = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb || {})[0] || MATCH_DATABASE[activeMatchId];
+    const currentMatch = activeMatchId ? (matchesDb[activeMatchId] || match || MATCH_DATABASE[activeMatchId]) : null;
+    if (!currentMatch) return false;
     return isUserScorerForMatch(currentMatch);
-  }, [activeMatchId, matchesDb, isUserScorerForMatch]);
+  }, [activeMatchId, matchesDb, match, isUserScorerForMatch]);
 
   const isMatchCreator = useMemo(() => {
-    const targetMatch = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb || {})[0] || match;
+    const targetMatch = activeMatchId ? (matchesDb[activeMatchId] || match || MATCH_DATABASE[activeMatchId]) : null;
     if (!targetMatch) return false;
+    const matchObj = targetMatch.match || {};
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
     const uPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const uId = userProfile?.id;
     const myDeviceId = clientIdRef?.current || '';
 
-    const creatorPhone = String(targetMatch.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
-    const creatorEmail = (targetMatch.creatorEmail || '').toLowerCase().trim();
-    const creatorId = targetMatch.creatorId;
+    const creatorPhone = String(targetMatch.creatorPhone || matchObj.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
+    const creatorEmail = (targetMatch.creatorEmail || matchObj.creatorEmail || '').toLowerCase().trim();
+    const creatorId = targetMatch.creatorId || matchObj.creatorId;
+    const creatorDeviceId = targetMatch.creatorDeviceId || matchObj.creatorDeviceId;
 
+    if (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) return true;
     if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
     if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
     if (creatorId && uId && creatorId === uId) return true;
-    if (targetMatch.creatorDeviceId && myDeviceId && targetMatch.creatorDeviceId === myDeviceId) return true;
+    if (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) return true;
     return false;
-  }, [activeMatchId, matchesDb, userProfile, authEmail, authPhone, match]);
+  }, [activeMatchId, matchesDb, userProfile, authEmail, authPhone, match, myScoringMatchIds]);
 
   const isMatchInAuditMode = useMemo(() => {
     const curMatch = (activeMatchId && matchesDb[activeMatchId]) || match;
@@ -5291,11 +5323,13 @@ function CricketAddaMain() {
             STORAGE_KEYS.OFFLINE_SYNC_QUEUE,
             STORAGE_KEYS.USER_PROFILE,
             STORAGE_KEYS.LAST_ACTIVE_TIME,
+            STORAGE_KEYS.MY_SCORING_MATCHES,
           ]);
           await AsyncStorage.setItem(STORAGE_KEYS.RESET_VERSION, 'v4_done');
           setRegisteredTeams([]);
           setMatchesDb({});
           setUsersDb([]);
+          setMyScoringMatchIds([]);
           setActiveMatchId(null);
           setUserCareerData(EMPTY_USER_CAREER_DATA);
           setUserProfile({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
@@ -5326,6 +5360,13 @@ function CricketAddaMain() {
           const storedActiveMatch = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_MATCH_ID);
           if (storedActiveMatch) {
             setActiveMatchId(storedActiveMatch);
+          }
+          const storedMyScoring = await AsyncStorage.getItem(STORAGE_KEYS.MY_SCORING_MATCHES);
+          if (storedMyScoring) {
+            try {
+              const parsedScoring = JSON.parse(storedMyScoring);
+              if (Array.isArray(parsedScoring)) setMyScoringMatchIds(parsedScoring);
+            } catch (e) {}
           }
           const storedPlayers = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_PLAYERS);
           if (storedPlayers) {
@@ -8958,6 +8999,15 @@ function CricketAddaMain() {
           avatar: targetAvatar,
         });
 
+        if (data.authorizedMatchId || data.matchId || activeMatchId) {
+          const targetMId = data.authorizedMatchId || data.matchId || activeMatchId;
+          setMyScoringMatchIds(prev => {
+            const updated = Array.from(new Set([...(prev || []), targetMId]));
+            AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
+            return updated;
+          });
+        }
+
         // Add real-time commentary
         const transferComm = {
           id: `comm_transfer_${Date.now()}`,
@@ -9133,6 +9183,11 @@ function CricketAddaMain() {
       if (isFirebaseConfigured()) {
         syncMatchToFirebaseDirect(activeMatchId, updatedMatch).catch(() => {});
       }
+      setMyScoringMatchIds(prev => {
+        const updated = (prev || []).filter(id => id !== activeMatchId);
+        AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
+        return updated;
+      });
     }
 
     const transferComm = {
@@ -9212,6 +9267,12 @@ function CricketAddaMain() {
       const nextDb = { ...prev, [activeMatchId]: updatedMatch };
       AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(nextDb)).catch(() => {});
       return nextDb;
+    });
+
+    setMyScoringMatchIds(prev => {
+      const updated = Array.from(new Set([...(prev || []), activeMatchId]));
+      AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
+      return updated;
     });
 
     if (isFirebaseConfigured()) {
@@ -13088,6 +13149,14 @@ function CricketAddaMain() {
       ...prev,
     }));
     setActiveMatchId(newMatchId);
+    setMyScoringMatchIds(prev => {
+      const updated = Array.from(new Set([...(prev || []), newMatchId]));
+      AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
+    if (isFirebaseConfigured()) {
+      syncMatchToFirebaseDirect(newMatchId, newMatchObj).catch(() => {});
+    }
     setActiveScorer({
       id: myId,
       deviceId: myDeviceId,
