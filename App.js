@@ -4040,6 +4040,10 @@ function CricketAddaMain() {
   const [deleteTeamModalVisible, setDeleteTeamModalVisible] = useState(false);
   const [teamPendingDelete, setTeamPendingDelete] = useState(null);
 
+  // Themed Undo Delivery Confirmation Modal State
+  const [undoConfirmModalVisible, setUndoConfirmModalVisible] = useState(false);
+  const [undoPendingAction, setUndoPendingAction] = useState(null);
+
   // QR Code Display Modal State (for Teams, Players, and Scoring Passes)
   const [qrDisplayModalVisible, setQrDisplayModalVisible] = useState(false);
   const [qrDisplayData, setQrDisplayData] = useState({
@@ -7159,7 +7163,7 @@ function CricketAddaMain() {
   // Start 2nd Innings Transition Function
   const handleStartSecondInnings = () => {
     if (!isOfficialScorer) {
-      Alert.alert('👁️ Spectator Mode', 'Only the Official Match Scorer can commence the second innings.');
+      showAppToast('Only Official Scorer can start 2nd innings 👁️', '👁️', 'warning');
       return;
     }
     setInningsBreakModalVisible(false);
@@ -7288,7 +7292,7 @@ function CricketAddaMain() {
   // ============================================================================
   const handleApplyDLSReduction = () => {
     if (!isOfficialScorer) {
-      Alert.alert('👁️ Spectator Mode', 'Only the Official Match Scorer can apply DLS target revisions.');
+      showAppToast('Only Official Scorer can apply DLS revisions 👁️', '👁️', 'warning');
       return;
     }
 
@@ -8712,8 +8716,7 @@ function CricketAddaMain() {
         }
 
         setUniversalQrScannerVisible(false);
-        showAppToast(`${teamObj.flag} ${teamObj.name} (${(cleanSquad || []).length} players) added via QR!`, '✅');
-        Alert.alert('Team Added ✅', `"${teamObj.name}" with ${(cleanSquad || []).length} squad players added successfully via QR Pass!`);
+        showAppToast(`${teamObj.flag || '🦁'} "${teamObj.name}" added via QR! 🎉`, '✅', 'success');
         return;
       }
 
@@ -8952,7 +8955,7 @@ function CricketAddaMain() {
   // ============================================================================
   const handleEditTeamAndSquadFromScorer = (slot = 'bowling') => {
     if (!isOfficialScorer) {
-      Alert.alert('👁️ Spectator Mode', 'You are in read-only Spectator Mode. Only the Official Match Scorer can edit teams and squads.');
+      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
       return;
     }
     const isBowling = slot === 'bowling';
@@ -9273,22 +9276,19 @@ function CricketAddaMain() {
     });
 
     setCaptainTeamModalVisible(false);
-    Alert.alert('👑 Captain Rights Applied', `Squad updated (${(captainSquadList || []).length} players) and brand set to "${cleanName}"! Synced live across all screens.`);
+    showAppToast(`Squad (${(captainSquadList || []).length} players) updated and brand set to "${cleanName}"! 👑`, '👑', 'success');
   };
 
   const handleUndoLastBall = () => {
     if (!isOfficialScorer) {
-      Alert.alert('👁️ Spectator Mode', 'You are in read-only Spectator Mode. Only the Official Match Scorer can undo deliveries.');
+      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
       return;
     }
 
     // 1. RULE: OPPONENT / 2ND INNINGS CANNOT UNDO 1ST INNINGS (TEAM TOTAL IS LOCKED)
     if (currentInnings === 2) {
       if (liveBalls === 0 && liveRuns === 0 && liveWickets === 0) {
-        Alert.alert(
-          '⛔ 1st Innings Locked & Protected!',
-          `• Opponent / 2nd Innings Scorers cannot undo or alter the 1st Innings total (${firstInningsSummary?.team || 'Team 1'} scored ${firstInningsSummary?.runs || 0}/${firstInningsSummary?.wickets || 0} in ${firstInningsSummary?.overs || '0.0'} ov).\n• That innings has concluded and is officially locked in the tournament database.\n• You can only undo balls bowled in the active 2nd innings.`
-        );
+        showAppToast('1st Innings total is officially locked & concluded 🔒', '⛔', 'warning');
         return;
       }
     }
@@ -9303,13 +9303,44 @@ function CricketAddaMain() {
 
       // Double-check if the last snapshot belongs to the previous innings
       if (currentInnings === 2 && lastAction.innings === 1) {
-        Alert.alert(
-          '⛔ 1st Innings Locked & Protected!',
-          `• Opponent / 2nd Innings Scorers cannot undo deliveries from ${firstInningsSummary?.team || 'Team 1'}'s 1st innings.`
-        );
+        showAppToast('Cannot undo deliveries from 1st innings 🔒', '⛔', 'warning');
         return;
       }
 
+      setUndoPendingAction(lastAction);
+      setUndoConfirmModalVisible(true);
+      return;
+    }
+
+    // 3. Fallback if undoing pre-existing balls in this over
+    if (liveThisOver && (liveThisOver || []).length > 0) {
+      const lastBallSymbol = liveThisOver[(liveThisOver || []).length - 1];
+      const parsed = parseBallSymbol(lastBallSymbol);
+      setUndoPendingAction({
+        ballSymbol: lastBallSymbol,
+        addedRuns: parsed.runs,
+        liveRuns: Math.max(0, liveRuns - parsed.runs),
+        liveBalls: parsed.isLegal ? Math.max(0, liveBalls - 1) : liveBalls,
+        liveWickets: parsed.isWkt ? Math.max(0, liveWickets - 1) : liveWickets,
+        bowler,
+        striker,
+        isFallback: true,
+      });
+      setUndoConfirmModalVisible(true);
+      return;
+    }
+
+    showAppToast('No deliveries in this over to undo ↩️', '↩️', 'info');
+  };
+
+  const executeConfirmedUndo = () => {
+    setUndoConfirmModalVisible(false);
+    const lastAction = undoPendingAction;
+    setUndoPendingAction(null);
+
+    if (!lastAction) return;
+
+    if (!lastAction.isFallback && scoringHistory && (scoringHistory || []).length > 0) {
       setScoringHistory(prev => prev.slice(0, -1));
 
       // Restore exact state from snapshot
@@ -9436,14 +9467,11 @@ function CricketAddaMain() {
         },
       });
 
-      Alert.alert(
-        '↩️ Last Delivery Undone & Reverted!',
-        `• Reverted Delivery: ${lastAction.ballSymbol}\n• Runs Subtracted: -${lastAction.addedRuns}\n• Score Restored To: ${lastAction.liveRuns}/${lastAction.liveWickets} (${Math.floor(lastAction.liveBalls / 6)}.${lastAction.liveBalls % 6} ov)\n• Keypad is now ready for you to score the correct run!`
-      );
+      showAppToast(`Delivery (${lastAction.ballSymbol || 'ball'}) undone & reverted! ↩️`, '↩️', 'info');
       return;
     }
 
-    // 3. Fallback if undoing pre-existing balls in this over
+    // Fallback if undoing pre-existing balls in this over
     if (liveThisOver && (liveThisOver || []).length > 0) {
       setNeedsNewBowler(false);
       setChangeBowlerModalVisible(false);
@@ -9505,14 +9533,11 @@ function CricketAddaMain() {
         },
       });
 
-      Alert.alert(
-        '↩️ Last Ball Undone!',
-        `• Reverted Delivery from Over: ${lastBallSymbol}\n• Runs Removed: -${parsed.runs}\n• This Over: [ ${liveThisOver.slice(0, -1).join(', ') || 'None'} ]`
-      );
+      showAppToast(`Delivery (${lastBallSymbol}) undone from this over! ↩️`, '↩️', 'info');
       return;
     }
 
-    Alert.alert('↩️ Undo', 'No balls in this over to undo!');
+    showAppToast('No deliveries in this over to undo ↩️', '↩️', 'info');
   };
 
   const handleSendScorerNoteToAdmin = async () => {
@@ -9626,7 +9651,7 @@ function CricketAddaMain() {
 
   const handleRunPress = runs => {
     if (!isOfficialScorer) {
-      Alert.alert('👁️ Spectator Mode', 'You are in read-only Spectator Mode. Only the Official Match Scorer can record runs.');
+      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
       return;
     }
 
@@ -9636,10 +9661,7 @@ function CricketAddaMain() {
         setNextBowler(eligible[0]);
       }
       setChangeBowlerModalVisible(true);
-      Alert.alert(
-        '🔴 Select Next Bowler',
-        'The previous over has completed. Please select the next bowler before scoring.'
-      );
+      showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
       return;
     }
 
@@ -9723,7 +9745,7 @@ function CricketAddaMain() {
 
   const submitDismissal = () => {
     if (!isOfficialScorer) {
-      Alert.alert('👁️ Spectator Mode', 'You are in read-only Spectator Mode. Only the Official Scorer can record wickets.');
+      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
       setWicketModalVisible(false);
       return;
     }
@@ -10015,10 +10037,7 @@ function CricketAddaMain() {
       setDropToastNotification(null);
     }, 3000);
 
-    Alert.alert(
-      '🧤 Dropped Catch Saved in Database!',
-      `• Fielder: ${finalFielder}\n• Batter Spared: ${striker}\n• Position: ${dropPosition}\n• Runs: ${dropRuns}\n\n✅ Stored in Player Career Fielding Records & Scorecard Updated.`
-    );
+    showAppToast(`Dropped catch recorded (${finalFielder}) 🧤`, '🧤', 'info');
   };
 
   const progressWidth = progressAnim.interpolate({
@@ -12006,12 +12025,13 @@ function CricketAddaMain() {
       setEditingTeamId(null);
       setTeamSearchQuery('');
 
-      if (isOwner) {
-        Alert.alert('Team Updated ✅', `Team "${cleanName}" (${(finalSquad || []).length} players) updated successfully!`);
-      } else {
-        Alert.alert('Squad Updated ✅', `Opponent squad "${currentEditingTeam?.name || cleanName}" (${(finalSquad || []).length} players) updated for match!`);
-      }
-      showAppToast(`Squad (${(finalSquad || []).length} players) updated for match!`, '🏏');
+      showAppToast(
+        isOwner
+          ? `Team "${cleanName}" updated successfully! ✅`
+          : `Squad "${currentEditingTeam?.name || cleanName}" updated for match! ✅`,
+        '🏏',
+        'success'
+      );
       return;
     }
 
@@ -12139,8 +12159,7 @@ function CricketAddaMain() {
     setEditingTeamId(null);
     setTeamSearchQuery('');
 
-    Alert.alert('Team Saved ✅', `Team "${cleanName}" (${(finalSquad || []).length} players) created and saved successfully!`);
-    showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) saved!`, '🏏');
+    showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) created successfully! 🎉`, '🏏', 'success');
   };
 
   // Helper to determine if a team was created by the current user (Owner/Captain)
@@ -12479,7 +12498,7 @@ function CricketAddaMain() {
       selectOpponentTeam(customTeamObj);
       setCustomOppTeamName('');
     }
-    Alert.alert('✅ Custom Team Selected', `${cleanFlag} ${cleanName} is now set as ${teamKey === 'myTeam' ? 'your team' : 'the opponent team'}!`);
+    showAppToast(`${cleanFlag} ${cleanName} selected as ${teamKey === 'myTeam' ? 'your team' : 'opponent team'}! ✅`, '🏏', 'success');
   };
 
   // -------------------------------------------------------------
@@ -12598,14 +12617,14 @@ function CricketAddaMain() {
     const currentXI = matchDraft[targetKey] || [];
 
     if ((currentXI || []).length >= 11) {
-      Alert.alert('Playing XI Full (11/11)', 'You already have 11 players selected. Please remove one player to add this guest player.');
+      showAppToast('Playing XI is full (11/11). Remove a player first.', '⚠️', 'warning');
       return;
     }
 
     updateDraft({ [targetKey]: [...currentXI, newGuestObj] });
     setGuestPlayerName('');
     setGuestModalVisible(false);
-    Alert.alert('✅ Guest Player Added', `${newGuestObj.name} has been added to the Playing XI!`);
+    showAppToast(`${newGuestObj.name} added to Playing XI! ✅`, '👤', 'success');
   };
 
   // -------------------------------------------------------------
@@ -15462,7 +15481,7 @@ function CricketAddaMain() {
                       const eligible = activeOppBowlers.filter(b => b !== bowler);
                       if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
                       setChangeBowlerModalVisible(true);
-                      Alert.alert('🔴 Select Next Bowler', 'Over completed. Please select next bowler first.');
+                      showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
                       return;
                     }
                     setDropCatchModalVisible(true);
@@ -15490,7 +15509,7 @@ function CricketAddaMain() {
                       const eligible = activeOppBowlers.filter(b => b !== bowler);
                       if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
                       setChangeBowlerModalVisible(true);
-                      Alert.alert('🔴 Select Next Bowler', 'Over completed. Please select next bowler first.');
+                      showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
                       return;
                     }
                     setOverthrowModalVisible(true);
@@ -15506,7 +15525,7 @@ function CricketAddaMain() {
                       const eligible = activeOppBowlers.filter(b => b !== bowler);
                       if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
                       setChangeBowlerModalVisible(true);
-                      Alert.alert('🔴 Select Next Bowler', 'Over completed. Please select next bowler first.');
+                      showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
                       return;
                     }
                     const eligibleBatters = activeBenchBatters.filter(b => b !== striker && b !== nonStriker);
@@ -21618,7 +21637,7 @@ function CricketAddaMain() {
                   }}
                   onPress={() => {
                     setMatchDraft({ hasDraft: false, step: 1, myTeam: null, opponentTeam: null });
-                    Alert.alert('🗑️ Draft Cleared', 'All unfinished match setup drafts have been removed.');
+                    showAppToast('Match setup draft cleared 🗑️', '🗑️', 'info');
                   }}
                 >
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -25081,6 +25100,187 @@ function CricketAddaMain() {
               >
                 <Text style={[styles.confirmBtnText, { color: '#ffffff', fontWeight: '900' }]}>
                   🗑️ Delete Team
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* THEMED IN-APP MODAL: UNDO DELIVERY CONFIRMATION */}
+      {/* ========================================================================= */}
+      <Modal
+        visible={undoConfirmModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          setUndoConfirmModalVisible(false);
+          setUndoPendingAction(null);
+        }}
+      >
+        <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
+          <View
+            style={[
+              styles.modalCard,
+              {
+                width: Math.min(width - 24, 380),
+                maxHeight: safeModalCardMaxHeight,
+                padding: 20,
+                backgroundColor: currentTheme.isLight ? '#ffffff' : '#090d16',
+                borderColor: currentTheme.primary || '#38bdf8',
+                borderWidth: 2,
+                borderRadius: 18,
+              },
+            ]}
+          >
+            {/* Header Icon & Title */}
+            <View style={{ alignItems: 'center', marginBottom: 14 }}>
+              <View
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  backgroundColor: currentTheme.isLight ? 'rgba(56, 189, 248, 0.15)' : 'rgba(56, 189, 248, 0.2)',
+                  borderWidth: 1.5,
+                  borderColor: currentTheme.primary || '#38bdf8',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginBottom: 10,
+                }}
+              >
+                <Text style={{ fontSize: 26 }}>↩️</Text>
+              </View>
+              <Text
+                style={{
+                  fontSize: 18,
+                  fontWeight: '900',
+                  color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                  textAlign: 'center',
+                }}
+              >
+                Undo Last Delivery?
+              </Text>
+              <Text
+                style={{
+                  fontSize: 12.5,
+                  color: currentTheme.isLight ? '#64748b' : '#94a3b8',
+                  textAlign: 'center',
+                  marginTop: 4,
+                  lineHeight: 18,
+                }}
+              >
+                Reverting this delivery will restore the previous ball's score, batter & bowler figures.
+              </Text>
+            </View>
+
+            {/* Delivery Snapshot Card */}
+            {undoPendingAction && (
+              <View
+                style={{
+                  backgroundColor: currentTheme.isLight ? '#f8fafc' : '#131d2e',
+                  borderRadius: 12,
+                  padding: 14,
+                  borderWidth: 1,
+                  borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                  marginBottom: 18,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={{ fontSize: 13, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: '600' }}>
+                    Reverting Delivery:
+                  </Text>
+                  <View
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
+                      borderRadius: 8,
+                      backgroundColor: currentTheme.primary ? `${currentTheme.primary}22` : 'rgba(56, 189, 248, 0.2)',
+                      borderWidth: 1,
+                      borderColor: currentTheme.primary || '#38bdf8',
+                    }}
+                  >
+                    <Text
+                      style={{
+                        fontSize: 13,
+                        fontWeight: '900',
+                        color: currentTheme.primary || '#38bdf8',
+                      }}
+                    >
+                      {undoPendingAction.ballSymbol || 'Last Ball'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Bowler & Striker Info */}
+                <View style={{ gap: 4, marginBottom: 8 }}>
+                  <Text style={{ fontSize: 12, color: currentTheme.isLight ? '#334155' : '#cbd5e1' }}>
+                    🎳 <Text style={{ fontWeight: '700' }}>Bowler:</Text> {undoPendingAction.bowler || bowler || 'Bowler'}
+                  </Text>
+                  <Text style={{ fontSize: 12, color: currentTheme.isLight ? '#334155' : '#cbd5e1' }}>
+                    🏏 <Text style={{ fontWeight: '700' }}>Striker:</Text> {undoPendingAction.striker || striker || 'Batter'}
+                  </Text>
+                </View>
+
+                <View
+                  style={{
+                    height: 1,
+                    backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                    marginVertical: 6,
+                  }}
+                />
+
+                {/* Restored Score Preview */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
+                  <Text style={{ fontSize: 12, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>
+                    Score Restores To:
+                  </Text>
+                  <Text style={{ fontSize: 14, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#38bdf8' }}>
+                    {undoPendingAction.liveRuns}/{undoPendingAction.liveWickets}
+                    <Text style={{ fontSize: 11, fontWeight: 'normal', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>
+                      {' '}({Math.floor((undoPendingAction.liveBalls || 0) / 6)}.{(undoPendingAction.liveBalls || 0) % 6} ov)
+                    </Text>
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Action Buttons */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={[
+                  styles.skipBtn,
+                  {
+                    flex: 1,
+                    paddingVertical: 12,
+                    backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                    borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                  },
+                ]}
+                onPress={() => {
+                  setUndoConfirmModalVisible(false);
+                  setUndoPendingAction(null);
+                }}
+              >
+                <Text style={[styles.skipBtnText, { color: currentTheme.isLight ? '#475569' : '#94a3b8', fontWeight: 'bold' }]}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[
+                  styles.confirmBtn,
+                  {
+                    flex: 1.4,
+                    paddingVertical: 12,
+                    backgroundColor: currentTheme.primary || '#38bdf8',
+                  },
+                ]}
+                onPress={executeConfirmedUndo}
+              >
+                <Text style={[styles.confirmBtnText, { color: '#ffffff', fontWeight: '900' }]}>
+                  ↩️ Confirm Undo
                 </Text>
               </TouchableOpacity>
             </View>
