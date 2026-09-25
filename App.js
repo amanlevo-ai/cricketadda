@@ -25133,21 +25133,21 @@ function CricketAddaMain() {
             ]}
           >
             {/* Header Icon & Title */}
-            <View style={{ alignItems: 'center', marginBottom: 20 }}>
+            <View style={{ alignItems: 'center', marginBottom: 14 }}>
               <View
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
                   backgroundColor: currentTheme.isLight ? 'rgba(56, 189, 248, 0.15)' : 'rgba(56, 189, 248, 0.2)',
                   borderWidth: 1.5,
                   borderColor: currentTheme.primary || '#38bdf8',
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginBottom: 12,
+                  marginBottom: 8,
                 }}
               >
-                <Text style={{ fontSize: 26 }}>↩️</Text>
+                <Text style={{ fontSize: 24 }}>↩️</Text>
               </View>
               <Text
                 style={{
@@ -25161,16 +25161,125 @@ function CricketAddaMain() {
               </Text>
               <Text
                 style={{
-                  fontSize: 13,
+                  fontSize: 12.5,
                   color: currentTheme.isLight ? '#64748b' : '#94a3b8',
                   textAlign: 'center',
-                  marginTop: 6,
-                  lineHeight: 19,
+                  marginTop: 4,
                 }}
               >
-                Are you sure you want to revert the last delivery?
+                Are you sure you want to revert this delivery?
               </Text>
             </View>
+
+            {/* Reverting Delivery Badge & Players Card */}
+            {(() => {
+              const rawStr = String(undoPendingAction?.ballSymbol || 'Ball').trim();
+              const str = rawStr.toUpperCase();
+              const isWkt = str.includes('W') && !str.includes('WD');
+              const isWd = str.includes('WD');
+              const isNb = str.includes('NB');
+              const isSix = str === '6';
+              const isFour = str === '4';
+              const isDot = str === '0' || str === '.';
+
+              const pillBg = isWkt
+                ? '#ef4444'
+                : isWd
+                ? '#d97706'
+                : isNb
+                ? '#7c3aed'
+                : isSix
+                ? '#06b6d4'
+                : isFour
+                ? '#10b981'
+                : isDot
+                ? (currentTheme.isLight ? '#e2e8f0' : '#1e293b')
+                : '#0284c7';
+
+              const pillTextColor = (isSix || isFour) ? '#022c22' : isDot ? (currentTheme.isLight ? '#475569' : '#94a3b8') : '#ffffff';
+
+              const strikerName = undoPendingAction?.striker || striker || 'Striker';
+              const bowlerName = undoPendingAction?.bowler || bowler || 'Bowler';
+
+              return (
+                <View
+                  style={{
+                    backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827',
+                    borderRadius: 14,
+                    padding: 12,
+                    borderWidth: 1,
+                    borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                    marginBottom: 16,
+                    alignItems: 'center',
+                  }}
+                >
+                  <Text style={{ fontSize: 10.5, fontWeight: '700', color: currentTheme.isLight ? '#64748b' : '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+                    Reverting Delivery
+                  </Text>
+
+                  {/* Delivery Badge */}
+                  <View
+                    style={{
+                      backgroundColor: pillBg,
+                      minWidth: 42,
+                      height: 42,
+                      borderRadius: 21,
+                      paddingHorizontal: 12,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      marginBottom: 10,
+                      borderWidth: isDot ? 1 : 0,
+                      borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                      elevation: 2,
+                    }}
+                  >
+                    <Text
+                      style={{
+                        color: pillTextColor,
+                        fontSize: rawStr.length > 3 ? 13 : 17,
+                        fontWeight: '900',
+                        letterSpacing: 0.3,
+                      }}
+                    >
+                      {rawStr}
+                    </Text>
+                  </View>
+
+                  {/* Striker & Bowler Info */}
+                  <View
+                    style={{
+                      flexDirection: 'row',
+                      width: '100%',
+                      justifyContent: 'space-between',
+                      borderTopWidth: 1,
+                      borderTopColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                      paddingTop: 8,
+                      gap: 8,
+                    }}
+                  >
+                    <View style={{ flex: 1, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 10, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: '600', marginBottom: 2 }}>
+                        🏏 Striker
+                      </Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: currentTheme.isLight ? '#0f172a' : '#f8fafc', textAlign: 'center' }} numberOfLines={1}>
+                        {strikerName}
+                      </Text>
+                    </View>
+
+                    <View style={{ width: 1, backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }} />
+
+                    <View style={{ flex: 1, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 10, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: '600', marginBottom: 2 }}>
+                        ⚾ Bowler
+                      </Text>
+                      <Text style={{ fontSize: 12, fontWeight: '800', color: currentTheme.isLight ? '#0f172a' : '#f8fafc', textAlign: 'center' }} numberOfLines={1}>
+                        {bowlerName}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+              );
+            })()}
 
             {/* Action Buttons */}
             <View style={{ flexDirection: 'row', gap: 10 }}>
