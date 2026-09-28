@@ -23038,7 +23038,27 @@ function CricketAddaMain() {
                         updateDraft({ tossWinner: 'myTeam', tossCompleted: true });
                       }}
                     >
-                      <Text style={{ fontSize: 24 }}>{matchDraft.myTeam?.flag}</Text>
+                      <View style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                        borderWidth: 1.5,
+                        borderColor: currentTheme.primary,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        overflow: 'hidden',
+                        marginBottom: 6,
+                      }}>
+                        <SmartTeamLogo
+                          team={matchDraft.myTeam}
+                          allTeams={allAvailableMatchTeams}
+                          allUsers={usersDb}
+                          style={{ width: '100%', height: '100%' }}
+                          flagStyle={{ fontSize: 24 }}
+                          fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
+                        />
+                      </View>
                       <Text style={[styles.tossTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>{matchDraft.myTeam?.name}</Text>
                       <Text style={[styles.tossCoinSideTag, !isCoinFlipping && matchDraft.tossWinner === 'myTeam' && { color: '#34d399', fontWeight: 'bold' }]}>
                         {!isCoinFlipping && matchDraft.tossWinner === 'myTeam' ? '🏆 TOSS WINNER' : 'HEAD (SIDE A)'}
@@ -23066,7 +23086,27 @@ function CricketAddaMain() {
                         updateDraft({ tossWinner: 'opponentTeam', tossCompleted: true });
                       }}
                     >
-                      <Text style={{ fontSize: 24 }}>{matchDraft.opponentTeam?.flag}</Text>
+                      <View style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                        borderWidth: 1.5,
+                        borderColor: '#38bdf8',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        overflow: 'hidden',
+                        marginBottom: 6,
+                      }}>
+                        <SmartTeamLogo
+                          team={matchDraft.opponentTeam}
+                          allTeams={allAvailableMatchTeams}
+                          allUsers={usersDb}
+                          style={{ width: '100%', height: '100%' }}
+                          flagStyle={{ fontSize: 24 }}
+                          fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
+                        />
+                      </View>
                       <Text style={[styles.tossTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>{matchDraft.opponentTeam?.name}</Text>
                       <Text style={[styles.tossCoinSideTag, !isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' && { color: '#34d399', fontWeight: 'bold' }]}>
                         {!isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' ? '🏆 TOSS WINNER' : 'TAIL (SIDE B)'}
@@ -23195,11 +23235,33 @@ function CricketAddaMain() {
                   </View>
 
                   {/* TEAM A PLAYING XI */}
-                  <View style={[styles.teamSetupCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
+                    <View style={[styles.teamSetupCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={[styles.teamSetupHeader, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-                        {matchDraft.myTeam?.flag} {matchDraft.myTeam?.name} (Playing XI: {matchDraft.myPlayingXI?.length || 0}/11)
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1, paddingRight: 6 }}>
+                        <View style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          overflow: 'hidden',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                          borderWidth: 1,
+                          borderColor: currentTheme.primary,
+                        }}>
+                          <SmartTeamLogo
+                            team={matchDraft.myTeam}
+                            allTeams={allAvailableMatchTeams}
+                            allUsers={usersDb}
+                            style={{ width: '100%', height: '100%' }}
+                            flagStyle={{ fontSize: 13 }}
+                            fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
+                          />
+                        </View>
+                        <Text style={[styles.teamSetupHeader, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', flex: 1 }]} numberOfLines={1}>
+                          {matchDraft.myTeam?.name} (XI: {matchDraft.myPlayingXI?.length || 0}/11)
+                        </Text>
+                      </View>
                       <TouchableOpacity
                         style={[styles.addGuestMiniBtn, { backgroundColor: currentTheme.primary }]}
                         onPress={() => {
@@ -23312,9 +23374,31 @@ function CricketAddaMain() {
                   {/* TEAM B PLAYING XI */}
                   <View style={[styles.teamSetupCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder, marginTop: 12 }]}>
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={[styles.teamSetupHeader, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-                        {matchDraft.opponentTeam?.flag} {matchDraft.opponentTeam?.name} (Playing XI: {matchDraft.opponentPlayingXI?.length || 0}/11)
-                      </Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1, paddingRight: 6 }}>
+                        <View style={{
+                          width: 24,
+                          height: 24,
+                          borderRadius: 12,
+                          overflow: 'hidden',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                          borderWidth: 1,
+                          borderColor: '#38bdf8',
+                        }}>
+                          <SmartTeamLogo
+                            team={matchDraft.opponentTeam}
+                            allTeams={allAvailableMatchTeams}
+                            allUsers={usersDb}
+                            style={{ width: '100%', height: '100%' }}
+                            flagStyle={{ fontSize: 13 }}
+                            fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
+                          />
+                        </View>
+                        <Text style={[styles.teamSetupHeader, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', flex: 1 }]} numberOfLines={1}>
+                          {matchDraft.opponentTeam?.name} (XI: {matchDraft.opponentPlayingXI?.length || 0}/11)
+                        </Text>
+                      </View>
                       <TouchableOpacity
                         style={[styles.addGuestMiniBtn, { backgroundColor: currentTheme.primary }]}
                         onPress={() => {
@@ -23447,11 +23531,105 @@ function CricketAddaMain() {
                       </View>
                     </View>
 
-                    {/* Matchup Header */}
-                    <View style={styles.confirmMatchupBanner}>
-                      <Text style={[styles.confirmTeamBig, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>{matchDraft.myTeam?.flag} {matchDraft.myTeam?.name}</Text>
-                      <Text style={[styles.confirmVsText, { color: currentTheme.primary }]}>VS</Text>
-                      <Text style={[styles.confirmTeamBig, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>{matchDraft.opponentTeam?.flag} {matchDraft.opponentTeam?.name}</Text>
+                    {/* Matchup Header with Team Pictures & Names */}
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-around',
+                      marginVertical: 12,
+                      paddingHorizontal: 8,
+                    }}>
+                      {/* Team A Badge & Name */}
+                      <View style={{ alignItems: 'center', flex: 1, maxWidth: 130 }}>
+                        <View style={{
+                          width: 56,
+                          height: 56,
+                          borderRadius: 28,
+                          backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                          borderWidth: 2,
+                          borderColor: currentTheme.primary,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          overflow: 'hidden',
+                          marginBottom: 6,
+                          shadowColor: currentTheme.primary,
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.35,
+                          shadowRadius: 4,
+                          elevation: 3,
+                        }}>
+                          <SmartTeamLogo
+                            team={matchDraft.myTeam}
+                            allTeams={allAvailableMatchTeams}
+                            allUsers={usersDb}
+                            style={{ width: '100%', height: '100%' }}
+                            flagStyle={{ fontSize: 28 }}
+                            fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
+                          />
+                        </View>
+                        <Text
+                          style={[styles.confirmTeamBig, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', textAlign: 'center' }]}
+                          numberOfLines={2}
+                        >
+                          {matchDraft.myTeam?.name}
+                        </Text>
+                      </View>
+
+                      {/* VS Center Badge */}
+                      <View style={{
+                        width: 34,
+                        height: 34,
+                        borderRadius: 17,
+                        backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a',
+                        borderWidth: 1.5,
+                        borderColor: currentTheme.primary,
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        marginHorizontal: 8,
+                        shadowColor: '#000',
+                        shadowOffset: { width: 0, height: 1 },
+                        shadowOpacity: 0.2,
+                        shadowRadius: 3,
+                        elevation: 3,
+                      }}>
+                        <Text style={{ color: currentTheme.primary, fontSize: 12, fontWeight: '900' }}>VS</Text>
+                      </View>
+
+                      {/* Team B Badge & Name */}
+                      <View style={{ alignItems: 'center', flex: 1, maxWidth: 130 }}>
+                        <View style={{
+                          width: 56,
+                          height: 56,
+                          borderRadius: 28,
+                          backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                          borderWidth: 2,
+                          borderColor: '#38bdf8',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          overflow: 'hidden',
+                          marginBottom: 6,
+                          shadowColor: '#38bdf8',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.35,
+                          shadowRadius: 4,
+                          elevation: 3,
+                        }}>
+                          <SmartTeamLogo
+                            team={matchDraft.opponentTeam}
+                            allTeams={allAvailableMatchTeams}
+                            allUsers={usersDb}
+                            style={{ width: '100%', height: '100%' }}
+                            flagStyle={{ fontSize: 28 }}
+                            fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
+                          />
+                        </View>
+                        <Text
+                          style={[styles.confirmTeamBig, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', textAlign: 'center' }]}
+                          numberOfLines={2}
+                        >
+                          {matchDraft.opponentTeam?.name}
+                        </Text>
+                      </View>
                     </View>
 
                     {/* Format & Venue Pill */}
@@ -23465,9 +23643,31 @@ function CricketAddaMain() {
                     <View style={styles.confirmTeamsBlock}>
                       {/* Team A Box */}
                       <View style={[styles.confirmTeamColCard, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder }]}>
-                        <Text style={[styles.confirmColTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]} numberOfLines={1}>
-                          {matchDraft.myTeam?.flag} {matchDraft.myTeam?.name}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.cardBorder, paddingBottom: 6 }}>
+                          <View style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                            borderWidth: 1.2,
+                            borderColor: currentTheme.primary,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                          }}>
+                            <SmartTeamLogo
+                              team={matchDraft.myTeam}
+                              allTeams={allAvailableMatchTeams}
+                              allUsers={usersDb}
+                              style={{ width: '100%', height: '100%' }}
+                              flagStyle={{ fontSize: 13 }}
+                              fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
+                            />
+                          </View>
+                          <Text style={[styles.confirmColTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]} numberOfLines={1}>
+                            {matchDraft.myTeam?.name}
+                          </Text>
+                        </View>
                         <View style={styles.confirmRoleItem}>
                           <Text style={[styles.confirmRoleKey, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>👑 Captain (C):</Text>
                           <Text style={[styles.confirmRoleVal, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]} numberOfLines={1}>{matchDraft.myCaptain || 'Not set'}</Text>
@@ -23480,9 +23680,31 @@ function CricketAddaMain() {
 
                       {/* Team B Box */}
                       <View style={[styles.confirmTeamColCard, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder }]}>
-                        <Text style={[styles.confirmColTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]} numberOfLines={1}>
-                          {matchDraft.opponentTeam?.flag} {matchDraft.opponentTeam?.name}
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.cardBorder, paddingBottom: 6 }}>
+                          <View style={{
+                            width: 24,
+                            height: 24,
+                            borderRadius: 12,
+                            backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                            borderWidth: 1.2,
+                            borderColor: '#38bdf8',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                          }}>
+                            <SmartTeamLogo
+                              team={matchDraft.opponentTeam}
+                              allTeams={allAvailableMatchTeams}
+                              allUsers={usersDb}
+                              style={{ width: '100%', height: '100%' }}
+                              flagStyle={{ fontSize: 13 }}
+                              fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
+                            />
+                          </View>
+                          <Text style={[styles.confirmColTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]} numberOfLines={1}>
+                            {matchDraft.opponentTeam?.name}
+                          </Text>
+                        </View>
                         <View style={styles.confirmRoleItem}>
                           <Text style={[styles.confirmRoleKey, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>👑 Captain (C):</Text>
                           <Text style={[styles.confirmRoleVal, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]} numberOfLines={1}>{matchDraft.oppCaptain || 'Not set'}</Text>
@@ -23498,9 +23720,31 @@ function CricketAddaMain() {
                     <View style={[styles.confirmParamSection, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder }]}>
                       <View style={styles.confirmParamRow}>
                         <Text style={[styles.confirmParamLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>🪙 Toss Result:</Text>
-                        <Text style={[styles.confirmParamValue, { color: '#34d399' }]} numberOfLines={1}>
-                          {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} ({matchDraft.tossDecision?.toUpperCase()} FIRST)
-                        </Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
+                          <View style={{
+                            width: 18,
+                            height: 18,
+                            borderRadius: 9,
+                            backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                            borderWidth: 1,
+                            borderColor: '#34d399',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                          }}>
+                            <SmartTeamLogo
+                              team={matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam : matchDraft.opponentTeam}
+                              allTeams={allAvailableMatchTeams}
+                              allUsers={usersDb}
+                              style={{ width: '100%', height: '100%' }}
+                              flagStyle={{ fontSize: 10 }}
+                              fallbackFlag={matchDraft.tossWinner === 'myTeam' ? (matchDraft.myTeam?.flag || '🦁') : (matchDraft.opponentTeam?.flag || '⚡')}
+                            />
+                          </View>
+                          <Text style={[styles.confirmParamValue, { color: '#34d399' }]} numberOfLines={1}>
+                            {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} ({matchDraft.tossDecision?.toUpperCase()} FIRST)
+                          </Text>
+                        </View>
                       </View>
                     </View>
                   </View>
