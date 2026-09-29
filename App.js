@@ -4000,7 +4000,9 @@ function CricketAddaMain() {
   const safeModalCardMaxHeight = Math.max(300, height - topInset - bottomInset - 32);
 
   const [showSplash, setShowSplash] = useState(true);
-  const [countdown, setCountdown] = useState(8);
+  const [countdown, setCountdown] = useState(5);
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const splashDismissedRef = useRef(false);
   const [activeTab, setActiveTab] = useState('matches');
   const [navHistory, setNavHistory] = useState(['matches']);
   const activeTabRef = useRef(activeTab);
@@ -5568,7 +5570,7 @@ function CricketAddaMain() {
   const splashFade = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
-  // Video Player for 8-second animated splash with sound effect
+  // Video Player for animated splash with sound effect
   const splashVideoSource = useMemo(() => require('./assets/splash-video.mp4'), []);
   const splashPlayer = useVideoPlayer(splashVideoSource, player => {
     player.loop = false;
@@ -5576,10 +5578,12 @@ function CricketAddaMain() {
     player.play();
   });
 
-  useEventListener(splashPlayer, 'playToEnd', () => {
+  const dismissSplash = useCallback(() => {
+    if (splashDismissedRef.current) return;
+    splashDismissedRef.current = true;
     Animated.timing(splashFade, {
       toValue: 0,
-      duration: 500,
+      duration: 350,
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start(() => {
       try {
@@ -5589,6 +5593,22 @@ function CricketAddaMain() {
       setActiveTab('matches');
       setNavHistory(['matches']);
     });
+  }, [splashPlayer, splashFade]);
+
+  useEventListener(splashPlayer, 'playingChange', event => {
+    if (event && event.isPlaying) {
+      setIsVideoPlaying(true);
+    }
+  });
+
+  useEventListener(splashPlayer, 'statusChange', event => {
+    if (event && (event.status === 'readyToPlay' || event.status === 'playing')) {
+      setIsVideoPlaying(true);
+    }
+  });
+
+  useEventListener(splashPlayer, 'playToEnd', () => {
+    dismissSplash();
   });
 
   useEffect(() => {
@@ -5645,7 +5665,7 @@ function CricketAddaMain() {
 
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 8000,
+      duration: 5000,
       easing: Easing.linear,
       useNativeDriver: false,
     }).start();
@@ -5661,25 +5681,14 @@ function CricketAddaMain() {
     }, 1000);
 
     const timer = setTimeout(() => {
-      Animated.timing(splashFade, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }).start(() => {
-        try {
-          if (splashPlayer) splashPlayer.pause();
-        } catch (_) {}
-        setShowSplash(false);
-        setActiveTab('matches');
-        setNavHistory(['matches']);
-      });
-    }, 8500);
+      dismissSplash();
+    }, 5500);
 
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, []);
+  }, [dismissSplash]);
 
   // Wagon Wheel Scorer State
   const [autoWheel, setAutoWheel] = useState(false);
@@ -13779,26 +13788,44 @@ function CricketAddaMain() {
         <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={true} hidden={false} />
 
         {/* Fullscreen Animated Video with Instant Poster Underneath (Zero Blank Gap) */}
-        <View style={styles.splashImageWrapper}>
+        <TouchableOpacity
+          activeOpacity={1}
+          style={styles.splashImageWrapper}
+          onPress={dismissSplash}
+        >
+          {/* Instant Background Poster - Always visible at 0ms so screen is NEVER black or blank */}
           <Image
             source={require('./assets/login-bg.jpg')}
             style={StyleSheet.absoluteFillObject}
             resizeMode="cover"
           />
-          <VideoView
-            style={styles.splashPosterImage}
-            player={splashPlayer}
-            contentFit="cover"
-            nativeControls={false}
-            surfaceType="textureView"
-          />
-        </View>
+
+          {/* VideoView only visible once video is actively playing, preventing black texture freeze */}
+          <View style={[styles.splashPosterImage, { opacity: isVideoPlaying ? 1 : 0 }]} pointerEvents="none">
+            <VideoView
+              style={StyleSheet.absoluteFillObject}
+              player={splashPlayer}
+              contentFit="cover"
+              nativeControls={false}
+              surfaceType="textureView"
+            />
+          </View>
+        </TouchableOpacity>
+
+        {/* Top-Right Quick Skip Button */}
+        <TouchableOpacity
+          style={[styles.splashSkipBtn, { top: Math.max(topInset, 20) + 12 }]}
+          onPress={dismissSplash}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.splashSkipText}>Skip ➔</Text>
+        </TouchableOpacity>
 
         {/* Soft Bottom Vignette for Contrast */}
         <View style={styles.splashBottomVignette} pointerEvents="none" />
 
         {/* Bottom Loading Progress Container */}
-        <View style={[styles.splashBottomBar, { bottom: Math.max(bottomInset, 16) + 20 }]}>
+        <View style={[styles.splashBottomBar, { bottom: Math.max(bottomInset, 16) + 20 }]} pointerEvents="none">
           <View style={styles.splashProgressCard}>
             <View style={styles.progressBarTrack}>
               <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
@@ -13852,15 +13879,21 @@ function CricketAddaMain() {
           >
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={styles.authScrollContainer}
+              contentContainerStyle={[
+                styles.authScrollContainer,
+                {
+                  paddingTop: Math.max(topInset, 16) + 8,
+                  paddingBottom: Math.max(bottomInset, 16) + 20,
+                },
+              ]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               bounces={false}
             >
-              {/* Spacer matching exact bottom edge of 3D Cricket Adda logo in background artwork */}
+              {/* Subtle top spacer */}
               <View style={styles.authHeroSpacer} />
 
-              {/* FLOATING DARK GLASSMORPHISM AUTH CARD */}
+              {/* FLOATING DARK GLASSMORPHISM AUTH CARD - 100% VISIBLE FRONT AND CENTER */}
               <View style={styles.authCard}>
                 {/* Dynamic Title matching mockup */}
                 <View style={styles.authTitleWrapper}>
@@ -27457,6 +27490,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 30,
   },
+  splashSkipBtn: {
+    position: 'absolute',
+    right: 18,
+    zIndex: 40,
+    backgroundColor: 'rgba(2, 6, 23, 0.78)',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  splashSkipText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+    letterSpacing: 0.6,
+  },
   splashProgressCard: {
     width: '100%',
     backgroundColor: 'rgba(15, 23, 42, 0.88)',
@@ -32339,11 +32389,12 @@ const styles = StyleSheet.create({
   },
   authScrollContainer: {
     paddingHorizontal: 18,
-    paddingBottom: 40,
     flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   authHeroSpacer: {
-    height: Math.round(height * 0.435),
+    height: 10,
     width: '100%',
   },
   authBrandHeader: {
@@ -32351,8 +32402,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   authCard: {
-    backgroundColor: 'rgba(10, 18, 36, 0.92)',
-    borderColor: 'rgba(34, 197, 94, 0.40)',
+    backgroundColor: 'rgba(10, 18, 36, 0.94)',
+    borderColor: 'rgba(34, 197, 94, 0.45)',
     borderWidth: 1.5,
     borderRadius: 22,
     paddingHorizontal: 18,
@@ -32363,6 +32414,9 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.25,
     shadowRadius: 16,
+    width: '100%',
+    maxWidth: 440,
+    alignSelf: 'center',
   },
   authTitleWrapper: {
     alignItems: 'center',
