@@ -26,6 +26,8 @@ import {
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useVideoPlayer, VideoView } from 'expo-video';
+import { useEventListener } from 'expo';
 import jsQR from 'jsqr';
 import * as QRCodeModule from 'qrcode';
 import QRCodeDefault from 'qrcode';
@@ -3998,7 +4000,7 @@ function CricketAddaMain() {
   const safeModalCardMaxHeight = Math.max(300, height - topInset - bottomInset - 32);
 
   const [showSplash, setShowSplash] = useState(true);
-  const [countdown, setCountdown] = useState(4);
+  const [countdown, setCountdown] = useState(8);
   const [activeTab, setActiveTab] = useState('matches');
   const [navHistory, setNavHistory] = useState(['matches']);
   const activeTabRef = useRef(activeTab);
@@ -5566,6 +5568,29 @@ function CricketAddaMain() {
   const splashFade = useRef(new Animated.Value(1)).current;
   const progressAnim = useRef(new Animated.Value(0)).current;
 
+  // Video Player for 8-second animated splash with sound effect
+  const splashVideoSource = useMemo(() => require('./assets/splash-video.mp4'), []);
+  const splashPlayer = useVideoPlayer(splashVideoSource, player => {
+    player.loop = false;
+    player.muted = false;
+    player.play();
+  });
+
+  useEventListener(splashPlayer, 'playToEnd', () => {
+    Animated.timing(splashFade, {
+      toValue: 0,
+      duration: 500,
+      useNativeDriver: USE_NATIVE_DRIVER,
+    }).start(() => {
+      try {
+        if (splashPlayer) splashPlayer.pause();
+      } catch (_) {}
+      setShowSplash(false);
+      setActiveTab('matches');
+      setNavHistory(['matches']);
+    });
+  });
+
   useEffect(() => {
     Animated.loop(
       Animated.sequence([
@@ -5620,8 +5645,8 @@ function CricketAddaMain() {
 
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 4000,
-      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
+      duration: 8000,
+      easing: Easing.linear,
       useNativeDriver: false,
     }).start();
 
@@ -5641,11 +5666,14 @@ function CricketAddaMain() {
         duration: 500,
         useNativeDriver: USE_NATIVE_DRIVER,
       }).start(() => {
+        try {
+          if (splashPlayer) splashPlayer.pause();
+        } catch (_) {}
         setShowSplash(false);
         setActiveTab('matches');
         setNavHistory(['matches']);
       });
-    }, 4000);
+    }, 8500);
 
     return () => {
       clearTimeout(timer);
@@ -13750,21 +13778,16 @@ function CricketAddaMain() {
       <Animated.View style={[styles.splashFullContainer, { opacity: splashFade }]}>
         <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={true} hidden={false} />
 
-        {/* Fullscreen Animated Poster with Smooth Subtle Breathing Zoom */}
-        <Animated.View
-          style={[
-            styles.splashImageWrapper,
-            {
-              transform: [{ scale: scaleAnim }],
-            },
-          ]}
-        >
-          <Image
-            source={require('./assets/splash.gif')}
+        {/* Fullscreen Animated Video with Sound Effect */}
+        <View style={styles.splashImageWrapper}>
+          <VideoView
             style={styles.splashPosterImage}
-            resizeMode="cover"
+            player={splashPlayer}
+            contentFit="cover"
+            nativeControls={false}
+            surfaceType="textureView"
           />
-        </Animated.View>
+        </View>
 
         {/* Soft Bottom Vignette for Contrast */}
         <View style={styles.splashBottomVignette} pointerEvents="none" />
