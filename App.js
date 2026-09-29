@@ -13832,12 +13832,11 @@ function CricketAddaMain() {
 
       {!isAuthenticated ? (
         <View style={styles.authRootContainer}>
-          {/* Fullscreen Stadium Background Artwork */}
+          {/* User Provided Stadium Background Poster with CricketAdda Logo & Pitch */}
           <Image
-            source={require('./assets/splash-poster.jpg')}
+            source={require('./assets/login-bg.jpg')}
             style={StyleSheet.absoluteFillObject}
             resizeMode="cover"
-            blurRadius={1}
           />
           {/* Subtle Dark Vignette Backdrop for high readability */}
           <View style={styles.authBackdropOverlay} pointerEvents="none" />
@@ -13848,18 +13847,12 @@ function CricketAddaMain() {
           >
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={[styles.authScrollContainer, { paddingTop: Math.max(topInset, 16) + 6 }]}
+              contentContainerStyle={[styles.authScrollContainer, { paddingTop: Math.max(topInset, 16) + 4 }]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* Dynamic 3D Cricket Adda Hero Artwork (Always perfectly fitted and centered) */}
-              <View style={styles.authHeroContainer}>
-                <Image
-                  source={require('./assets/auth-hero-logo.png')}
-                  style={styles.authHeroImage}
-                  resizeMode="contain"
-                />
-              </View>
+              {/* Spacer allowing the 3D Cricket Adda batsman logo in the background image to shine clearly */}
+              <View style={styles.authHeroSpacer} />
 
               {/* FLOATING DARK GLASSMORPHISM AUTH CARD */}
               <View style={styles.authCard}>
@@ -32342,18 +32335,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingBottom: 40,
     flexGrow: 1,
-    justifyContent: 'center',
   },
-  authHeroContainer: {
+  authHeroSpacer: {
+    height: Math.max(160, Math.min(height * 0.35, 270)),
     width: '100%',
-    height: Math.min(height * 0.22, 190),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 8,
-  },
-  authHeroImage: {
-    width: '100%',
-    height: '100%',
   },
   authBrandHeader: {
     alignItems: 'center',
