@@ -13778,8 +13778,13 @@ function CricketAddaMain() {
       <Animated.View style={[styles.splashFullContainer, { opacity: splashFade }]}>
         <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={true} hidden={false} />
 
-        {/* Fullscreen Animated Video with Sound Effect */}
+        {/* Fullscreen Animated Video with Instant Poster Underneath (Zero Blank Gap) */}
         <View style={styles.splashImageWrapper}>
+          <Image
+            source={require('./assets/login-bg.jpg')}
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
+          />
           <VideoView
             style={styles.splashPosterImage}
             player={splashPlayer}
@@ -13847,11 +13852,12 @@ function CricketAddaMain() {
           >
             <ScrollView
               style={{ flex: 1 }}
-              contentContainerStyle={[styles.authScrollContainer, { paddingTop: Math.max(topInset, 16) + 4 }]}
+              contentContainerStyle={styles.authScrollContainer}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
+              bounces={false}
             >
-              {/* Spacer allowing the 3D Cricket Adda batsman logo in the background image to shine clearly */}
+              {/* Spacer matching exact bottom edge of 3D Cricket Adda logo in background artwork */}
               <View style={styles.authHeroSpacer} />
 
               {/* FLOATING DARK GLASSMORPHISM AUTH CARD */}
@@ -32337,7 +32343,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   authHeroSpacer: {
-    height: Math.max(160, Math.min(height * 0.35, 270)),
+    height: Math.round(height * 0.435),
     width: '100%',
   },
   authBrandHeader: {
@@ -32345,12 +32351,13 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   authCard: {
-    backgroundColor: 'rgba(10, 18, 36, 0.90)',
-    borderColor: 'rgba(34, 197, 94, 0.35)',
+    backgroundColor: 'rgba(10, 18, 36, 0.92)',
+    borderColor: 'rgba(34, 197, 94, 0.40)',
     borderWidth: 1.5,
-    borderRadius: 24,
-    paddingHorizontal: 20,
-    paddingVertical: 22,
+    borderRadius: 22,
+    paddingHorizontal: 18,
+    paddingTop: 16,
+    paddingBottom: 16,
     elevation: 12,
     shadowColor: '#22c55e',
     shadowOffset: { width: 0, height: 6 },
@@ -32359,46 +32366,46 @@ const styles = StyleSheet.create({
   },
   authTitleWrapper: {
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   authTitlePrefix: {
     color: '#ffffff',
-    fontSize: 22,
-    fontWeight: '800',
+    fontSize: 18,
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   authTitleBrand: {
     color: '#22c55e',
-    fontSize: 25,
+    fontSize: 21,
     fontWeight: '900',
     letterSpacing: 0.5,
-    marginTop: 2,
+    marginTop: 1,
   },
   authCardSubtitle: {
     color: '#94a3b8',
-    fontSize: 12,
-    lineHeight: 17,
+    fontSize: 11.5,
+    lineHeight: 16,
     textAlign: 'center',
-    marginBottom: 14,
+    marginBottom: 10,
   },
   authInnerBody: {
     width: '100%',
   },
   authModeToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: 'rgba(2, 6, 23, 0.65)',
-    borderRadius: 14,
+    backgroundColor: 'rgba(2, 6, 23, 0.70)',
+    borderRadius: 12,
     padding: 3,
-    marginBottom: 14,
+    marginBottom: 10,
     borderWidth: 1,
     borderColor: 'rgba(51, 65, 85, 0.7)',
   },
   authModeTab: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 6,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 11,
+    borderRadius: 9,
   },
   authModeTabActive: {
     backgroundColor: 'rgba(34, 197, 94, 0.16)',
