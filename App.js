@@ -13837,6 +13837,7 @@ function CricketAddaMain() {
             source={require('./assets/splash-poster.jpg')}
             style={StyleSheet.absoluteFillObject}
             resizeMode="cover"
+            blurRadius={1}
           />
           {/* Subtle Dark Vignette Backdrop for high readability */}
           <View style={styles.authBackdropOverlay} pointerEvents="none" />
@@ -13846,12 +13847,19 @@ function CricketAddaMain() {
             style={{ flex: 1 }}
           >
             <ScrollView
-              contentContainerStyle={[styles.authScrollContainer, { paddingTop: topInset + 10 }]}
+              style={{ flex: 1 }}
+              contentContainerStyle={[styles.authScrollContainer, { paddingTop: Math.max(topInset, 16) + 6 }]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
             >
-              {/* Spacer allowing the 3D Cricket Adda batsman logo in the poster to stand out */}
-              <View style={styles.authHeroSpacer} />
+              {/* Dynamic 3D Cricket Adda Hero Artwork (Always perfectly fitted and centered) */}
+              <View style={styles.authHeroContainer}>
+                <Image
+                  source={require('./assets/auth-hero-logo.png')}
+                  style={styles.authHeroImage}
+                  resizeMode="contain"
+                />
+              </View>
 
               {/* FLOATING DARK GLASSMORPHISM AUTH CARD */}
               <View style={styles.authCard}>
@@ -32332,13 +32340,20 @@ const styles = StyleSheet.create({
   },
   authScrollContainer: {
     paddingHorizontal: 18,
-    paddingBottom: 50,
-    minHeight: '100%',
-    justifyContent: 'flex-start',
+    paddingBottom: 40,
+    flexGrow: 1,
+    justifyContent: 'center',
   },
-  authHeroSpacer: {
-    height: Math.max(160, Math.min(height * 0.28, 220)),
+  authHeroContainer: {
     width: '100%',
+    height: Math.min(height * 0.22, 190),
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  authHeroImage: {
+    width: '100%',
+    height: '100%',
   },
   authBrandHeader: {
     alignItems: 'center',
