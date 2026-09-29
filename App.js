@@ -2025,6 +2025,91 @@ const USER_CAREER_DATA = {
 const EMPTY_USER_CAREER_DATA = USER_CAREER_DATA;
 const INITIAL_USERS_DATABASE = [];
 
+// Lightweight pure-JS SHA-256 implementation (deterministic, zero native dependencies)
+function sha256(ascii) {
+  if (!ascii) return '';
+  function rightRotate(value, amount) {
+    return (value >>> amount) | (value << (32 - amount));
+  }
+  var mathPow = Math.pow;
+  var maxWord = mathPow(2, 32);
+  var lengthProperty = 'length';
+  var i, j;
+  var result = '';
+
+  var words = [];
+  var asciiBitLength = ascii[lengthProperty] * 8;
+
+  var hash = sha256.h = sha256.h || [];
+  var k = sha256.k = sha256.k || [];
+  var primeCounter = k[lengthProperty];
+
+  var isComposite = {};
+  for (var candidate = 2; primeCounter < 64; candidate++) {
+    if (!isComposite[candidate]) {
+      for (i = 0; i < 313; i += candidate) {
+        isComposite[i] = true;
+      }
+      hash[primeCounter] = (mathPow(candidate, 0.5) * maxWord) | 0;
+      k[primeCounter++] = (mathPow(candidate, 1 / 3) * maxWord) | 0;
+    }
+  }
+
+  hash = hash.slice(0); // clone initial constants
+  ascii += '\x80';
+  while ((ascii[lengthProperty] % 64) - 56) ascii += '\x00';
+  for (i = 0; i < ascii[lengthProperty]; i++) {
+    j = ascii.charCodeAt(i);
+    words[i >> 2] |= j << (((3 - i) % 4) * 8);
+  }
+  words[words[lengthProperty]] = (asciiBitLength / maxWord) | 0;
+  words[words[lengthProperty]] = (asciiBitLength) | 0;
+
+  for (j = 0; j < words[lengthProperty]; ) {
+    var w = words.slice(j, (j += 16));
+    var oldHash = hash;
+    hash = hash.slice(0, 8);
+
+    for (i = 0; i < 64; i++) {
+      var i2 = i + j;
+      var w15 = w[i - 15], w2 = w[i - 2];
+      var a = hash[0], e = hash[4];
+      var temp1 =
+        hash[7] +
+        (rightRotate(e, 6) ^ rightRotate(e, 11) ^ rightRotate(e, 25)) +
+        ((e & hash[5]) ^ (~e & hash[6])) +
+        k[i] +
+        (w[i] =
+          i < 16
+            ? w[i]
+            : (w[i - 16] +
+                (rightRotate(w15, 7) ^ rightRotate(w15, 18) ^ (w15 >>> 3)) +
+                w[i - 7] +
+                (rightRotate(w2, 17) ^ rightRotate(w2, 19) ^ (w2 >>> 10))) |
+              0);
+
+      var temp2 =
+        (rightRotate(a, 2) ^ rightRotate(a, 13) ^ rightRotate(a, 22)) +
+        ((a & hash[1]) ^ (a & hash[2]) ^ (hash[1] & hash[2]));
+
+      hash = [(temp1 + temp2) | 0].concat(hash);
+      hash[4] = (hash[4] + temp1) | 0;
+    }
+
+    for (i = 0; i < 8; i++) {
+      hash[i] = (hash[i] + oldHash[i]) | 0;
+    }
+  }
+
+  for (i = 0; i < 8; i++) {
+    for (i2 = 3; i2 >= 0; i2--) {
+      var b = (hash[i] >> (i2 * 8)) & 255;
+      result += (b < 16 ? '0' : '') + b.toString(16);
+    }
+  }
+  return result;
+}
+
 // ============================================================================
 // REGISTERED TEAMS DATABASE (MY TEAMS & OPPONENT CLUBS)
 // ============================================================================
@@ -4078,6 +4163,16 @@ function CricketAddaMain() {
 
   // AUTHENTICATION & SIGNUP / ONBOARDING STATE
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [authMethod, setAuthMethod] = useState('password'); // 'password' | 'otp'
+  const [authSubTab, setAuthSubTab] = useState('signin'); // 'signin' | 'signup'
+  const [authPassword, setAuthPassword] = useState('');
+  const [authConfirmPassword, setAuthConfirmPassword] = useState('');
+  const [authShowPassword, setAuthShowPassword] = useState(false);
+  const [authShowConfirmPassword, setAuthShowConfirmPassword] = useState(false);
+  const [changePasswordModalVisible, setChangePasswordModalVisible] = useState(false);
+  const [newChangePassword, setNewChangePassword] = useState('');
+  const [confirmChangePassword, setConfirmChangePassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
   const [authStep, setAuthStep] = useState(1); // 1: Enter Email, 2: Verify OTP, 3: Profile Setup
   const [authEmail, setAuthEmail] = useState('');
   const [authPhone, setAuthPhone] = useState('');
@@ -4156,7 +4251,344 @@ function CricketAddaMain() {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [authStep, authOtpTimer]);
+  const handleEmailPasswordLogin = async () => {
+    setAuthError('');
+    const cleanEmail = authEmail.trim().toLowerCase();
+    if (!cleanEmail) {
+      setAuthError('Please enter your email address');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setAuthError('Please enter a valid email address (e.g. player@cricketadda.com)');
+      return;
+    }
+    const pass = authPassword.trim();
+    if (!pass) {
+      setAuthError('Please enter your password');
+      return;
+    }
+
+    setAuthLoading(true);
+
+    try {
+      // 1. Check local usersDb first
+      let existing = Array.isArray(usersDb)
+        ? usersDb.find(u => {
+            if (!u) return false;
+            const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+            return uEmail === cleanEmail;
+          })
+        : null;
+
+      // 2. If not found locally or checking Firebase
+      if (isFirebaseConfigured()) {
+        try {
+          const cloudUser = await fetchCloudUserByEmail(cleanEmail);
+          if (cloudUser && (cloudUser.profile || cloudUser.email)) {
+            existing = cloudUser;
+          }
+          if (!existing) {
+            const allCloudUsers = await fetchFirebaseUsers();
+            if (Array.isArray(allCloudUsers) && allCloudUsers.length > 0) {
+              const cleanCloudList = allCloudUsers.filter(Boolean);
+              const found = cleanCloudList.find(u => {
+                if (!u) return false;
+                const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+                return uEmail === cleanEmail;
+              });
+              if (found) {
+                existing = found;
+                setUsersDb(cleanCloudList);
+                AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(cleanCloudList)).catch(() => {});
+              }
+            }
+          }
+        } catch (cloudErr) {
+          console.log('[Auth] Cloud user login check:', cloudErr);
+        }
+      }
+
+      setAuthLoading(false);
+
+      if (!existing) {
+        setAuthError('No account found with this email. Tap "Create Account" above to register.');
+        return;
+      }
+
+      // Password verification
+      const inputHash = sha256(pass);
+      const passHash = existing.passwordHash || (existing.profile && existing.profile.passwordHash);
+      const plainPass = existing.password || (existing.profile && existing.profile.password);
+      const hasPassword = Boolean(passHash || plainPass);
+
+      if (!hasPassword) {
+        setAuthError('This account was created via OTP and has no password yet. Please switch to "Quick OTP" to log in.');
+        return;
+      }
+
+      const isPassValid = (passHash && passHash === inputHash) || (plainPass && plainPass === pass);
+      if (!isPassValid) {
+        setAuthError('Incorrect password. Please try again or switch to Quick OTP if forgotten.');
+        return;
+      }
+
+      // Successful login -> Restore profile & session!
+      const restoredProfile = existing.profile || {
+        name: 'Player',
+        jersey: '#18',
+        role: 'Top-Order Batter',
+        avatarUri: null,
+        email: cleanEmail,
+      };
+      const restoredCareer = existing.careerStats || EMPTY_USER_CAREER_DATA;
+      const userTeams = Array.isArray(existing.createdTeams) ? existing.createdTeams : [];
+
+      setUserProfile(restoredProfile);
+      setUserCareerData(restoredCareer);
+      if (userTeams.length > 0) {
+        setRegisteredTeams(prev => {
+          const map = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
+          userTeams.forEach(t => {
+            if (t && t.name) map.set(String(t.id || t.name).toLowerCase(), t);
+          });
+          const merged = Array.from(map.values());
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(merged)).catch(() => {});
+          return merged;
+        });
+      }
+
+      AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(restoredProfile)).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(restoredCareer)).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
+
+      // Restore into registeredPlayers
+      if (restoredProfile.name) {
+        setRegisteredPlayers(prev => {
+          const cleanPhone = (restoredProfile.phone || '').replace(/[^0-9]/g, '');
+          const filtered = (prev || []).filter(
+            p => (cleanPhone && (p.phone || '').replace(/[^0-9]/g, '') !== cleanPhone) &&
+                 p.name.toLowerCase() !== restoredProfile.name.toLowerCase()
+          );
+          const newRecord = {
+            id: restoredProfile.id || `usr_${cleanPhone || Date.now()}`,
+            name: restoredProfile.name,
+            phone: cleanPhone,
+            role: restoredProfile.role?.includes('BOWL')
+              ? 'BOWL'
+              : restoredProfile.role?.includes('WK')
+              ? 'WK'
+              : restoredProfile.role?.includes('ALL')
+              ? 'ALL'
+              : 'BAT',
+            battingStyle: restoredProfile.battingStyle || 'Right Hand Bat',
+            bowlingStyle: restoredProfile.bowlingStyle || 'Right Arm Medium',
+            jersey: (restoredProfile.jersey || '18').replace('#', ''),
+            avatarUri: restoredProfile.avatarUri || null,
+          };
+          const updated = [newRecord, ...filtered];
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updated)).catch(() => {});
+          return updated;
+        });
+      }
+
+      setAuthPassword('');
+      setIsAuthenticated(true);
+      setActiveTab('profile');
+      showAppToast(`Welcome back, ${restoredProfile?.name || 'Player'}! 👋`, '🏏');
+    } catch (err) {
+      setAuthLoading(false);
+      setAuthError('An error occurred during login. Please try again.');
+    }
+  };
+
+  const handleEmailPasswordSignUp = async () => {
+    setAuthError('');
+    const cleanName = authName.trim();
+    if (!cleanName || cleanName.length < 2) {
+      setAuthError('Please enter your full player name (at least 2 characters)');
+      return;
+    }
+    const cleanEmail = authEmail.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!cleanEmail || !emailRegex.test(cleanEmail)) {
+      setAuthError('Please enter a valid email address (e.g. player@cricketadda.com)');
+      return;
+    }
+    const cleanPhone = authPhone.trim().replace(/[^0-9]/g, '');
+    if (!cleanPhone || cleanPhone.length < 10) {
+      setAuthError('Phone number is compulsory (Please enter a valid 10-digit mobile number)');
+      return;
+    }
+    const pass = authPassword.trim();
+    if (!pass || pass.length < 6) {
+      setAuthError('Password must be at least 6 characters long');
+      return;
+    }
+    if (pass !== authConfirmPassword.trim()) {
+      setAuthError('Passwords do not match. Please verify both password fields.');
+      return;
+    }
+
+    setAuthLoading(true);
+
+    try {
+      // Check if email or phone already registered
+      let existing = Array.isArray(usersDb)
+        ? usersDb.find(u => {
+            if (!u) return false;
+            const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+            const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+            return uEmail === cleanEmail || (cleanPhone && uPhone === cleanPhone);
+          })
+        : null;
+
+      if (!existing && isFirebaseConfigured()) {
+        try {
+          const cloudUser = await fetchCloudUserByEmail(cleanEmail);
+          if (cloudUser) existing = cloudUser;
+          if (!existing && cleanPhone) {
+            const cloudPhone = await searchCloudPlayerByPhone(cleanPhone);
+            if (cloudPhone) existing = cloudPhone;
+          }
+        } catch (err) {}
+      }
+
+      if (existing) {
+        setAuthLoading(false);
+        const isEmailMatch = String(existing.email || (existing.profile && existing.profile.email) || '').toLowerCase() === cleanEmail;
+        setAuthError(
+          isEmailMatch
+            ? 'An account with this email address already exists. Please Sign In.'
+            : 'An account with this phone number already exists. Please Sign In.'
+        );
+        return;
+      }
+
+      const passHash = sha256(pass);
+
+      const newProfile = {
+        id: `usr_${cleanPhone || Date.now()}`,
+        email: cleanEmail,
+        name: cleanName,
+        phone: cleanPhone,
+        jersey: authJersey.trim() || '#18',
+        role: `${authRole} (${authBattingStyle})`,
+        battingStyle: authBattingStyle || 'Right Hand Bat',
+        bowlingStyle: authBowlingStyle || 'Right Arm Medium',
+        avatarUri: userProfile?.avatarUri || null,
+      };
+
+      const freshStats = {
+        matchOverview: {
+          matchesPlayed: 0,
+          wins: 0,
+          losses: 0,
+          winRate: '0%',
+          potmCount: 0,
+        },
+        careerStats: {
+          batting: {
+            runs: 0,
+            avg: '0.00',
+            sr: '0.00',
+            highScore: '0',
+            hundreds: 0,
+            fifties: 0,
+            fours: 0,
+            sixes: 0,
+            ballsFaced: 0,
+            dotBallsFaced: 0,
+            dotPct: '0.0%',
+            ducks: 0,
+            goldenDucks: 0,
+            silverDucks: 0,
+          },
+          bowling: {
+            wickets: 0,
+            econ: '0.00',
+            avg: '0.00',
+            best: '0/0',
+            oversBowled: '0.0',
+            runsConceded: 0,
+            dotBallsBowled: 0,
+            dotPct: '0.0%',
+          },
+          fielding: {
+            catches: 0,
+            droppedCatches: 0,
+            totalChances: 0,
+            catchEfficiency: '0.0%',
+            dropRate: '0.0%',
+            runOuts: 0,
+            directHits: 0,
+            stumpings: 0,
+          },
+          totalDotsTillNow: 0,
+        },
+        matchHistoryList: [],
+      };
+
+      setRegisteredTeams(REGISTERED_APP_TEAMS);
+      AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS)).catch(() => {});
+
+      const newUserRecord = {
+        email: cleanEmail,
+        passwordHash: passHash,
+        profile: newProfile,
+        careerStats: freshStats,
+        createdTeams: [],
+        createdAt: new Date().toISOString(),
+      };
+
+      setUsersDb(prev => {
+        const safePrev = Array.isArray(prev) ? prev.filter(Boolean) : [];
+        const filtered = safePrev.filter(u => u && u.email && u.email.toLowerCase() !== cleanEmail);
+        const updated = [newUserRecord, ...filtered];
+        AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updated)).catch(() => {});
+        syncUsersToFirebase(updated).catch(() => {});
+        return updated;
+      });
+
+      syncSingleUserProfileToFirebase(newProfile, cleanEmail, passHash).catch(() => {});
+
+      const regPlayerRecord = {
+        id: `usr_${cleanPhone}`,
+        name: cleanName,
+        phone: cleanPhone,
+        role: authRole === 'Bowler' ? 'BOWL' : authRole === 'Wicket Keeper' ? 'WK' : authRole === 'All-Rounder' ? 'ALL' : 'BAT',
+        battingStyle: authBattingStyle || 'Right Hand Bat',
+        bowlingStyle: authBowlingStyle || 'Right Arm Medium',
+        jersey: (authJersey.trim() || '18').replace('#', ''),
+        avatarUri: userProfile?.avatarUri || null,
+      };
+
+      setRegisteredPlayers(prev => {
+        const filtered = (prev || []).filter(p => p.phone !== cleanPhone && p.name.toLowerCase() !== cleanName.toLowerCase());
+        const updated = [regPlayerRecord, ...filtered];
+        AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updated)).catch(() => {});
+        return updated;
+      });
+
+      setUserProfile(newProfile);
+      setUserCareerData(freshStats);
+
+      AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(newProfile)).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(freshStats)).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
+      setMatchDraft(INITIAL_MATCH_DRAFT);
+
+      setAuthPassword('');
+      setAuthConfirmPassword('');
+      setAuthLoading(false);
+      setIsAuthenticated(true);
+      setActiveTab('profile');
+      showAppToast(`Welcome to CricketAdda, ${cleanName}! Account created.`, '🎉');
+    } catch (err) {
+      setAuthLoading(false);
+      setAuthError('An error occurred while creating your account. Please try again.');
+    }
+  };
 
   const handleEmailSubmit = () => {
     setAuthError('');
@@ -4429,8 +4861,10 @@ function CricketAddaMain() {
     AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS)).catch(() => {});
 
     // 4. Save to usersDb & sync to Cloud
+    const passHash = authPassword ? sha256(authPassword) : null;
     const newUserRecord = {
       email: cleanEmail,
+      passwordHash: passHash,
       profile: newProfile,
       careerStats: freshStats,
       createdTeams: [],
@@ -4446,7 +4880,7 @@ function CricketAddaMain() {
       return updated;
     });
 
-    syncSingleUserProfileToFirebase(newProfile, cleanEmail).catch(() => {});
+    syncSingleUserProfileToFirebase(newProfile, cleanEmail, passHash).catch(() => {});
 
     // 5. Register in players directory
     const regPlayerRecord = {
@@ -4486,11 +4920,66 @@ function CricketAddaMain() {
     }, 400);
   };
 
+  const handleChangePassword = async () => {
+    const p1 = newChangePassword.trim();
+    const p2 = confirmChangePassword.trim();
+    if (!p1 || p1.length < 6) {
+      Alert.alert('Invalid Password', 'New password must be at least 6 characters long.');
+      return;
+    }
+    if (p1 !== p2) {
+      Alert.alert('Mismatch', 'Passwords do not match. Please verify both fields.');
+      return;
+    }
+    const cleanEmail = String(userProfile?.email || authEmail || '').toLowerCase();
+    const cleanPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '');
+    const passHash = sha256(p1);
+
+    // Update usersDb
+    setUsersDb(prev => {
+      const list = Array.isArray(prev) ? prev.filter(Boolean) : [];
+      const updatedList = list.map(u => {
+        if (!u) return u;
+        const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+        const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
+        if ((cleanEmail && uEmail === cleanEmail) || (cleanPhone && uPhone === cleanPhone)) {
+          return {
+            ...u,
+            passwordHash: passHash,
+            profile: {
+              ...(u.profile || {}),
+              passwordHash: passHash,
+            },
+          };
+        }
+        return u;
+      });
+      AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updatedList)).catch(() => {});
+      syncUsersToFirebase(updatedList).catch(() => {});
+      return updatedList;
+    });
+
+    if (userProfile) {
+      syncSingleUserProfileToFirebase({ ...userProfile, passwordHash: passHash }, cleanEmail, passHash).catch(() => {});
+    }
+
+    setChangePasswordModalVisible(false);
+    setNewChangePassword('');
+    setConfirmChangePassword('');
+    showAppToast('Password updated successfully! 🔑', '🔒');
+  };
+
   const handleSignOutAndReset = async () => {
     setIsAuthenticated(false);
+    setAuthMethod('password');
+    setAuthSubTab('signin');
     setAuthStep(1);
     setAuthEmail('');
     setAuthPhone('');
+    setAuthPassword('');
+    setAuthConfirmPassword('');
+    setAuthShowPassword(false);
+    setAuthShowConfirmPassword(false);
     setAuthName('');
     setAuthJersey('#18');
     setAuthRole('Top-Order Batter');
@@ -4526,8 +5015,6 @@ function CricketAddaMain() {
     try {
       await AsyncStorage.multiRemove([
         STORAGE_KEYS.REGISTERED_TEAMS,
-        STORAGE_KEYS.USERS_DB,
-        STORAGE_KEYS.REGISTERED_PLAYERS,
         STORAGE_KEYS.USER_CAREER,
         STORAGE_KEYS.USER_PROFILE,
         STORAGE_KEYS.MATCHES_DB,
@@ -5373,6 +5860,13 @@ function CricketAddaMain() {
             try {
               const parsedPlayers = JSON.parse(storedPlayers);
               if (Array.isArray(parsedPlayers) && parsedPlayers.length > 0) setRegisteredPlayers(parsedPlayers);
+            } catch (e) {}
+          }
+          const storedUsersDb = await AsyncStorage.getItem(STORAGE_KEYS.USERS_DB);
+          if (storedUsersDb) {
+            try {
+              const parsedUsers = JSON.parse(storedUsersDb);
+              if (Array.isArray(parsedUsers) && parsedUsers.length > 0) setUsersDb(parsedUsers);
             } catch (e) {}
           }
         }
@@ -13471,20 +13965,50 @@ function CricketAddaMain() {
               </View>
             </View>
 
-            {/* STEP PROGRESS INDICATOR */}
-            <View style={styles.authStepIndicatorRow}>
-              <View style={[styles.authStepDot, authStep >= 1 && styles.authStepDotActive]}>
-                <Text style={[styles.authStepDotText, authStep >= 1 && styles.authStepDotTextActive]}>1</Text>
-              </View>
-              <View style={[styles.authStepLine, authStep >= 2 && styles.authStepLineActive]} />
-              <View style={[styles.authStepDot, authStep >= 2 && styles.authStepDotActive]}>
-                <Text style={[styles.authStepDotText, authStep >= 2 && styles.authStepDotTextActive]}>2</Text>
-              </View>
-              <View style={[styles.authStepLine, authStep >= 3 && styles.authStepLineActive]} />
-              <View style={[styles.authStepDot, authStep >= 3 && styles.authStepDotActive]}>
-                <Text style={[styles.authStepDotText, authStep >= 3 && styles.authStepDotTextActive]}>3</Text>
-              </View>
+            {/* TOP AUTH MODE TOGGLE: EMAIL & PASSWORD vs QUICK OTP */}
+            <View style={styles.authModeToggleContainer}>
+              <TouchableOpacity
+                style={[styles.authModeTab, authMethod === 'password' && styles.authModeTabActive]}
+                onPress={() => {
+                  setAuthMethod('password');
+                  setAuthError('');
+                }}
+              >
+                <Text style={[styles.authModeTabText, authMethod === 'password' && styles.authModeTabTextActive]}>
+                  🔑 Email & Password
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.authModeTab, authMethod === 'otp' && styles.authModeTabActive]}
+                onPress={() => {
+                  setAuthMethod('otp');
+                  setAuthStep(1);
+                  setAuthError('');
+                }}
+              >
+                <Text style={[styles.authModeTabText, authMethod === 'otp' && styles.authModeTabTextActive]}>
+                  ⚡ Quick OTP
+                </Text>
+              </TouchableOpacity>
             </View>
+
+            {/* STEP PROGRESS INDICATOR (OTP Mode only) */}
+            {authMethod === 'otp' && (
+              <View style={styles.authStepIndicatorRow}>
+                <View style={[styles.authStepDot, authStep >= 1 && styles.authStepDotActive]}>
+                  <Text style={[styles.authStepDotText, authStep >= 1 && styles.authStepDotTextActive]}>1</Text>
+                </View>
+                <View style={[styles.authStepLine, authStep >= 2 && styles.authStepLineActive]} />
+                <View style={[styles.authStepDot, authStep >= 2 && styles.authStepDotActive]}>
+                  <Text style={[styles.authStepDotText, authStep >= 2 && styles.authStepDotTextActive]}>2</Text>
+                </View>
+                <View style={[styles.authStepLine, authStep >= 3 && styles.authStepLineActive]} />
+                <View style={[styles.authStepDot, authStep >= 3 && styles.authStepDotActive]}>
+                  <Text style={[styles.authStepDotText, authStep >= 3 && styles.authStepDotTextActive]}>3</Text>
+                </View>
+              </View>
+            )}
 
             {/* ERROR NOTIFICATION BANNER */}
             {authError ? (
@@ -13494,11 +14018,340 @@ function CricketAddaMain() {
             ) : null}
 
             {/* ========================================================================= */}
-            {/* STEP 1: EMAIL ADDRESS INPUT */}
+            {/* EMAIL & PASSWORD AUTH MODE (DIRECT SIGN IN & SIGN UP - NO OTP NEEDED) */}
             {/* ========================================================================= */}
-            {authStep === 1 && (
+            {authMethod === 'password' && (
               <View style={styles.authCard}>
-                <Text style={styles.authCardTitle}>Sign In / Sign Up</Text>
+                {/* Sub-tab switcher: Sign In vs Create Account */}
+                <View style={styles.authSubTabContainer}>
+                  <TouchableOpacity
+                    style={[styles.authSubTab, authSubTab === 'signin' && styles.authSubTabActive]}
+                    onPress={() => {
+                      setAuthSubTab('signin');
+                      setAuthError('');
+                    }}
+                  >
+                    <Text style={[styles.authSubTabText, authSubTab === 'signin' && styles.authSubTabTextActive]}>
+                      🔑 Sign In
+                    </Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.authSubTab, authSubTab === 'signup' && styles.authSubTabActive]}
+                    onPress={() => {
+                      setAuthSubTab('signup');
+                      setAuthError('');
+                    }}
+                  >
+                    <Text style={[styles.authSubTabText, authSubTab === 'signup' && styles.authSubTabTextActive]}>
+                      ✨ Create Account
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                {authSubTab === 'signin' ? (
+                  <>
+                    <Text style={styles.authCardTitle}>Sign In with Password</Text>
+                    <Text style={styles.authCardSubtitle}>
+                      Login securely using your registered email address and password.
+                    </Text>
+
+                    {/* Email Input */}
+                    <View style={styles.authFieldWrapper}>
+                      <Text style={styles.authInputLabel}>EMAIL ADDRESS</Text>
+                      <View style={styles.authInputRow}>
+                        <Text style={styles.authInputIcon}>✉️</Text>
+                        <TextInput
+                          style={styles.authTextInput}
+                          placeholder="player@cricketadda.com"
+                          placeholderTextColor="#64748b"
+                          keyboardType="email-address"
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          value={authEmail}
+                          onChangeText={t => {
+                            setAuthEmail(t);
+                            if (authError) setAuthError('');
+                          }}
+                          onSubmitEditing={handleEmailPasswordLogin}
+                        />
+                        {(authEmail || '').length > 0 && (
+                          <TouchableOpacity onPress={() => setAuthEmail('')}>
+                            <Text style={{ color: '#94a3b8', fontSize: 16, paddingHorizontal: 6 }}>✕</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Password Input */}
+                    <View style={styles.authFieldWrapper}>
+                      <Text style={styles.authInputLabel}>PASSWORD</Text>
+                      <View style={styles.authInputRow}>
+                        <Text style={styles.authInputIcon}>🔒</Text>
+                        <TextInput
+                          style={styles.authTextInput}
+                          placeholder="Enter your password"
+                          placeholderTextColor="#64748b"
+                          secureTextEntry={!authShowPassword}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          value={authPassword}
+                          onChangeText={t => {
+                            setAuthPassword(t);
+                            if (authError) setAuthError('');
+                          }}
+                          onSubmitEditing={handleEmailPasswordLogin}
+                        />
+                        <TouchableOpacity onPress={() => setAuthShowPassword(!authShowPassword)}>
+                          <Text style={{ fontSize: 16, paddingHorizontal: 6 }}>
+                            {authShowPassword ? '👁️' : '🙈'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Sign In Button */}
+                    <TouchableOpacity
+                      style={[styles.authPrimaryBtn, authLoading && { opacity: 0.7 }]}
+                      onPress={handleEmailPasswordLogin}
+                      disabled={authLoading}
+                    >
+                      {authLoading ? (
+                        <ActivityIndicator color="#020617" size="small" />
+                      ) : (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <Text style={styles.authPrimaryBtnText}>Sign In</Text>
+                          <Text style={{ fontSize: 16, color: '#020617', fontWeight: '900' }}>➔</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Toggle to Sign Up */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, gap: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 12 }}>Don't have an account?</Text>
+                      <TouchableOpacity onPress={() => { setAuthSubTab('signup'); setAuthError(''); }}>
+                        <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>Create Account</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* OTP Switch Link */}
+                    <TouchableOpacity
+                      style={{ marginTop: 10, paddingVertical: 4, alignItems: 'center' }}
+                      onPress={() => {
+                        setAuthMethod('otp');
+                        setAuthStep(1);
+                        setAuthError('');
+                      }}
+                    >
+                      <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '700' }}>
+                        ⚡ Or use Quick OTP Login
+                      </Text>
+                    </TouchableOpacity>
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.authCardTitle}>Create Account</Text>
+                    <Text style={styles.authCardSubtitle}>
+                      Sign up with Email & Password. Instant access, no OTP waiting!
+                    </Text>
+
+                    {/* Full Player Name */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>FULL PLAYER NAME *</Text>
+                      <TextInput
+                        style={styles.authSimpleInputCompact}
+                        placeholder="e.g. Rohit Sharma"
+                        placeholderTextColor="#64748b"
+                        value={authName}
+                        onChangeText={t => {
+                          setAuthName(t);
+                          if (authError) setAuthError('');
+                        }}
+                      />
+                    </View>
+
+                    {/* Email Address */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>EMAIL ADDRESS *</Text>
+                      <TextInput
+                        style={styles.authSimpleInputCompact}
+                        placeholder="player@cricketadda.com"
+                        placeholderTextColor="#64748b"
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoCorrect={false}
+                        value={authEmail}
+                        onChangeText={t => {
+                          setAuthEmail(t);
+                          if (authError) setAuthError('');
+                        }}
+                      />
+                    </View>
+
+                    {/* Side-by-side: Phone (Compulsory) + Jersey # */}
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 7 }}>
+                      <View style={{ flex: 1.8 }}>
+                        <Text style={styles.authInputLabelCompact}>
+                          PHONE NUMBER * <Text style={{ color: '#f87171', fontSize: 9.5 }}>(Compulsory)</Text>
+                        </Text>
+                        <TextInput
+                          style={styles.authSimpleInputCompact}
+                          placeholder="10-digit number"
+                          placeholderTextColor="#64748b"
+                          keyboardType="phone-pad"
+                          maxLength={10}
+                          value={authPhone}
+                          onChangeText={t => {
+                            setAuthPhone(t);
+                            if (authError) setAuthError('');
+                          }}
+                        />
+                      </View>
+
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.authInputLabelCompact}>JERSEY #</Text>
+                        <TextInput
+                          style={styles.authSimpleInputCompact}
+                          placeholder="#18"
+                          placeholderTextColor="#64748b"
+                          value={authJersey}
+                          onChangeText={setAuthJersey}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Password */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>
+                        CREATE PASSWORD * <Text style={{ color: '#94a3b8', fontSize: 9.5 }}>(min 6 chars)</Text>
+                      </Text>
+                      <View style={styles.authInputRowCompact}>
+                        <TextInput
+                          style={styles.authTextInputCompact}
+                          placeholder="Min 6 characters"
+                          placeholderTextColor="#64748b"
+                          secureTextEntry={!authShowPassword}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          value={authPassword}
+                          onChangeText={t => {
+                            setAuthPassword(t);
+                            if (authError) setAuthError('');
+                          }}
+                        />
+                        <TouchableOpacity onPress={() => setAuthShowPassword(!authShowPassword)}>
+                          <Text style={{ fontSize: 14, paddingHorizontal: 6 }}>
+                            {authShowPassword ? '👁️' : '🙈'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Confirm Password */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>CONFIRM PASSWORD *</Text>
+                      <View style={styles.authInputRowCompact}>
+                        <TextInput
+                          style={styles.authTextInputCompact}
+                          placeholder="Re-enter password to confirm"
+                          placeholderTextColor="#64748b"
+                          secureTextEntry={!authShowConfirmPassword}
+                          autoCapitalize="none"
+                          autoCorrect={false}
+                          value={authConfirmPassword}
+                          onChangeText={t => {
+                            setAuthConfirmPassword(t);
+                            if (authError) setAuthError('');
+                          }}
+                        />
+                        <TouchableOpacity onPress={() => setAuthShowConfirmPassword(!authShowConfirmPassword)}>
+                          <Text style={{ fontSize: 14, paddingHorizontal: 6 }}>
+                            {authShowConfirmPassword ? '👁️' : '🙈'}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+
+                    {/* Playing Role */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>PLAYING ROLE</Text>
+                      <View style={styles.authChipsContainerCompact}>
+                        {[
+                          'Top-Order Batter',
+                          'Middle-Order Batter',
+                          'Fast Bowler',
+                          'Spin Bowler',
+                          'Wicketkeeper Batter',
+                          'All-Rounder',
+                        ].map(r => {
+                          const isSel = authRole === r;
+                          return (
+                            <TouchableOpacity
+                              key={r}
+                              style={[styles.authRoleChipCompact, isSel && styles.authRoleChipActive]}
+                              onPress={() => setAuthRole(r)}
+                            >
+                              <Text style={[styles.authRoleChipTextCompact, isSel && styles.authRoleChipTextActive]}>
+                                {r === 'Top-Order Batter' ? '🏏 Top-Order' : r === 'Middle-Order Batter' ? '🏏 Mid-Order' : r === 'Fast Bowler' ? '⚡ Fast Bowl' : r === 'Spin Bowler' ? '🌀 Spin Bowl' : r === 'Wicketkeeper Batter' ? '🧤 WK-Batter' : '🔥 All-Rounder'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+
+                    {/* Batting Hand */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>BATTING HAND</Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {['Right-hand Bat', 'Left-hand Bat'].map(b => {
+                          const isSel = authBattingStyle === b;
+                          return (
+                            <TouchableOpacity
+                              key={b}
+                              style={[styles.authStyleChipCompact, isSel && styles.authStyleChipActive]}
+                              onPress={() => setAuthBattingStyle(b)}
+                            >
+                              <Text style={[styles.authStyleChipTextCompact, isSel && styles.authStyleChipTextActive]}>
+                                {b === 'Right-hand Bat' ? '👉 Right-hand Bat' : '👈 Left-hand Bat'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+
+                    {/* Create Account Button */}
+                    <TouchableOpacity
+                      style={[styles.authPrimaryBtnCompact, authLoading && { opacity: 0.7 }, { marginTop: 6 }]}
+                      onPress={handleEmailPasswordSignUp}
+                      disabled={authLoading}
+                    >
+                      {authLoading ? (
+                        <ActivityIndicator color="#020617" size="small" />
+                      ) : (
+                        <Text style={styles.authPrimaryBtnText}>Create Account & Sign In 🚀</Text>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Toggle to Sign In */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 10, gap: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 12 }}>Already have an account?</Text>
+                      <TouchableOpacity onPress={() => { setAuthSubTab('signin'); setAuthError(''); }}>
+                        <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>Sign In</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </>
+                )}
+              </View>
+            )}
+
+            {/* ========================================================================= */}
+            {/* STEP 1: EMAIL ADDRESS INPUT (OTP MODE) */}
+            {/* ========================================================================= */}
+            {authMethod === 'otp' && authStep === 1 && (
+              <View style={styles.authCard}>
+                <Text style={styles.authCardTitle}>Sign In with OTP</Text>
                 <Text style={styles.authCardSubtitle}>
                   Enter your email address to receive a secure 6-digit OTP verification code.
                 </Text>
@@ -13544,13 +14397,21 @@ function CricketAddaMain() {
                     </View>
                   )}
                 </TouchableOpacity>
+
+                {/* Helpful link if OTP has issues */}
+                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, gap: 4 }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Not getting OTP?</Text>
+                  <TouchableOpacity onPress={() => { setAuthMethod('password'); setAuthError(''); }}>
+                    <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>Sign In with Password</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
             {/* ========================================================================= */}
             {/* STEP 2: VERIFY OTP PAGE */}
             {/* ========================================================================= */}
-            {authStep === 2 && (
+            {authMethod === 'otp' && authStep === 2 && (
               <View style={styles.authCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                   <Text style={styles.authCardTitle}>Verify OTP Code</Text>
@@ -13620,13 +14481,26 @@ function CricketAddaMain() {
                     </View>
                   )}
                 </TouchableOpacity>
+
+                {/* Escape link if OTP delivery fails */}
+                <TouchableOpacity
+                  style={{ marginTop: 12, alignItems: 'center' }}
+                  onPress={() => {
+                    setAuthMethod('password');
+                    setAuthError('');
+                  }}
+                >
+                  <Text style={{ color: '#fca5a5', fontSize: 11.5, fontWeight: 'bold' }}>
+                    ⚠️ OTP didn't arrive? Use Email & Password instead
+                  </Text>
+                </TouchableOpacity>
               </View>
             )}
 
             {/* ========================================================================= */}
             {/* STEP 3: SETUP PLAYER PROFILE */}
             {/* ========================================================================= */}
-            {authStep === 3 && (
+            {authMethod === 'otp' && authStep === 3 && (
               <View style={styles.authCard}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <Text style={styles.authCardTitle}>Setup Player Profile</Text>
@@ -17516,22 +18390,47 @@ function CricketAddaMain() {
               </View>
             </View>
 
-            <TouchableOpacity
-              style={{
-                backgroundColor: currentTheme.isLight ? '#fee2e2' : 'rgba(127, 29, 29, 0.4)',
-                borderColor: '#ef4444',
-                borderWidth: 1,
-                borderRadius: 8,
-                paddingVertical: 11,
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-              onPress={handleSignOutAndReset}
-            >
-              <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 13, fontWeight: 'bold' }}>
-                🚪 Sign Out
-              </Text>
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(14, 165, 233, 0.15)',
+                  borderColor: '#38bdf8',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => {
+                  setNewChangePassword('');
+                  setConfirmChangePassword('');
+                  setChangePasswordModalVisible(true);
+                }}
+              >
+                <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>
+                  🔑 Set / Change Password
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: currentTheme.isLight ? '#fee2e2' : 'rgba(127, 29, 29, 0.4)',
+                  borderColor: '#ef4444',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={handleSignOutAndReset}
+              >
+                <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 12, fontWeight: 'bold' }}>
+                  🚪 Sign Out
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* 0. APP THEME SELECTOR */}
@@ -26249,6 +27148,114 @@ function CricketAddaMain() {
             </TouchableOpacity>
           </View>
         </View>
+      {/* CHANGE PASSWORD MODAL */}
+      <Modal
+        visible={changePasswordModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => setChangePasswordModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View
+            style={{
+              backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+              borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+              borderWidth: 1.5,
+              borderRadius: 16,
+              padding: 18,
+              width: Math.min(width - 32, 380),
+              elevation: 12,
+            }}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 16, fontWeight: '900' }}>
+                🔑 Set / Update Password
+              </Text>
+              <TouchableOpacity onPress={() => setChangePasswordModalVisible(false)}>
+                <Text style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 12, marginBottom: 14 }}>
+              Set a secure password to log in directly without needing SMS or email OTP codes.
+            </Text>
+
+            {/* New Password */}
+            <Text style={{ color: '#38bdf8', fontSize: 10, fontWeight: '900', letterSpacing: 0.5, marginBottom: 4 }}>
+              NEW PASSWORD (MIN 6 CHARS)
+            </Text>
+            <View style={[styles.authInputRowCompact, { marginBottom: 12 }]}>
+              <TextInput
+                style={styles.authTextInputCompact}
+                placeholder="Enter new password"
+                placeholderTextColor="#64748b"
+                secureTextEntry={!showNewPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={newChangePassword}
+                onChangeText={setNewChangePassword}
+              />
+              <TouchableOpacity onPress={() => setShowNewPassword(!showNewPassword)}>
+                <Text style={{ fontSize: 14, paddingHorizontal: 6 }}>
+                  {showNewPassword ? '👁️' : '🙈'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Confirm Password */}
+            <Text style={{ color: '#38bdf8', fontSize: 10, fontWeight: '900', letterSpacing: 0.5, marginBottom: 4 }}>
+              CONFIRM NEW PASSWORD
+            </Text>
+            <View style={[styles.authInputRowCompact, { marginBottom: 16 }]}>
+              <TextInput
+                style={styles.authTextInputCompact}
+                placeholder="Re-enter new password"
+                placeholderTextColor="#64748b"
+                secureTextEntry={!showNewPassword}
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={confirmChangePassword}
+                onChangeText={setConfirmChangePassword}
+              />
+            </View>
+
+            {/* Actions */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                style={{
+                  flex: 1,
+                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={() => setChangePasswordModalVisible(false)}
+              >
+                <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 13, fontWeight: 'bold' }}>
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{
+                  flex: 1.5,
+                  backgroundColor: '#10b981',
+                  borderRadius: 8,
+                  paddingVertical: 10,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                onPress={handleChangePassword}
+              >
+                <Text style={{ color: '#020617', fontSize: 13, fontWeight: '900' }}>
+                  Save Password 🔒
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
       </Modal>
 
       <Modal visible={aboutModalVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setAboutModalVisible(false)}>
@@ -31530,11 +32537,82 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 3,
   },
-  authStatusBadgeText: {
+  authModeToggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#0f172a',
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: '#334155',
+  },
+  authModeTab: {
+    flex: 1,
+    paddingVertical: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 9,
+  },
+  authModeTabActive: {
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#10b981',
+  },
+  authModeTabText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  authModeTabTextActive: {
     color: '#34d399',
-    fontSize: 9.5,
     fontWeight: '900',
-    letterSpacing: 0.6,
+  },
+  authSubTabContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    padding: 3,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  authSubTab: {
+    flex: 1,
+    paddingVertical: 7,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 6,
+  },
+  authSubTabActive: {
+    backgroundColor: '#10b981',
+  },
+  authSubTabText: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  authSubTabTextActive: {
+    color: '#020617',
+    fontWeight: '900',
+  },
+  authInputRowCompact: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#1e293b',
+    borderWidth: 1.5,
+    borderColor: '#334155',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    height: 38,
+  },
+  authTextInputCompact: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '600',
+    paddingVertical: 0,
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
   authStepIndicatorRow: {
     flexDirection: 'row',

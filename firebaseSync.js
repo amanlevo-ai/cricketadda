@@ -513,12 +513,13 @@ export async function syncUsersToFirebaseDirect(users) {
   }
 }
 
-export async function syncSingleUserProfileToFirebaseDirect(profile, email) {
+export async function syncSingleUserProfileToFirebaseDirect(profile, email, passwordHash) {
   if (!isFirebaseConfigured() || !profile) return false;
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
     const cleanPhone = String(profile.phone || '').replace(/[^0-9]/g, '');
     const cleanEmail = String(email || profile.email || '').trim().toLowerCase();
+    const effectivePassHash = passwordHash || profile.passwordHash || null;
 
     // 1. Direct index by phone for instant cross-device lookup
     if (cleanPhone && cleanPhone.length >= 10) {
@@ -541,6 +542,7 @@ export async function syncSingleUserProfileToFirebaseDirect(profile, email) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: cleanEmail,
+          passwordHash: effectivePassHash,
           profile,
           lastUpdatedAt: Date.now(),
         }),
@@ -589,10 +591,10 @@ export async function syncUsersToFirebase(users) {
   return success;
 }
 
-export async function syncSingleUserProfileToFirebase(profile, email) {
-  const success = await syncSingleUserProfileToFirebaseDirect(profile, email);
+export async function syncSingleUserProfileToFirebase(profile, email, passwordHash) {
+  const success = await syncSingleUserProfileToFirebaseDirect(profile, email, passwordHash);
   if (!success) {
-    await enqueueOfflineSync('syncProfile', { profile, email });
+    await enqueueOfflineSync('syncProfile', { profile, email, passwordHash });
   }
   return success;
 }
@@ -626,8 +628,8 @@ export async function flushOfflineSyncQueue() {
       } else if (job.action === 'syncUsers') {
         success = await syncUsersToFirebaseDirect(job.payload);
       } else if (job.action === 'syncProfile') {
-        const { profile, email } = job.payload || {};
-        success = await syncSingleUserProfileToFirebaseDirect(profile, email);
+        const { profile, email, passwordHash } = job.payload || {};
+        success = await syncSingleUserProfileToFirebaseDirect(profile, email, passwordHash);
       }
 
       if (success) {
@@ -924,6 +926,7 @@ export async function fetchFirebaseUsers() {
         name: prof.name || raw.name || existing.name || 'Unnamed Player',
         phone: cleanPhone || existing.phone || '',
         email: cleanEmail || existing.email || '',
+        passwordHash: raw.passwordHash || (prof && prof.passwordHash) || existing.passwordHash || null,
         role: prof.role || raw.role || existing.role || 'Player',
         battingStyle: prof.battingStyle || raw.battingStyle || existing.battingStyle || 'Right-hand Bat',
         bowlingStyle: prof.bowlingStyle || raw.bowlingStyle || existing.bowlingStyle || 'Right-arm Fast',
