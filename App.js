@@ -13835,6 +13835,42 @@ function CricketAddaMain() {
               </View>
             </View>
 
+            {/* TOP 2 TABS: QUICK OTP vs EMAIL & PASSWORD */}
+            {authStep !== 3 && (
+              <View style={styles.authModeToggleContainer}>
+                <TouchableOpacity
+                  style={[styles.authModeTab, authMethod === 'otp' && styles.authModeTabActive]}
+                  onPress={() => {
+                    setAuthMethod('otp');
+                    setAuthError('');
+                  }}
+                >
+                  <Text style={[styles.authModeTabText, authMethod === 'otp' && styles.authModeTabTextActive]}>
+                    ⚡ Quick OTP
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.authModeTab, authMethod === 'password' && styles.authModeTabActive]}
+                  onPress={() => {
+                    setAuthMethod('password');
+                    setAuthError('');
+                    const cleanE = (authEmail || '').trim().toLowerCase();
+                    const exists = Array.isArray(usersDb) && usersDb.some(u => {
+                      if (!u) return false;
+                      const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+                      return uEmail === cleanE;
+                    });
+                    setAuthSubTab(exists ? 'signin' : 'signup');
+                  }}
+                >
+                  <Text style={[styles.authModeTabText, authMethod === 'password' && styles.authModeTabTextActive]}>
+                    🔑 Email & Password
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+
             {/* STEP PROGRESS INDICATOR (OTP Mode & Step 3 Profile Setup) */}
             {(authMethod === 'otp' || authStep === 3) && (
               <View style={styles.authStepIndicatorRow}>
