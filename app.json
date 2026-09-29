@@ -50,8 +50,7 @@
         }
       ],
       "expo-audio",
-      "expo-asset",
-      "expo-video"
+      "expo-asset"
     ],
     "platforms": [
       "ios",
