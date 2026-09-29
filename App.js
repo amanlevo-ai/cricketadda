@@ -4251,6 +4251,8 @@ function CricketAddaMain() {
     return () => {
       if (interval) clearInterval(interval);
     };
+  }, [authStep, authOtpTimer]);
+
   const handleEmailPasswordLogin = async () => {
     setAuthError('');
     const cleanEmail = authEmail.trim().toLowerCase();
@@ -27025,6 +27027,8 @@ function CricketAddaMain() {
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
+
       {/* CHANGE PASSWORD MODAL */}
       <Modal
         visible={changePasswordModalVisible}
