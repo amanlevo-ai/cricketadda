@@ -4333,7 +4333,26 @@ function CricketAddaMain() {
         return;
       }
 
-      // Successful login -> Restore profile & session!
+      // Check if user has already completed player profile setup
+      const hasCompletedProfile = Boolean(
+        existing &&
+        existing.profile &&
+        (existing.profile.name || existing.profile.phone)
+      );
+
+      if (!hasCompletedProfile) {
+        // User account exists but profile setup is pending -> go to Step 3 Profile Setup
+        const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+        const cap = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        setAuthName((existing && existing.profile && existing.profile.name) || cap || '');
+        setAuthPhone((existing && existing.profile && existing.profile.phone) || '');
+        setAuthJersey((existing && existing.profile && existing.profile.jersey) || '#18');
+        setAuthStep(3);
+        showAppToast('Please complete your player profile setup.', '🏏');
+        return;
+      }
+
+      // Successful login -> Restore profile & session and land directly on Dashboard ('matches')!
       const restoredProfile = existing.profile || {
         name: 'Player',
         jersey: '#18',
@@ -4394,7 +4413,8 @@ function CricketAddaMain() {
 
       setAuthPassword('');
       setIsAuthenticated(true);
-      setActiveTab('profile');
+      setAuthStep(1);
+      setActiveTab('matches'); // Directly to Dashboard page!
       showAppToast(`Welcome back, ${restoredProfile?.name || 'Player'}! 👋`, '🏏');
     } catch (err) {
       setAuthLoading(false);
@@ -4570,7 +4590,14 @@ function CricketAddaMain() {
 
       setAuthLoading(false);
 
-      if (existing) {
+      // Check if user has already completed player profile setup
+      const hasCompletedProfile = Boolean(
+        existing &&
+        existing.profile &&
+        (existing.profile.name || existing.profile.phone)
+      );
+
+      if (existing && hasCompletedProfile) {
         const restoredProfile = existing.profile || { name: 'Player', jersey: '#18', role: 'Top-Order Batter', avatarUri: null };
         const restoredCareer = existing.careerStats || EMPTY_USER_CAREER_DATA;
         const userTeams = Array.isArray(existing.createdTeams) ? existing.createdTeams : [];
@@ -4630,17 +4657,17 @@ function CricketAddaMain() {
 
         setIsAuthenticated(true);
         setAuthStep(1);
-        setActiveTab('profile');
+        setActiveTab('matches'); // Directly to Dashboard page!
         showAppToast(`Welcome back, ${restoredProfile?.name || 'Player'}! Profile restored.`, '👋');
         return;
       }
 
-      // If new user: Proceed to Step 3: Setup Profile
+      // If new user or profile not completed yet: Proceed to Step 3: Setup Profile
       const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
       const cap = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      setAuthName(cap || '');
-      setAuthPhone('');
-      setAuthJersey('#18');
+      setAuthName((existing && existing.profile && existing.profile.name) || cap || '');
+      setAuthPhone((existing && existing.profile && existing.profile.phone) || '');
+      setAuthJersey((existing && existing.profile && existing.profile.jersey) || '#18');
       setAuthStep(3);
     } catch (err) {
       setAuthLoading(false);
@@ -4785,7 +4812,7 @@ function CricketAddaMain() {
       setAuthLoading(false);
       setIsAuthenticated(true);
       setAuthStep(1);
-      setActiveTab('profile'); // Navigate to profile page
+      setActiveTab('matches'); // Navigate to Dashboard page!
       showAppToast(`Welcome to CricketAdda, ${cleanName}! Account created.`, '🎉');
     }, 400);
   };
