@@ -3998,7 +3998,7 @@ function CricketAddaMain() {
   const safeModalCardMaxHeight = Math.max(300, height - topInset - bottomInset - 32);
 
   const [showSplash, setShowSplash] = useState(true);
-  const [countdown, setCountdown] = useState(5);
+  const [countdown, setCountdown] = useState(4);
   const [activeTab, setActiveTab] = useState('matches');
   const [navHistory, setNavHistory] = useState(['matches']);
   const activeTabRef = useRef(activeTab);
@@ -5587,15 +5587,15 @@ function CricketAddaMain() {
     Animated.loop(
       Animated.sequence([
         Animated.timing(scaleAnim, {
-          toValue: 1.06,
-          duration: 1300,
-          easing: Easing.inOut(Easing.quad),
+          toValue: 1.035,
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(scaleAnim, {
           toValue: 1,
-          duration: 1300,
-          easing: Easing.inOut(Easing.quad),
+          duration: 2200,
+          easing: Easing.inOut(Easing.sin),
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ])
@@ -5620,8 +5620,8 @@ function CricketAddaMain() {
 
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 5000,
-      easing: Easing.linear,
+      duration: 4000,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1),
       useNativeDriver: false,
     }).start();
 
@@ -5645,7 +5645,7 @@ function CricketAddaMain() {
         setActiveTab('matches');
         setNavHistory(['matches']);
       });
-    }, 5000);
+    }, 4000);
 
     return () => {
       clearTimeout(timer);
@@ -13743,91 +13743,50 @@ function CricketAddaMain() {
   };
 
   // =========================================================================
-  // 1. FIRST SCREEN: 5-SECOND FULLSCREEN ANIMATED CRICKET GROUND SPLASH
+  // 1. FIRST SCREEN: FULLSCREEN CINEMATIC POSTER ANIMATED SPLASH
   // =========================================================================
   if (showSplash) {
     return (
       <Animated.View style={[styles.splashFullContainer, { opacity: splashFade }]}>
         <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={true} hidden={false} />
 
-        <View style={styles.splashCenterStage}>
-          <View style={styles.svgCenteredBox}>
-            <Svg height={GROUND_SIZE} width={GROUND_SIZE} viewBox="-150 -150 300 300">
-              <Defs>
-                <RadialGradient id="spGroundGrad" cx="0" cy="0" r="140" gradientUnits="userSpaceOnUse">
-                  <Stop offset="0%" stopColor="#059669" stopOpacity="0.98" />
-                  <Stop offset="65%" stopColor="#047857" stopOpacity="0.95" />
-                  <Stop offset="100%" stopColor="#022c22" stopOpacity="1" />
-                </RadialGradient>
-                <RadialGradient id="spFloodLight" cx="0" cy="-60" r="160" gradientUnits="userSpaceOnUse">
-                  <Stop offset="0%" stopColor="#38bdf8" stopOpacity="0.5" />
-                  <Stop offset="60%" stopColor="#10b981" stopOpacity="0.2" />
-                  <Stop offset="100%" stopColor="#020617" stopOpacity="0" />
-                </RadialGradient>
-                <LinearGradient id="spPitchGrad" x1="0" y1="0" x2="0" y2="1">
-                  <Stop offset="0%" stopColor="#d97706" />
-                  <Stop offset="100%" stopColor="#b45309" />
-                </LinearGradient>
-              </Defs>
-
-              <Circle cx="0" cy="0" r="148" fill="#0f172a" stroke="#1e293b" strokeWidth="5" />
-              <Polygon points="-140,-130 0,0 -80,-140" fill="rgba(56, 189, 248, 0.16)" />
-              <Polygon points="140,-130 0,0 80,-140" fill="rgba(56, 189, 248, 0.16)" />
-              <Polygon points="-140,130 0,0 -80,140" fill="rgba(16, 185, 129, 0.14)" />
-              <Polygon points="140,130 0,0 80,140" fill="rgba(16, 185, 129, 0.14)" />
-              <Circle cx="0" cy="0" r="140" fill="url(#spGroundGrad)" stroke="#10b981" strokeWidth="3" />
-              <Circle cx="0" cy="0" r="115" fill="none" stroke="rgba(255,255,255,0.08)" strokeWidth="14" />
-              <Circle cx="0" cy="0" r="85" fill="none" stroke="rgba(0,0,0,0.15)" strokeWidth="14" />
-              <Circle cx="0" cy="0" r="75" fill="none" stroke="#ffffff" strokeWidth="1.5" strokeDasharray="5,4" />
-              <Rect x="-12" y="-30" width="24" height="60" rx="3" fill="url(#spPitchGrad)" stroke="#fef08a" strokeWidth="1" />
-              <Line x1="-10" y1="-22" x2="10" y2="-22" stroke="#ffffff" strokeWidth="1.4" />
-              <Circle cx="-3" cy="-24" r="1.3" fill="#ffffff" />
-              <Circle cx="0" cy="-24" r="1.3" fill="#ffffff" />
-              <Circle cx="3" cy="-24" r="1.3" fill="#ffffff" />
-              <Line x1="-10" y1="22" x2="10" y2="22" stroke="#ffffff" strokeWidth="1.4" />
-              <Circle cx="-3" cy="24" r="1.3" fill="#ffffff" />
-              <Circle cx="0" cy="24" r="1.3" fill="#ffffff" />
-              <Circle cx="3" cy="24" r="1.3" fill="#ffffff" />
-              <Circle cx="0" cy="0" r="140" fill="url(#spFloodLight)" />
-            </Svg>
-          </View>
-
-          <Animated.View
-            style={[
-              styles.splashAura,
-              {
-                opacity: glowAnim,
-                transform: [{ scale: scaleAnim }],
-              },
-            ]}
+        {/* Fullscreen Animated Poster with Smooth Subtle Breathing Zoom */}
+        <Animated.View
+          style={[
+            styles.splashImageWrapper,
+            {
+              transform: [{ scale: scaleAnim }],
+            },
+          ]}
+        >
+          <Image
+            source={require('./assets/splash-poster.jpg')}
+            style={styles.splashPosterImage}
+            resizeMode="cover"
           />
+        </Animated.View>
 
-          <Animated.View
-            style={[
-              styles.splashLogoWrapper,
-              {
-                transform: [{ translateY: floatAnim }, { scale: scaleAnim }],
-              },
-            ]}
-          >
-            <Image source={require('./assets/logo.png')} style={styles.splashLogoImg} resizeMode="contain" />
-          </Animated.View>
+        {/* Soft Bottom Vignette for Contrast */}
+        <View style={styles.splashBottomVignette} pointerEvents="none" />
 
-          <View style={styles.splashTitleBox}>
-            <Text style={styles.splashTitle}>CricketAdda</Text>
-            <View style={styles.splashProBadge}>
-              <Text style={styles.splashProText}>PRO SCORING ENGINE</Text>
+        {/* Bottom Loading Progress Container */}
+        <View style={[styles.splashBottomBar, { bottom: Math.max(bottomInset, 16) + 20 }]}>
+          <View style={styles.splashProgressCard}>
+            <View style={styles.progressBarTrack}>
+              <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+            </View>
+            <View style={styles.splashLoadingRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={styles.splashPulsingDot} />
+                <Text style={styles.splashLoadingText}>
+                  Initializing CricketAdda Live Engine...
+                </Text>
+              </View>
+              <Text style={styles.splashCountdownText}>
+                {countdown}s
+              </Text>
             </View>
           </View>
-        </View>
-
-        <View style={[styles.splashBottomBar, { bottom: bottomInset + 30 }]}>
-          <View style={styles.progressBarTrack}>
-            <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
-          </View>
-          <Text style={styles.splashLoadingText}>
-            Loading CricketAdda matches in <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{countdown}s</Text>...
-          </Text>
         </View>
       </Animated.View>
     );
@@ -27427,83 +27386,51 @@ const styles = StyleSheet.create({
     width: width,
     height: height,
     position: 'relative',
+    overflow: 'hidden',
   },
-  splashCenterStage: {
+  splashImageWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#020617',
+  },
+  splashPosterImage: {
+    width: '100%',
+    height: '100%',
+  },
+  splashBottomVignette: {
     position: 'absolute',
-    top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 20,
-  },
-  svgCenteredBox: {
-    position: 'absolute',
-    width: GROUND_SIZE,
-    height: GROUND_SIZE,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  splashAura: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: '#10b981',
-    shadowColor: '#10b981',
-    shadowRadius: 60,
-    shadowOpacity: 0.85,
-    elevation: 25,
-  },
-  splashLogoWrapper: {
-    width: 200,
-    height: 220,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 30,
-  },
-  splashLogoImg: {
-    width: 190,
-    height: 210,
-  },
-  splashTitleBox: {
-    alignItems: 'center',
-    marginTop: 8,
-    zIndex: 30,
-  },
-  splashTitle: {
-    color: '#ffffff',
-    fontSize: 30,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  splashProBadge: {
-    backgroundColor: '#065f46',
-    borderWidth: 1,
-    borderColor: '#10b981',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
-    marginTop: 4,
-  },
-  splashProText: {
-    color: '#34d399',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 1,
+    height: 180,
+    backgroundColor: 'rgba(2, 6, 23, 0.45)',
   },
   splashBottomBar: {
     position: 'absolute',
-    left: 24,
-    right: 24,
+    left: 20,
+    right: 20,
     alignItems: 'center',
     zIndex: 30,
+  },
+  splashProgressCard: {
+    width: '100%',
+    backgroundColor: 'rgba(15, 23, 42, 0.88)',
+    borderColor: 'rgba(56, 189, 248, 0.3)',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    elevation: 8,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
   },
   progressBarTrack: {
     width: '100%',
     height: 6,
-    backgroundColor: '#1e293b',
+    backgroundColor: 'rgba(51, 65, 85, 0.7)',
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 8,
@@ -27513,10 +27440,27 @@ const styles = StyleSheet.create({
     backgroundColor: '#10b981',
     borderRadius: 3,
   },
+  splashLoadingRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  splashPulsingDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#34d399',
+  },
   splashLoadingText: {
-    color: '#94a3b8',
+    color: '#cbd5e1',
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+  splashCountdownText: {
+    color: '#38bdf8',
+    fontSize: 12,
+    fontWeight: '900',
   },
 
   container: {
