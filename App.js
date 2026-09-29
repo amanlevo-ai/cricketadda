@@ -4325,13 +4325,13 @@ function CricketAddaMain() {
       const hasPassword = Boolean(passHash || plainPass);
 
       if (!hasPassword) {
-        setAuthError('This account was created via OTP and has no password yet. Please switch to "Quick OTP" to log in.');
+        setAuthError('This account was created via OTP and has no password yet. Please switch to "Login with OTP" to log in.');
         return;
       }
 
       const isPassValid = (passHash && passHash === inputHash) || (plainPass && plainPass === pass);
       if (!isPassValid) {
-        setAuthError('Incorrect password. Please try again or switch to Quick OTP if forgotten.');
+        setAuthError('Incorrect password. Please try again or switch to Login with OTP if forgotten.');
         return;
       }
 
@@ -13860,11 +13860,11 @@ function CricketAddaMain() {
                 CricketAdda <Text style={{ color: '#34d399' }}>PRO</Text>
               </Text>
               <View style={styles.authStatusBadge}>
-                <Text style={styles.authStatusBadgeText}>⚡ TOURNAMENT & LIVE SCORING ENGINE</Text>
+                <Text style={styles.authStatusBadgeText}>TOURNAMENT & LIVE SCORING ENGINE</Text>
               </View>
             </View>
 
-            {/* TOP 2 TABS: QUICK OTP vs EMAIL & PASSWORD */}
+            {/* TOP 2 TABS: LOGIN WITH OTP vs EMAIL & PASSWORD */}
             {authStep !== 3 && (
               <View style={styles.authModeToggleContainer}>
                 <TouchableOpacity
@@ -13875,7 +13875,7 @@ function CricketAddaMain() {
                   }}
                 >
                   <Text style={[styles.authModeTabText, authMethod === 'otp' && styles.authModeTabTextActive]}>
-                    ⚡ Quick OTP
+                    Login with OTP
                   </Text>
                 </TouchableOpacity>
 
@@ -13999,7 +13999,7 @@ function CricketAddaMain() {
                           style={styles.authTextInput}
                           placeholder="Enter your password"
                           placeholderTextColor="#64748b"
-                          secureTextEntry={!authShowPassword}
+                          secureTextEntry={true}
                           autoCapitalize="none"
                           autoCorrect={false}
                           value={authPassword}
@@ -14009,11 +14009,6 @@ function CricketAddaMain() {
                           }}
                           onSubmitEditing={handleEmailPasswordLogin}
                         />
-                        <TouchableOpacity onPress={() => setAuthShowPassword(!authShowPassword)}>
-                          <Text style={{ fontSize: 16, paddingHorizontal: 6 }}>
-                            {authShowPassword ? '👁️' : '🙈'}
-                          </Text>
-                        </TouchableOpacity>
                       </View>
                     </View>
 
@@ -14051,7 +14046,7 @@ function CricketAddaMain() {
                       }}
                     >
                       <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '700' }}>
-                        ⚡ Or use Quick OTP Login
+                        Login with OTP
                       </Text>
                     </TouchableOpacity>
                   </>
@@ -14094,7 +14089,7 @@ function CricketAddaMain() {
                           style={styles.authTextInput}
                           placeholder="Min 6 characters"
                           placeholderTextColor="#64748b"
-                          secureTextEntry={!authShowPassword}
+                          secureTextEntry={true}
                           autoCapitalize="none"
                           autoCorrect={false}
                           value={authPassword}
@@ -14103,11 +14098,6 @@ function CricketAddaMain() {
                             if (authError) setAuthError('');
                           }}
                         />
-                        <TouchableOpacity onPress={() => setAuthShowPassword(!authShowPassword)}>
-                          <Text style={{ fontSize: 16, paddingHorizontal: 6 }}>
-                            {authShowPassword ? '👁️' : '🙈'}
-                          </Text>
-                        </TouchableOpacity>
                       </View>
                     </View>
 
@@ -14120,7 +14110,7 @@ function CricketAddaMain() {
                           style={styles.authTextInput}
                           placeholder="Re-enter password to confirm"
                           placeholderTextColor="#64748b"
-                          secureTextEntry={!authShowConfirmPassword}
+                          secureTextEntry={true}
                           autoCapitalize="none"
                           autoCorrect={false}
                           value={authConfirmPassword}
@@ -14129,20 +14119,7 @@ function CricketAddaMain() {
                             if (authError) setAuthError('');
                           }}
                         />
-                        <TouchableOpacity onPress={() => setAuthShowConfirmPassword(!authShowConfirmPassword)}>
-                          <Text style={{ fontSize: 16, paddingHorizontal: 6 }}>
-                            {authShowConfirmPassword ? '👁️' : '🙈'}
-                          </Text>
-                        </TouchableOpacity>
                       </View>
-                    </View>
-
-                    {/* Notice informing user of next profile setup step */}
-                    <View style={styles.authNextStepNoticeBox}>
-                      <Text style={{ fontSize: 15 }}>🏏</Text>
-                      <Text style={styles.authNextStepNoticeText}>
-                        Next Step: Player Profile, Mobile Number & Cricket Style setup.
-                      </Text>
                     </View>
 
                     {/* Continue Button */}
@@ -14169,7 +14146,7 @@ function CricketAddaMain() {
                       </TouchableOpacity>
                     </View>
 
-                    {/* Back to Quick OTP */}
+                    {/* Back to Login with OTP */}
                     <TouchableOpacity
                       style={{ marginTop: 10, paddingVertical: 4, alignItems: 'center' }}
                       onPress={() => {
@@ -14179,7 +14156,7 @@ function CricketAddaMain() {
                       }}
                     >
                       <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '700' }}>
-                        ⚡ Or use Quick OTP Login
+                        Login with OTP
                       </Text>
                     </TouchableOpacity>
                   </>
@@ -14335,33 +14312,24 @@ function CricketAddaMain() {
                   )}
                 </TouchableOpacity>
 
-                {/* PROMINENT TECHNICAL FALLBACK: DIDN'T RECEIVE OTP */}
-                <View style={styles.authTechnicalFallbackCard}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <Text style={{ fontSize: 16 }}>⚠️</Text>
-                    <Text style={styles.authTechnicalFallbackTitle}>OTP nahi aaya ya technical issue?</Text>
-                  </View>
-                  <Text style={styles.authTechnicalFallbackSub}>
-                    Agar server ya email delivery issue ki wajah se OTP nahi mila, toh aap bina ruke Email & Password se continue kar sakte hain.
-                  </Text>
-                  <TouchableOpacity
-                    style={styles.authTechnicalFallbackBtn}
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      setAuthMethod('password');
-                      setAuthError('');
-                      const cleanE = (authEmail || '').trim().toLowerCase();
-                      const exists = Array.isArray(usersDb) && usersDb.some(u => {
-                        if (!u) return false;
-                        const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
-                        return uEmail === cleanE;
-                      });
-                      setAuthSubTab(exists ? 'signin' : 'signup');
-                    }}
-                  >
-                    <Text style={styles.authTechnicalFallbackBtnText}>👉 Continue with Email & Password ➔</Text>
-                  </TouchableOpacity>
-                </View>
+                {/* Continue with Email & Password */}
+                <TouchableOpacity
+                  style={styles.authTechnicalFallbackBtn}
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    setAuthMethod('password');
+                    setAuthError('');
+                    const cleanE = (authEmail || '').trim().toLowerCase();
+                    const exists = Array.isArray(usersDb) && usersDb.some(u => {
+                      if (!u) return false;
+                      const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+                      return uEmail === cleanE;
+                    });
+                    setAuthSubTab(exists ? 'signin' : 'signup');
+                  }}
+                >
+                  <Text style={styles.authTechnicalFallbackBtnText}>Continue with Email & Password</Text>
+                </TouchableOpacity>
               </View>
             )}
 
@@ -32418,6 +32386,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginTop: 3,
   },
+  authStatusBadgeText: {
+    color: '#34d399',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.6,
+  },
   authModeToggleContainer: {
     flexDirection: 'row',
     backgroundColor: '#0f172a',
@@ -32905,18 +32879,20 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   authTechnicalFallbackBtn: {
-    backgroundColor: '#dc2626',
-    borderRadius: 8,
+    backgroundColor: '#1e293b',
+    borderColor: '#334155',
+    borderWidth: 1,
+    borderRadius: 10,
     paddingVertical: 10,
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3,
+    marginTop: 14,
   },
   authTechnicalFallbackBtnText: {
-    color: '#ffffff',
+    color: '#38bdf8',
     fontSize: 12.5,
-    fontWeight: '900',
+    fontWeight: '800',
   },
   authNextStepNoticeBox: {
     flexDirection: 'row',
