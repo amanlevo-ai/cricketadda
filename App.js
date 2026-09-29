@@ -13760,7 +13760,7 @@ function CricketAddaMain() {
           ]}
         >
           <Image
-            source={require('./assets/splash-poster.jpg')}
+            source={require('./assets/splash.gif')}
             style={styles.splashPosterImage}
             resizeMode="cover"
           />
