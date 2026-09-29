@@ -3997,6 +3997,7 @@ function CricketAddaMain() {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 40) : 44);
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 16);
+  const safeModalCardMaxHeight = Math.max(300, height - topInset - bottomInset - 32);
   const [showSplash, setShowSplash] = useState(true);
   const [countdown, setCountdown] = useState(8);
   const [activeTab, setActiveTab] = useState('matches');
