@@ -13819,140 +13819,360 @@ function CricketAddaMain() {
   // 2. MAIN APP INTERFACE
   // =========================================================================
   return (
-    <View style={[styles.container, { backgroundColor: currentTheme.bg }]}>
-      <StatusBar barStyle={currentTheme.isLight ? 'dark-content' : 'light-content'} backgroundColor={currentTheme.headerBg} translucent={true} hidden={false} />
-      <View style={{ height: topInset, backgroundColor: currentTheme.headerBg, width: '100%' }} />
+    <View style={[styles.container, { backgroundColor: !isAuthenticated ? '#020617' : currentTheme.bg }]}>
+      <StatusBar
+        barStyle={!isAuthenticated ? 'light-content' : (currentTheme.isLight ? 'dark-content' : 'light-content')}
+        backgroundColor={!isAuthenticated ? 'transparent' : currentTheme.headerBg}
+        translucent={true}
+        hidden={false}
+      />
+      {isAuthenticated && (
+        <View style={{ height: topInset, backgroundColor: currentTheme.headerBg, width: '100%' }} />
+      )}
 
       {!isAuthenticated ? (
-        <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          style={{ flex: 1 }}
-        >
-          <ScrollView
-            contentContainerStyle={styles.authScrollContainer}
-            showsVerticalScrollIndicator={false}
-            keyboardShouldPersistTaps="handled"
+        <View style={styles.authRootContainer}>
+          {/* Fullscreen Stadium Background Artwork */}
+          <Image
+            source={require('./assets/splash-poster.jpg')}
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
+          />
+          {/* Subtle Dark Vignette Backdrop for high readability */}
+          <View style={styles.authBackdropOverlay} pointerEvents="none" />
+
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            style={{ flex: 1 }}
           >
-            {/* Top Brand Logo & Glow Badge */}
-            <View style={styles.authBrandHeader}>
-              <View style={styles.authLogoRing}>
-                <Image source={require('./assets/logo.png')} style={styles.authLogoImage} resizeMode="contain" />
-              </View>
-              <Text style={styles.authBrandTitle}>
-                CricketAdda <Text style={{ color: '#34d399' }}>PRO</Text>
-              </Text>
-              <View style={styles.authStatusBadge}>
-                <Text style={styles.authStatusBadgeText}>TOURNAMENT & LIVE SCORING ENGINE</Text>
-              </View>
-            </View>
+            <ScrollView
+              contentContainerStyle={[styles.authScrollContainer, { paddingTop: topInset + 10 }]}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {/* Spacer allowing the 3D Cricket Adda batsman logo in the poster to stand out */}
+              <View style={styles.authHeroSpacer} />
 
-            {/* TOP 2 TABS: LOGIN WITH OTP vs EMAIL & PASSWORD */}
-            {authStep !== 3 && (
-              <View style={styles.authModeToggleContainer}>
-                <TouchableOpacity
-                  style={[styles.authModeTab, authMethod === 'otp' && styles.authModeTabActive]}
-                  onPress={() => {
-                    setAuthMethod('otp');
-                    setAuthError('');
-                  }}
-                >
-                  <Text style={[styles.authModeTabText, authMethod === 'otp' && styles.authModeTabTextActive]}>
-                    Login with OTP
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.authModeTab, authMethod === 'password' && styles.authModeTabActive]}
-                  onPress={() => {
-                    setAuthMethod('password');
-                    setAuthError('');
-                    const cleanE = (authEmail || '').trim().toLowerCase();
-                    const exists = Array.isArray(usersDb) && usersDb.some(u => {
-                      if (!u) return false;
-                      const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
-                      return uEmail === cleanE;
-                    });
-                    setAuthSubTab(exists ? 'signin' : 'signup');
-                  }}
-                >
-                  <Text style={[styles.authModeTabText, authMethod === 'password' && styles.authModeTabTextActive]}>
-                    🔑 Email & Password
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* STEP PROGRESS INDICATOR (OTP Mode & Step 3 Profile Setup) */}
-            {(authMethod === 'otp' || authStep === 3) && (
-              <View style={styles.authStepIndicatorRow}>
-                <View style={[styles.authStepDot, authStep >= 1 && styles.authStepDotActive]}>
-                  <Text style={[styles.authStepDotText, authStep >= 1 && styles.authStepDotTextActive]}>1</Text>
-                </View>
-                <View style={[styles.authStepLine, authStep >= 2 && styles.authStepLineActive]} />
-                <View style={[styles.authStepDot, authStep >= 2 && styles.authStepDotActive]}>
-                  <Text style={[styles.authStepDotText, authStep >= 2 && styles.authStepDotTextActive]}>2</Text>
-                </View>
-                <View style={[styles.authStepLine, authStep >= 3 && styles.authStepLineActive]} />
-                <View style={[styles.authStepDot, authStep >= 3 && styles.authStepDotActive]}>
-                  <Text style={[styles.authStepDotText, authStep >= 3 && styles.authStepDotTextActive]}>3</Text>
-                </View>
-              </View>
-            )}
-
-            {/* ERROR NOTIFICATION BANNER */}
-            {authError ? (
-              <View style={styles.authErrorBanner}>
-                <Text style={styles.authErrorText}>⚠️ {authError}</Text>
-              </View>
-            ) : null}
-
-            {/* ========================================================================= */}
-            {/* EMAIL & PASSWORD AUTH MODE (DIRECT SIGN IN & SIGN UP - NO OTP NEEDED) */}
-            {/* ========================================================================= */}
-            {authMethod === 'password' && authStep !== 3 && (
+              {/* FLOATING DARK GLASSMORPHISM AUTH CARD */}
               <View style={styles.authCard}>
-                {/* Sub-tab switcher: Sign In vs Create Account */}
-                <View style={styles.authSubTabContainer}>
-                  <TouchableOpacity
-                    style={[styles.authSubTab, authSubTab === 'signin' && styles.authSubTabActive]}
-                    onPress={() => {
-                      setAuthSubTab('signin');
-                      setAuthError('');
-                    }}
-                  >
-                    <Text style={[styles.authSubTabText, authSubTab === 'signin' && styles.authSubTabTextActive]}>
-                      🔑 Sign In
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.authSubTab, authSubTab === 'signup' && styles.authSubTabActive]}
-                    onPress={() => {
-                      setAuthSubTab('signup');
-                      setAuthError('');
-                    }}
-                  >
-                    <Text style={[styles.authSubTabText, authSubTab === 'signup' && styles.authSubTabTextActive]}>
-                      ✨ Create Account
-                    </Text>
-                  </TouchableOpacity>
+                {/* Dynamic Title matching mockup */}
+                <View style={styles.authTitleWrapper}>
+                  <Text style={styles.authTitlePrefix}>
+                    {authMethod === 'password'
+                      ? (authSubTab === 'signin' ? 'Login to' : 'Create Account in')
+                      : (authStep === 2 ? 'Verify Code for' : authStep === 3 ? 'Setup Profile for' : 'Login to')}
+                  </Text>
+                  <Text style={styles.authTitleBrand}>Cricket Adda</Text>
                 </View>
 
-                {authSubTab === 'signin' ? (
-                  <>
-                    <Text style={styles.authCardTitle}>Sign In with Password</Text>
+                {/* TOP 2 TABS: LOGIN WITH OTP vs EMAIL & PASSWORD */}
+                {authStep !== 3 && (
+                  <View style={styles.authModeToggleContainer}>
+                    <TouchableOpacity
+                      style={[styles.authModeTab, authMethod === 'otp' && styles.authModeTabActive]}
+                      onPress={() => {
+                        setAuthMethod('otp');
+                        setAuthError('');
+                      }}
+                    >
+                      <Text style={[styles.authModeTabText, authMethod === 'otp' && styles.authModeTabTextActive]}>
+                        ⚡ Login with OTP
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      style={[styles.authModeTab, authMethod === 'password' && styles.authModeTabActive]}
+                      onPress={() => {
+                        setAuthMethod('password');
+                        setAuthError('');
+                        const cleanE = (authEmail || '').trim().toLowerCase();
+                        const exists = Array.isArray(usersDb) && usersDb.some(u => {
+                          if (!u) return false;
+                          const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+                          return uEmail === cleanE;
+                        });
+                        setAuthSubTab(exists ? 'signin' : 'signup');
+                      }}
+                    >
+                      <Text style={[styles.authModeTabText, authMethod === 'password' && styles.authModeTabTextActive]}>
+                        🔑 Password
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+
+                {/* STEP PROGRESS INDICATOR (OTP Mode & Step 3 Profile Setup) */}
+                {(authMethod === 'otp' || authStep === 3) && (
+                  <View style={styles.authStepIndicatorRow}>
+                    <View style={[styles.authStepDot, authStep >= 1 && styles.authStepDotActive]}>
+                      <Text style={[styles.authStepDotText, authStep >= 1 && styles.authStepDotTextActive]}>1</Text>
+                    </View>
+                    <View style={[styles.authStepLine, authStep >= 2 && styles.authStepLineActive]} />
+                    <View style={[styles.authStepDot, authStep >= 2 && styles.authStepDotActive]}>
+                      <Text style={[styles.authStepDotText, authStep >= 2 && styles.authStepDotTextActive]}>2</Text>
+                    </View>
+                    <View style={[styles.authStepLine, authStep >= 3 && styles.authStepLineActive]} />
+                    <View style={[styles.authStepDot, authStep >= 3 && styles.authStepDotActive]}>
+                      <Text style={[styles.authStepDotText, authStep >= 3 && styles.authStepDotTextActive]}>3</Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* ERROR NOTIFICATION BANNER */}
+                {authError ? (
+                  <View style={styles.authErrorBanner}>
+                    <Text style={styles.authErrorText}>⚠️ {authError}</Text>
+                  </View>
+                ) : null}
+
+                {/* ========================================================================= */}
+                {/* 1. EMAIL & PASSWORD AUTH MODE (DIRECT SIGN IN & SIGN UP) */}
+                {/* ========================================================================= */}
+                {authMethod === 'password' && authStep !== 3 && (
+                  <View style={styles.authInnerBody}>
+                    {/* Sub-tab switcher: Sign In vs Create Account */}
+                    <View style={styles.authSubTabContainer}>
+                      <TouchableOpacity
+                        style={[styles.authSubTab, authSubTab === 'signin' && styles.authSubTabActive]}
+                        onPress={() => {
+                          setAuthSubTab('signin');
+                          setAuthError('');
+                        }}
+                      >
+                        <Text style={[styles.authSubTabText, authSubTab === 'signin' && styles.authSubTabTextActive]}>
+                          🔑 Sign In
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.authSubTab, authSubTab === 'signup' && styles.authSubTabActive]}
+                        onPress={() => {
+                          setAuthSubTab('signup');
+                          setAuthError('');
+                        }}
+                      >
+                        <Text style={[styles.authSubTabText, authSubTab === 'signup' && styles.authSubTabTextActive]}>
+                          ✨ Create Account
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {authSubTab === 'signin' ? (
+                      <>
+                        <Text style={styles.authCardSubtitle}>
+                          Login securely using your registered email address and password.
+                        </Text>
+
+                        {/* Email Input */}
+                        <View style={styles.authFieldWrapper}>
+                          <View style={styles.authInputRow}>
+                            <Text style={styles.authInputIcon}>✉️</Text>
+                            <TextInput
+                              style={styles.authTextInput}
+                              placeholder="Enter your email address"
+                              placeholderTextColor="#64748b"
+                              keyboardType="email-address"
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                              value={authEmail}
+                              onChangeText={t => {
+                                setAuthEmail(t);
+                                if (authError) setAuthError('');
+                              }}
+                              onSubmitEditing={handleEmailPasswordLogin}
+                            />
+                            {(authEmail || '').length > 0 && (
+                              <TouchableOpacity onPress={() => setAuthEmail('')}>
+                                <Text style={{ color: '#94a3b8', fontSize: 16, paddingHorizontal: 6 }}>✕</Text>
+                              </TouchableOpacity>
+                            )}
+                          </View>
+                        </View>
+
+                        {/* Password Input */}
+                        <View style={styles.authFieldWrapper}>
+                          <View style={styles.authInputRow}>
+                            <Text style={styles.authInputIcon}>🔒</Text>
+                            <TextInput
+                              style={styles.authTextInput}
+                              placeholder="Enter your password"
+                              placeholderTextColor="#64748b"
+                              secureTextEntry={true}
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                              value={authPassword}
+                              onChangeText={t => {
+                                setAuthPassword(t);
+                                if (authError) setAuthError('');
+                              }}
+                              onSubmitEditing={handleEmailPasswordLogin}
+                            />
+                          </View>
+                        </View>
+
+                        {/* Sign In Button */}
+                        <TouchableOpacity
+                          style={[styles.authPrimaryBtn, authLoading && { opacity: 0.7 }]}
+                          onPress={handleEmailPasswordLogin}
+                          disabled={authLoading}
+                          activeOpacity={0.85}
+                        >
+                          {authLoading ? (
+                            <ActivityIndicator color="#ffffff" size="small" />
+                          ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={styles.authPrimaryBtnText}>Sign In</Text>
+                              <Text style={styles.authPrimaryBtnArrow}>➔</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+
+                        {/* Toggle to Sign Up */}
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 14, gap: 4 }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 12 }}>Don't have an account?</Text>
+                          <TouchableOpacity onPress={() => { setAuthSubTab('signup'); setAuthError(''); }}>
+                            <Text style={{ color: '#22c55e', fontSize: 12, fontWeight: 'bold' }}>Create Account</Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* OTP Switch Link */}
+                        <TouchableOpacity
+                          style={{ marginTop: 10, paddingVertical: 4, alignItems: 'center' }}
+                          onPress={() => {
+                            setAuthMethod('otp');
+                            setAuthStep(1);
+                            setAuthError('');
+                          }}
+                        >
+                          <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '700' }}>
+                            ⚡ Login with OTP
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    ) : (
+                      <>
+                        <Text style={styles.authCardSubtitle}>
+                          Sign up with Email & Password. Next, you'll complete your player profile!
+                        </Text>
+
+                        {/* Email Address */}
+                        <View style={styles.authFieldWrapper}>
+                          <View style={styles.authInputRow}>
+                            <Text style={styles.authInputIcon}>✉️</Text>
+                            <TextInput
+                              style={styles.authTextInput}
+                              placeholder="Enter your email address"
+                              placeholderTextColor="#64748b"
+                              keyboardType="email-address"
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                              value={authEmail}
+                              onChangeText={t => {
+                                setAuthEmail(t);
+                                if (authError) setAuthError('');
+                              }}
+                            />
+                          </View>
+                        </View>
+
+                        {/* Password */}
+                        <View style={styles.authFieldWrapper}>
+                          <View style={styles.authInputRow}>
+                            <Text style={styles.authInputIcon}>🔒</Text>
+                            <TextInput
+                              style={styles.authTextInput}
+                              placeholder="Create password (min 6 chars)"
+                              placeholderTextColor="#64748b"
+                              secureTextEntry={true}
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                              value={authPassword}
+                              onChangeText={t => {
+                                setAuthPassword(t);
+                                if (authError) setAuthError('');
+                              }}
+                            />
+                          </View>
+                        </View>
+
+                        {/* Confirm Password */}
+                        <View style={styles.authFieldWrapper}>
+                          <View style={styles.authInputRow}>
+                            <Text style={styles.authInputIcon}>🔒</Text>
+                            <TextInput
+                              style={styles.authTextInput}
+                              placeholder="Confirm password"
+                              placeholderTextColor="#64748b"
+                              secureTextEntry={true}
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                              value={authConfirmPassword}
+                              onChangeText={t => {
+                                setAuthConfirmPassword(t);
+                                if (authError) setAuthError('');
+                              }}
+                            />
+                          </View>
+                        </View>
+
+                        {/* Continue Button */}
+                        <TouchableOpacity
+                          style={[styles.authPrimaryBtn, authLoading && { opacity: 0.7 }]}
+                          onPress={handleEmailPasswordSignUp}
+                          disabled={authLoading}
+                          activeOpacity={0.85}
+                        >
+                          {authLoading ? (
+                            <ActivityIndicator color="#ffffff" size="small" />
+                          ) : (
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={styles.authPrimaryBtnText}>Continue to Profile Setup</Text>
+                              <Text style={styles.authPrimaryBtnArrow}>➔</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+
+                        {/* Toggle to Sign In */}
+                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 14, gap: 4 }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 12 }}>Already have an account?</Text>
+                          <TouchableOpacity onPress={() => { setAuthSubTab('signin'); setAuthError(''); }}>
+                            <Text style={{ color: '#22c55e', fontSize: 12, fontWeight: 'bold' }}>Sign In</Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* Back to Login with OTP */}
+                        <TouchableOpacity
+                          style={{ marginTop: 10, paddingVertical: 4, alignItems: 'center' }}
+                          onPress={() => {
+                            setAuthMethod('otp');
+                            setAuthStep(1);
+                            setAuthError('');
+                          }}
+                        >
+                          <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '700' }}>
+                            ⚡ Login with OTP
+                          </Text>
+                        </TouchableOpacity>
+                      </>
+                    )}
+                  </View>
+                )}
+
+                {/* ========================================================================= */}
+                {/* 2. STEP 1: EMAIL ADDRESS INPUT (OTP MODE - MATCHING MOCKUP DESIGN) */}
+                {/* ========================================================================= */}
+                {authMethod === 'otp' && authStep === 1 && (
+                  <View style={styles.authInnerBody}>
                     <Text style={styles.authCardSubtitle}>
-                      Login securely using your registered email address and password.
+                      Enter your email address to receive a secure 6-digit verification code.
                     </Text>
 
-                    {/* Email Input */}
                     <View style={styles.authFieldWrapper}>
-                      <Text style={styles.authInputLabel}>EMAIL ADDRESS</Text>
                       <View style={styles.authInputRow}>
                         <Text style={styles.authInputIcon}>✉️</Text>
                         <TextInput
                           style={styles.authTextInput}
-                          placeholder="player@cricketadda.com"
+                          placeholder="Enter your email address"
                           placeholderTextColor="#64748b"
                           keyboardType="email-address"
                           autoCapitalize="none"
@@ -13962,7 +14182,7 @@ function CricketAddaMain() {
                             setAuthEmail(t);
                             if (authError) setAuthError('');
                           }}
-                          onSubmitEditing={handleEmailPasswordLogin}
+                          onSubmitEditing={handleEmailSubmit}
                         />
                         {(authEmail || '').length > 0 && (
                           <TouchableOpacity onPress={() => setAuthEmail('')}>
@@ -13972,535 +14192,329 @@ function CricketAddaMain() {
                       </View>
                     </View>
 
-                    {/* Password Input */}
-                    <View style={styles.authFieldWrapper}>
-                      <Text style={styles.authInputLabel}>PASSWORD</Text>
-                      <View style={styles.authInputRow}>
-                        <Text style={styles.authInputIcon}>🔒</Text>
-                        <TextInput
-                          style={styles.authTextInput}
-                          placeholder="Enter your password"
-                          placeholderTextColor="#64748b"
-                          secureTextEntry={true}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          value={authPassword}
-                          onChangeText={t => {
-                            setAuthPassword(t);
-                            if (authError) setAuthError('');
-                          }}
-                          onSubmitEditing={handleEmailPasswordLogin}
-                        />
-                      </View>
-                    </View>
-
-                    {/* Sign In Button */}
+                    {/* Primary Continue Button */}
                     <TouchableOpacity
                       style={[styles.authPrimaryBtn, authLoading && { opacity: 0.7 }]}
-                      onPress={handleEmailPasswordLogin}
+                      onPress={handleEmailSubmit}
                       disabled={authLoading}
+                      activeOpacity={0.85}
                     >
                       {authLoading ? (
-                        <ActivityIndicator color="#020617" size="small" />
+                        <ActivityIndicator color="#ffffff" size="small" />
                       ) : (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={styles.authPrimaryBtnText}>Sign In</Text>
-                          <Text style={{ fontSize: 16, color: '#020617', fontWeight: '900' }}>➔</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={styles.authPrimaryBtnText}>Send Verification Code</Text>
+                          <Text style={styles.authPrimaryBtnArrow}>➔</Text>
                         </View>
                       )}
                     </TouchableOpacity>
 
-                    {/* Toggle to Sign Up */}
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, gap: 4 }}>
-                      <Text style={{ color: '#94a3b8', fontSize: 12 }}>Don't have an account?</Text>
-                      <TouchableOpacity onPress={() => { setAuthSubTab('signup'); setAuthError(''); }}>
-                        <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>Create Account</Text>
+                    {/* Option to switch to password directly */}
+                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16, gap: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 12 }}>Prefer password?</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setAuthMethod('password');
+                          setAuthError('');
+                          const cleanE = (authEmail || '').trim().toLowerCase();
+                          const exists = Array.isArray(usersDb) && usersDb.some(u => {
+                            if (!u) return false;
+                            const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+                            return uEmail === cleanE;
+                          });
+                          setAuthSubTab(exists ? 'signin' : 'signup');
+                        }}
+                      >
+                        <Text style={{ color: '#22c55e', fontSize: 12, fontWeight: 'bold' }}>Sign In / Sign Up with Password</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                )}
+
+                {/* ========================================================================= */}
+                {/* 3. STEP 2: VERIFY OTP PAGE */}
+                {/* ========================================================================= */}
+                {authMethod === 'otp' && authStep === 2 && (
+                  <View style={styles.authInnerBody}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 12 }}>Verification Code Sent</Text>
+                      <TouchableOpacity
+                        style={styles.authEditEmailBtn}
+                        onPress={() => {
+                          setAuthStep(1);
+                          setAuthError('');
+                        }}
+                      >
+                        <Text style={styles.authEditEmailBtnText}>✏️ Edit Email</Text>
                       </TouchableOpacity>
                     </View>
 
-                    {/* OTP Switch Link */}
-                    <TouchableOpacity
-                      style={{ marginTop: 10, paddingVertical: 4, alignItems: 'center' }}
-                      onPress={() => {
-                        setAuthMethod('otp');
-                        setAuthStep(1);
-                        setAuthError('');
-                      }}
-                    >
-                      <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '700' }}>
-                        Login with OTP
-                      </Text>
-                    </TouchableOpacity>
-                  </>
-                ) : (
-                  <>
-                    <Text style={styles.authCardTitle}>Create Account</Text>
                     <Text style={styles.authCardSubtitle}>
-                      Sign up with Email & Password. Next, you'll complete your player profile!
+                      We sent a 6-digit verification code to <Text style={{ color: '#22c55e', fontWeight: 'bold' }}>{authEmail}</Text>
                     </Text>
 
-                    {/* Email Address */}
-                    <View style={styles.authFieldWrapper}>
-                      <Text style={styles.authInputLabel}>EMAIL ADDRESS *</Text>
-                      <View style={styles.authInputRow}>
-                        <Text style={styles.authInputIcon}>✉️</Text>
+                    {/* 6-DIGIT OTP BOXES */}
+                    <View style={styles.authOtpBoxRow}>
+                      {[0, 1, 2, 3, 4, 5].map(idx => (
                         <TextInput
-                          style={styles.authTextInput}
-                          placeholder="player@cricketadda.com"
-                          placeholderTextColor="#64748b"
-                          keyboardType="email-address"
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          value={authEmail}
-                          onChangeText={t => {
-                            setAuthEmail(t);
-                            if (authError) setAuthError('');
-                          }}
+                          key={`otp_${idx}`}
+                          ref={el => { otpInputRefs.current[idx] = el; }}
+                          style={[
+                            styles.authOtpDigitBox,
+                            authOtp[idx] ? styles.authOtpDigitBoxFilled : null,
+                          ]}
+                          maxLength={1}
+                          keyboardType="number-pad"
+                          textAlign="center"
+                          value={authOtp[idx]}
+                          onChangeText={val => handleOtpDigitChange(val, idx)}
+                          onKeyPress={e => handleOtpKeyPress(e, idx)}
                         />
-                      </View>
+                      ))}
                     </View>
 
-                    {/* Password */}
-                    <View style={styles.authFieldWrapper}>
-                      <Text style={styles.authInputLabel}>
-                        CREATE PASSWORD * <Text style={{ color: '#94a3b8', fontSize: 9.5 }}>(min 6 chars)</Text>
-                      </Text>
-                      <View style={styles.authInputRow}>
-                        <Text style={styles.authInputIcon}>🔒</Text>
-                        <TextInput
-                          style={styles.authTextInput}
-                          placeholder="Min 6 characters"
-                          placeholderTextColor="#64748b"
-                          secureTextEntry={true}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          value={authPassword}
-                          onChangeText={t => {
-                            setAuthPassword(t);
-                            if (authError) setAuthError('');
-                          }}
-                        />
-                      </View>
+                    {/* Timer & Resend */}
+                    <View style={styles.authResendRow}>
+                      {authOtpTimer > 0 ? (
+                        <Text style={styles.authTimerText}>
+                          ⏳ Resend code in{' '}
+                          <Text style={{ color: '#22c55e', fontWeight: 'bold' }}>
+                            {authOtpTimer}s
+                          </Text>
+                        </Text>
+                      ) : (
+                        <TouchableOpacity onPress={handleResendOtp}>
+                          <Text style={styles.authResendActiveText}>🔄 Resend OTP Code</Text>
+                        </TouchableOpacity>
+                      )}
                     </View>
 
-                    {/* Confirm Password */}
-                    <View style={styles.authFieldWrapper}>
-                      <Text style={styles.authInputLabel}>CONFIRM PASSWORD *</Text>
-                      <View style={styles.authInputRow}>
-                        <Text style={styles.authInputIcon}>🔒</Text>
-                        <TextInput
-                          style={styles.authTextInput}
-                          placeholder="Re-enter password to confirm"
-                          placeholderTextColor="#64748b"
-                          secureTextEntry={true}
-                          autoCapitalize="none"
-                          autoCorrect={false}
-                          value={authConfirmPassword}
-                          onChangeText={t => {
-                            setAuthConfirmPassword(t);
-                            if (authError) setAuthError('');
-                          }}
-                        />
-                      </View>
-                    </View>
-
-                    {/* Continue Button */}
+                    {/* Verify Button */}
                     <TouchableOpacity
                       style={[styles.authPrimaryBtn, authLoading && { opacity: 0.7 }]}
-                      onPress={handleEmailPasswordSignUp}
+                      onPress={handleOtpVerify}
                       disabled={authLoading}
+                      activeOpacity={0.85}
                     >
                       {authLoading ? (
-                        <ActivityIndicator color="#020617" size="small" />
+                        <ActivityIndicator color="#ffffff" size="small" />
                       ) : (
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={styles.authPrimaryBtnText}>Continue to Profile Setup</Text>
-                          <Text style={{ fontSize: 16, color: '#020617', fontWeight: '900' }}>➔</Text>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={styles.authPrimaryBtnText}>Verify OTP & Continue</Text>
+                          <Text style={styles.authPrimaryBtnArrow}>➔</Text>
                         </View>
                       )}
                     </TouchableOpacity>
 
-                    {/* Toggle to Sign In */}
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 12, gap: 4 }}>
-                      <Text style={{ color: '#94a3b8', fontSize: 12 }}>Already have an account?</Text>
-                      <TouchableOpacity onPress={() => { setAuthSubTab('signin'); setAuthError(''); }}>
-                        <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>Sign In</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    {/* Back to Login with OTP */}
+                    {/* Continue with Email & Password */}
                     <TouchableOpacity
-                      style={{ marginTop: 10, paddingVertical: 4, alignItems: 'center' }}
+                      style={styles.authTechnicalFallbackBtn}
+                      activeOpacity={0.8}
                       onPress={() => {
-                        setAuthMethod('otp');
-                        setAuthStep(1);
+                        setAuthMethod('password');
                         setAuthError('');
+                        const cleanE = (authEmail || '').trim().toLowerCase();
+                        const exists = Array.isArray(usersDb) && usersDb.some(u => {
+                          if (!u) return false;
+                          const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+                          return uEmail === cleanE;
+                        });
+                        setAuthSubTab(exists ? 'signin' : 'signup');
                       }}
                     >
-                      <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '700' }}>
-                        Login with OTP
-                      </Text>
+                      <Text style={styles.authTechnicalFallbackBtnText}>Continue with Email & Password</Text>
                     </TouchableOpacity>
-                  </>
+                  </View>
+                )}
+
+                {/* ========================================================================= */}
+                {/* 4. STEP 3: SETUP PLAYER PROFILE */}
+                {/* ========================================================================= */}
+                {authStep === 3 && (
+                  <View style={styles.authInnerBody}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setAuthStep(authMethod === 'password' ? 1 : 2);
+                          setAuthError('');
+                        }}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}
+                      >
+                        <Text style={{ color: '#22c55e', fontSize: 13, fontWeight: '700' }}>← Back</Text>
+                      </TouchableOpacity>
+                      <View style={styles.compulsoryBadge}>
+                        <Text style={styles.compulsoryBadgeText}>* Required Info</Text>
+                      </View>
+                    </View>
+
+                    {/* Profile Live Avatar Preview with Camera Overlay and Edit Button */}
+                    <View style={styles.authProfilePreviewRow}>
+                      <TouchableOpacity
+                        style={{ position: 'relative' }}
+                        activeOpacity={0.7}
+                        onPress={openPhotoPicker}
+                      >
+                        <PlayerAvatar name={authName || userProfile.name || 'Player'} customUri={userProfile.avatarUri} size={46} borderColor="#22c55e" />
+                        <View style={styles.avatarCameraIconBadge}>
+                          <Text style={{ fontSize: 9 }}>📷</Text>
+                        </View>
+                      </TouchableOpacity>
+
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.authProfilePreviewName} numberOfLines={1}>
+                          {authName || 'Your Name'} <Text style={{ color: '#22c55e' }}>({authJersey || '#18'})</Text>
+                        </Text>
+                        <Text style={styles.authProfilePreviewRole} numberOfLines={1}>{authRole} • {authBattingStyle}</Text>
+                        <Text style={styles.authProfilePreviewEmail} numberOfLines={1}>{authPhone ? `📱 ${authPhone} • ` : ''}{authEmail}</Text>
+                      </View>
+                    </View>
+
+                    {/* Full Name */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>FULL PLAYER NAME *</Text>
+                      <TextInput
+                        style={styles.authSimpleInputCompact}
+                        placeholder="e.g. Rohit Sharma"
+                        placeholderTextColor="#64748b"
+                        value={authName}
+                        onChangeText={t => {
+                          setAuthName(t);
+                          if (authError) setAuthError('');
+                        }}
+                      />
+                    </View>
+
+                    {/* Side-by-side Row: Phone Number (Compulsory) + Jersey Number */}
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 7 }}>
+                      {/* Phone Number (Compulsory) */}
+                      <View style={{ flex: 1.8 }}>
+                        <Text style={styles.authInputLabelCompact}>
+                          PHONE NUMBER * <Text style={{ color: '#f87171', fontSize: 9.5 }}>(Compulsory)</Text>
+                        </Text>
+                        <TextInput
+                          style={styles.authSimpleInputCompact}
+                          placeholder="10-digit number"
+                          placeholderTextColor="#64748b"
+                          keyboardType="phone-pad"
+                          maxLength={10}
+                          value={authPhone}
+                          onChangeText={t => {
+                            setAuthPhone(t);
+                            if (authError) setAuthError('');
+                          }}
+                        />
+                      </View>
+
+                      {/* Jersey Number */}
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.authInputLabelCompact}>JERSEY #</Text>
+                        <TextInput
+                          style={styles.authSimpleInputCompact}
+                          placeholder="#18"
+                          placeholderTextColor="#64748b"
+                          value={authJersey}
+                          onChangeText={setAuthJersey}
+                        />
+                      </View>
+                    </View>
+
+                    {/* Primary Cricket Role (Options) */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>PLAYING ROLE (SELECT OPTION)</Text>
+                      <View style={styles.authChipsContainerCompact}>
+                        {[
+                          'Top-Order Batter',
+                          'Middle-Order Batter',
+                          'Fast Bowler',
+                          'Spin Bowler',
+                          'Wicketkeeper Batter',
+                          'All-Rounder',
+                        ].map(r => {
+                          const isSel = authRole === r;
+                          return (
+                            <TouchableOpacity
+                              key={r}
+                              style={[styles.authRoleChipCompact, isSel && styles.authRoleChipActive]}
+                              onPress={() => setAuthRole(r)}
+                            >
+                              <Text style={[styles.authRoleChipTextCompact, isSel && styles.authRoleChipTextActive]}>
+                                {r === 'Top-Order Batter' ? '🏏 Top-Order' : r === 'Middle-Order Batter' ? '🏏 Mid-Order' : r === 'Fast Bowler' ? '⚡ Fast Bowl' : r === 'Spin Bowler' ? '🌀 Spin Bowl' : r === 'Wicketkeeper Batter' ? '🧤 WK-Batter' : '🔥 All-Rounder'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+
+                    {/* Batting Hand (Left / Right Hand Options) */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>BATTING HAND (LEFT / RIGHT HAND)</Text>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {['Right-hand Bat', 'Left-hand Bat'].map(b => {
+                          const isSel = authBattingStyle === b;
+                          return (
+                            <TouchableOpacity
+                              key={b}
+                              style={[styles.authStyleChipCompact, isSel && styles.authStyleChipActive]}
+                              onPress={() => setAuthBattingStyle(b)}
+                            >
+                              <Text style={[styles.authStyleChipTextCompact, isSel && styles.authStyleChipTextActive]}>
+                                {b === 'Right-hand Bat' ? '👉 Right-hand Bat' : '👈 Left-hand Bat'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+
+                    {/* Bowling Style (Options) */}
+                    <View style={styles.authFieldWrapperCompact}>
+                      <Text style={styles.authInputLabelCompact}>BOWLING STYLE (SELECT OPTION)</Text>
+                      <View style={styles.authChipsContainerCompact}>
+                        {[
+                          'Right-arm Fast',
+                          'Right-arm Spin',
+                          'Left-arm Fast',
+                          'Left-arm Spin',
+                          'None',
+                        ].map(bw => {
+                          const isSel = authBowlingStyle === bw;
+                          return (
+                            <TouchableOpacity
+                              key={bw}
+                              style={[styles.authRoleChipCompact, isSel && styles.authRoleChipActive]}
+                              onPress={() => setAuthBowlingStyle(bw)}
+                            >
+                              <Text style={[styles.authRoleChipTextCompact, isSel && styles.authRoleChipTextActive]}>
+                                {bw === 'Right-arm Fast' ? '⚡ RA Fast' : bw === 'Right-arm Spin' ? '🌀 RA Spin' : bw === 'Left-arm Fast' ? '⚡ LA Fast' : bw === 'Left-arm Spin' ? '🌀 LA Spin' : '🚫 Non-Bowler'}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+
+                    {/* Complete Button */}
+                    <TouchableOpacity
+                      style={[styles.authPrimaryBtn, authLoading && { opacity: 0.7 }]}
+                      onPress={handleProfileComplete}
+                      disabled={authLoading}
+                      activeOpacity={0.85}
+                    >
+                      {authLoading ? (
+                        <ActivityIndicator color="#ffffff" size="small" />
+                      ) : (
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
+                          <Text style={styles.authPrimaryBtnText}>Complete & Enter CricketAdda 🚀</Text>
+                        </View>
+                      )}
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
-            )}
-
-            {/* ========================================================================= */}
-            {/* STEP 1: EMAIL ADDRESS INPUT (OTP MODE) */}
-            {/* ========================================================================= */}
-            {authMethod === 'otp' && authStep === 1 && (
-              <View style={styles.authCard}>
-                <Text style={styles.authCardTitle}>Sign In with OTP</Text>
-                <Text style={styles.authCardSubtitle}>
-                  Enter your email address to receive a secure 6-digit OTP verification code.
-                </Text>
-
-                <View style={styles.authFieldWrapper}>
-                  <Text style={styles.authInputLabel}>EMAIL ADDRESS</Text>
-                  <View style={styles.authInputRow}>
-                    <Text style={styles.authInputIcon}>✉️</Text>
-                    <TextInput
-                      style={styles.authTextInput}
-                      placeholder="player@cricketadda.com"
-                      placeholderTextColor="#64748b"
-                      keyboardType="email-address"
-                      autoCapitalize="none"
-                      autoCorrect={false}
-                      value={authEmail}
-                      onChangeText={t => {
-                        setAuthEmail(t);
-                        if (authError) setAuthError('');
-                      }}
-                      onSubmitEditing={handleEmailSubmit}
-                    />
-                    {(authEmail || '').length > 0 && (
-                      <TouchableOpacity onPress={() => setAuthEmail('')}>
-                        <Text style={{ color: '#94a3b8', fontSize: 16, paddingHorizontal: 6 }}>✕</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-                </View>
-
-                {/* Primary Continue Button */}
-                <TouchableOpacity
-                  style={[styles.authPrimaryBtn, authLoading && { opacity: 0.7 }]}
-                  onPress={handleEmailSubmit}
-                  disabled={authLoading}
-                >
-                  {authLoading ? (
-                    <ActivityIndicator color="#020617" size="small" />
-                  ) : (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.authPrimaryBtnText}>Send Verification Code</Text>
-                      <Text style={{ fontSize: 16, color: '#020617', fontWeight: '900' }}>➔</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                {/* Option to switch to password directly */}
-                <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 14, gap: 4 }}>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Prefer password?</Text>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setAuthMethod('password');
-                      setAuthError('');
-                      const cleanE = (authEmail || '').trim().toLowerCase();
-                      const exists = Array.isArray(usersDb) && usersDb.some(u => {
-                        if (!u) return false;
-                        const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
-                        return uEmail === cleanE;
-                      });
-                      setAuthSubTab(exists ? 'signin' : 'signup');
-                    }}
-                  >
-                    <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>Sign In / Sign Up with Password</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* ========================================================================= */}
-            {/* STEP 2: VERIFY OTP PAGE */}
-            {/* ========================================================================= */}
-            {authMethod === 'otp' && authStep === 2 && (
-              <View style={styles.authCard}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={styles.authCardTitle}>Verify OTP Code</Text>
-                  <TouchableOpacity
-                    style={styles.authEditEmailBtn}
-                    onPress={() => {
-                      setAuthStep(1);
-                      setAuthError('');
-                    }}
-                  >
-                    <Text style={styles.authEditEmailBtnText}>✏️ Edit Email</Text>
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.authCardSubtitle}>
-                  We sent a 6-digit verification code to <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{authEmail}</Text>
-                </Text>
-
-                {/* 6-DIGIT OTP BOXES */}
-                <View style={styles.authOtpBoxRow}>
-                  {[0, 1, 2, 3, 4, 5].map(idx => (
-                    <TextInput
-                      key={`otp_${idx}`}
-                      ref={el => { otpInputRefs.current[idx] = el; }}
-                      style={[
-                        styles.authOtpDigitBox,
-                        authOtp[idx] ? styles.authOtpDigitBoxFilled : null,
-                      ]}
-                      maxLength={1}
-                      keyboardType="number-pad"
-                      textAlign="center"
-                      value={authOtp[idx]}
-                      onChangeText={val => handleOtpDigitChange(val, idx)}
-                      onKeyPress={e => handleOtpKeyPress(e, idx)}
-                    />
-                  ))}
-                </View>
-
-                {/* Timer & Resend */}
-                <View style={styles.authResendRow}>
-                  {authOtpTimer > 0 ? (
-                    <Text style={styles.authTimerText}>
-                      ⏳ Resend code in{' '}
-                      <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>
-                        {authOtpTimer}s
-                      </Text>
-                    </Text>
-                  ) : (
-                    <TouchableOpacity onPress={handleResendOtp}>
-                      <Text style={styles.authResendActiveText}>🔄 Resend OTP Code</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-
-                {/* Verify Button */}
-                <TouchableOpacity
-                  style={[styles.authPrimaryBtn, authLoading && { opacity: 0.7 }]}
-                  onPress={handleOtpVerify}
-                  disabled={authLoading}
-                >
-                  {authLoading ? (
-                    <ActivityIndicator color="#020617" size="small" />
-                  ) : (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={styles.authPrimaryBtnText}>Verify OTP & Continue</Text>
-                      <Text style={{ fontSize: 16, color: '#020617', fontWeight: '900' }}>➔</Text>
-                    </View>
-                  )}
-                </TouchableOpacity>
-
-                {/* Continue with Email & Password */}
-                <TouchableOpacity
-                  style={styles.authTechnicalFallbackBtn}
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    setAuthMethod('password');
-                    setAuthError('');
-                    const cleanE = (authEmail || '').trim().toLowerCase();
-                    const exists = Array.isArray(usersDb) && usersDb.some(u => {
-                      if (!u) return false;
-                      const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
-                      return uEmail === cleanE;
-                    });
-                    setAuthSubTab(exists ? 'signin' : 'signup');
-                  }}
-                >
-                  <Text style={styles.authTechnicalFallbackBtnText}>Continue with Email & Password</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* ========================================================================= */}
-            {/* STEP 3: SETUP PLAYER PROFILE */}
-            {/* ========================================================================= */}
-            {authStep === 3 && (
-              <View style={styles.authCard}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        setAuthStep(authMethod === 'password' ? 1 : 2);
-                        setAuthError('');
-                      }}
-                      style={{ paddingRight: 4 }}
-                    >
-                      <Text style={{ color: '#38bdf8', fontSize: 13, fontWeight: '700' }}>←</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.authCardTitle}>Setup Player Profile</Text>
-                  </View>
-                  <View style={styles.compulsoryBadge}>
-                    <Text style={styles.compulsoryBadgeText}>* Required Info</Text>
-                  </View>
-                </View>
-
-                {/* Profile Live Avatar Preview with Camera Overlay and Edit Button */}
-                <View style={styles.authProfilePreviewRow}>
-                  <TouchableOpacity
-                    style={{ position: 'relative' }}
-                    activeOpacity={0.7}
-                    onPress={openPhotoPicker}
-                  >
-                    <PlayerAvatar name={authName || userProfile.name || 'Player'} customUri={userProfile.avatarUri} size={46} borderColor="#10b981" />
-                    <View style={styles.avatarCameraIconBadge}>
-                      <Text style={{ fontSize: 9 }}>📷</Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={styles.authProfilePreviewName} numberOfLines={1}>
-                      {authName || 'Your Name'} <Text style={{ color: '#34d399' }}>({authJersey || '#18'})</Text>
-                    </Text>
-                    <Text style={styles.authProfilePreviewRole} numberOfLines={1}>{authRole} • {authBattingStyle}</Text>
-                    <Text style={styles.authProfilePreviewEmail} numberOfLines={1}>{authPhone ? `📱 ${authPhone} • ` : ''}{authEmail}</Text>
-                  </View>
-                </View>
-
-                {/* Full Name */}
-                <View style={styles.authFieldWrapperCompact}>
-                  <Text style={styles.authInputLabelCompact}>FULL PLAYER NAME *</Text>
-                  <TextInput
-                    style={styles.authSimpleInputCompact}
-                    placeholder="e.g. Rohit Sharma"
-                    placeholderTextColor="#64748b"
-                    value={authName}
-                    onChangeText={t => {
-                      setAuthName(t);
-                      if (authError) setAuthError('');
-                    }}
-                  />
-                </View>
-
-                {/* Side-by-side Row: Phone Number (Compulsory) + Jersey Number */}
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 7 }}>
-                  {/* Phone Number (Compulsory) */}
-                  <View style={{ flex: 1.8 }}>
-                    <Text style={styles.authInputLabelCompact}>
-                      PHONE NUMBER * <Text style={{ color: '#f87171', fontSize: 9.5 }}>(Compulsory)</Text>
-                    </Text>
-                    <TextInput
-                      style={styles.authSimpleInputCompact}
-                      placeholder="10-digit number"
-                      placeholderTextColor="#64748b"
-                      keyboardType="phone-pad"
-                      maxLength={10}
-                      value={authPhone}
-                      onChangeText={t => {
-                        setAuthPhone(t);
-                        if (authError) setAuthError('');
-                      }}
-                    />
-                  </View>
-
-                  {/* Jersey Number */}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.authInputLabelCompact}>JERSEY #</Text>
-                    <TextInput
-                      style={styles.authSimpleInputCompact}
-                      placeholder="#18"
-                      placeholderTextColor="#64748b"
-                      value={authJersey}
-                      onChangeText={setAuthJersey}
-                    />
-                  </View>
-                </View>
-
-                {/* Primary Cricket Role (Options) */}
-                <View style={styles.authFieldWrapperCompact}>
-                  <Text style={styles.authInputLabelCompact}>PLAYING ROLE (SELECT OPTION)</Text>
-                  <View style={styles.authChipsContainerCompact}>
-                    {[
-                      'Top-Order Batter',
-                      'Middle-Order Batter',
-                      'Fast Bowler',
-                      'Spin Bowler',
-                      'Wicketkeeper Batter',
-                      'All-Rounder',
-                    ].map(r => {
-                      const isSel = authRole === r;
-                      return (
-                        <TouchableOpacity
-                          key={r}
-                          style={[styles.authRoleChipCompact, isSel && styles.authRoleChipActive]}
-                          onPress={() => setAuthRole(r)}
-                        >
-                          <Text style={[styles.authRoleChipTextCompact, isSel && styles.authRoleChipTextActive]}>
-                            {r === 'Top-Order Batter' ? '🏏 Top-Order' : r === 'Middle-Order Batter' ? '🏏 Mid-Order' : r === 'Fast Bowler' ? '⚡ Fast Bowl' : r === 'Spin Bowler' ? '🌀 Spin Bowl' : r === 'Wicketkeeper Batter' ? '🧤 WK-Batter' : '🔥 All-Rounder'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {/* Batting Hand (Left / Right Hand Options) */}
-                <View style={styles.authFieldWrapperCompact}>
-                  <Text style={styles.authInputLabelCompact}>BATTING HAND (LEFT / RIGHT HAND)</Text>
-                  <View style={{ flexDirection: 'row', gap: 6 }}>
-                    {['Right-hand Bat', 'Left-hand Bat'].map(b => {
-                      const isSel = authBattingStyle === b;
-                      return (
-                        <TouchableOpacity
-                          key={b}
-                          style={[styles.authStyleChipCompact, isSel && styles.authStyleChipActive]}
-                          onPress={() => setAuthBattingStyle(b)}
-                        >
-                          <Text style={[styles.authStyleChipTextCompact, isSel && styles.authStyleChipTextActive]}>
-                            {b === 'Right-hand Bat' ? '👉 Right-hand Bat' : '👈 Left-hand Bat'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {/* Bowling Style (Options) */}
-                <View style={styles.authFieldWrapperCompact}>
-                  <Text style={styles.authInputLabelCompact}>BOWLING STYLE (SELECT OPTION)</Text>
-                  <View style={styles.authChipsContainerCompact}>
-                    {[
-                      'Right-arm Fast',
-                      'Right-arm Spin',
-                      'Left-arm Fast',
-                      'Left-arm Spin',
-                      'None',
-                    ].map(bw => {
-                      const isSel = authBowlingStyle === bw;
-                      return (
-                        <TouchableOpacity
-                          key={bw}
-                          style={[styles.authRoleChipCompact, isSel && styles.authRoleChipActive]}
-                          onPress={() => setAuthBowlingStyle(bw)}
-                        >
-                          <Text style={[styles.authRoleChipTextCompact, isSel && styles.authRoleChipTextActive]}>
-                            {bw === 'Right-arm Fast' ? '⚡ RA Fast' : bw === 'Right-arm Spin' ? '🌀 RA Spin' : bw === 'Left-arm Fast' ? '⚡ LA Fast' : bw === 'Left-arm Spin' ? '🌀 LA Spin' : '🚫 Non-Bowler'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {/* Complete Button */}
-                <TouchableOpacity
-                  style={[styles.authPrimaryBtnCompact, authLoading && { opacity: 0.7 }]}
-                  onPress={handleProfileComplete}
-                  disabled={authLoading}
-                >
-                  {authLoading ? (
-                    <ActivityIndicator color="#020617" size="small" />
-                  ) : (
-                    <Text style={styles.authPrimaryBtnText}>Complete & Enter CricketAdda 🚀</Text>
-                  )}
-                </TouchableOpacity>
-              </View>
-            )}
-          </ScrollView>
-        </KeyboardAvoidingView>
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </View>
       ) : (
         <>
           {/* Top Navbar */}
@@ -32307,78 +32321,89 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '700',
   },
+  authRootContainer: {
+    flex: 1,
+    backgroundColor: '#020617',
+    position: 'relative',
+  },
+  authBackdropOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(2, 6, 23, 0.40)',
+  },
   authScrollContainer: {
-    paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 40,
+    paddingHorizontal: 18,
+    paddingBottom: 50,
     minHeight: '100%',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
+  },
+  authHeroSpacer: {
+    height: Math.max(160, Math.min(height * 0.28, 220)),
+    width: '100%',
   },
   authBrandHeader: {
     alignItems: 'center',
     marginBottom: 8,
   },
-  authLogoRing: {
-    width: 48,
-    height: 48,
+  authCard: {
+    backgroundColor: 'rgba(10, 18, 36, 0.90)',
+    borderColor: 'rgba(34, 197, 94, 0.35)',
+    borderWidth: 1.5,
     borderRadius: 24,
-    backgroundColor: '#0f172a',
-    borderWidth: 2,
-    borderColor: '#10b981',
+    paddingHorizontal: 20,
+    paddingVertical: 22,
+    elevation: 12,
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+  },
+  authTitleWrapper: {
     alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 4,
-    elevation: 6,
-    shadowColor: '#10b981',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
+    marginBottom: 14,
   },
-  authLogoImage: {
-    width: 32,
-    height: 32,
-  },
-  authBrandTitle: {
+  authTitlePrefix: {
     color: '#ffffff',
-    fontSize: 20,
+    fontSize: 22,
+    fontWeight: '800',
+    letterSpacing: 0.3,
+  },
+  authTitleBrand: {
+    color: '#22c55e',
+    fontSize: 25,
     fontWeight: '900',
     letterSpacing: 0.5,
+    marginTop: 2,
   },
-  authStatusBadge: {
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
-    borderColor: '#10b981',
-    borderWidth: 1,
-    paddingHorizontal: 10,
-    paddingVertical: 2,
-    borderRadius: 10,
-    marginTop: 3,
+  authCardSubtitle: {
+    color: '#94a3b8',
+    fontSize: 12,
+    lineHeight: 17,
+    textAlign: 'center',
+    marginBottom: 14,
   },
-  authStatusBadgeText: {
-    color: '#34d399',
-    fontSize: 10,
-    fontWeight: '900',
-    letterSpacing: 0.6,
+  authInnerBody: {
+    width: '100%',
   },
   authModeToggleContainer: {
     flexDirection: 'row',
-    backgroundColor: '#0f172a',
-    borderRadius: 12,
+    backgroundColor: 'rgba(2, 6, 23, 0.65)',
+    borderRadius: 14,
     padding: 3,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: '#334155',
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(51, 65, 85, 0.7)',
   },
   authModeTab: {
     flex: 1,
     paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 9,
+    borderRadius: 11,
   },
   authModeTabActive: {
-    backgroundColor: '#1e293b',
-    borderWidth: 1,
-    borderColor: '#10b981',
+    backgroundColor: 'rgba(34, 197, 94, 0.16)',
+    borderWidth: 1.5,
+    borderColor: '#22c55e',
   },
   authModeTabText: {
     color: '#94a3b8',
@@ -32386,13 +32411,13 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   authModeTabTextActive: {
-    color: '#34d399',
+    color: '#22c55e',
     fontWeight: '900',
   },
   authSubTabContainer: {
     flexDirection: 'row',
-    backgroundColor: '#1e293b',
-    borderRadius: 8,
+    backgroundColor: 'rgba(2, 6, 23, 0.65)',
+    borderRadius: 10,
     padding: 3,
     marginBottom: 12,
     borderWidth: 1,
@@ -32403,10 +32428,10 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 6,
+    borderRadius: 8,
   },
   authSubTabActive: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#22c55e',
   },
   authSubTabText: {
     color: '#94a3b8',
@@ -32414,7 +32439,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   authSubTabTextActive: {
-    color: '#020617',
+    color: '#ffffff',
     fontWeight: '900',
   },
   authInputRowCompact: {
@@ -32440,7 +32465,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 8,
+    marginBottom: 12,
   },
   authStepDot: {
     width: 24,
@@ -32453,8 +32478,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   authStepDotActive: {
-    backgroundColor: '#10b981',
-    borderColor: '#34d399',
+    backgroundColor: '#22c55e',
+    borderColor: '#4ade80',
   },
   authStepDotText: {
     color: '#94a3b8',
@@ -32471,15 +32496,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
   },
   authStepLineActive: {
-    backgroundColor: '#10b981',
+    backgroundColor: '#22c55e',
   },
   authErrorBanner: {
     backgroundColor: 'rgba(239, 68, 68, 0.18)',
     borderColor: '#ef4444',
     borderWidth: 1,
-    padding: 7,
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: 8,
+    borderRadius: 10,
+    marginBottom: 10,
   },
   authErrorText: {
     color: '#fca5a5',
@@ -32487,34 +32512,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
   },
-  authCard: {
-    backgroundColor: '#0f172a',
-    borderColor: '#334155',
-    borderWidth: 1.5,
-    borderRadius: 14,
-    padding: 12,
-    elevation: 10,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.45,
-    shadowRadius: 10,
-  },
-  authCardTitle: {
-    color: '#ffffff',
-    fontSize: 17,
-    fontWeight: '900',
-  },
-  authCardSubtitle: {
-    color: '#94a3b8',
-    fontSize: 11.5,
-    lineHeight: 16,
-    marginBottom: 10,
-  },
   authFieldWrapper: {
-    marginBottom: 10,
+    marginBottom: 12,
   },
   authInputLabel: {
-    color: '#38bdf8',
+    color: '#22c55e',
     fontSize: 10,
     fontWeight: '900',
     letterSpacing: 0.5,
@@ -32523,34 +32525,35 @@ const styles = StyleSheet.create({
   authInputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#1e293b',
+    backgroundColor: 'rgba(2, 6, 23, 0.75)',
     borderWidth: 1.5,
-    borderColor: '#334155',
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 42,
+    borderColor: '#22c55e',
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    height: 50,
   },
   authInputIcon: {
-    fontSize: 15,
-    marginRight: 6,
+    fontSize: 17,
+    marginRight: 10,
+    color: '#34d399',
   },
   authTextInput: {
     flex: 1,
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 13.5,
     fontWeight: '600',
     paddingVertical: 0,
     textAlignVertical: 'center',
     includeFontPadding: false,
   },
   authSimpleInput: {
-    backgroundColor: '#1e293b',
+    backgroundColor: 'rgba(2, 6, 23, 0.75)',
     borderWidth: 1.5,
     borderColor: '#334155',
-    borderRadius: 8,
-    paddingHorizontal: 10,
+    borderRadius: 12,
+    paddingHorizontal: 12,
     paddingVertical: 0,
-    height: 40,
+    height: 44,
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '600',
@@ -32558,19 +32561,29 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   authPrimaryBtn: {
-    backgroundColor: '#10b981',
-    borderRadius: 10,
-    height: 44,
+    backgroundColor: '#22c55e',
+    borderRadius: 16,
+    height: 50,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 6,
-    elevation: 4,
+    marginTop: 14,
+    elevation: 8,
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 10,
   },
   authPrimaryBtnText: {
-    color: '#020617',
-    fontSize: 14,
+    color: '#ffffff',
+    fontSize: 15,
     fontWeight: '900',
     letterSpacing: 0.3,
+  },
+  authPrimaryBtnArrow: {
+    fontSize: 18,
+    color: '#ffffff',
+    fontWeight: '900',
+    marginLeft: 8,
   },
   authDividerRow: {
     flexDirection: 'row',
@@ -32634,14 +32647,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   authOtpDigitBox: {
-    width: Math.min((width - 80) / 6, 42),
-    height: 44,
-    backgroundColor: '#1e293b',
+    width: Math.min((width - 80) / 6, 44),
+    height: 48,
+    backgroundColor: 'rgba(2, 6, 23, 0.75)',
     borderWidth: 1.5,
     borderColor: '#334155',
-    borderRadius: 8,
+    borderRadius: 12,
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '900',
     textAlign: 'center',
     textAlignVertical: 'center',
@@ -32649,8 +32662,8 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
   },
   authOtpDigitBoxFilled: {
-    borderColor: '#10b981',
-    backgroundColor: '#064e3b',
+    borderColor: '#22c55e',
+    backgroundColor: 'rgba(34, 197, 94, 0.16)',
   },
   authResendRow: {
     alignItems: 'center',
