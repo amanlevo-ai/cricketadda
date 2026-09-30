@@ -9,6 +9,7 @@ import {
   Modal,
   TextInput,
   Image,
+  ImageBackground,
   Dimensions,
   Platform,
   Animated,
@@ -5575,25 +5576,29 @@ function CricketAddaMain() {
     player.play();
   });
 
+  const handleDismissSplash = useCallback(() => {
+    try {
+      if (splashPlayer) splashPlayer.pause();
+    } catch (_) {}
+    setShowSplash(false);
+    setActiveTab('matches');
+    setNavHistory(['matches']);
+  }, [splashPlayer]);
+
   useEventListener(splashPlayer, 'playToEnd', () => {
     Animated.timing(splashFade, {
       toValue: 0,
-      duration: 500,
+      duration: 400,
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start(() => {
-      try {
-        if (splashPlayer) splashPlayer.pause();
-      } catch (_) {}
-      setShowSplash(false);
-      setActiveTab('matches');
-      setNavHistory(['matches']);
+      handleDismissSplash();
     });
   });
 
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 8000,
+      duration: 3000,
       easing: Easing.linear,
       useNativeDriver: false,
     }).start();
@@ -5611,23 +5616,18 @@ function CricketAddaMain() {
     const timer = setTimeout(() => {
       Animated.timing(splashFade, {
         toValue: 0,
-        duration: 500,
+        duration: 400,
         useNativeDriver: USE_NATIVE_DRIVER,
       }).start(() => {
-        try {
-          if (splashPlayer) splashPlayer.pause();
-        } catch (_) {}
-        setShowSplash(false);
-        setActiveTab('matches');
-        setNavHistory(['matches']);
+        handleDismissSplash();
       });
-    }, 8500);
+    }, 3500);
 
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, []);
+  }, [handleDismissSplash]);
 
   // Wagon Wheel Scorer State
   const [autoWheel, setAutoWheel] = useState(false);
@@ -13720,36 +13720,62 @@ function CricketAddaMain() {
 
   if (showSplash) {
     return (
-      <Animated.View style={[styles.splashFullContainer, { opacity: splashFade }]}>
-        <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={true} hidden={false} />
-        <View style={styles.splashImageWrapper}>
-          <VideoView
-            style={styles.splashPosterImage}
-            player={splashPlayer}
-            contentFit="cover"
-            nativeControls={false}
-            surfaceType="textureView"
-          />
-        </View>
-        <View style={[styles.splashBottomBar, { bottom: Math.max(bottomInset, 16) + 20 }]}>
-          <View style={styles.splashProgressCard}>
-            <View style={styles.progressBarTrack}>
-              <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
-            </View>
-            <View style={styles.splashLoadingRow}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View style={styles.splashPulsingDot} />
-                <Text style={styles.splashLoadingText}>
-                  Initializing CricketAdda Live Engine...
+      <TouchableOpacity
+        activeOpacity={1}
+        onPress={handleDismissSplash}
+        style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#020617' }}
+      >
+        <Animated.View style={[styles.splashFullContainer, { opacity: splashFade }]}>
+          <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={true} hidden={false} />
+          <View style={styles.splashImageWrapper}>
+            <VideoView
+              style={styles.splashPosterImage}
+              player={splashPlayer}
+              contentFit="cover"
+              nativeControls={false}
+              surfaceType="textureView"
+            />
+          </View>
+
+          {/* Quick Skip Button */}
+          <TouchableOpacity
+            style={{
+              position: 'absolute',
+              top: Math.max(topInset, 20) + 10,
+              right: 18,
+              backgroundColor: 'rgba(2, 6, 23, 0.85)',
+              paddingVertical: 6,
+              paddingHorizontal: 14,
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: '#334155',
+              zIndex: 999,
+            }}
+            onPress={handleDismissSplash}
+          >
+            <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: 'bold' }}>Skip ➔</Text>
+          </TouchableOpacity>
+
+          <View style={[styles.splashBottomBar, { bottom: Math.max(bottomInset, 16) + 20 }]}>
+            <View style={styles.splashProgressCard}>
+              <View style={styles.progressBarTrack}>
+                <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+              </View>
+              <View style={styles.splashLoadingRow}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={styles.splashPulsingDot} />
+                  <Text style={styles.splashLoadingText}>
+                    Initializing CricketAdda Live Engine...
+                  </Text>
+                </View>
+                <Text style={styles.splashCountdownText}>
+                  {countdown}s
                 </Text>
               </View>
-              <Text style={styles.splashCountdownText}>
-                {countdown}s
-              </Text>
             </View>
           </View>
-        </View>
-      </Animated.View>
+        </Animated.View>
+      </TouchableOpacity>
     );
   }
 
@@ -13769,14 +13795,11 @@ function CricketAddaMain() {
       )}
 
       {!isAuthenticated ? (
-        <View style={styles.authRootContainer}>
-          {/* Full Screen Stadium & Logo Background Image */}
-          <Image
-            source={require('./assets/login-bg.jpg')}
-            style={StyleSheet.absoluteFillObject}
-            resizeMode="cover"
-          />
-
+        <ImageBackground
+          source={require('./assets/login-bg.jpg')}
+          style={styles.authRootContainer}
+          resizeMode="cover"
+        >
           {/* Form ScrollView with high z-index and elevation */}
           <ScrollView
             style={{ flex: 1, width: '100%', zIndex: 100, elevation: 20 }}
@@ -13785,7 +13808,7 @@ function CricketAddaMain() {
             keyboardShouldPersistTaps="handled"
           >
             {/* Top transparent space so the wallpaper's batsman and CricketAdda logo are visible */}
-            <View style={{ height: Math.max(Math.round(height * 0.28), 200), width: '100%' }} />
+            <View style={{ height: 160, width: '100%' }} />
 
             {/* HIGH Z-INDEX SOLID AUTH CARD */}
             <View style={styles.authCard}>
@@ -14445,7 +14468,7 @@ function CricketAddaMain() {
                 )}
               </View>
             </ScrollView>
-        </View>
+        </ImageBackground>
       ) : (
         <>
           {/* Top Navbar */}
@@ -32290,7 +32313,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   authCard: {
-    backgroundColor: 'rgba(8, 14, 28, 0.95)',
+    backgroundColor: '#0a1224',
     borderColor: '#22c55e',
     borderWidth: 2,
     borderRadius: 22,
