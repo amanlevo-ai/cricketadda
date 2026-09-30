@@ -4194,6 +4194,8 @@ function CricketAddaMain() {
   const [usersDb, setUsersDb] = useState(INITIAL_USERS_DATABASE);
   const [isExistingUser, setIsExistingUser] = useState(false);
   const otpInputRefs = useRef([]);
+  const [joinMatchModalVisible, setJoinMatchModalVisible] = useState(false);
+  const [joinMatchCode, setJoinMatchCode] = useState('');
 
   const getResolvedTeamLogo = useCallback((team) => {
     return resolveTeamLogo(team, registeredTeams, usersDb);
@@ -5201,6 +5203,105 @@ function CricketAddaMain() {
   const scorerWheelSize = Math.round(Math.min(width - 36, 310));
   const scorerBadgeW = Math.round(scorerWheelSize * 0.165);
   const scorerBadgeH = Math.round(scorerWheelSize * 0.115);
+
+  const featuredLiveMatch = useMemo(() => {
+    const liveMatches = Object.values(matchesDb || {}).filter(isMatchLive);
+    if (liveMatches.length > 0) {
+      const lm = liveMatches[0];
+      const isCur = lm.id === activeMatchId;
+      const sA = isCur && currentInnings === 1 ? `${liveRuns}/${liveWickets}` : `${lm.innings1?.runs || 0}/${lm.innings1?.wickets || 0}`;
+      const ovA = isCur && currentInnings === 1 ? `${oversStr} Ov` : `${lm.innings1?.overs || '0.0'} Ov`;
+      const sB = isCur && currentInnings === 2 ? `${liveRuns}/${liveWickets}` : `${lm.innings2?.runs || 0}/${lm.innings2?.wickets || 0}`;
+      const ovB = isCur && currentInnings === 2 ? `${oversStr} Ov` : `${lm.innings2?.overs || '0.0'} Ov`;
+      const eq = isCur && currentInnings === 2 ? `${liveTargetEquation}` : `${lm.teamA || 'Team A'} vs ${lm.teamB || 'Team B'}`;
+      return {
+        id: lm.id,
+        tournament: lm.tournament || 'CricketAdda Premier League',
+        venue: lm.venue || 'Stadium Ground',
+        format: lm.matchType || 'T20',
+        teamA: lm.innings1?.team || lm.teamA || 'Tigers XI',
+        flagA: lm.flagA || lm.innings1?.flag || '🐯',
+        scoreA: sA,
+        oversA: ovA,
+        teamB: lm.innings2?.team || lm.teamB || 'Warriors XI',
+        flagB: lm.flagB || lm.innings2?.flag || '⚔️',
+        scoreB: sB,
+        oversB: ovB,
+        equation: eq || 'Match in Progress',
+      };
+    }
+    return {
+      id: activeMatchId || 'sample_live_1',
+      tournament: 'School Premier League',
+      venue: 'Green Valley Ground',
+      format: 'T20',
+      teamA: 'Tigers XI',
+      flagA: '🐯',
+      scoreA: '128/4',
+      oversA: '16.3 Ov',
+      teamB: 'Warriors XI',
+      flagB: '⚔️',
+      scoreB: '144/8',
+      oversB: '20.0 Ov',
+      equation: 'Tigers XI need 17 runs in 21 balls',
+    };
+  }, [matchesDb, activeMatchId, currentInnings, liveRuns, liveWickets, oversStr, liveTargetEquation]);
+
+  const displayRecentMatches = useMemo(() => {
+    const completed = Object.values(matchesDb || {}).filter(isMatchCompleted);
+    if (completed.length >= 3) {
+      return completed.slice(0, 5).map(m => ({
+        id: m.id,
+        teamA: m.teamA || m.innings1?.team || 'Tigers XI',
+        flagA: m.flagA || m.innings1?.flag || '🐯',
+        scoreA: `${m.innings1?.runs || 0}/${m.innings1?.wickets || 0} (${m.innings1?.overs || '20.0'} Ov)`,
+        teamB: m.teamB || m.innings2?.team || 'Warriors XI',
+        flagB: m.flagB || m.innings2?.flag || '⚔️',
+        scoreB: `${m.innings2?.runs || 0}/${m.innings2?.wickets || 0} (${m.innings2?.overs || '20.0'} Ov)`,
+        result: m.resultSummary?.toLowerCase().includes('won') || m.winner ? 'Won' : 'Won',
+        date: m.date || '27 Sep 2026',
+        format: m.matchType || 'T20',
+      }));
+    }
+    return [
+      {
+        id: 'rm_1',
+        teamA: 'Tigers XI',
+        flagA: '🐯',
+        scoreA: '178/6 (20.0 Ov)',
+        teamB: 'Warriors XI',
+        flagB: '⚔️',
+        scoreB: '162/8 (20.0 Ov)',
+        result: 'Won',
+        date: '27 Sep 2026',
+        format: 'T20',
+      },
+      {
+        id: 'rm_2',
+        teamA: 'King XI',
+        flagA: '👑',
+        scoreA: '156/9 (20.0 Ov)',
+        teamB: 'Royals XI',
+        flagB: '🦁',
+        scoreB: '160/5 (19.1 Ov)',
+        result: 'Lost',
+        date: '24 Sep 2026',
+        format: 'T20',
+      },
+      {
+        id: 'rm_3',
+        teamA: 'Blasters XI',
+        flagA: '🔴',
+        scoreA: '210/7 (20.0 Ov)',
+        teamB: 'United XI',
+        flagB: '🛡️',
+        scoreB: '198/10 (19.3 Ov)',
+        result: 'Won',
+        date: '20 Sep 2026',
+        format: 'ODI',
+      },
+    ];
+  }, [matchesDb]);
 
   const updateAndPersistUserProfile = (updater) => {
     setUserProfile(prev => {
@@ -14336,20 +14437,65 @@ function CricketAddaMain() {
       ) : (
         <>
           {/* Top Navbar */}
-          <View style={[styles.navBar, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder }]}>
-            <TouchableOpacity style={styles.navBrand} onPress={() => setShowSplash(true)}>
-              <Image source={require('./assets/logo.png')} style={styles.logoImg} resizeMode="contain" />
-              <View>
-                <Text style={[styles.brandTitle, currentTheme.isLight && { color: '#0f172a' }]}>
-                  CricketAdda <Text style={[styles.proBadge, { backgroundColor: currentTheme.primary, color: currentTheme.primaryText }]}>PRO</Text>
-                </Text>
-                <Text style={[styles.brandSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Official Tournament Hub</Text>
-              </View>
-            </TouchableOpacity>
+          {activeTab === 'matches' ? (
+            <View style={[styles.dashHeaderBar, { backgroundColor: '#020617', borderBottomColor: '#0f172a' }]}>
+              {/* Left: User Profile */}
+              <TouchableOpacity
+                style={styles.dashUserProfile}
+                onPress={() => navigateTo('profile')}
+                activeOpacity={0.8}
+              >
+                <PlayerAvatar name={userProfile.name || 'Amandeep Singh'} size={40} customUri={userProfile.avatarUri} borderColor="#22c55e" />
+                <View style={{ marginLeft: 8, justifyContent: 'center' }}>
+                  <Text style={styles.dashUserName} numberOfLines={1}>
+                    {userProfile.name || 'Amandeep Singh'}
+                  </Text>
+                  <Text style={styles.dashUserMeta} numberOfLines={1}>
+                    {userProfile.jersey ? (String(userProfile.jersey).startsWith('#') ? userProfile.jersey : `#${userProfile.jersey}`) : '#07'} • {userProfile.battingStyle || 'Right Hand Batter'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
 
-            {/* Quick Profile / Sign Out Action */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              {isAuthenticated ? (
+              {/* Center: CricketAdda Logo */}
+              <TouchableOpacity onPress={() => setShowSplash(true)} activeOpacity={0.85}>
+                <Image source={require('./assets/header-logo.png')} style={styles.dashHeaderLogo} resizeMode="contain" />
+              </TouchableOpacity>
+
+              {/* Right: Notification Bell & Settings */}
+              <View style={styles.dashHeaderActions}>
+                <TouchableOpacity
+                  style={styles.dashHeaderIconBtn}
+                  onPress={() => showAppToast('You have 3 active tournament notifications!', '🔔')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 18 }}>🔔</Text>
+                  <View style={styles.dashBadge}>
+                    <Text style={styles.dashBadgeText}>3</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.dashHeaderIconBtn}
+                  onPress={() => navigateTo('settings')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={{ fontSize: 18 }}>⚙️</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            <View style={[styles.navBar, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder }]}>
+              <TouchableOpacity style={styles.navBrand} onPress={() => navigateTo('matches')}>
+                <Image source={require('./assets/header-logo.png')} style={styles.logoImg} resizeMode="contain" />
+                <View>
+                  <Text style={[styles.brandTitle, currentTheme.isLight && { color: '#0f172a' }]}>
+                    CricketAdda <Text style={[styles.proBadge, { backgroundColor: currentTheme.primary, color: currentTheme.primaryText }]}>PRO</Text>
+                  </Text>
+                  <Text style={[styles.brandSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Official Tournament Hub</Text>
+                </View>
+              </TouchableOpacity>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <TouchableOpacity
                   style={{
                     flexDirection: 'row',
@@ -14369,21 +14515,9 @@ function CricketAddaMain() {
                     {userProfile.name ? userProfile.name.split(' ')[0] : 'Profile'}
                   </Text>
                 </TouchableOpacity>
-              ) : (
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: currentTheme.primary,
-                    paddingVertical: 6,
-                    paddingHorizontal: 12,
-                    borderRadius: 8,
-                  }}
-                  onPress={() => setIsAuthenticated(false)}
-                >
-                  <Text style={{ color: currentTheme.primaryText, fontSize: 11, fontWeight: '900' }}>🔑 Sign In</Text>
-                </TouchableOpacity>
-              )}
+              </View>
             </View>
-          </View>
+          )}
 
       {/* ========================================================================= */}
       {/* 2.1 MATCHES HUB SCREEN */}
@@ -14426,6 +14560,238 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
             </View>
+          )}
+
+          {/* ========================================================================= */}
+          {/* MOCKUP DASHBOARD HERO, QUICK ACTIONS, LIVE & RECENT SECTIONS */}
+          {/* ========================================================================= */}
+          {matchFilter === 'all' && (
+            <>
+              {/* 1. HERO BANNER: LET'S PLAY CRICKET */}
+              <View style={styles.dashHeroWrapper}>
+                <ImageBackground
+                  source={require('./assets/hero-banner.jpg')}
+                  style={styles.dashHeroCard}
+                  imageStyle={{ borderRadius: 20 }}
+                  resizeMode="cover"
+                >
+                  <View style={styles.dashHeroOverlay}>
+                    <Text style={styles.dashHeroLets}>Let's</Text>
+                    <Text style={styles.dashHeroPlay}>
+                      Play <Text style={{ color: '#22c55e' }}>Cricket</Text>
+                    </Text>
+                    <Text style={styles.dashHeroSubtitle}>
+                      Create a match, join a match or manage your teams.
+                    </Text>
+                  </View>
+                </ImageBackground>
+              </View>
+
+              {/* 2. 3 QUICK-ACTION BUTTONS ROW */}
+              <View style={styles.dashActionGrid}>
+                {/* 1. Start a Match */}
+                <TouchableOpacity
+                  style={[styles.dashActionCard, { backgroundColor: '#064e3b', borderColor: 'rgba(34, 197, 94, 0.4)' }]}
+                  onPress={handleOpenMatchWizard}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ alignItems: 'flex-start', flex: 1 }}>
+                    <Text style={{ fontSize: 28, marginBottom: 6 }}>🏏</Text>
+                    <Text style={styles.dashActionTitle}>Start a Match</Text>
+                    <Text style={styles.dashActionSub}>Score Live</Text>
+                  </View>
+                  <View style={[styles.dashActionArrowCircle, { backgroundColor: '#022c22' }]}>
+                    <Text style={{ color: '#34d399', fontSize: 11, fontWeight: 'bold' }}>❯</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* 2. My Teams */}
+                <TouchableOpacity
+                  style={[styles.dashActionCard, { backgroundColor: '#1e3a8a', borderColor: 'rgba(59, 130, 246, 0.4)' }]}
+                  onPress={() => navigateTo('teams')}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ alignItems: 'flex-start', flex: 1 }}>
+                    <Text style={{ fontSize: 28, marginBottom: 6 }}>👥</Text>
+                    <Text style={styles.dashActionTitle}>My Teams</Text>
+                    <Text style={styles.dashActionSub}>Manage Players</Text>
+                  </View>
+                  <View style={[styles.dashActionArrowCircle, { backgroundColor: '#172554' }]}>
+                    <Text style={{ color: '#60a5fa', fontSize: 11, fontWeight: 'bold' }}>❯</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* 3. Join a Match */}
+                <TouchableOpacity
+                  style={[styles.dashActionCard, { backgroundColor: '#581c87', borderColor: 'rgba(168, 85, 247, 0.4)' }]}
+                  onPress={() => setJoinMatchModalVisible(true)}
+                  activeOpacity={0.85}
+                >
+                  <View style={{ alignItems: 'flex-start', flex: 1 }}>
+                    <Text style={{ fontSize: 28, marginBottom: 6 }}>📅</Text>
+                    <Text style={styles.dashActionTitle}>Join a Match</Text>
+                    <Text style={styles.dashActionSub}>Enter Match Code</Text>
+                  </View>
+                  <View style={[styles.dashActionArrowCircle, { backgroundColor: '#3b0764' }]}>
+                    <Text style={{ color: '#c084fc', fontSize: 11, fontWeight: 'bold' }}>❯</Text>
+                  </View>
+                </TouchableOpacity>
+              </View>
+
+              {/* 3. FEATURED LIVE MATCH CARD */}
+              <View style={styles.dashFeaturedLiveCard}>
+                <View style={styles.dashFeaturedTopRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                    <View style={styles.dashLivePill}>
+                      <View style={styles.dashLiveDot} />
+                      <Text style={styles.dashLivePillText}>LIVE</Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.dashFeaturedTournName} numberOfLines={1}>
+                        {featuredLiveMatch.tournament || 'School Premier League'}
+                      </Text>
+                      <Text style={styles.dashFeaturedVenue} numberOfLines={1}>
+                        {featuredLiveMatch.format || 'T20'} • {featuredLiveMatch.venue || 'Green Valley Ground'}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <TouchableOpacity
+                    style={styles.dashViewLiveBtn}
+                    onPress={() => handleScoreMatchPress(featuredLiveMatch.id)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={styles.dashViewLiveBtnText}>View Live ❯</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Scores Row */}
+                <View style={styles.dashFeaturedScoresRow}>
+                  {/* Team 1 */}
+                  <View style={styles.dashFeaturedTeamCol}>
+                    <View style={styles.dashFeaturedCrestWrapper}>
+                      <Text style={{ fontSize: 26 }}>{featuredLiveMatch.flagA || '🐯'}</Text>
+                    </View>
+                    <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
+                      {featuredLiveMatch.teamA || 'Tigers XI'}
+                    </Text>
+                    <Text style={styles.dashFeaturedScoreBig}>
+                      {featuredLiveMatch.scoreA || '128/4'}
+                    </Text>
+                    <Text style={styles.dashFeaturedOvers}>
+                      {featuredLiveMatch.oversA || '16.3 Ov'}
+                    </Text>
+                  </View>
+
+                  {/* Vertical divider */}
+                  <View style={styles.dashFeaturedDivider} />
+
+                  {/* Team 2 */}
+                  <View style={styles.dashFeaturedTeamCol}>
+                    <View style={styles.dashFeaturedCrestWrapper}>
+                      <Text style={{ fontSize: 26 }}>{featuredLiveMatch.flagB || '⚔️'}</Text>
+                    </View>
+                    <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
+                      {featuredLiveMatch.teamB || 'Warriors XI'}
+                    </Text>
+                    <Text style={styles.dashFeaturedScoreBig}>
+                      {featuredLiveMatch.scoreB || '144/8'}
+                    </Text>
+                    <Text style={styles.dashFeaturedOvers}>
+                      {featuredLiveMatch.oversB || '20.0 Ov'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Equation Capsule */}
+                <View style={styles.dashEquationCapsule}>
+                  <Text style={styles.dashEquationText}>
+                    {featuredLiveMatch.equation || 'Tigers XI need 17 runs in 21 balls'}
+                  </Text>
+                </View>
+
+                {/* Carousel Dots */}
+                <View style={styles.dashCarouselDotsRow}>
+                  <View style={[styles.dashCarouselDot, styles.dashCarouselDotActive]} />
+                  <View style={styles.dashCarouselDot} />
+                  <View style={styles.dashCarouselDot} />
+                  <View style={styles.dashCarouselDot} />
+                  <View style={styles.dashCarouselDot} />
+                </View>
+              </View>
+
+              {/* 4. RECENT MATCHES SECTION */}
+              <View style={styles.dashRecentSection}>
+                <View style={styles.dashRecentHeaderRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ fontSize: 16 }}>🕒</Text>
+                    <Text style={styles.dashRecentTitle}>Recent Matches</Text>
+                  </View>
+                  <TouchableOpacity onPress={() => setMatchFilter('recent')}>
+                    <Text style={styles.dashViewAllText}>View All ❯</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Match Items */}
+                {displayRecentMatches.map((rm, idx) => (
+                  <TouchableOpacity
+                    key={rm.id || `rm_${idx}`}
+                    style={[
+                      styles.dashRecentMatchCard,
+                      { borderLeftColor: rm.result === 'Won' ? '#22c55e' : '#ef4444' }
+                    ]}
+                    onPress={() => openMatchScorecard(rm.id)}
+                    activeOpacity={0.8}
+                  >
+                    {/* Team 1 */}
+                    <View style={styles.dashRecentTeamRow}>
+                      <View style={styles.dashRecentTeamInfo}>
+                        <Text style={{ fontSize: 18 }}>{rm.flagA || '🐯'}</Text>
+                        <Text style={styles.dashRecentTeamName} numberOfLines={1}>{rm.teamA}</Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={styles.dashRecentScore}>{rm.scoreA}</Text>
+                      </View>
+                    </View>
+
+                    {/* VS Badge */}
+                    <View style={styles.dashRecentVsRow}>
+                      <View style={styles.dashRecentVsCircle}>
+                        <Text style={styles.dashRecentVsText}>VS</Text>
+                      </View>
+                    </View>
+
+                    {/* Team 2 */}
+                    <View style={styles.dashRecentTeamRow}>
+                      <View style={styles.dashRecentTeamInfo}>
+                        <Text style={{ fontSize: 18 }}>{rm.flagB || '⚔️'}</Text>
+                        <Text style={styles.dashRecentTeamName} numberOfLines={1}>{rm.teamB}</Text>
+                      </View>
+                      <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={styles.dashRecentScore}>{rm.scoreB}</Text>
+                      </View>
+                    </View>
+
+                    {/* Bottom Result Badge & Date */}
+                    <View style={styles.dashRecentResultCol}>
+                      <View style={[
+                        styles.dashResultBadge,
+                        { backgroundColor: rm.result === 'Won' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)' }
+                      ]}>
+                        <Text style={[
+                          styles.dashResultBadgeText,
+                          { color: rm.result === 'Won' ? '#22c55e' : '#ef4444' }
+                        ]}>
+                          {rm.result}
+                        </Text>
+                      </View>
+                      <Text style={styles.dashRecentDateText}>{rm.date} • {rm.format}</Text>
+                      <Text style={{ color: '#64748b', fontSize: 12, fontWeight: 'bold' }}>❯</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </>
           )}
 
           {/* Filter Pills */}
@@ -18320,53 +18686,119 @@ function CricketAddaMain() {
       )}
 
       {/* ========================================================================= */}
-      {/* NATIVE BOTTOM NAVIGATION BAR */}
+      {/* NATIVE BOTTOM NAVIGATION BAR (MATCHING MOCKUP) */}
       {/* ========================================================================= */}
-      <View style={[styles.bottomNavBar, { backgroundColor: currentTheme.bottomNavBg, borderTopColor: currentTheme.navBorder, paddingBottom: bottomInset }]}>
+      <View style={[styles.bottomNavBar, { backgroundColor: '#020617', borderTopColor: '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
+        {/* 1. Home */}
         <TouchableOpacity
-          style={[styles.bottomNavTab, activeTab === 'matches' && { backgroundColor: currentTheme.activeTabBg, borderRadius: 8 }]}
-          onPress={() => navigateTo('matches')}
+          style={styles.bottomNavTab}
+          onPress={() => {
+            navigateTo('matches');
+            setMatchFilter('all');
+          }}
+          activeOpacity={0.8}
         >
-          <Text style={[styles.bottomNavIcon, activeTab === 'matches' && { transform: [{ scale: 1.1 }] }]}>🏏</Text>
-          <Text style={[styles.bottomNavLabel, activeTab === 'matches' ? { color: currentTheme.primary, fontWeight: '900' } : { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Matches</Text>
+          <Text style={[styles.bottomNavIcon, activeTab === 'matches' && matchFilter === 'all' && { color: '#22c55e' }]}>🏠</Text>
+          <Text style={[styles.bottomNavLabel, activeTab === 'matches' && matchFilter === 'all' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Home</Text>
+          {activeTab === 'matches' && matchFilter === 'all' && <View style={styles.bottomNavActiveBar} />}
         </TouchableOpacity>
 
+        {/* 2. Matches */}
         <TouchableOpacity
-          style={[styles.bottomNavTab, activeTab === 'teams' && { backgroundColor: currentTheme.activeTabBg, borderRadius: 8 }]}
+          style={styles.bottomNavTab}
+          onPress={() => {
+            navigateTo('matches');
+            setMatchFilter('live');
+          }}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.bottomNavIcon, activeTab === 'matches' && matchFilter !== 'all' && { color: '#22c55e' }]}>🏏</Text>
+          <Text style={[styles.bottomNavLabel, activeTab === 'matches' && matchFilter !== 'all' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Matches</Text>
+          {activeTab === 'matches' && matchFilter !== 'all' && <View style={styles.bottomNavActiveBar} />}
+        </TouchableOpacity>
+
+        {/* 3. Teams */}
+        <TouchableOpacity
+          style={styles.bottomNavTab}
           onPress={() => navigateTo('teams')}
+          activeOpacity={0.8}
         >
-          <Text style={[styles.bottomNavIcon, activeTab === 'teams' && { transform: [{ scale: 1.1 }] }]}>
-            👥
-          </Text>
-          <Text style={[styles.bottomNavLabel, activeTab === 'teams' ? { color: currentTheme.primary, fontWeight: '900' } : { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-            My Teams
-          </Text>
+          <Text style={[styles.bottomNavIcon, activeTab === 'teams' && { color: '#22c55e' }]}>👥</Text>
+          <Text style={[styles.bottomNavLabel, activeTab === 'teams' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Teams</Text>
+          {activeTab === 'teams' && <View style={styles.bottomNavActiveBar} />}
         </TouchableOpacity>
 
+        {/* 4. Stats */}
         <TouchableOpacity
-          style={[styles.bottomNavTab, activeTab === 'scorecard' && { backgroundColor: currentTheme.activeTabBg, borderRadius: 8 }]}
+          style={styles.bottomNavTab}
           onPress={() => navigateTo('scorecard')}
+          activeOpacity={0.8}
         >
-          <Text style={[styles.bottomNavIcon, activeTab === 'scorecard' && { transform: [{ scale: 1.1 }] }]}>📊</Text>
-          <Text style={[styles.bottomNavLabel, activeTab === 'scorecard' ? { color: currentTheme.primary, fontWeight: '900' } : { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Scorecard</Text>
+          <Text style={[styles.bottomNavIcon, activeTab === 'scorecard' && { color: '#22c55e' }]}>📊</Text>
+          <Text style={[styles.bottomNavLabel, activeTab === 'scorecard' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Stats</Text>
+          {activeTab === 'scorecard' && <View style={styles.bottomNavActiveBar} />}
         </TouchableOpacity>
 
+        {/* 5. More */}
         <TouchableOpacity
-          style={[styles.bottomNavTab, activeTab === 'profile' && { backgroundColor: currentTheme.activeTabBg, borderRadius: 8 }]}
-          onPress={() => navigateTo('profile')}
-        >
-          <Text style={[styles.bottomNavIcon, activeTab === 'profile' && { transform: [{ scale: 1.1 }] }]}>👤</Text>
-          <Text style={[styles.bottomNavLabel, activeTab === 'profile' ? { color: currentTheme.primary, fontWeight: '900' } : { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>My Stats</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.bottomNavTab, activeTab === 'settings' && { backgroundColor: currentTheme.activeTabBg, borderRadius: 8 }]}
+          style={styles.bottomNavTab}
           onPress={() => navigateTo('settings')}
+          activeOpacity={0.8}
         >
-          <Text style={[styles.bottomNavIcon, activeTab === 'settings' && { transform: [{ scale: 1.1 }] }]}>⚙️</Text>
-          <Text style={[styles.bottomNavLabel, activeTab === 'settings' ? { color: currentTheme.primary, fontWeight: '900' } : { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Settings</Text>
+          <Text style={[styles.bottomNavIcon, (activeTab === 'settings' || activeTab === 'profile') && { color: '#22c55e' }]}>•••</Text>
+          <Text style={[styles.bottomNavLabel, (activeTab === 'settings' || activeTab === 'profile') ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>More</Text>
+          {(activeTab === 'settings' || activeTab === 'profile') && <View style={styles.bottomNavActiveBar} />}
         </TouchableOpacity>
       </View>
+
+      {/* JOIN MATCH WITH CODE MODAL */}
+      <Modal visible={joinMatchModalVisible} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { width: Math.min(width - 32, 400), backgroundColor: '#0a1224', borderColor: '#7c3aed', borderWidth: 1.5, borderRadius: 20, padding: 20 }]}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 24 }}>📅</Text>
+                <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900' }}>Join a Match</Text>
+              </View>
+              <TouchableOpacity onPress={() => setJoinMatchModalVisible(false)} style={styles.closeRoundBtn}>
+                <Text style={styles.closeRoundBtnText}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={{ color: '#94a3b8', fontSize: 13, marginBottom: 14 }}>
+              Enter the 6-digit match code shared by the tournament scorer to view live scores in real-time.
+            </Text>
+
+            <View style={styles.authInputRow}>
+              <Text style={{ fontSize: 18, marginRight: 8 }}>🔑</Text>
+              <TextInput
+                style={styles.authTextInput}
+                placeholder="e.g. 849201"
+                placeholderTextColor="#64748b"
+                value={joinMatchCode}
+                onChangeText={setJoinMatchCode}
+                keyboardType="number-pad"
+                maxLength={8}
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.authPrimaryBtn, { backgroundColor: '#7c3aed', marginTop: 14 }]}
+              onPress={() => {
+                if (!joinMatchCode.trim()) {
+                  showAppToast('Please enter a match code', '⚠️');
+                  return;
+                }
+                setJoinMatchModalVisible(false);
+                setJoinMatchCode('');
+                showAppToast('Syncing match with CricketAdda cloud...', '📡');
+              }}
+            >
+              <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900' }}>Join Live Match ❯</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
       </>
       )}
 
@@ -33769,5 +34201,379 @@ const styles = StyleSheet.create({
     color: '#cbd5e1',
     lineHeight: 18,
     marginVertical: 1,
+  },
+
+  // =========================================================================
+  // MOCKUP DASHBOARD STYLES
+  // =========================================================================
+  dashHeaderBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+  },
+  dashUserProfile: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    maxWidth: 220,
+  },
+  dashUserName: {
+    color: '#ffffff',
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  dashUserMeta: {
+    color: '#94a3b8',
+    fontSize: 10.5,
+    marginTop: 1,
+  },
+  dashHeaderLogo: {
+    width: 68,
+    height: 44,
+  },
+  dashHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  dashHeaderIconBtn: {
+    position: 'relative',
+    padding: 4,
+  },
+  dashBadge: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    backgroundColor: '#ef4444',
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  dashBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  dashHeroWrapper: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 14,
+    borderRadius: 20,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+  },
+  dashHeroCard: {
+    width: '100%',
+    height: 145,
+    justifyContent: 'center',
+  },
+  dashHeroOverlay: {
+    paddingHorizontal: 18,
+    width: '65%',
+  },
+  dashHeroLets: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  dashHeroPlay: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    marginTop: -2,
+  },
+  dashHeroSubtitle: {
+    color: '#cbd5e1',
+    fontSize: 10.5,
+    lineHeight: 14,
+    marginTop: 6,
+    fontWeight: '500',
+  },
+  dashActionGrid: {
+    flexDirection: 'row',
+    gap: 10,
+    paddingHorizontal: 16,
+    marginBottom: 16,
+  },
+  dashActionCard: {
+    flex: 1,
+    borderRadius: 18,
+    padding: 12,
+    borderWidth: 1,
+    position: 'relative',
+    height: 115,
+    justifyContent: 'space-between',
+    elevation: 4,
+  },
+  dashActionTitle: {
+    color: '#ffffff',
+    fontSize: 12.5,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  dashActionSub: {
+    color: 'rgba(255, 255, 255, 0.75)',
+    fontSize: 9.5,
+    marginTop: 2,
+  },
+  dashActionArrowCircle: {
+    position: 'absolute',
+    bottom: 8,
+    right: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dashFeaturedLiveCard: {
+    marginHorizontal: 16,
+    backgroundColor: '#071325',
+    borderColor: 'rgba(34, 197, 94, 0.4)',
+    borderWidth: 1.5,
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 16,
+    elevation: 8,
+  },
+  dashFeaturedTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  dashLivePill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#dc2626',
+    borderRadius: 12,
+    paddingVertical: 3,
+    paddingHorizontal: 8,
+    gap: 4,
+  },
+  dashLiveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#ffffff',
+  },
+  dashLivePillText: {
+    color: '#ffffff',
+    fontSize: 10,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  dashFeaturedTournName: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  dashFeaturedVenue: {
+    color: '#94a3b8',
+    fontSize: 10,
+    marginTop: 1,
+  },
+  dashViewLiveBtn: {
+    borderColor: '#22c55e',
+    borderWidth: 1,
+    borderRadius: 14,
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+  },
+  dashViewLiveBtnText: {
+    color: '#22c55e',
+    fontSize: 10.5,
+    fontWeight: 'bold',
+  },
+  dashFeaturedScoresRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    paddingVertical: 6,
+  },
+  dashFeaturedTeamCol: {
+    alignItems: 'center',
+    flex: 1,
+  },
+  dashFeaturedCrestWrapper: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(15, 23, 42, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  dashFeaturedTeamName: {
+    color: '#94a3b8',
+    fontSize: 11,
+    fontWeight: '700',
+    marginBottom: 2,
+  },
+  dashFeaturedScoreBig: {
+    color: '#ffffff',
+    fontSize: 20,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  dashFeaturedOvers: {
+    color: '#64748b',
+    fontSize: 10.5,
+    fontWeight: '600',
+  },
+  dashFeaturedDivider: {
+    width: 1,
+    height: 48,
+    backgroundColor: '#1e293b',
+  },
+  dashEquationCapsule: {
+    backgroundColor: 'rgba(2, 6, 23, 0.75)',
+    borderRadius: 14,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 10,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+  },
+  dashEquationText: {
+    color: '#cbd5e1',
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  dashCarouselDotsRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+  },
+  dashCarouselDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#334155',
+  },
+  dashCarouselDotActive: {
+    backgroundColor: '#22c55e',
+    width: 14,
+  },
+  dashRecentSection: {
+    paddingHorizontal: 16,
+    marginBottom: 20,
+  },
+  dashRecentHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  dashRecentTitle: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '800',
+  },
+  dashViewAllText: {
+    color: '#22c55e',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  dashRecentMatchCard: {
+    backgroundColor: '#0a1224',
+    borderRadius: 14,
+    borderLeftWidth: 3.5,
+    borderWidth: 1,
+    borderColor: '#1e293b',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  dashRecentTeamRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginVertical: 2,
+  },
+  dashRecentTeamInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  dashRecentTeamName: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  dashRecentScore: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  dashRecentOvers: {
+    color: '#64748b',
+    fontSize: 9.5,
+    marginTop: 1,
+  },
+  dashRecentVsRow: {
+    alignItems: 'center',
+    marginVertical: -6,
+    zIndex: 2,
+  },
+  dashRecentVsCircle: {
+    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 1,
+  },
+  dashRecentVsText: {
+    color: '#94a3b8',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  dashRecentResultCol: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 6,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: '#131e33',
+  },
+  dashResultBadge: {
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  dashResultBadgeText: {
+    fontSize: 10.5,
+    fontWeight: '900',
+  },
+  dashRecentDateText: {
+    color: '#64748b',
+    fontSize: 10,
+  },
+  bottomNavActiveBar: {
+    position: 'absolute',
+    bottom: -2,
+    width: 22,
+    height: 3,
+    backgroundColor: '#22c55e',
+    borderRadius: 2,
   },
 });
