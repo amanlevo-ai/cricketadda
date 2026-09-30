@@ -13770,36 +13770,24 @@ function CricketAddaMain() {
 
       {!isAuthenticated ? (
         <View style={styles.authRootContainer}>
-          {/* Subtle Ambient Stadium Background */}
+          {/* Full Screen Stadium & Logo Background Image */}
           <Image
             source={require('./assets/login-bg.jpg')}
-            style={[StyleSheet.absoluteFillObject, { opacity: 0.22 }]}
+            style={StyleSheet.absoluteFillObject}
             resizeMode="cover"
           />
 
+          {/* Form ScrollView with high z-index and elevation */}
           <ScrollView
-            style={{ flex: 1, width: '100%', zIndex: 10, elevation: 10 }}
-            contentContainerStyle={[
-              styles.authScrollContainer,
-              {
-                paddingTop: Math.max(topInset, 16) + 8,
-                paddingBottom: Math.max(bottomInset, 16) + 32,
-              },
-            ]}
+            style={{ flex: 1, width: '100%', zIndex: 100, elevation: 20 }}
+            contentContainerStyle={styles.authScrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-            bounces={false}
           >
-            {/* 1. CRYSTAL-CLEAR UN-CROPPED CRICKETADDA HERO LOGO (From User's Picture) */}
-            <View style={styles.authLogoBannerContainer}>
-              <Image
-                source={require('./assets/login-bg.jpg')}
-                style={styles.authLogoBannerImage}
-                resizeMode="stretch"
-              />
-            </View>
+            {/* Top transparent space so the wallpaper's batsman and CricketAdda logo are visible */}
+            <View style={{ height: Math.max(Math.round(height * 0.28), 200), width: '100%' }} />
 
-            {/* 2. SOLID HIGH-CONTRAST AUTH CARD */}
+            {/* HIGH Z-INDEX SOLID AUTH CARD */}
             <View style={styles.authCard}>
                 <View style={styles.authTitleWrapper}>
                   <Text style={styles.authTitlePrefix}>
@@ -32292,49 +32280,29 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#020617',
     width: '100%',
+    height: '100%',
+    position: 'relative',
   },
   authScrollContainer: {
     paddingHorizontal: 16,
-    flexGrow: 1,
+    paddingBottom: 36,
     alignItems: 'center',
     width: '100%',
   },
-  authLogoBannerContainer: {
-    width: Math.min(width - 32, 420),
-    height: Math.round(Math.min(width - 32, 420) * 0.66),
-    overflow: 'hidden',
-    borderRadius: 20,
-    marginBottom: 14,
-    alignSelf: 'center',
-    backgroundColor: '#020617',
-    borderWidth: 1.5,
-    borderColor: 'rgba(34, 197, 94, 0.4)',
-    elevation: 8,
-    shadowColor: '#22c55e',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-  },
-  authLogoBannerImage: {
-    width: Math.min(width - 32, 420),
-    height: Math.round(Math.min(width - 32, 420) * (1024 / 682)),
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
   authCard: {
-    backgroundColor: '#0a1224',
+    backgroundColor: 'rgba(8, 14, 28, 0.95)',
     borderColor: '#22c55e',
     borderWidth: 2,
-    borderRadius: 20,
-    paddingHorizontal: 18,
+    borderRadius: 22,
+    paddingHorizontal: 20,
     paddingTop: 18,
     paddingBottom: 22,
-    elevation: 20,
-    shadowColor: '#22c55e',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
+    elevation: 30,
+    zIndex: 999,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.6,
+    shadowRadius: 18,
     width: '100%',
     maxWidth: 420,
     alignSelf: 'center',
