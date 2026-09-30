@@ -13832,23 +13832,6 @@ function CricketAddaMain() {
                   </View>
                 )}
 
-                {/* STEP PROGRESS INDICATOR (OTP Mode & Step 3 Profile Setup) */}
-                {(authMethod === 'otp' || authStep === 3) && (
-                  <View style={styles.authStepIndicatorRow}>
-                    <View style={[styles.authStepDot, authStep >= 1 && styles.authStepDotActive]}>
-                      <Text style={[styles.authStepDotText, authStep >= 1 && styles.authStepDotTextActive]}>1</Text>
-                    </View>
-                    <View style={[styles.authStepLine, authStep >= 2 && styles.authStepLineActive]} />
-                    <View style={[styles.authStepDot, authStep >= 2 && styles.authStepDotActive]}>
-                      <Text style={[styles.authStepDotText, authStep >= 2 && styles.authStepDotTextActive]}>2</Text>
-                    </View>
-                    <View style={[styles.authStepLine, authStep >= 3 && styles.authStepLineActive]} />
-                    <View style={[styles.authStepDot, authStep >= 3 && styles.authStepDotActive]}>
-                      <Text style={[styles.authStepDotText, authStep >= 3 && styles.authStepDotTextActive]}>3</Text>
-                    </View>
-                  </View>
-                )}
-
                 {/* ERROR NOTIFICATION BANNER */}
                 {authError ? (
                   <View style={styles.authErrorBanner}>
@@ -13890,10 +13873,6 @@ function CricketAddaMain() {
 
                     {authSubTab === 'signin' ? (
                       <>
-                        <Text style={styles.authCardSubtitle}>
-                          Login securely using your registered email address and password.
-                        </Text>
-
                         {/* Email Input */}
                         <View style={styles.authFieldWrapper}>
                           <View style={styles.authInputRow}>
@@ -13957,35 +13936,9 @@ function CricketAddaMain() {
                             </View>
                           )}
                         </TouchableOpacity>
-
-                        {/* Toggle to Sign Up */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 14, gap: 4 }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 12 }}>Don't have an account?</Text>
-                          <TouchableOpacity onPress={() => { setAuthSubTab('signup'); setAuthError(''); }}>
-                            <Text style={{ color: '#22c55e', fontSize: 12, fontWeight: 'bold' }}>Create Account</Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        {/* OTP Switch Link */}
-                        <TouchableOpacity
-                          style={{ marginTop: 10, paddingVertical: 4, alignItems: 'center' }}
-                          onPress={() => {
-                            setAuthMethod('otp');
-                            setAuthStep(1);
-                            setAuthError('');
-                          }}
-                        >
-                          <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '700' }}>
-                            ⚡ Login with OTP
-                          </Text>
-                        </TouchableOpacity>
                       </>
                     ) : (
                       <>
-                        <Text style={styles.authCardSubtitle}>
-                          Sign up with Email & Password. Next, you'll complete your player profile!
-                        </Text>
-
                         {/* Email Address */}
                         <View style={styles.authFieldWrapper}>
                           <View style={styles.authInputRow}>
@@ -14062,28 +14015,6 @@ function CricketAddaMain() {
                             </View>
                           )}
                         </TouchableOpacity>
-
-                        {/* Toggle to Sign In */}
-                        <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 14, gap: 4 }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 12 }}>Already have an account?</Text>
-                          <TouchableOpacity onPress={() => { setAuthSubTab('signin'); setAuthError(''); }}>
-                            <Text style={{ color: '#22c55e', fontSize: 12, fontWeight: 'bold' }}>Sign In</Text>
-                          </TouchableOpacity>
-                        </View>
-
-                        {/* Back to Login with OTP */}
-                        <TouchableOpacity
-                          style={{ marginTop: 10, paddingVertical: 4, alignItems: 'center' }}
-                          onPress={() => {
-                            setAuthMethod('otp');
-                            setAuthStep(1);
-                            setAuthError('');
-                          }}
-                        >
-                          <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '700' }}>
-                            ⚡ Login with OTP
-                          </Text>
-                        </TouchableOpacity>
                       </>
                     )}
                   </View>
@@ -14094,10 +14025,6 @@ function CricketAddaMain() {
                 {/* ========================================================================= */}
                 {authMethod === 'otp' && authStep === 1 && (
                   <View style={styles.authInnerBody}>
-                    <Text style={styles.authCardSubtitle}>
-                      Enter your email address to receive a secure 6-digit verification code.
-                    </Text>
-
                     <View style={styles.authFieldWrapper}>
                       <View style={styles.authInputRow}>
                         <Text style={styles.authInputIcon}>✉️</Text>
@@ -14139,26 +14066,6 @@ function CricketAddaMain() {
                         </View>
                       )}
                     </TouchableOpacity>
-
-                    {/* Option to switch to password directly */}
-                    <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginTop: 16, gap: 4 }}>
-                      <Text style={{ color: '#94a3b8', fontSize: 12 }}>Prefer password?</Text>
-                      <TouchableOpacity
-                        onPress={() => {
-                          setAuthMethod('password');
-                          setAuthError('');
-                          const cleanE = (authEmail || '').trim().toLowerCase();
-                          const exists = Array.isArray(usersDb) && usersDb.some(u => {
-                            if (!u) return false;
-                            const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
-                            return uEmail === cleanE;
-                          });
-                          setAuthSubTab(exists ? 'signin' : 'signup');
-                        }}
-                      >
-                        <Text style={{ color: '#22c55e', fontSize: 12, fontWeight: 'bold' }}>Sign In / Sign Up with Password</Text>
-                      </TouchableOpacity>
-                    </View>
                   </View>
                 )}
 
@@ -14235,25 +14142,6 @@ function CricketAddaMain() {
                           <Text style={styles.authPrimaryBtnArrow}>➔</Text>
                         </View>
                       )}
-                    </TouchableOpacity>
-
-                    {/* Continue with Email & Password */}
-                    <TouchableOpacity
-                      style={styles.authTechnicalFallbackBtn}
-                      activeOpacity={0.8}
-                      onPress={() => {
-                        setAuthMethod('password');
-                        setAuthError('');
-                        const cleanE = (authEmail || '').trim().toLowerCase();
-                        const exists = Array.isArray(usersDb) && usersDb.some(u => {
-                          if (!u) return false;
-                          const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
-                          return uEmail === cleanE;
-                        });
-                        setAuthSubTab(exists ? 'signin' : 'signup');
-                      }}
-                    >
-                      <Text style={styles.authTechnicalFallbackBtnText}>Continue with Email & Password</Text>
                     </TouchableOpacity>
                   </View>
                 )}
