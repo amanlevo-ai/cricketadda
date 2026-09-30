@@ -13770,31 +13770,19 @@ function CricketAddaMain() {
 
       {!isAuthenticated ? (
         <View style={styles.authRootContainer}>
-          {/* Subtle Atmospheric Stadium Backdrop */}
-          <Image
-            source={require('./assets/login-bg.jpg')}
-            style={[StyleSheet.absoluteFillObject, { opacity: 0.18 }]}
-            resizeMode="cover"
-          />
-          <View style={styles.authBackdropOverlay} pointerEvents="none" />
-
-          <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={styles.authKeyboardWrapper}
+          <ScrollView
+            style={{ flex: 1, width: '100%' }}
+            contentContainerStyle={[
+              styles.authScrollContainer,
+              {
+                paddingTop: Math.max(topInset, 20) + 16,
+                paddingBottom: Math.max(bottomInset, 20) + 32,
+              },
+            ]}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            bounces={false}
           >
-            <ScrollView
-              style={{ flex: 1, width: '100%' }}
-              contentContainerStyle={[
-                styles.authScrollContainer,
-                {
-                  paddingTop: Math.max(topInset, 16) + 12,
-                  paddingBottom: Math.max(bottomInset, 16) + 24,
-                },
-              ]}
-              showsVerticalScrollIndicator={false}
-              keyboardShouldPersistTaps="handled"
-              bounces={false}
-            >
               {/* CricketAdda Brand Header */}
               <View style={styles.authBrandHeader}>
                 <Image source={require('./assets/logo.png')} style={styles.authBrandLogo} resizeMode="contain" />
@@ -14464,7 +14452,6 @@ function CricketAddaMain() {
                 )}
               </View>
             </ScrollView>
-          </KeyboardAvoidingView>
         </View>
       ) : (
         <>
@@ -32299,18 +32286,7 @@ const styles = StyleSheet.create({
   authRootContainer: {
     flex: 1,
     backgroundColor: '#020617',
-    position: 'relative',
     width: '100%',
-    height: '100%',
-  },
-  authBackdropOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(2, 6, 23, 0.72)',
-  },
-  authKeyboardWrapper: {
-    flex: 1,
-    width: '100%',
-    zIndex: 10,
   },
   authScrollContainer: {
     paddingHorizontal: 16,
@@ -32319,43 +32295,39 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
-  authHeroSpacer: {
-    height: 0,
-    width: '100%',
-  },
   authBrandHeader: {
     alignItems: 'center',
     marginBottom: 16,
   },
   authBrandLogo: {
-    width: 60,
-    height: 60,
-    marginBottom: 6,
+    width: 68,
+    height: 68,
+    marginBottom: 8,
   },
   authBrandTitle: {
     color: '#ffffff',
-    fontSize: 24,
+    fontSize: 26,
     fontWeight: '900',
     letterSpacing: 0.5,
   },
   authBrandTagline: {
     color: '#94a3b8',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '600',
     marginTop: 2,
   },
   authCard: {
-    backgroundColor: 'rgba(10, 18, 36, 0.95)',
-    borderColor: 'rgba(34, 197, 94, 0.45)',
-    borderWidth: 1.5,
+    backgroundColor: '#0a1224',
+    borderColor: '#22c55e',
+    borderWidth: 2,
     borderRadius: 22,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 18,
-    elevation: 12,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 22,
+    elevation: 20,
     shadowColor: '#22c55e',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.25,
+    shadowOpacity: 0.35,
     shadowRadius: 16,
     width: '100%',
     maxWidth: 440,
