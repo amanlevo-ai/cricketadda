@@ -13792,12 +13792,12 @@ function CricketAddaMain() {
                   <Text style={styles.authTitlePrefix}>
                     {authMethod === 'password'
                       ? (authSubTab === 'signin' ? 'Sign In to Your Account' : 'Create New Account')
-                      : (authStep === 2 ? 'Verify Verification Code' : authStep === 3 ? 'Setup Player Profile' : 'Welcome to CricketAdda')}
+                      : (authStep === 2 ? 'Enter Verification Code' : authStep === 3 ? 'Setup Player Profile' : 'Welcome to CricketAdda')}
                   </Text>
                 </View>
 
                 {/* TOP 2 TABS: LOGIN WITH OTP vs EMAIL & PASSWORD */}
-                {authStep !== 3 && (
+                {authStep === 1 && (
                   <View style={styles.authModeToggleContainer}>
                     <TouchableOpacity
                       style={[styles.authModeTab, authMethod === 'otp' && styles.authModeTabActive]}
@@ -32485,7 +32485,7 @@ const styles = StyleSheet.create({
   },
   authOtpDigitBox: {
     width: Math.min((width - 80) / 6, 44),
-    height: 48,
+    height: 46,
     backgroundColor: 'rgba(2, 6, 23, 0.75)',
     borderWidth: 1.5,
     borderColor: '#334155',
