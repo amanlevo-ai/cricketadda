@@ -1797,6 +1797,216 @@ const MATCH_DATABASE = {
       target: 145,
     },
   },
+  match_live_cpl_2: {
+    id: 'match_live_cpl_2',
+    title: 'King XI vs Royals XI',
+    tournament: 'Corporate Premier League',
+    venue: 'Chinnaswamy Stadium',
+    format: 'T20',
+    matchType: 'T20',
+    totalOvers: 20,
+    status: 'live',
+    teamA: 'King XI',
+    teamB: 'Royals XI',
+    flagA: '👑',
+    flagB: '🦁',
+    toss: 'Royals XI won the toss & elected to BAT',
+    selectedInning: 2,
+    equation: 'King XI need 34 runs in 28 balls',
+    innings1: {
+      team: 'Royals XI',
+      flag: '🦁',
+      runs: 175,
+      wickets: 6,
+      overs: '20.0',
+      maxOvers: 20,
+      crr: '8.75',
+      batting: [
+        { name: 'Yashasvi Jaiswal', runs: 54, balls: 35, fours: 7, sixes: 2, strikeRate: '154.29', dismissal: 'c Karthik b Siraj' },
+        { name: 'Jos Buttler (wk)', runs: 32, balls: 22, fours: 4, sixes: 1, strikeRate: '145.45', dismissal: 'b Dayal' },
+        { name: 'Sanju Samson (c)', runs: 48, balls: 30, fours: 5, sixes: 2, strikeRate: '160.00', dismissal: 'c Maxwell b Ferguson' },
+        { name: 'Riyan Parag', runs: 26, balls: 18, fours: 2, sixes: 1, strikeRate: '144.44', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Mohammed Siraj', overs: '4.0', maidens: 0, runs: 34, wickets: 2, econ: '8.50' },
+        { name: 'Lockie Ferguson', overs: '4.0', maidens: 0, runs: 42, wickets: 2, econ: '10.50' },
+        { name: 'Glenn Maxwell', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
+        { name: 'Yash Dayal', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
+      ],
+    },
+    innings2: {
+      team: 'King XI',
+      flag: '👑',
+      runs: 142,
+      wickets: 3,
+      overs: '15.2',
+      maxOvers: 20,
+      crr: '9.26',
+      target: 176,
+      batting: [
+        { name: 'Faf du Plessis (c)', runs: 36, balls: 24, fours: 4, sixes: 1, strikeRate: '150.00', dismissal: 'b Boult' },
+        { name: 'Virat Kohli', runs: 58, balls: 41, fours: 6, sixes: 2, strikeRate: '141.46', notOut: true, dismissal: 'not out' },
+        { name: 'Rajat Patidar', runs: 18, balls: 14, fours: 2, sixes: 0, strikeRate: '128.57', dismissal: 'c Samson b Chahal' },
+        { name: 'Glenn Maxwell', runs: 24, balls: 12, fours: 2, sixes: 2, strikeRate: '200.00', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Trent Boult', overs: '4.0', maidens: 0, runs: 30, wickets: 1, econ: '7.50' },
+        { name: 'Ravichandran Ashwin', overs: '3.0', maidens: 0, runs: 26, wickets: 0, econ: '8.67' },
+        { name: 'Yuzvendra Chahal', overs: '3.2', maidens: 0, runs: 28, wickets: 1, econ: '8.40' },
+        { name: 'Avesh Khan', overs: '3.0', maidens: 0, runs: 34, wickets: 0, econ: '11.33' },
+      ],
+    },
+    liveState: {
+      currentInnings: 2,
+      liveRuns: 142,
+      liveWickets: 3,
+      liveBalls: 92,
+      currentStriker: 'Virat Kohli',
+      currentNonStriker: 'Glenn Maxwell',
+      currentBowler: 'Yuzvendra Chahal',
+      target: 176,
+    },
+  },
+  match_live_sup_3: {
+    id: 'match_live_sup_3',
+    title: 'Blasters XI vs United XI',
+    tournament: 'Super Cup 2026',
+    venue: 'Eden Gardens',
+    format: 'T20',
+    matchType: 'T20',
+    totalOvers: 20,
+    status: 'live',
+    teamA: 'Blasters XI',
+    teamB: 'United XI',
+    flagA: '🔴',
+    flagB: '🛡️',
+    toss: 'Blasters XI won the toss & elected to BOWL',
+    selectedInning: 2,
+    equation: 'Blasters XI need 18 runs in 11 balls',
+    innings1: {
+      team: 'United XI',
+      flag: '🛡️',
+      runs: 182,
+      wickets: 7,
+      overs: '20.0',
+      maxOvers: 20,
+      crr: '9.10',
+      batting: [
+        { name: 'David Warner (c)', runs: 52, balls: 34, fours: 6, sixes: 2, strikeRate: '152.94', dismissal: 'c Iyer b Starc' },
+        { name: 'Prithvi Shaw', runs: 24, balls: 15, fours: 4, sixes: 0, strikeRate: '160.00', dismissal: 'b Harshit' },
+        { name: 'Rishabh Pant (wk)', runs: 46, balls: 28, fours: 4, sixes: 3, strikeRate: '164.29', dismissal: 'c Salt b Varun' },
+        { name: 'Tristan Stubbs', runs: 31, balls: 19, fours: 3, sixes: 1, strikeRate: '163.16', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Mitchell Starc', overs: '4.0', maidens: 0, runs: 28, wickets: 3, econ: '7.00' },
+        { name: 'Harshit Rana', overs: '4.0', maidens: 0, runs: 38, wickets: 2, econ: '9.50' },
+        { name: 'Sunil Narine', overs: '4.0', maidens: 0, runs: 26, wickets: 1, econ: '6.50' },
+        { name: 'Varun Chakravarthy', overs: '4.0', maidens: 0, runs: 34, wickets: 1, econ: '8.50' },
+      ],
+    },
+    innings2: {
+      team: 'Blasters XI',
+      flag: '🔴',
+      runs: 165,
+      wickets: 5,
+      overs: '18.1',
+      maxOvers: 20,
+      crr: '9.08',
+      target: 183,
+      batting: [
+        { name: 'Phil Salt (wk)', runs: 42, balls: 25, fours: 5, sixes: 2, strikeRate: '168.00', dismissal: 'c Warner b Nortje' },
+        { name: 'Shreyas Iyer (c)', runs: 38, balls: 28, fours: 4, sixes: 1, strikeRate: '135.71', dismissal: 'b Axar' },
+        { name: 'Andre Russell', runs: 38, balls: 14, fours: 2, sixes: 4, strikeRate: '271.43', notOut: true, dismissal: 'not out' },
+        { name: 'Rinku Singh', runs: 14, balls: 7, fours: 2, sixes: 0, strikeRate: '200.00', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Anrich Nortje', overs: '3.1', maidens: 0, runs: 35, wickets: 2, econ: '11.05' },
+        { name: 'Khaleel Ahmed', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
+        { name: 'Axar Patel', overs: '4.0', maidens: 0, runs: 30, wickets: 1, econ: '7.50' },
+        { name: 'Kuldeep Yadav', overs: '4.0', maidens: 0, runs: 32, wickets: 1, econ: '8.00' },
+      ],
+    },
+    liveState: {
+      currentInnings: 2,
+      liveRuns: 165,
+      liveWickets: 5,
+      liveBalls: 109,
+      currentStriker: 'Andre Russell',
+      currentNonStriker: 'Rinku Singh',
+      currentBowler: 'Anrich Nortje',
+      target: 183,
+    },
+  },
+  match_live_derby_4: {
+    id: 'match_live_derby_4',
+    title: 'Warriors XI vs King XI',
+    tournament: 'Champions Derby',
+    venue: 'Chepauk Fortress',
+    format: 'T20',
+    matchType: 'T20',
+    totalOvers: 20,
+    status: 'live',
+    teamA: 'Warriors XI',
+    teamB: 'King XI',
+    flagA: '⚔️',
+    flagB: '👑',
+    toss: 'Warriors XI won the toss & elected to BOWL',
+    selectedInning: 2,
+    equation: 'Warriors XI need 13 runs in 13 balls',
+    innings1: {
+      team: 'King XI',
+      flag: '👑',
+      runs: 170,
+      wickets: 7,
+      overs: '20.0',
+      maxOvers: 20,
+      crr: '8.50',
+      batting: [
+        { name: 'Faf du Plessis', runs: 64, balls: 42, fours: 7, sixes: 2, strikeRate: '152.38', dismissal: 'c Dhoni b Chahar' },
+        { name: 'Virat Kohli (c)', runs: 38, balls: 29, fours: 4, sixes: 0, strikeRate: '131.03', dismissal: 'b Jadeja' },
+        { name: 'Rajat Patidar', runs: 28, balls: 18, fours: 3, sixes: 1, strikeRate: '155.56', dismissal: 'c Dube b Pathirana' },
+        { name: 'Dinesh Karthik (wk)', runs: 18, balls: 11, fours: 2, sixes: 1, strikeRate: '163.64', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Deepak Chahar', overs: '4.0', maidens: 0, runs: 26, wickets: 2, econ: '6.50' },
+        { name: 'Matheesha Pathirana', overs: '4.0', maidens: 0, runs: 31, wickets: 2, econ: '7.75' },
+        { name: 'Ravindra Jadeja', overs: '4.0', maidens: 0, runs: 28, wickets: 2, econ: '7.00' },
+        { name: 'Moeen Ali', overs: '4.0', maidens: 0, runs: 32, wickets: 0, econ: '8.00' },
+      ],
+    },
+    innings2: {
+      team: 'Warriors XI',
+      flag: '⚔️',
+      runs: 158,
+      wickets: 4,
+      overs: '17.5',
+      maxOvers: 20,
+      crr: '8.86',
+      target: 171,
+      batting: [
+        { name: 'Ruturaj Gaikwad', runs: 62, balls: 43, fours: 7, sixes: 2, strikeRate: '144.19', dismissal: 'c Kohli b Siraj' },
+        { name: 'Devon Conway', runs: 28, balls: 21, fours: 3, sixes: 0, strikeRate: '133.33', dismissal: 'b Dayal' },
+        { name: 'Shivam Dube', runs: 32, balls: 19, fours: 2, sixes: 3, strikeRate: '168.42', dismissal: 'c Patidar b Maxwell' },
+        { name: 'MS Dhoni (c & wk)', runs: 22, balls: 14, fours: 2, sixes: 1, strikeRate: '157.14', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Mohammed Siraj', overs: '4.0', maidens: 0, runs: 32, wickets: 2, econ: '8.00' },
+        { name: 'Lockie Ferguson', overs: '3.5', maidens: 0, runs: 35, wickets: 1, econ: '9.13' },
+        { name: 'Glenn Maxwell', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
+        { name: 'Yash Dayal', overs: '3.0', maidens: 0, runs: 31, wickets: 0, econ: '10.33' },
+      ],
+    },
+    liveState: {
+      currentInnings: 2,
+      liveRuns: 158,
+      liveWickets: 4,
+      liveBalls: 107,
+      currentStriker: 'MS Dhoni (c & wk)',
+      currentNonStriker: 'Ruturaj Gaikwad',
+      currentBowler: 'Lockie Ferguson',
+      target: 171,
+    },
+  },
   match_rec_1: {
     id: 'match_rec_1',
     title: 'Tigers XI vs Warriors XI',
@@ -1995,11 +2205,6 @@ const MATCH_DATABASE = {
   },
 };
 
-// USER'S COMPLETE PERSONAL MATCH HISTORY & CAREER STATS
-// ============================================================================
-// ============================================================================
-// REAL-TIME CAREER STATS & MATCH-BY-MATCH HISTORY RECALCULATION ENGINE
-// ============================================================================
 const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, currentLiveMatch, currentLiveBatters, currentLiveBowlers, currentDroppedCatches) => {
   const userName = (userProf?.name || '').trim();
   const cleanUserName = userName.replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
@@ -8165,69 +8370,68 @@ function CricketAddaMain() {
     return result;
   }, [liveThisOver, liveBalls]);
 
+  const [liveCarouselIndex, setLiveCarouselIndex] = useState(0);
+
+  const allLiveMatchesList = useMemo(() => {
+    const list = Object.values(matchesDb || {}).filter(isMatchLive);
+    if (list.length > 0) return list;
+    return [
+      MATCH_DATABASE.match_live_spl_1,
+      MATCH_DATABASE.match_live_cpl_2,
+      MATCH_DATABASE.match_live_sup_3,
+      MATCH_DATABASE.match_live_derby_4,
+    ];
+  }, [matchesDb]);
+
   const featuredLiveMatch = useMemo(() => {
-    const liveMatches = Object.values(matchesDb || {}).filter(isMatchLive);
-    if (liveMatches.length > 0) {
-      const lm = liveMatches[0];
-      const isCur = lm.id === activeMatchId;
-      const teamAName = lm.teamA || lm.innings2?.team || 'Tigers XI';
-      const teamBName = lm.teamB || lm.innings1?.team || 'Warriors XI';
+    const safeIdx = Math.max(0, Math.min(liveCarouselIndex, allLiveMatchesList.length - 1));
+    const lm = allLiveMatchesList[safeIdx] || allLiveMatchesList[0];
+    const isCur = lm?.id === activeMatchId;
 
-      const innForA = lm.innings2?.team === teamAName ? lm.innings2 : (lm.innings1?.team === teamAName ? lm.innings1 : lm.innings2);
-      const innForB = lm.innings1?.team === teamBName ? lm.innings1 : (lm.innings2?.team === teamBName ? lm.innings2 : lm.innings1);
+    const teamAName = lm?.teamA || lm?.innings2?.team || 'Tigers XI';
+    const teamBName = lm?.teamB || lm?.innings1?.team || 'Warriors XI';
 
-      const isABatting = isCur && ((currentInnings === 2 && lm.innings2?.team === teamAName) || (currentInnings === 1 && lm.innings1?.team === teamAName));
-      const isBBatting = isCur && ((currentInnings === 1 && lm.innings1?.team === teamBName) || (currentInnings === 2 && lm.innings2?.team === teamBName));
+    const innForA = lm?.innings2?.team === teamAName ? lm.innings2 : (lm?.innings1?.team === teamAName ? lm.innings1 : lm?.innings2);
+    const innForB = lm?.innings1?.team === teamBName ? lm.innings1 : (lm?.innings2?.team === teamBName ? lm.innings2 : lm?.innings1);
 
-      const sA = isABatting ? `${liveRuns}/${liveWickets}` : `${innForA?.runs ?? 128}/${innForA?.wickets ?? 4}`;
-      const ovA = isABatting ? `${oversStr} Ov` : `${innForA?.overs ?? '16.3'} Ov`;
-      const sB = isBBatting ? `${liveRuns}/${liveWickets}` : `${innForB?.runs ?? 144}/${innForB?.wickets ?? 8}`;
-      const ovB = isBBatting ? `${oversStr} Ov` : `${innForB?.overs ?? '20.0'} Ov`;
+    const isABatting = isCur && ((currentInnings === 2 && lm?.innings2?.team === teamAName) || (currentInnings === 1 && lm?.innings1?.team === teamAName));
+    const isBBatting = isCur && ((currentInnings === 1 && lm?.innings1?.team === teamBName) || (currentInnings === 2 && lm?.innings2?.team === teamBName));
 
-      let eq = lm.equation;
-      if (!eq) {
-        if (isCur && currentInnings === 2) {
-          const tRuns = lm.innings2?.target || (lm.innings1?.runs ? lm.innings1.runs + 1 : (targetRuns || 0));
-          const rNeeded = Math.max(0, tRuns - liveRuns);
-          const bRemaining = Math.max(0, (lm.totalOvers || 20) * 6 - liveBalls);
-          eq = `${teamAName} need ${rNeeded} runs in ${bRemaining} balls`;
-        } else {
-          eq = `${teamAName} vs ${teamBName}`;
-        }
+    const sA = isABatting ? `${liveRuns}/${liveWickets}` : `${innForA?.runs ?? 128}/${innForA?.wickets ?? 4}`;
+    const ovA = isABatting ? `${oversStr} Ov` : `${innForA?.overs ?? '16.3'} Ov`;
+    const sB = isBBatting ? `${liveRuns}/${liveWickets}` : `${innForB?.runs ?? 144}/${innForB?.wickets ?? 8}`;
+    const ovB = isBBatting ? `${oversStr} Ov` : `${innForB?.overs ?? '20.0'} Ov`;
+
+    let eq = lm?.equation;
+    if (!eq) {
+      if (isCur && currentInnings === 2) {
+        const tRuns = lm?.innings2?.target || (lm?.innings1?.runs ? lm.innings1.runs + 1 : (targetRuns || 0));
+        const rNeeded = Math.max(0, tRuns - liveRuns);
+        const bRemaining = Math.max(0, (lm?.totalOvers || 20) * 6 - liveBalls);
+        eq = `${teamAName} need ${rNeeded} runs in ${bRemaining} balls`;
+      } else {
+        eq = `${teamAName} vs ${teamBName}`;
       }
-
-      return {
-        id: lm.id,
-        tournament: lm.tournament || 'School Premier League',
-        venue: lm.venue || 'Green Valley Ground',
-        format: lm.matchType || 'T20',
-        teamA: teamAName,
-        flagA: lm.flagA || innForA?.flag || '🐯',
-        scoreA: sA,
-        oversA: ovA,
-        teamB: teamBName,
-        flagB: lm.flagB || innForB?.flag || '⚔️',
-        scoreB: sB,
-        oversB: ovB,
-        equation: eq || 'Match in Progress',
-      };
     }
+
     return {
-      id: activeMatchId || 'sample_live_1',
-      tournament: 'School Premier League',
-      venue: 'Green Valley Ground',
-      format: 'T20',
-      teamA: 'Tigers XI',
-      flagA: '🐯',
-      scoreA: '128/4',
-      oversA: '16.3 Ov',
-      teamB: 'Warriors XI',
-      flagB: '⚔️',
-      scoreB: '144/8',
-      oversB: '20.0 Ov',
-      equation: 'Tigers XI need 17 runs in 21 balls',
+      id: lm?.id || 'match_live_spl_1',
+      tournament: lm?.tournament || 'School Premier League',
+      venue: lm?.venue || 'Green Valley Ground',
+      format: lm?.format || lm?.matchType || 'T20',
+      teamA: teamAName,
+      flagA: lm?.flagA || innForA?.flag || '🐯',
+      scoreA: sA,
+      oversA: ovA,
+      teamB: teamBName,
+      flagB: lm?.flagB || innForB?.flag || '⚔️',
+      scoreB: sB,
+      oversB: ovB,
+      equation: eq || 'Match in Progress',
+      totalMatches: allLiveMatchesList.length,
+      currentIndex: safeIdx,
     };
-  }, [matchesDb, activeMatchId, currentInnings, liveRuns, liveWickets, liveBalls, oversStr, targetRuns]);
+  }, [allLiveMatchesList, liveCarouselIndex, activeMatchId, currentInnings, liveRuns, liveWickets, liveBalls, oversStr, targetRuns]);
 
   const displayRecentMatches = useMemo(() => {
     const completed = Object.values(matchesDb || {}).filter(isMatchCompleted);
@@ -15015,15 +15219,15 @@ function CricketAddaMain() {
         <>
           {/* Top Navbar */}
           {activeTab === 'matches' ? (
-            <View style={[styles.dashHeaderBar, { backgroundColor: '#030914', borderBottomColor: '#0a192f' }]}>
+            <View style={[styles.dashHeaderBar, { backgroundColor: 'rgba(3, 9, 20, 0.95)', borderBottomColor: '#0a192f' }]}>
               {/* Left: User Profile */}
               <TouchableOpacity
                 style={styles.dashUserProfile}
                 onPress={() => navigateTo('profile')}
                 activeOpacity={0.8}
               >
-                <PlayerAvatar name={userProfile.name || 'Amandeep Singh'} size={42} customUri={userProfile.avatarUri} borderColor="#00e676" />
-                <View style={{ marginLeft: 10, justifyContent: 'center' }}>
+                <PlayerAvatar name={userProfile.name || 'Amandeep Singh'} size={38} customUri={userProfile.avatarUri} borderColor="#00e676" />
+                <View style={{ marginLeft: 8, justifyContent: 'center' }}>
                   <Text style={styles.dashUserName} numberOfLines={1}>
                     {userProfile.name || 'Amandeep Singh'}
                   </Text>
@@ -15033,10 +15237,15 @@ function CricketAddaMain() {
                 </View>
               </TouchableOpacity>
 
-              {/* Right: CricketAdda 3D Logo (Notification & Settings removed) */}
-              <TouchableOpacity onPress={() => setShowSplash(true)} activeOpacity={0.85} style={{ paddingRight: 4 }}>
-                <Image source={require('./assets/header-logo.png')} style={styles.dashHeaderLogo} resizeMode="contain" />
-              </TouchableOpacity>
+              {/* Center: Small CricketAdda Logo (Centered & Scaled Down as Requested) */}
+              <View style={styles.dashHeaderLogoCenter} pointerEvents="box-none">
+                <TouchableOpacity onPress={() => setShowSplash(true)} activeOpacity={0.85}>
+                  <Image source={require('./assets/header-logo.png')} style={styles.dashHeaderLogoSmall} resizeMode="contain" />
+                </TouchableOpacity>
+              </View>
+
+              {/* Right: Spacer for perfect center alignment */}
+              <View style={styles.dashHeaderRightSpacer} />
             </View>) : (
             <View style={[styles.navBar, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder }]}>
               <TouchableOpacity style={styles.navBrand} onPress={() => navigateTo('matches')}>
@@ -15077,7 +15286,13 @@ function CricketAddaMain() {
       {/* 2.1 MATCHES HUB SCREEN */}
       {/* ========================================================================= */}
       {activeTab === 'matches' && (
-        <ScrollView style={[styles.mainContentNoPad, { backgroundColor: '#030914' }]} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
+        <ImageBackground
+          source={require('./assets/login-bg.jpg')}
+          style={{ flex: 1 }}
+          resizeMode="cover"
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(3, 9, 20, 0.88)' }}>
+            <ScrollView style={styles.mainContentNoPad} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
           {/* AUTO-SAVED MATCH DRAFT BANNER */}
           {matchDraft.hasDraft && matchDraft.myTeam && matchDraft.opponentTeam && ((matchDraft.myPlayingXI?.length >= 11 && matchDraft.opponentPlayingXI?.length >= 11) || matchDraft.step > 1) && (
             <View style={[styles.draftCardBanner, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
@@ -15198,7 +15413,7 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
 
-              {/* 3. FEATURED LIVE MATCH CARD */}
+              {/* 3. FEATURED LIVE MATCH CARD WITH LEFT/RIGHT NEXT & PREVIOUS SWITCHER */}
               <View style={styles.dashFeaturedLiveCard}>
                 <View style={styles.dashFeaturedTopRow}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
@@ -15214,6 +15429,29 @@ function CricketAddaMain() {
                         {featuredLiveMatch.format || 'T20'} • {featuredLiveMatch.venue || 'Green Valley Ground'}
                       </Text>
                     </View>
+                  </View>
+
+                  {/* Left / Right Carousel Controls */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 6 }}>
+                    <TouchableOpacity
+                      onPress={() => setLiveCarouselIndex(prev => (prev > 0 ? prev - 1 : (allLiveMatchesList.length - 1)))}
+                      style={styles.dashCarouselArrowBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.dashCarouselArrowText}>‹</Text>
+                    </TouchableOpacity>
+
+                    <Text style={styles.dashCarouselCounterText}>
+                      {(featuredLiveMatch.currentIndex || 0) + 1}/{allLiveMatchesList.length}
+                    </Text>
+
+                    <TouchableOpacity
+                      onPress={() => setLiveCarouselIndex(prev => (prev < allLiveMatchesList.length - 1 ? prev + 1 : 0))}
+                      style={styles.dashCarouselArrowBtn}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.dashCarouselArrowText}>›</Text>
+                    </TouchableOpacity>
                   </View>
 
                   <TouchableOpacity
@@ -15286,17 +15524,24 @@ function CricketAddaMain() {
                   </Text>
                 </View>
 
-                {/* Carousel Dots */}
+                {/* Interactive Carousel Dots - Tap to switch match */}
                 <View style={styles.dashCarouselDotsRow}>
-                  <View style={[styles.dashCarouselDot, styles.dashCarouselDotActive]} />
-                  <View style={styles.dashCarouselDot} />
-                  <View style={styles.dashCarouselDot} />
-                  <View style={styles.dashCarouselDot} />
-                  <View style={styles.dashCarouselDot} />
+                  {allLiveMatchesList.map((m, idx) => (
+                    <TouchableOpacity
+                      key={m.id || `dot_${idx}`}
+                      onPress={() => setLiveCarouselIndex(idx)}
+                      hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                    >
+                      <View style={[
+                        styles.dashCarouselDot,
+                        idx === (featuredLiveMatch.currentIndex || 0) && styles.dashCarouselDotActive
+                      ]} />
+                    </TouchableOpacity>
+                  ))}
                 </View>
               </View>
 
-              {/* 4. RECENT MATCHES SECTION (COMPACT HORIZONTAL SINGLE-ROW CARDS) */}
+                            {/* 4. RECENT MATCHES SECTION (COMPACT HORIZONTAL SINGLE-ROW CARDS) */}
               <View style={styles.dashRecentSection}>
                 <View style={styles.dashRecentHeaderRow}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -15715,6 +15960,8 @@ function CricketAddaMain() {
             </View>
           )}
         </ScrollView>
+          </View>
+        </ImageBackground>
       )}
 
       {/* ========================================================================= */}
@@ -34798,8 +35045,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 6,
     borderBottomWidth: 1,
+    position: 'relative',
   },
   dashUserProfile: {
     flexDirection: 'row',
@@ -34808,18 +35056,30 @@ const styles = StyleSheet.create({
   },
   dashUserName: {
     color: '#ffffff',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '800',
   },
   dashUserMeta: {
     color: '#94a3b8',
-    fontSize: 11,
-    marginTop: 2,
+    fontSize: 10.5,
+    marginTop: 1,
     fontWeight: '500',
   },
-  dashHeaderLogo: {
-    width: 78,
-    height: 44,
+  dashHeaderLogoCenter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dashHeaderLogoSmall: {
+    width: 50,
+    height: 32,
+  },
+  dashHeaderRightSpacer: {
+    width: 36,
   },
   dashHeaderActions: {
     display: 'none',
@@ -34968,12 +35228,34 @@ const styles = StyleSheet.create({
     fontSize: 10,
     marginTop: 1,
   },
+  dashCarouselArrowBtn: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#0f2438',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#1e3d5c',
+  },
+  dashCarouselArrowText: {
+    color: '#38bdf8',
+    fontSize: 15,
+    fontWeight: '900',
+    lineHeight: 18,
+  },
+  dashCarouselCounterText: {
+    color: '#94a3b8',
+    fontSize: 10,
+    fontWeight: '700',
+    paddingHorizontal: 2,
+  },
   dashViewLiveBtn: {
     borderColor: '#22c55e',
     borderWidth: 1,
     borderRadius: 14,
     paddingVertical: 3,
-    paddingHorizontal: 10,
+    paddingHorizontal: 9,
   },
   dashViewLiveBtnText: {
     color: '#22c55e',
@@ -35056,18 +35338,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     marginTop: 6,
   },
   dashCarouselDot: {
-    width: 5,
-    height: 5,
-    borderRadius: 2.5,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: '#334155',
   },
   dashCarouselDotActive: {
     backgroundColor: '#22c55e',
-    width: 12,
+    width: 14,
     borderRadius: 3,
   },
   dashRecentSection: {
