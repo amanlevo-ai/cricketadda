@@ -5699,120 +5699,6 @@ function CricketAddaMain() {
   const scorerBadgeW = Math.round(scorerWheelSize * 0.165);
   const scorerBadgeH = Math.round(scorerWheelSize * 0.115);
 
-  const featuredLiveMatch = useMemo(() => {
-    const liveMatches = Object.values(matchesDb || {}).filter(isMatchLive);
-    if (liveMatches.length > 0) {
-      const lm = liveMatches[0];
-      const isCur = lm.id === activeMatchId;
-      const teamAName = lm.teamA || lm.innings2?.team || 'Tigers XI';
-      const teamBName = lm.teamB || lm.innings1?.team || 'Warriors XI';
-
-      const innForA = lm.innings2?.team === teamAName ? lm.innings2 : (lm.innings1?.team === teamAName ? lm.innings1 : lm.innings2);
-      const innForB = lm.innings1?.team === teamBName ? lm.innings1 : (lm.innings2?.team === teamBName ? lm.innings2 : lm.innings1);
-
-      const isABatting = isCur && ((currentInnings === 2 && lm.innings2?.team === teamAName) || (currentInnings === 1 && lm.innings1?.team === teamAName));
-      const isBBatting = isCur && ((currentInnings === 1 && lm.innings1?.team === teamBName) || (currentInnings === 2 && lm.innings2?.team === teamBName));
-
-      const sA = isABatting ? `${liveRuns}/${liveWickets}` : `${innForA?.runs ?? 128}/${innForA?.wickets ?? 4}`;
-      const ovA = isABatting ? `${oversStr} Ov` : `${innForA?.overs ?? '16.3'} Ov`;
-      const sB = isBBatting ? `${liveRuns}/${liveWickets}` : `${innForB?.runs ?? 144}/${innForB?.wickets ?? 8}`;
-      const ovB = isBBatting ? `${oversStr} Ov` : `${innForB?.overs ?? '20.0'} Ov`;
-      const eq = lm.equation || (isCur && currentInnings === 2 ? liveTargetEquation : 'Tigers XI need 17 runs in 21 balls');
-
-      return {
-        id: lm.id,
-        tournament: lm.tournament || 'School Premier League',
-        venue: lm.venue || 'Green Valley Ground',
-        format: lm.matchType || 'T20',
-        teamA: teamAName,
-        flagA: lm.flagA || innForA?.flag || '🐯',
-        scoreA: sA,
-        oversA: ovA,
-        teamB: teamBName,
-        flagB: lm.flagB || innForB?.flag || '⚔️',
-        scoreB: sB,
-        oversB: ovB,
-        equation: eq || 'Match in Progress',
-      };
-    }
-    return {
-      id: activeMatchId || 'sample_live_1',
-      tournament: 'School Premier League',
-      venue: 'Green Valley Ground',
-      format: 'T20',
-      teamA: 'Tigers XI',
-      flagA: '🐯',
-      scoreA: '128/4',
-      oversA: '16.3 Ov',
-      teamB: 'Warriors XI',
-      flagB: '⚔️',
-      scoreB: '144/8',
-      oversB: '20.0 Ov',
-      equation: 'Tigers XI need 17 runs in 21 balls',
-    };
-  }, [matchesDb, activeMatchId, currentInnings, liveRuns, liveWickets, oversStr, liveTargetEquation]);
-
-  const displayRecentMatches = useMemo(() => {
-    const completed = Object.values(matchesDb || {}).filter(isMatchCompleted);
-    if (completed.length >= 3) {
-      return completed.slice(0, 5).map(m => {
-        const tA = m.teamA || m.innings1?.team || 'Tigers XI';
-        const tB = m.teamB || m.innings2?.team || 'Warriors XI';
-        const innA = m.innings1?.team === tA ? m.innings1 : (m.innings2?.team === tA ? m.innings2 : m.innings1);
-        const innB = m.innings2?.team === tB ? m.innings2 : (m.innings1?.team === tB ? m.innings1 : m.innings2);
-        return {
-          id: m.id,
-          teamA: tA,
-          flagA: m.flagA || innA?.flag || '🐯',
-          scoreA: `${innA?.runs || 0}/${innA?.wickets || 0} (${innA?.overs || '20.0'} Ov)`,
-          teamB: tB,
-          flagB: m.flagB || innB?.flag || '⚔️',
-          scoreB: `${innB?.runs || 0}/${innB?.wickets || 0} (${innB?.overs || '20.0'} Ov)`,
-          result: m.userResult || (m.result === 'Lost' ? 'Lost' : (m.winner ? (m.winner === tA ? 'Won' : 'Lost') : 'Won')),
-          date: m.date || '27 Sep 2026',
-          format: m.matchType || 'T20',
-        };
-      });
-    }
-    return [
-      {
-        id: 'rm_1',
-        teamA: 'Tigers XI',
-        flagA: '🐯',
-        scoreA: '178/6 (20.0 Ov)',
-        teamB: 'Warriors XI',
-        flagB: '⚔️',
-        scoreB: '162/8 (20.0 Ov)',
-        result: 'Won',
-        date: '27 Sep 2026',
-        format: 'T20',
-      },
-      {
-        id: 'rm_2',
-        teamA: 'King XI',
-        flagA: '👑',
-        scoreA: '156/9 (20.0 Ov)',
-        teamB: 'Royals XI',
-        flagB: '🦁',
-        scoreB: '160/5 (19.1 Ov)',
-        result: 'Lost',
-        date: '24 Sep 2026',
-        format: 'T20',
-      },
-      {
-        id: 'rm_3',
-        teamA: 'Blasters XI',
-        flagA: '🔴',
-        scoreA: '210/7 (20.0 Ov)',
-        teamB: 'United XI',
-        flagB: '🛡️',
-        scoreB: '198/10 (19.3 Ov)',
-        result: 'Won',
-        date: '20 Sep 2026',
-        format: 'ODI',
-      },
-    ];
-  }, [matchesDb]);
 
   const updateAndPersistUserProfile = (updater) => {
     setUserProfile(prev => {
@@ -8258,6 +8144,132 @@ function CricketAddaMain() {
     }
     return result;
   }, [liveThisOver, liveBalls]);
+
+  const featuredLiveMatch = useMemo(() => {
+    const liveMatches = Object.values(matchesDb || {}).filter(isMatchLive);
+    if (liveMatches.length > 0) {
+      const lm = liveMatches[0];
+      const isCur = lm.id === activeMatchId;
+      const teamAName = lm.teamA || lm.innings2?.team || 'Tigers XI';
+      const teamBName = lm.teamB || lm.innings1?.team || 'Warriors XI';
+
+      const innForA = lm.innings2?.team === teamAName ? lm.innings2 : (lm.innings1?.team === teamAName ? lm.innings1 : lm.innings2);
+      const innForB = lm.innings1?.team === teamBName ? lm.innings1 : (lm.innings2?.team === teamBName ? lm.innings2 : lm.innings1);
+
+      const isABatting = isCur && ((currentInnings === 2 && lm.innings2?.team === teamAName) || (currentInnings === 1 && lm.innings1?.team === teamAName));
+      const isBBatting = isCur && ((currentInnings === 1 && lm.innings1?.team === teamBName) || (currentInnings === 2 && lm.innings2?.team === teamBName));
+
+      const sA = isABatting ? `${liveRuns}/${liveWickets}` : `${innForA?.runs ?? 128}/${innForA?.wickets ?? 4}`;
+      const ovA = isABatting ? `${oversStr} Ov` : `${innForA?.overs ?? '16.3'} Ov`;
+      const sB = isBBatting ? `${liveRuns}/${liveWickets}` : `${innForB?.runs ?? 144}/${innForB?.wickets ?? 8}`;
+      const ovB = isBBatting ? `${oversStr} Ov` : `${innForB?.overs ?? '20.0'} Ov`;
+
+      let eq = lm.equation;
+      if (!eq) {
+        if (isCur && currentInnings === 2) {
+          const tRuns = lm.innings2?.target || (lm.innings1?.runs ? lm.innings1.runs + 1 : (targetRuns || 0));
+          const rNeeded = Math.max(0, tRuns - liveRuns);
+          const bRemaining = Math.max(0, (lm.totalOvers || 20) * 6 - liveBalls);
+          eq = `${teamAName} need ${rNeeded} runs in ${bRemaining} balls`;
+        } else {
+          eq = `${teamAName} vs ${teamBName}`;
+        }
+      }
+
+      return {
+        id: lm.id,
+        tournament: lm.tournament || 'School Premier League',
+        venue: lm.venue || 'Green Valley Ground',
+        format: lm.matchType || 'T20',
+        teamA: teamAName,
+        flagA: lm.flagA || innForA?.flag || '🐯',
+        scoreA: sA,
+        oversA: ovA,
+        teamB: teamBName,
+        flagB: lm.flagB || innForB?.flag || '⚔️',
+        scoreB: sB,
+        oversB: ovB,
+        equation: eq || 'Match in Progress',
+      };
+    }
+    return {
+      id: activeMatchId || 'sample_live_1',
+      tournament: 'School Premier League',
+      venue: 'Green Valley Ground',
+      format: 'T20',
+      teamA: 'Tigers XI',
+      flagA: '🐯',
+      scoreA: '128/4',
+      oversA: '16.3 Ov',
+      teamB: 'Warriors XI',
+      flagB: '⚔️',
+      scoreB: '144/8',
+      oversB: '20.0 Ov',
+      equation: 'Tigers XI need 17 runs in 21 balls',
+    };
+  }, [matchesDb, activeMatchId, currentInnings, liveRuns, liveWickets, liveBalls, oversStr, targetRuns]);
+
+  const displayRecentMatches = useMemo(() => {
+    const completed = Object.values(matchesDb || {}).filter(isMatchCompleted);
+    if (completed.length >= 3) {
+      return completed.slice(0, 5).map(m => {
+        const tA = m.teamA || m.innings1?.team || 'Tigers XI';
+        const tB = m.teamB || m.innings2?.team || 'Warriors XI';
+        const innA = m.innings1?.team === tA ? m.innings1 : (m.innings2?.team === tA ? m.innings2 : m.innings1);
+        const innB = m.innings2?.team === tB ? m.innings2 : (m.innings1?.team === tB ? m.innings1 : m.innings2);
+        return {
+          id: m.id,
+          teamA: tA,
+          flagA: m.flagA || innA?.flag || '🐯',
+          scoreA: `${innA?.runs || 0}/${innA?.wickets || 0} (${innA?.overs || '20.0'} Ov)`,
+          teamB: tB,
+          flagB: m.flagB || innB?.flag || '⚔️',
+          scoreB: `${innB?.runs || 0}/${innB?.wickets || 0} (${innB?.overs || '20.0'} Ov)`,
+          result: m.userResult || (m.result === 'Lost' ? 'Lost' : (m.winner ? (m.winner === tA ? 'Won' : 'Lost') : 'Won')),
+          date: m.date || '27 Sep 2026',
+          format: m.matchType || 'T20',
+        };
+      });
+    }
+    return [
+      {
+        id: 'rm_1',
+        teamA: 'Tigers XI',
+        flagA: '🐯',
+        scoreA: '178/6 (20.0 Ov)',
+        teamB: 'Warriors XI',
+        flagB: '⚔️',
+        scoreB: '162/8 (20.0 Ov)',
+        result: 'Won',
+        date: '27 Sep 2026',
+        format: 'T20',
+      },
+      {
+        id: 'rm_2',
+        teamA: 'King XI',
+        flagA: '👑',
+        scoreA: '156/9 (20.0 Ov)',
+        teamB: 'Royals XI',
+        flagB: '🦁',
+        scoreB: '160/5 (19.1 Ov)',
+        result: 'Lost',
+        date: '24 Sep 2026',
+        format: 'T20',
+      },
+      {
+        id: 'rm_3',
+        teamA: 'Blasters XI',
+        flagA: '🔴',
+        scoreA: '210/7 (20.0 Ov)',
+        teamB: 'United XI',
+        flagB: '🛡️',
+        scoreB: '198/10 (19.3 Ov)',
+        result: 'Won',
+        date: '20 Sep 2026',
+        format: 'ODI',
+      },
+    ];
+  }, [matchesDb]);
 
   const toggleExtraType = type => {
     if (!isOfficialScorer) return;
