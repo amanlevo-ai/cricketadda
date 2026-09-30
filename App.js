@@ -13770,32 +13770,31 @@ function CricketAddaMain() {
 
       {!isAuthenticated ? (
         <View style={styles.authRootContainer}>
+          {/* CricketAdda Official Poster Wallpaper */}
+          <Image
+            source={require('./assets/login-bg.jpg')}
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
+          />
+
           <ScrollView
             style={{ flex: 1, width: '100%' }}
             contentContainerStyle={[
               styles.authScrollContainer,
               {
-                paddingTop: Math.max(topInset, 20) + 16,
-                paddingBottom: Math.max(bottomInset, 20) + 32,
+                paddingTop: Math.max(topInset, 20),
+                paddingBottom: Math.max(bottomInset, 20) + 36,
               },
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
-              {/* CricketAdda Brand Header */}
-              <View style={styles.authBrandHeader}>
-                <Image source={require('./assets/logo.png')} style={styles.authBrandLogo} resizeMode="contain" />
-                <Text style={styles.authBrandTitle}>
-                  Cricket<Text style={{ color: '#22c55e' }}>Adda</Text>
-                </Text>
-                <Text style={styles.authBrandTagline}>
-                  Official Tournament Scoring & Live Engine
-                </Text>
-              </View>
+            {/* Transparent spacer so the wallpaper's batsman & 3D CRICKET ADDA logo shines fully unobstructed */}
+            <View style={{ height: Math.max(Math.round(height * 0.38), 260), width: '100%' }} />
 
-              {/* FLOATING DARK GLASSMORPHISM AUTH CARD */}
-              <View style={styles.authCard}>
+            {/* FLOATING DARK AUTH CARD */}
+            <View style={styles.authCard}>
                 <View style={styles.authTitleWrapper}>
                   <Text style={styles.authTitlePrefix}>
                     {authMethod === 'password'
@@ -32291,44 +32290,22 @@ const styles = StyleSheet.create({
   authScrollContainer: {
     paddingHorizontal: 16,
     flexGrow: 1,
-    justifyContent: 'center',
     alignItems: 'center',
     width: '100%',
   },
-  authBrandHeader: {
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  authBrandLogo: {
-    width: 68,
-    height: 68,
-    marginBottom: 8,
-  },
-  authBrandTitle: {
-    color: '#ffffff',
-    fontSize: 26,
-    fontWeight: '900',
-    letterSpacing: 0.5,
-  },
-  authBrandTagline: {
-    color: '#94a3b8',
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 2,
-  },
   authCard: {
-    backgroundColor: '#0a1224',
-    borderColor: '#22c55e',
-    borderWidth: 2,
+    backgroundColor: 'rgba(8, 14, 28, 0.94)',
+    borderColor: 'rgba(34, 197, 94, 0.65)',
+    borderWidth: 1.5,
     borderRadius: 22,
     paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingTop: 18,
     paddingBottom: 22,
     elevation: 20,
-    shadowColor: '#22c55e',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 16,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.5,
+    shadowRadius: 18,
     width: '100%',
     maxWidth: 440,
     alignSelf: 'center',
