@@ -3993,6 +3993,9 @@ const EMPTY_MATCH_TEMPLATE = {
   },
 };
 
+const isMatchLive = (m) => Boolean(m && (m.status === 'live' || m.status === 'in_progress'));
+const isMatchCompleted = (m) => Boolean(m && (m.status === 'completed' || m.status === 'abandoned' || m.status === 'finished'));
+
 function CricketAddaMain() {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 40) : 44);
@@ -10079,7 +10082,7 @@ function CricketAddaMain() {
       if (lastAction.liveBowlerStats) setLiveBowlerStats(lastAction.liveBowlerStats);
       setMatch(prev => ({
         ...prev,
-        status: 'in_progress',
+        status: 'live',
         result: '',
         currentStriker: lastAction.striker,
         currentNonStriker: lastAction.nonStriker,
@@ -10126,7 +10129,7 @@ function CricketAddaMain() {
         const oversFormatted = `${Math.floor(lastAction.liveBalls / 6)}.${lastAction.liveBalls % 6}`;
         const updatedMatch = {
           ...cur,
-          status: 'in_progress',
+          status: 'live',
           result: '',
           innings1: {
             ...(cur.innings1 || {}),
@@ -10142,7 +10145,7 @@ function CricketAddaMain() {
           },
           liveState: {
             currentInnings,
-            status: 'in_progress',
+            status: 'live',
             result: '',
             liveRuns: lastAction.liveRuns,
             liveWickets: lastAction.liveWickets,
@@ -10167,7 +10170,7 @@ function CricketAddaMain() {
 
       // Broadcast undo state live to Cloud & PC Spectators
       broadcastMatchState({
-        status: 'in_progress',
+        status: 'live',
         result: '',
         liveRuns: lastAction.liveRuns,
         liveWickets: lastAction.liveWickets,
@@ -10182,7 +10185,7 @@ function CricketAddaMain() {
         currentBowler: lastAction.bowler,
         match: {
           ...match,
-          status: 'in_progress',
+          status: 'live',
           result: '',
           currentStriker: lastAction.striker,
           currentNonStriker: lastAction.nonStriker,
@@ -10243,7 +10246,7 @@ function CricketAddaMain() {
       });
 
       broadcastMatchState({
-        status: 'in_progress',
+        status: 'live',
         result: '',
         liveRuns: nextR,
         liveWickets: nextW,
@@ -10251,7 +10254,7 @@ function CricketAddaMain() {
         liveThisOver: nextOver,
         match: {
           ...match,
-          status: 'in_progress',
+          status: 'live',
           result: '',
         },
       });
@@ -11504,7 +11507,7 @@ function CricketAddaMain() {
     return list;
   };
 
-  const isLiveMatchActive = currentMatchData?.status === 'live';
+  const isLiveMatchActive = isMatchLive(currentMatchData);
   const hasValidScorecard = Boolean(
     (Object.keys(matchesDb || {}).length > 0 && currentMatchData && currentMatchData.id && currentMatchData.id !== 'match_new') ||
     isLiveMatchActive ||
@@ -11513,7 +11516,7 @@ function CricketAddaMain() {
       (currentMatchData.innings1?.runs > 0) ||
       (currentMatchData.innings2?.runs > 0) ||
       (currentMatchData.liveState?.liveRuns > 0) ||
-      currentMatchData.status === 'live' ||
+      isMatchLive(currentMatchData) ||
       currentMatchData.status === 'finished' ||
       currentMatchData.status === 'completed' ||
       Boolean(currentMatchData.result)
@@ -11525,7 +11528,7 @@ function CricketAddaMain() {
     const isTargetActive = targetMatch.id === activeMatchId;
     const mLive = targetMatch.liveState;
     const currentLiveInnings = isTargetActive ? currentInnings : (mLive?.currentInnings || 1);
-    const isLiveMatch = targetMatch.status === 'live';
+    const isLiveMatch = isMatchLive(targetMatch);
     const isLiveNow = isLiveMatch && inningNum === currentLiveInnings;
 
     const baseInning = inningNum === 1 ? (targetMatch.innings1 || {}) : (targetMatch.innings2 || {});
@@ -13728,7 +13731,6 @@ function CricketAddaMain() {
             surfaceType="textureView"
           />
         </View>
-        <View style={styles.splashBottomVignette} pointerEvents="none" />
         <View style={[styles.splashBottomBar, { bottom: Math.max(bottomInset, 16) + 20 }]}>
           <View style={styles.splashProgressCard}>
             <View style={styles.progressBarTrack}>
@@ -14472,6 +14474,43 @@ function CricketAddaMain() {
                 <Text style={[styles.brandSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Official Tournament Hub</Text>
               </View>
             </TouchableOpacity>
+
+            {/* Quick Profile / Sign Out Action */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              {isAuthenticated ? (
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                    borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                    borderWidth: 1,
+                    paddingVertical: 4,
+                    paddingHorizontal: 8,
+                    borderRadius: 20,
+                  }}
+                  onPress={() => navigateTo('profile')}
+                >
+                  <PlayerAvatar name={userProfile.name || 'User'} size={24} customUri={userProfile.avatarUri} />
+                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 11, fontWeight: '700', maxWidth: 80 }} numberOfLines={1}>
+                    {userProfile.name ? userProfile.name.split(' ')[0] : 'Profile'}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: currentTheme.primary,
+                    paddingVertical: 6,
+                    paddingHorizontal: 12,
+                    borderRadius: 8,
+                  }}
+                  onPress={() => setIsAuthenticated(false)}
+                >
+                  <Text style={{ color: currentTheme.primaryText, fontSize: 11, fontWeight: '900' }}>🔑 Sign In</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
       {/* ========================================================================= */}
@@ -14532,7 +14571,7 @@ function CricketAddaMain() {
               onPress={() => setMatchFilter('live')}
             >
               <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, matchFilter === 'live' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                🔴 Live ({Object.values(matchesDb || {}).filter(m => m && m.status === "live").length})
+                🔴 Live ({Object.values(matchesDb || {}).filter(isMatchLive).length})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -14540,7 +14579,7 @@ function CricketAddaMain() {
               onPress={() => setMatchFilter('recent')}
             >
               <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, matchFilter === 'recent' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                📋 Completed ({Object.values(matchesDb || {}).filter(m => m && (m.status === "completed" || m.status === "abandoned")).length})
+                📋 Completed ({Object.values(matchesDb || {}).filter(isMatchCompleted).length})
               </Text>
             </TouchableOpacity>
           </View>
@@ -14560,7 +14599,7 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
 
-              {Object.keys(matchesDb || {}).filter(id => matchesDb?.[id]?.status === 'live').length === 0 ? (
+              {Object.keys(matchesDb || {}).filter(id => isMatchLive(matchesDb?.[id])).length === 0 ? (
                 <View style={{
                   backgroundColor: currentTheme.cardBg,
                   borderColor: currentTheme.cardBorder,
@@ -14590,7 +14629,7 @@ function CricketAddaMain() {
                 </View>
               ) : (
                 Object.keys(matchesDb || {})
-                  .filter(id => matchesDb[id]?.status === 'live')
+                  .filter(id => isMatchLive(matchesDb[id]))
                   .map(id => {
                     const m = matchesDb[id];
                     const isCurrentActive = id === activeMatchId;
@@ -14745,12 +14784,12 @@ function CricketAddaMain() {
             <View>
               <View style={styles.sectionHeaderRow}>
                 <Text style={[styles.sectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>
-                  📋 Completed Matches ({Object.values(matchesDb || {}).filter(m => m && (m.status === "completed" || m.status === "abandoned")).length})
+                  📋 Completed Matches ({Object.values(matchesDb || {}).filter(isMatchCompleted).length})
                 </Text>
                 <Text style={[styles.subHeadingNote, currentTheme.isLight && { color: '#64748b' }]}>Official Tournaments</Text>
               </View>
 
-              {Object.keys(matchesDb || {}).filter(id => matchesDb?.[id]?.status === 'completed' || matchesDb?.[id]?.status === 'abandoned').length === 0 ? (
+              {Object.keys(matchesDb || {}).filter(id => isMatchCompleted(matchesDb?.[id])).length === 0 ? (
                 <View style={{
                   backgroundColor: currentTheme.cardBg,
                   borderColor: currentTheme.cardBorder,
@@ -14766,7 +14805,7 @@ function CricketAddaMain() {
                 </View>
               ) : (
                 Object.keys(matchesDb || {})
-                  .filter(id => matchesDb[id]?.status === 'completed' || matchesDb[id]?.status === 'abandoned')
+                  .filter(id => isMatchCompleted(matchesDb[id]))
                   .map(id => {
                     const m = matchesDb[id];
                     const isAbandoned = m.status === 'abandoned';
@@ -27380,12 +27419,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   splashBottomVignette: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: 180,
-    backgroundColor: 'rgba(2, 6, 23, 0.45)',
+    display: 'none',
   },
   splashBottomBar: {
     position: 'absolute',
@@ -27396,17 +27430,10 @@ const styles = StyleSheet.create({
   },
   splashProgressCard: {
     width: '100%',
-    backgroundColor: 'rgba(15, 23, 42, 0.88)',
-    borderColor: 'rgba(56, 189, 248, 0.3)',
-    borderWidth: 1,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    elevation: 8,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.5,
-    shadowRadius: 8,
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
   },
   progressBarTrack: {
     width: '100%',

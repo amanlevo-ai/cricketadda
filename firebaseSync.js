@@ -1034,7 +1034,8 @@ export function subscribeToFirebaseMatchesDb(onMatchesUpdate, intervalMs = 2500)
         if (data && typeof data === 'object') {
           Object.entries(data).forEach(([mId, m]) => {
             if (m && !deletedSet.has(mId)) {
-              matches[mId] = m;
+              const mStatus = m.status === 'in_progress' ? 'live' : (m.status || 'live');
+              matches[mId] = { ...m, status: mStatus };
             }
           });
         }
@@ -1045,6 +1046,8 @@ export function subscribeToFirebaseMatchesDb(onMatchesUpdate, intervalMs = 2500)
         if (liveData && typeof liveData === 'object') {
           Object.entries(liveData).forEach(([mId, lMatch]) => {
             if (lMatch && typeof lMatch === 'object' && !deletedSet.has(mId)) {
+              const rawStatus = lMatch.status || matches[mId]?.status || 'live';
+              const effectiveStatus = rawStatus === 'in_progress' ? 'live' : rawStatus;
               matches[mId] = {
                 ...(matches[mId] || {}),
                 ...(lMatch.match || {}),
@@ -1059,7 +1062,7 @@ export function subscribeToFirebaseMatchesDb(onMatchesUpdate, intervalMs = 2500)
                 liveBatters: lMatch.liveBatters ?? matches[mId]?.liveBatters,
                 liveBowlerStats: lMatch.liveBowlerStats ?? matches[mId]?.liveBowlerStats,
                 scoringHistory: lMatch.scoringHistory ?? matches[mId]?.scoringHistory,
-                status: lMatch.status || matches[mId]?.status || 'live',
+                status: effectiveStatus,
               };
             }
           });
