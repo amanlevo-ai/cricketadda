@@ -5576,29 +5576,25 @@ function CricketAddaMain() {
     player.play();
   });
 
-  const handleDismissSplash = useCallback(() => {
-    try {
-      if (splashPlayer) splashPlayer.pause();
-    } catch (_) {}
-    setShowSplash(false);
-    setActiveTab('matches');
-    setNavHistory(['matches']);
-  }, [splashPlayer]);
-
   useEventListener(splashPlayer, 'playToEnd', () => {
     Animated.timing(splashFade, {
       toValue: 0,
-      duration: 400,
+      duration: 500,
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start(() => {
-      handleDismissSplash();
+      try {
+        if (splashPlayer) splashPlayer.pause();
+      } catch (_) {}
+      setShowSplash(false);
+      setActiveTab('matches');
+      setNavHistory(['matches']);
     });
   });
 
   useEffect(() => {
     Animated.timing(progressAnim, {
       toValue: 1,
-      duration: 3000,
+      duration: 8000,
       easing: Easing.linear,
       useNativeDriver: false,
     }).start();
@@ -5616,18 +5612,23 @@ function CricketAddaMain() {
     const timer = setTimeout(() => {
       Animated.timing(splashFade, {
         toValue: 0,
-        duration: 400,
+        duration: 500,
         useNativeDriver: USE_NATIVE_DRIVER,
       }).start(() => {
-        handleDismissSplash();
+        try {
+          if (splashPlayer) splashPlayer.pause();
+        } catch (_) {}
+        setShowSplash(false);
+        setActiveTab('matches');
+        setNavHistory(['matches']);
       });
-    }, 3500);
+    }, 8500);
 
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, [handleDismissSplash]);
+  }, []);
 
   // Wagon Wheel Scorer State
   const [autoWheel, setAutoWheel] = useState(false);
@@ -13720,62 +13721,37 @@ function CricketAddaMain() {
 
   if (showSplash) {
     return (
-      <TouchableOpacity
-        activeOpacity={1}
-        onPress={handleDismissSplash}
-        style={{ flex: 1, width: '100%', height: '100%', backgroundColor: '#020617' }}
-      >
-        <Animated.View style={[styles.splashFullContainer, { opacity: splashFade }]}>
-          <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={true} hidden={false} />
-          <View style={styles.splashImageWrapper}>
-            <VideoView
-              style={styles.splashPosterImage}
-              player={splashPlayer}
-              contentFit="cover"
-              nativeControls={false}
-              surfaceType="textureView"
-            />
-          </View>
+      <Animated.View style={[styles.splashFullContainer, { opacity: splashFade }]}>
+        <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={true} hidden={false} />
+        <View style={styles.splashImageWrapper}>
+          <VideoView
+            style={styles.splashPosterImage}
+            player={splashPlayer}
+            contentFit="cover"
+            nativeControls={false}
+            surfaceType="textureView"
+          />
+        </View>
 
-          {/* Quick Skip Button */}
-          <TouchableOpacity
-            style={{
-              position: 'absolute',
-              top: Math.max(topInset, 20) + 10,
-              right: 18,
-              backgroundColor: 'rgba(2, 6, 23, 0.85)',
-              paddingVertical: 6,
-              paddingHorizontal: 14,
-              borderRadius: 20,
-              borderWidth: 1,
-              borderColor: '#334155',
-              zIndex: 999,
-            }}
-            onPress={handleDismissSplash}
-          >
-            <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: 'bold' }}>Skip ➔</Text>
-          </TouchableOpacity>
-
-          <View style={[styles.splashBottomBar, { bottom: Math.max(bottomInset, 16) + 20 }]}>
-            <View style={styles.splashProgressCard}>
-              <View style={styles.progressBarTrack}>
-                <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
-              </View>
-              <View style={styles.splashLoadingRow}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <View style={styles.splashPulsingDot} />
-                  <Text style={styles.splashLoadingText}>
-                    Initializing CricketAdda Live Engine...
-                  </Text>
-                </View>
-                <Text style={styles.splashCountdownText}>
-                  {countdown}s
+        <View style={[styles.splashBottomBar, { bottom: Math.max(bottomInset, 16) + 20 }]}>
+          <View style={styles.splashProgressCard}>
+            <View style={styles.progressBarTrack}>
+              <Animated.View style={[styles.progressBarFill, { width: progressWidth }]} />
+            </View>
+            <View style={styles.splashLoadingRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={styles.splashPulsingDot} />
+                <Text style={styles.splashLoadingText}>
+                  Initializing CricketAdda Live Engine...
                 </Text>
               </View>
+              <Text style={styles.splashCountdownText}>
+                {countdown}s
+              </Text>
             </View>
           </View>
-        </Animated.View>
-      </TouchableOpacity>
+        </View>
+      </Animated.View>
     );
   }
 
