@@ -13770,30 +13770,36 @@ function CricketAddaMain() {
 
       {!isAuthenticated ? (
         <View style={styles.authRootContainer}>
-          {/* CricketAdda Official Poster Wallpaper */}
+          {/* Subtle Ambient Stadium Background */}
           <Image
             source={require('./assets/login-bg.jpg')}
-            style={StyleSheet.absoluteFillObject}
+            style={[StyleSheet.absoluteFillObject, { opacity: 0.22 }]}
             resizeMode="cover"
           />
 
           <ScrollView
-            style={{ flex: 1, width: '100%' }}
+            style={{ flex: 1, width: '100%', zIndex: 10, elevation: 10 }}
             contentContainerStyle={[
               styles.authScrollContainer,
               {
-                paddingTop: Math.max(topInset, 20),
-                paddingBottom: Math.max(bottomInset, 20) + 36,
+                paddingTop: Math.max(topInset, 16) + 8,
+                paddingBottom: Math.max(bottomInset, 16) + 32,
               },
             ]}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             bounces={false}
           >
-            {/* Transparent spacer so the wallpaper's batsman & 3D CRICKET ADDA logo shines fully unobstructed */}
-            <View style={{ height: Math.max(Math.round(height * 0.38), 260), width: '100%' }} />
+            {/* 1. CRYSTAL-CLEAR UN-CROPPED CRICKETADDA HERO LOGO (From User's Picture) */}
+            <View style={styles.authLogoBannerContainer}>
+              <Image
+                source={require('./assets/login-bg.jpg')}
+                style={styles.authLogoBannerImage}
+                resizeMode="stretch"
+              />
+            </View>
 
-            {/* FLOATING DARK AUTH CARD */}
+            {/* 2. SOLID HIGH-CONTRAST AUTH CARD */}
             <View style={styles.authCard}>
                 <View style={styles.authTitleWrapper}>
                   <Text style={styles.authTitlePrefix}>
@@ -32293,21 +32299,44 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     width: '100%',
   },
-  authCard: {
-    backgroundColor: 'rgba(8, 14, 28, 0.94)',
-    borderColor: 'rgba(34, 197, 94, 0.65)',
+  authLogoBannerContainer: {
+    width: Math.min(width - 32, 420),
+    height: Math.round(Math.min(width - 32, 420) * 0.66),
+    overflow: 'hidden',
+    borderRadius: 20,
+    marginBottom: 14,
+    alignSelf: 'center',
+    backgroundColor: '#020617',
     borderWidth: 1.5,
-    borderRadius: 22,
-    paddingHorizontal: 20,
+    borderColor: 'rgba(34, 197, 94, 0.4)',
+    elevation: 8,
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+  },
+  authLogoBannerImage: {
+    width: Math.min(width - 32, 420),
+    height: Math.round(Math.min(width - 32, 420) * (1024 / 682)),
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  authCard: {
+    backgroundColor: '#0a1224',
+    borderColor: '#22c55e',
+    borderWidth: 2,
+    borderRadius: 20,
+    paddingHorizontal: 18,
     paddingTop: 18,
     paddingBottom: 22,
     elevation: 20,
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.5,
-    shadowRadius: 18,
+    shadowColor: '#22c55e',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 420,
     alignSelf: 'center',
   },
   authTitleWrapper: {
