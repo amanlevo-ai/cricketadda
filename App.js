@@ -13770,45 +13770,50 @@ function CricketAddaMain() {
 
       {!isAuthenticated ? (
         <View style={styles.authRootContainer}>
-          {/* User Provided Stadium Background Poster with CricketAdda Logo & Pitch */}
+          {/* Subtle Atmospheric Stadium Backdrop */}
           <Image
             source={require('./assets/login-bg.jpg')}
-            style={StyleSheet.absoluteFillObject}
+            style={[StyleSheet.absoluteFillObject, { opacity: 0.18 }]}
             resizeMode="cover"
           />
-          {/* Subtle Dark Vignette Backdrop for high readability */}
           <View style={styles.authBackdropOverlay} pointerEvents="none" />
 
           <KeyboardAvoidingView
             behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={{ flex: 1 }}
+            style={styles.authKeyboardWrapper}
           >
             <ScrollView
-              style={{ flex: 1 }}
+              style={{ flex: 1, width: '100%' }}
               contentContainerStyle={[
                 styles.authScrollContainer,
                 {
-                  paddingTop: Math.max(topInset, 16) + 8,
-                  paddingBottom: Math.max(bottomInset, 16) + 20,
+                  paddingTop: Math.max(topInset, 16) + 12,
+                  paddingBottom: Math.max(bottomInset, 16) + 24,
                 },
               ]}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               bounces={false}
             >
-              {/* Subtle top spacer */}
-              <View style={styles.authHeroSpacer} />
+              {/* CricketAdda Brand Header */}
+              <View style={styles.authBrandHeader}>
+                <Image source={require('./assets/logo.png')} style={styles.authBrandLogo} resizeMode="contain" />
+                <Text style={styles.authBrandTitle}>
+                  Cricket<Text style={{ color: '#22c55e' }}>Adda</Text>
+                </Text>
+                <Text style={styles.authBrandTagline}>
+                  Official Tournament Scoring & Live Engine
+                </Text>
+              </View>
 
-              {/* FLOATING DARK GLASSMORPHISM AUTH CARD - 100% VISIBLE FRONT AND CENTER */}
+              {/* FLOATING DARK GLASSMORPHISM AUTH CARD */}
               <View style={styles.authCard}>
-                {/* Dynamic Title matching mockup */}
                 <View style={styles.authTitleWrapper}>
                   <Text style={styles.authTitlePrefix}>
                     {authMethod === 'password'
-                      ? (authSubTab === 'signin' ? 'Login to' : 'Create Account in')
-                      : (authStep === 2 ? 'Verify Code for' : authStep === 3 ? 'Setup Profile for' : 'Login to')}
+                      ? (authSubTab === 'signin' ? 'Sign In to Your Account' : 'Create New Account')
+                      : (authStep === 2 ? 'Verify Verification Code' : authStep === 3 ? 'Setup Player Profile' : 'Welcome to CricketAdda')}
                   </Text>
-                  <Text style={styles.authTitleBrand}>Cricket Adda</Text>
                 </View>
 
                 {/* TOP 2 TABS: LOGIN WITH OTP vs EMAIL & PASSWORD */}
@@ -32295,33 +32300,58 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#020617',
     position: 'relative',
+    width: '100%',
+    height: '100%',
   },
   authBackdropOverlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(2, 6, 23, 0.40)',
+    backgroundColor: 'rgba(2, 6, 23, 0.72)',
+  },
+  authKeyboardWrapper: {
+    flex: 1,
+    width: '100%',
+    zIndex: 10,
   },
   authScrollContainer: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 16,
     flexGrow: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    width: '100%',
   },
   authHeroSpacer: {
-    height: 10,
+    height: 0,
     width: '100%',
   },
   authBrandHeader: {
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 16,
+  },
+  authBrandLogo: {
+    width: 60,
+    height: 60,
+    marginBottom: 6,
+  },
+  authBrandTitle: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: 0.5,
+  },
+  authBrandTagline: {
+    color: '#94a3b8',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 2,
   },
   authCard: {
-    backgroundColor: 'rgba(10, 18, 36, 0.94)',
+    backgroundColor: 'rgba(10, 18, 36, 0.95)',
     borderColor: 'rgba(34, 197, 94, 0.45)',
     borderWidth: 1.5,
     borderRadius: 22,
     paddingHorizontal: 18,
-    paddingTop: 16,
-    paddingBottom: 16,
+    paddingTop: 18,
+    paddingBottom: 18,
     elevation: 12,
     shadowColor: '#22c55e',
     shadowOffset: { width: 0, height: 6 },
@@ -32333,7 +32363,7 @@ const styles = StyleSheet.create({
   },
   authTitleWrapper: {
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
   authTitlePrefix: {
     color: '#ffffff',
