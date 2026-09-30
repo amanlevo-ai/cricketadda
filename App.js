@@ -13784,7 +13784,7 @@ function CricketAddaMain() {
             keyboardShouldPersistTaps="handled"
           >
             {/* Top transparent space so the wallpaper's batsman and CricketAdda logo are visible */}
-            <View style={{ height: 160, width: '100%' }} />
+            <View style={{ height: Math.max(Math.round(height * 0.33), 260), width: '100%' }} />
 
             {/* HIGH Z-INDEX SOLID AUTH CARD */}
             <View style={styles.authCard}>
@@ -32180,10 +32180,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#0a1224',
     borderColor: '#22c55e',
     borderWidth: 2,
-    borderRadius: 22,
-    paddingHorizontal: 20,
-    paddingTop: 18,
-    paddingBottom: 22,
+    borderRadius: 20,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    paddingBottom: 18,
     elevation: 30,
     zIndex: 999,
     shadowColor: '#000000',
@@ -32196,11 +32196,11 @@ const styles = StyleSheet.create({
   },
   authTitleWrapper: {
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   authTitlePrefix: {
     color: '#ffffff',
-    fontSize: 18,
+    fontSize: 16.5,
     fontWeight: '700',
     letterSpacing: 0.3,
   },
@@ -32365,9 +32365,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(2, 6, 23, 0.75)',
     borderWidth: 1.5,
     borderColor: '#22c55e',
-    borderRadius: 16,
+    borderRadius: 14,
     paddingHorizontal: 14,
-    height: 50,
+    height: 46,
   },
   authInputIcon: {
     fontSize: 17,
@@ -32390,7 +32390,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 0,
-    height: 44,
+    height: 42,
     color: '#ffffff',
     fontSize: 13,
     fontWeight: '600',
@@ -32399,11 +32399,11 @@ const styles = StyleSheet.create({
   },
   authPrimaryBtn: {
     backgroundColor: '#22c55e',
-    borderRadius: 16,
-    height: 50,
+    borderRadius: 14,
+    height: 46,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 14,
+    marginTop: 12,
     elevation: 8,
     shadowColor: '#22c55e',
     shadowOffset: { width: 0, height: 4 },
