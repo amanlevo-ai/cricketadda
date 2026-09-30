@@ -164,7 +164,34 @@ const PRESET_AVATARS_GALLERY = [
 ];
 
 // REGISTERED PLAYERS DIRECTORY (VERIFIED PHONE NUMBERS & QR CRICKET PASSPORTS)
-const INITIAL_REGISTERED_PLAYERS = [];
+const INITIAL_REGISTERED_PLAYERS = [
+  { id: 'p_1', name: 'Rohit Sharma', phone: '9876500001', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#45', isCaptain: true, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Rohit Sharma'] },
+  { id: 'p_2', name: 'Virat Kohli', phone: '9876500002', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#18', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Virat Kohli'] },
+  { id: 'p_3', name: 'MS Dhoni', phone: '9876500003', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#7', isCaptain: true, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['MS Dhoni'] },
+  { id: 'p_4', name: 'Hardik Pandya', phone: '9876500004', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#33', isCaptain: false, isViceCaptain: true, isWk: false, avatarUri: PLAYER_AVATARS['Hardik Pandya'] },
+  { id: 'p_5', name: 'Suryakumar Yadav', phone: '9876500005', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#63', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Suryakumar Yadav'] },
+  { id: 'p_6', name: 'Jasprit Bumrah', phone: '9876500006', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#93', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Jasprit Bumrah'] },
+  { id: 'p_7', name: 'Shubman Gill', phone: '9876500007', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#77', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Shubman Gill'] },
+  { id: 'p_8', name: 'Rishabh Pant', phone: '9876500008', role: 'WK', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#17', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Rishabh Pant'] },
+  { id: 'p_9', name: 'Sanju Samson', phone: '9876500009', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#11', isCaptain: true, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Sanju Samson'] },
+  { id: 'p_10', name: 'Ravindra Jadeja', phone: '9876500010', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#8', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Ravindra Jadeja'] },
+  { id: 'p_11', name: 'Axar Patel', phone: '9876500011', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#20', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Axar Patel'] },
+  { id: 'p_12', name: 'Mohammed Siraj', phone: '9876500012', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#73', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Mohammed Siraj'] },
+  { id: 'p_13', name: 'Kuldeep Yadav', phone: '9876500013', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Wrist Spin', jersey: '#23', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Kuldeep Yadav'] },
+  { id: 'p_14', name: 'Ruturaj Gaikwad', phone: '9876500014', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#31', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: null },
+  { id: 'p_15', name: 'Shivam Dube', phone: '9876500015', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#25', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Shivam Dube'] },
+  { id: 'p_16', name: 'Travis Head', phone: '9876500016', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#62', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Travis Head'] },
+  { id: 'p_17', name: 'Jos Buttler', phone: '9876500017', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#63', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Jos Buttler'] },
+  { id: 'p_18', name: 'Glenn Maxwell', phone: '9876500018', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#32', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Glenn Maxwell'] },
+  { id: 'p_19', name: 'David Warner', phone: '9876500019', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#31', isCaptain: true, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['David Warner'] },
+  { id: 'p_20', name: 'Mitchell Starc', phone: '9876500020', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Fast', jersey: '#56', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Mitchell Starc'] },
+  { id: 'p_21', name: 'Phil Salt', phone: '9876500021', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#28', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Phil Salt'] },
+  { id: 'p_22', name: 'Shreyas Iyer', phone: '9876500022', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#96', isCaptain: true, isViceCaptain: false, isWk: false, avatarUri: null },
+  { id: 'p_23', name: 'Rinku Singh', phone: '9876500023', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#35', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: null },
+  { id: 'p_24', name: 'Andre Russell', phone: '9876500024', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#12', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: null },
+  { id: 'p_25', name: 'Yashasvi Jaiswal', phone: '9876500025', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#64', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: null },
+  { id: 'p_26', name: 'Dinesh Karthik', phone: '9876500026', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#21', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: null },
+];
 
 // Reusable Player Avatar Component with Custom Image & Fallback support
 function PlayerAvatar({ name, customUri = null, size = 34, borderColor = '#10b981', style = {} }) {
@@ -1665,7 +1692,288 @@ const getResponsiveBadgePos = (wheelDimension, angleDegrees, badgeW, badgeH) => 
 // ============================================================================
 // COMPREHENSIVE MATCH DATABASE (LIVE & RECENT TOURNAMENT MATCHES)
 // ============================================================================
-const MATCH_DATABASE = {};
+const MATCH_DATABASE = {
+  match_live_spl_1: {
+    id: 'match_live_spl_1',
+    title: 'Tigers XI vs Warriors XI',
+    tournament: 'School Premier League',
+    venue: 'Green Valley Ground',
+    format: 'T20',
+    matchType: 'T20',
+    totalOvers: 20,
+    status: 'live',
+    teamA: 'Tigers XI',
+    teamB: 'Warriors XI',
+    flagA: '🐯',
+    flagB: '⚔️',
+    toss: 'Warriors XI won the toss & elected to BAT',
+    selectedInning: 2,
+    equation: 'Tigers XI need 17 runs in 21 balls',
+    fieldingSquad: ['Ruturaj Gaikwad', 'Devon Conway', 'Ajinkya Rahane', 'Shivam Dube', 'MS Dhoni', 'Moeen Ali', 'Ravindra Jadeja', 'Deepak Chahar', 'Shardul Thakur', 'Matheesha Pathirana', 'Tushar Deshpande'],
+    innings1: {
+      team: 'Warriors XI',
+      flag: '⚔️',
+      runs: 144,
+      wickets: 8,
+      overs: '20.0',
+      maxOvers: 20,
+      crr: '7.20',
+      extras: '7 (w 4, nb 1, b 1, lb 1)',
+      fow: '28-1, 52-2, 78-3, 115-4, 124-5, 128-6, 131-7, 132-8',
+      batting: [
+        { name: 'Ruturaj Gaikwad', runs: 42, balls: 31, fours: 4, sixes: 1, strikeRate: '135.48', dismissal: 'c Rohit b Bumrah' },
+        { name: 'Devon Conway', runs: 18, balls: 14, fours: 2, sixes: 0, strikeRate: '128.57', dismissal: 'b Shami' },
+        { name: 'Ajinkya Rahane', runs: 12, balls: 10, fours: 1, sixes: 0, strikeRate: '120.00', dismissal: 'lbw b Kuldeep' },
+        { name: 'Shivam Dube', runs: 36, balls: 22, fours: 2, sixes: 3, strikeRate: '163.64', dismissal: 'c Surya b Pandya' },
+        { name: 'MS Dhoni (c & wk)', runs: 28, balls: 19, fours: 2, sixes: 1, strikeRate: '147.37', notOut: true, dismissal: 'not out' },
+        { name: 'Moeen Ali', runs: 4, balls: 5, fours: 0, sixes: 0, strikeRate: '80.00', dismissal: 'b Bumrah' },
+        { name: 'Ravindra Jadeja', runs: 2, balls: 3, fours: 0, sixes: 0, strikeRate: '66.67', dismissal: 'run out (Gill)' },
+        { name: 'Deepak Chahar', runs: 1, balls: 2, fours: 0, sixes: 0, strikeRate: '50.00', dismissal: 'c Pant b Shami' },
+        { name: 'Shardul Thakur', runs: 0, balls: 1, fours: 0, sixes: 0, strikeRate: '0.00', dismissal: 'b Bumrah' },
+      ],
+      bowling: [
+        { name: 'Mohammed Shami', overs: '4.0', maidens: 0, runs: 32, wickets: 2, econ: '8.00' },
+        { name: 'Jasprit Bumrah', overs: '4.0', maidens: 1, runs: 22, wickets: 3, econ: '5.50' },
+        { name: 'Hardik Pandya', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
+        { name: 'Kuldeep Yadav', overs: '4.0', maidens: 0, runs: 34, wickets: 1, econ: '8.50' },
+        { name: 'Axar Patel', overs: '4.0', maidens: 0, runs: 26, wickets: 0, econ: '6.50' },
+      ],
+    },
+    innings2: {
+      team: 'Tigers XI',
+      flag: '🐯',
+      runs: 128,
+      wickets: 4,
+      overs: '16.3',
+      maxOvers: 20,
+      crr: '7.76',
+      target: 145,
+      extras: '6 (w 4, nb 1, lb 1)',
+      fow: '22-1, 35-2, 98-3, 118-4',
+      batting: [
+        { name: 'Rohit Sharma (c)', runs: 54, balls: 38, fours: 6, sixes: 2, strikeRate: '142.11', dismissal: 'c Dhoni b Pathirana' },
+        { name: 'Shubman Gill', runs: 14, balls: 12, fours: 2, sixes: 0, strikeRate: '116.67', dismissal: 'b Deepak Chahar' },
+        { name: 'Virat Kohli', runs: 5, balls: 7, fours: 0, sixes: 0, strikeRate: '71.43', dismissal: 'c Rahane b Moeen Ali' },
+        { name: 'Suryakumar Yadav', runs: 41, balls: 24, fours: 4, sixes: 2, strikeRate: '170.83', dismissal: 'c Gaikwad b Pathirana' },
+        { name: 'Hardik Pandya', runs: 16, balls: 9, fours: 1, sixes: 1, strikeRate: '177.78', notOut: true, dismissal: 'not out' },
+        { name: 'Rishabh Pant (wk)', runs: 12, balls: 8, fours: 1, sixes: 0, strikeRate: '150.00', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Deepak Chahar', overs: '4.0', maidens: 0, runs: 30, wickets: 1, econ: '7.50' },
+        { name: 'Shardul Thakur', overs: '3.0', maidens: 0, runs: 28, wickets: 0, econ: '9.33' },
+        { name: 'Moeen Ali', overs: '4.0', maidens: 0, runs: 24, wickets: 1, econ: '6.00' },
+        { name: 'Matheesha Pathirana', overs: '3.3', maidens: 0, runs: 26, wickets: 2, econ: '7.43' },
+        { name: 'Ravindra Jadeja', overs: '2.0', maidens: 0, runs: 18, wickets: 0, econ: '9.00' },
+      ],
+    },
+    liveState: {
+      currentInnings: 2,
+      liveRuns: 128,
+      liveWickets: 4,
+      liveBalls: 99,
+      currentStriker: 'Hardik Pandya',
+      currentNonStriker: 'Rishabh Pant (wk)',
+      currentBowler: 'Matheesha Pathirana',
+      target: 145,
+    },
+  },
+  match_rec_1: {
+    id: 'match_rec_1',
+    title: 'Tigers XI vs Warriors XI',
+    tournament: 'School Premier League',
+    venue: 'Green Valley Ground',
+    format: 'T20',
+    matchType: 'T20',
+    totalOvers: 20,
+    status: 'completed',
+    date: '27 Sep 2026',
+    winner: 'Tigers XI',
+    userResult: 'Won',
+    result: 'Won',
+    resultSummary: 'Tigers XI won by 16 runs',
+    teamA: 'Tigers XI',
+    teamB: 'Warriors XI',
+    flagA: '🐯',
+    flagB: '⚔️',
+    innings1: {
+      team: 'Tigers XI',
+      flag: '🐯',
+      runs: 178,
+      wickets: 6,
+      overs: '20.0',
+      maxOvers: 20,
+      crr: '8.90',
+      batting: [
+        { name: 'Rohit Sharma (c)', runs: 68, balls: 44, fours: 7, sixes: 3, strikeRate: '154.55', dismissal: 'c Dhoni b Chahar' },
+        { name: 'Shubman Gill', runs: 22, balls: 18, fours: 3, sixes: 0, strikeRate: '122.22', dismissal: 'b Thakur' },
+        { name: 'Virat Kohli', runs: 14, balls: 12, fours: 1, sixes: 0, strikeRate: '116.67', dismissal: 'c Jadeja b Moeen' },
+        { name: 'Suryakumar Yadav', runs: 52, balls: 29, fours: 5, sixes: 3, strikeRate: '179.31', dismissal: 'c Dube b Pathirana' },
+        { name: 'Hardik Pandya', runs: 12, balls: 9, fours: 1, sixes: 0, strikeRate: '133.33', dismissal: 'b Pathirana' },
+        { name: 'Rishabh Pant (wk)', runs: 8, balls: 6, fours: 1, sixes: 0, strikeRate: '133.33', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Deepak Chahar', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
+        { name: 'Shardul Thakur', overs: '4.0', maidens: 0, runs: 42, wickets: 1, econ: '10.50' },
+        { name: 'Moeen Ali', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
+        { name: 'Matheesha Pathirana', overs: '4.0', maidens: 0, runs: 38, wickets: 2, econ: '9.50' },
+        { name: 'Ravindra Jadeja', overs: '4.0', maidens: 0, runs: 32, wickets: 0, econ: '8.00' },
+      ],
+    },
+    innings2: {
+      team: 'Warriors XI',
+      flag: '⚔️',
+      runs: 162,
+      wickets: 8,
+      overs: '20.0',
+      maxOvers: 20,
+      crr: '8.10',
+      batting: [
+        { name: 'Ruturaj Gaikwad', runs: 58, balls: 41, fours: 6, sixes: 2, strikeRate: '141.46', dismissal: 'c Rohit b Bumrah' },
+        { name: 'Devon Conway', runs: 24, balls: 19, fours: 3, sixes: 0, strikeRate: '126.32', dismissal: 'b Shami' },
+        { name: 'Ajinkya Rahane', runs: 16, balls: 14, fours: 1, sixes: 1, strikeRate: '114.29', dismissal: 'c Pant b Pandya' },
+        { name: 'Shivam Dube', runs: 32, balls: 20, fours: 2, sixes: 2, strikeRate: '160.00', dismissal: 'c Surya b Kuldeep' },
+        { name: 'MS Dhoni (c & wk)', runs: 18, balls: 14, fours: 1, sixes: 1, strikeRate: '128.57', notOut: true, dismissal: 'not out' },
+        { name: 'Moeen Ali', runs: 6, balls: 5, fours: 0, sixes: 0, strikeRate: '120.00', dismissal: 'b Bumrah' },
+      ],
+      bowling: [
+        { name: 'Jasprit Bumrah', overs: '4.0', maidens: 1, runs: 18, wickets: 3, econ: '4.50' },
+        { name: 'Mohammed Shami', overs: '4.0', maidens: 0, runs: 34, wickets: 2, econ: '8.50' },
+        { name: 'Hardik Pandya', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
+        { name: 'Kuldeep Yadav', overs: '4.0', maidens: 0, runs: 38, wickets: 1, econ: '9.50' },
+        { name: 'Axar Patel', overs: '4.0', maidens: 0, runs: 32, wickets: 1, econ: '8.00' },
+      ],
+    },
+  },
+  match_rec_2: {
+    id: 'match_rec_2',
+    title: 'King XI vs Royals XI',
+    tournament: 'City Championship Trophy',
+    venue: 'National Cricket Arena',
+    format: 'T20',
+    matchType: 'T20',
+    totalOvers: 20,
+    status: 'completed',
+    date: '25 Sep 2026',
+    winner: 'Royals XI',
+    userResult: 'Lost',
+    result: 'Lost',
+    resultSummary: 'Royals XI won by 4 wickets',
+    teamA: 'King XI',
+    teamB: 'Royals XI',
+    flagA: '👑',
+    flagB: '🦁',
+    innings1: {
+      team: 'King XI',
+      flag: '👑',
+      runs: 155,
+      wickets: 7,
+      overs: '20.0',
+      maxOvers: 20,
+      crr: '7.75',
+      batting: [
+        { name: 'Virat Kohli', runs: 64, balls: 48, fours: 6, sixes: 2, strikeRate: '133.33', dismissal: 'c Samson b Chahal' },
+        { name: 'Faf du Plessis (c)', runs: 28, balls: 22, fours: 3, sixes: 1, strikeRate: '127.27', dismissal: 'b Boult' },
+        { name: 'Glenn Maxwell', runs: 16, balls: 11, fours: 2, sixes: 0, strikeRate: '145.45', dismissal: 'c Hetmyer b Ashwin' },
+        { name: 'Dinesh Karthik (wk)', runs: 31, balls: 17, fours: 3, sixes: 2, strikeRate: '182.35', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Trent Boult', overs: '4.0', maidens: 1, runs: 26, wickets: 2, econ: '6.50' },
+        { name: 'Ravichandran Ashwin', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
+        { name: 'Yuzvendra Chahal', overs: '4.0', maidens: 0, runs: 32, wickets: 2, econ: '8.00' },
+        { name: 'Avesh Khan', overs: '4.0', maidens: 0, runs: 38, wickets: 1, econ: '9.50' },
+        { name: 'Sandeep Sharma', overs: '4.0', maidens: 0, runs: 30, wickets: 1, econ: '7.50' },
+      ],
+    },
+    innings2: {
+      team: 'Royals XI',
+      flag: '🦁',
+      runs: 156,
+      wickets: 6,
+      overs: '19.2',
+      maxOvers: 20,
+      crr: '8.07',
+      batting: [
+        { name: 'Yashasvi Jaiswal', runs: 51, balls: 32, fours: 7, sixes: 2, strikeRate: '159.38', dismissal: 'c Maxwell b Siraj' },
+        { name: 'Jos Buttler', runs: 24, balls: 18, fours: 3, sixes: 0, strikeRate: '133.33', dismissal: 'b Dayal' },
+        { name: 'Sanju Samson (c & wk)', runs: 44, balls: 28, fours: 4, sixes: 2, strikeRate: '157.14', dismissal: 'c Karthik b Ferguson' },
+        { name: 'Riyan Parag', runs: 22, balls: 16, fours: 2, sixes: 1, strikeRate: '137.50', notOut: true, dismissal: 'not out' },
+        { name: 'Shimron Hetmyer', runs: 12, balls: 7, fours: 1, sixes: 1, strikeRate: '171.43', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Mohammed Siraj', overs: '4.0', maidens: 0, runs: 32, wickets: 2, econ: '8.00' },
+        { name: 'Lockie Ferguson', overs: '3.2', maidens: 0, runs: 34, wickets: 2, econ: '10.20' },
+        { name: 'Glenn Maxwell', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
+        { name: 'Yash Dayal', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
+        { name: 'Karn Sharma', overs: '4.0', maidens: 0, runs: 26, wickets: 0, econ: '6.50' },
+      ],
+    },
+  },
+  match_rec_3: {
+    id: 'match_rec_3',
+    title: 'Blasters XI vs United XI',
+    tournament: 'Super Cup 2026',
+    venue: 'Eden Park Grounds',
+    format: 'T20',
+    matchType: 'T20',
+    totalOvers: 20,
+    status: 'completed',
+    date: '22 Sep 2026',
+    winner: 'Blasters XI',
+    userResult: 'Won',
+    result: 'Won',
+    resultSummary: 'Blasters XI won by 28 runs',
+    teamA: 'Blasters XI',
+    teamB: 'United XI',
+    flagA: '🔴',
+    flagB: '🛡️',
+    innings1: {
+      team: 'Blasters XI',
+      flag: '🔴',
+      runs: 192,
+      wickets: 5,
+      overs: '20.0',
+      maxOvers: 20,
+      crr: '9.60',
+      batting: [
+        { name: 'Phil Salt (wk)', runs: 38, balls: 22, fours: 5, sixes: 2, strikeRate: '172.73', dismissal: 'c Warner b Nortje' },
+        { name: 'Sunil Narine', runs: 24, balls: 13, fours: 3, sixes: 2, strikeRate: '184.62', dismissal: 'b Khaleel' },
+        { name: 'Shreyas Iyer (c)', runs: 48, balls: 34, fours: 4, sixes: 2, strikeRate: '141.18', dismissal: 'c Stubbs b Axar' },
+        { name: 'Andre Russell', runs: 62, balls: 25, fours: 4, sixes: 6, strikeRate: '248.00', notOut: true, dismissal: 'not out' },
+        { name: 'Rinku Singh', runs: 16, balls: 8, fours: 2, sixes: 1, strikeRate: '200.00', notOut: true, dismissal: 'not out' },
+      ],
+      bowling: [
+        { name: 'Mitchell Starc', overs: '4.0', maidens: 0, runs: 32, wickets: 1, econ: '8.00' },
+        { name: 'Khaleel Ahmed', overs: '4.0', maidens: 0, runs: 42, wickets: 1, econ: '10.50' },
+        { name: 'Anrich Nortje', overs: '4.0', maidens: 0, runs: 45, wickets: 1, econ: '11.25' },
+        { name: 'Axar Patel', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
+        { name: 'Kuldeep Yadav', overs: '4.0', maidens: 0, runs: 35, wickets: 1, econ: '8.75' },
+      ],
+    },
+    innings2: {
+      team: 'United XI',
+      flag: '🛡️',
+      runs: 164,
+      wickets: 9,
+      overs: '20.0',
+      maxOvers: 20,
+      crr: '8.20',
+      batting: [
+        { name: 'David Warner (c)', runs: 45, balls: 30, fours: 5, sixes: 2, strikeRate: '150.00', dismissal: 'c Iyer b Starc' },
+        { name: 'Prithvi Shaw', runs: 18, balls: 12, fours: 3, sixes: 0, strikeRate: '150.00', dismissal: 'b Harshit' },
+        { name: 'Rishabh Pant (wk)', runs: 34, balls: 24, fours: 3, sixes: 2, strikeRate: '141.67', dismissal: 'c Salt b Varun' },
+        { name: 'Tristan Stubbs', runs: 28, balls: 18, fours: 2, sixes: 2, strikeRate: '155.56', dismissal: 'b Russell' },
+        { name: 'Axar Patel', runs: 14, balls: 11, fours: 1, sixes: 0, strikeRate: '127.27', dismissal: 'b Starc' },
+      ],
+      bowling: [
+        { name: 'Mitchell Starc', overs: '4.0', maidens: 0, runs: 24, wickets: 3, econ: '6.00' },
+        { name: 'Harshit Rana', overs: '4.0', maidens: 0, runs: 36, wickets: 2, econ: '9.00' },
+        { name: 'Sunil Narine', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
+        { name: 'Varun Chakravarthy', overs: '4.0', maidens: 0, runs: 34, wickets: 2, econ: '8.50' },
+        { name: 'Andre Russell', overs: '4.0', maidens: 0, runs: 40, wickets: 1, econ: '10.00' },
+      ],
+    },
+  },
+};
 
 // USER'S COMPLETE PERSONAL MATCH HISTORY & CAREER STATS
 // ============================================================================
@@ -2116,7 +2424,194 @@ function sha256(ascii) {
 // ============================================================================
 // REGISTERED TEAMS DATABASE (MY TEAMS & OPPONENT CLUBS)
 // ============================================================================
-const REGISTERED_APP_TEAMS = [];
+const REGISTERED_APP_TEAMS = [
+  {
+    id: 'team_tigers_xi',
+    name: 'Tigers XI',
+    shortName: 'TIG',
+    flag: '🐯',
+    logo: null,
+    logoUri: null,
+    club: 'Premier Cricket Club',
+    city: 'Mumbai',
+    homeGround: 'Wankhede Arena',
+    captain: 'Rohit Sharma',
+    wicketkeeper: 'Rishabh Pant',
+    createdBy: 'You',
+    createdByEmail: 'admin@cricketadda.com',
+    createdById: 'usr_admin',
+    isCustomCreated: true,
+    createdAt: '2026-09-01T00:00:00.000Z',
+    squad: [
+      { id: 'sq_1_1', name: 'Rohit Sharma', phone: '9876500001', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#45', isCaptain: true, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Rohit Sharma'] },
+      { id: 'sq_1_2', name: 'Shubman Gill', phone: '9876500007', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#77', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Shubman Gill'] },
+      { id: 'sq_1_3', name: 'Virat Kohli', phone: '9876500002', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#18', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Virat Kohli'] },
+      { id: 'sq_1_4', name: 'Suryakumar Yadav', phone: '9876500005', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#63', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Suryakumar Yadav'] },
+      { id: 'sq_1_5', name: 'Rishabh Pant', phone: '9876500008', role: 'WK', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#17', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Rishabh Pant'] },
+      { id: 'sq_1_6', name: 'Hardik Pandya', phone: '9876500004', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#33', isCaptain: false, isViceCaptain: true, isWk: false, avatarUri: PLAYER_AVATARS['Hardik Pandya'] },
+      { id: 'sq_1_7', name: 'Ravindra Jadeja', phone: '9876500010', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#8', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Ravindra Jadeja'] },
+      { id: 'sq_1_8', name: 'Axar Patel', phone: '9876500011', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#20', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Axar Patel'] },
+      { id: 'sq_1_9', name: 'Jasprit Bumrah', phone: '9876500006', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#93', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Jasprit Bumrah'] },
+      { id: 'sq_1_10', name: 'Mohammed Siraj', phone: '9876500012', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#73', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Mohammed Siraj'] },
+      { id: 'sq_1_11', name: 'Kuldeep Yadav', phone: '9876500013', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Wrist Spin', jersey: '#23', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Kuldeep Yadav'] },
+    ],
+  },
+  {
+    id: 'team_warriors_xi',
+    name: 'Warriors XI',
+    shortName: 'WAR',
+    flag: '⚔️',
+    logo: null,
+    logoUri: null,
+    club: 'Super Kings Cricket Academy',
+    city: 'Chennai',
+    homeGround: 'Chepauk Fortress',
+    captain: 'MS Dhoni',
+    wicketkeeper: 'MS Dhoni',
+    createdBy: 'Coach Stephen',
+    createdByEmail: 'coach@warriors.com',
+    createdById: 'usr_warriors',
+    isCustomCreated: true,
+    createdAt: '2026-09-02T00:00:00.000Z',
+    squad: [
+      { id: 'sq_2_1', name: 'Ruturaj Gaikwad', phone: '9876500014', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#31', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_2_2', name: 'Devon Conway', phone: '9876500027', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#88', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_2_3', name: 'Ajinkya Rahane', phone: '9876500028', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#27', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_2_4', name: 'Shivam Dube', phone: '9876500015', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#25', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Shivam Dube'] },
+      { id: 'sq_2_5', name: 'MS Dhoni', phone: '9876500003', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#7', isCaptain: true, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['MS Dhoni'] },
+      { id: 'sq_2_6', name: 'Moeen Ali', phone: '9876500029', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#18', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_2_7', name: 'Ravindra Jadeja', phone: '9876500010', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#8', isCaptain: false, isViceCaptain: true, isWk: false, avatarUri: PLAYER_AVATARS['Ravindra Jadeja'] },
+      { id: 'sq_2_8', name: 'Deepak Chahar', phone: '9876500030', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#90', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_2_9', name: 'Shardul Thakur', phone: '9876500031', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium Fast', jersey: '#54', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_2_10', name: 'Matheesha Pathirana', phone: '9876500032', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#99', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_2_11', name: 'Tushar Deshpande', phone: '9876500033', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast Medium', jersey: '#24', isCaptain: false, isViceCaptain: false, isWk: false },
+    ],
+  },
+  {
+    id: 'team_king_xi',
+    name: 'King XI',
+    shortName: 'KNG',
+    flag: '👑',
+    logo: null,
+    logoUri: null,
+    club: 'Royal Challengers Arena',
+    city: 'Bengaluru',
+    homeGround: 'Chinnaswamy Stadium',
+    captain: 'Virat Kohli',
+    wicketkeeper: 'Dinesh Karthik',
+    createdBy: 'Coach Andy',
+    createdByEmail: 'coach@kingxi.com',
+    createdById: 'usr_kingxi',
+    isCustomCreated: true,
+    createdAt: '2026-09-03T00:00:00.000Z',
+    squad: [
+      { id: 'sq_3_1', name: 'Faf du Plessis', phone: '9876500034', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#13', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_3_2', name: 'Virat Kohli', phone: '9876500002', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#18', isCaptain: true, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Virat Kohli'] },
+      { id: 'sq_3_3', name: 'Rajat Patidar', phone: '9876500035', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#97', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_3_4', name: 'Glenn Maxwell', phone: '9876500018', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#32', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Glenn Maxwell'] },
+      { id: 'sq_3_5', name: 'Cameron Green', phone: '9876500036', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast Medium', jersey: '#42', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_3_6', name: 'Dinesh Karthik', phone: '9876500026', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#21', isCaptain: false, isViceCaptain: false, isWk: true },
+      { id: 'sq_3_7', name: 'Mahipal Lomror', phone: '9876500037', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#70', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_3_8', name: 'Karn Sharma', phone: '9876500038', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Legbreak Googly', jersey: '#33', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_3_9', name: 'Mohammed Siraj', phone: '9876500012', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#73', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Mohammed Siraj'] },
+      { id: 'sq_3_10', name: 'Lockie Ferguson', phone: '9876500039', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#69', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_3_11', name: 'Yash Dayal', phone: '9876500040', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Fast Medium', jersey: '#13', isCaptain: false, isViceCaptain: false, isWk: false },
+    ],
+  },
+  {
+    id: 'team_royals_xi',
+    name: 'Royals XI',
+    shortName: 'ROY',
+    flag: '🦁',
+    logo: null,
+    logoUri: null,
+    club: 'Desert Kings Sporting Club',
+    city: 'Jaipur',
+    homeGround: 'Sawai Mansingh Stadium',
+    captain: 'Sanju Samson',
+    wicketkeeper: 'Sanju Samson',
+    createdBy: 'Coach Sanga',
+    createdByEmail: 'coach@royals.com',
+    createdById: 'usr_royals',
+    isCustomCreated: true,
+    createdAt: '2026-09-04T00:00:00.000Z',
+    squad: [
+      { id: 'sq_4_1', name: 'Yashasvi Jaiswal', phone: '9876500025', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#64', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_4_2', name: 'Jos Buttler', phone: '9876500017', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#63', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Jos Buttler'] },
+      { id: 'sq_4_3', name: 'Sanju Samson', phone: '9876500009', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#11', isCaptain: true, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Sanju Samson'] },
+      { id: 'sq_4_4', name: 'Riyan Parag', phone: '9876500041', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#12', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_4_5', name: 'Shimron Hetmyer', phone: '9876500042', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#18', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_4_6', name: 'Dhruv Jurel', phone: '9876500043', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'None', jersey: '#21', isCaptain: false, isViceCaptain: false, isWk: true },
+      { id: 'sq_4_7', name: 'Ravichandran Ashwin', phone: '9876500044', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#99', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_4_8', name: 'Trent Boult', phone: '9876500045', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Left-arm Fast Medium', jersey: '#18', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_4_9', name: 'Avesh Khan', phone: '9876500046', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#65', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_4_10', name: 'Yuzvendra Chahal', phone: '9876500047', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Legbreak Googly', jersey: '#3', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_4_11', name: 'Sandeep Sharma', phone: '9876500048', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#66', isCaptain: false, isViceCaptain: false, isWk: false },
+    ],
+  },
+  {
+    id: 'team_blasters_xi',
+    name: 'Blasters XI',
+    shortName: 'BLS',
+    flag: '🔴',
+    logo: null,
+    logoUri: null,
+    club: 'Knight Riders Club',
+    city: 'Kolkata',
+    homeGround: 'Eden Gardens',
+    captain: 'Shreyas Iyer',
+    wicketkeeper: 'Phil Salt',
+    createdBy: 'Coach Chandu',
+    createdByEmail: 'coach@blasters.com',
+    createdById: 'usr_blasters',
+    isCustomCreated: true,
+    createdAt: '2026-09-05T00:00:00.000Z',
+    squad: [
+      { id: 'sq_5_1', name: 'Phil Salt', phone: '9876500021', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#28', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Phil Salt'] },
+      { id: 'sq_5_2', name: 'Sunil Narine', phone: '9876500049', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#74', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_5_3', name: 'Venkatesh Iyer', phone: '9876500050', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#25', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_5_4', name: 'Shreyas Iyer', phone: '9876500022', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#96', isCaptain: true, isViceCaptain: false, isWk: false },
+      { id: 'sq_5_5', name: 'Nitish Rana', phone: '9876500051', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#27', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_5_6', name: 'Rinku Singh', phone: '9876500023', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#35', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_5_7', name: 'Andre Russell', phone: '9876500024', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#12', isCaptain: false, isViceCaptain: true, isWk: false },
+      { id: 'sq_5_8', name: 'Ramandeep Singh', phone: '9876500052', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#19', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_5_9', name: 'Mitchell Starc', phone: '9876500020', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Fast', jersey: '#56', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Mitchell Starc'] },
+      { id: 'sq_5_10', name: 'Harshit Rana', phone: '9876500053', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast Medium', jersey: '#22', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_5_11', name: 'Varun Chakravarthy', phone: '9876500054', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#29', isCaptain: false, isViceCaptain: false, isWk: false },
+    ],
+  },
+  {
+    id: 'team_united_xi',
+    name: 'United XI',
+    shortName: 'UTD',
+    flag: '🛡️',
+    logo: null,
+    logoUri: null,
+    club: 'Capitals Sports Club',
+    city: 'Delhi',
+    homeGround: 'Arun Jaitley Arena',
+    captain: 'David Warner',
+    wicketkeeper: 'Abishek Porel',
+    createdBy: 'Coach Ricky',
+    createdByEmail: 'coach@unitedxi.com',
+    createdById: 'usr_unitedxi',
+    isCustomCreated: true,
+    createdAt: '2026-09-06T00:00:00.000Z',
+    squad: [
+      { id: 'sq_6_1', name: 'David Warner', phone: '9876500019', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#31', isCaptain: true, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['David Warner'] },
+      { id: 'sq_6_2', name: 'Prithvi Shaw', phone: '9876500055', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#100', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_6_3', name: 'Jake Fraser-McGurk', phone: '9876500056', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#23', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_6_4', name: 'Rishabh Pant', phone: '9876500008', role: 'WK', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#17', isCaptain: false, isViceCaptain: true, isWk: true, avatarUri: PLAYER_AVATARS['Rishabh Pant'] },
+      { id: 'sq_6_5', name: 'Tristan Stubbs', phone: '9876500057', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#89', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_6_6', name: 'Abishek Porel', phone: '9876500058', role: 'WK', battingStyle: 'Left-hand Bat', bowlingStyle: 'None', jersey: '#32', isCaptain: false, isViceCaptain: false, isWk: true },
+      { id: 'sq_6_7', name: 'Axar Patel', phone: '9876500011', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#20', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Axar Patel'] },
+      { id: 'sq_6_8', name: 'Kuldeep Yadav', phone: '9876500013', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Wrist Spin', jersey: '#23', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Kuldeep Yadav'] },
+      { id: 'sq_6_9', name: 'Anrich Nortje', phone: '9876500059', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#20', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_6_10', name: 'Khaleel Ahmed', phone: '9876500060', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Left-arm Fast Medium', jersey: '#71', isCaptain: false, isViceCaptain: false, isWk: false },
+      { id: 'sq_6_11', name: 'Mukesh Kumar', phone: '9876500061', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast Medium', jersey: '#49', isCaptain: false, isViceCaptain: false, isWk: false },
+    ],
+  },
+];
 
 const MY_REGISTERED_TEAMS = REGISTERED_APP_TEAMS;
 const OPPONENT_TEAMS_DATABASE = REGISTERED_APP_TEAMS;
@@ -5209,22 +5704,32 @@ function CricketAddaMain() {
     if (liveMatches.length > 0) {
       const lm = liveMatches[0];
       const isCur = lm.id === activeMatchId;
-      const sA = isCur && currentInnings === 1 ? `${liveRuns}/${liveWickets}` : `${lm.innings1?.runs || 0}/${lm.innings1?.wickets || 0}`;
-      const ovA = isCur && currentInnings === 1 ? `${oversStr} Ov` : `${lm.innings1?.overs || '0.0'} Ov`;
-      const sB = isCur && currentInnings === 2 ? `${liveRuns}/${liveWickets}` : `${lm.innings2?.runs || 0}/${lm.innings2?.wickets || 0}`;
-      const ovB = isCur && currentInnings === 2 ? `${oversStr} Ov` : `${lm.innings2?.overs || '0.0'} Ov`;
-      const eq = isCur && currentInnings === 2 ? `${liveTargetEquation}` : `${lm.teamA || 'Team A'} vs ${lm.teamB || 'Team B'}`;
+      const teamAName = lm.teamA || lm.innings2?.team || 'Tigers XI';
+      const teamBName = lm.teamB || lm.innings1?.team || 'Warriors XI';
+
+      const innForA = lm.innings2?.team === teamAName ? lm.innings2 : (lm.innings1?.team === teamAName ? lm.innings1 : lm.innings2);
+      const innForB = lm.innings1?.team === teamBName ? lm.innings1 : (lm.innings2?.team === teamBName ? lm.innings2 : lm.innings1);
+
+      const isABatting = isCur && ((currentInnings === 2 && lm.innings2?.team === teamAName) || (currentInnings === 1 && lm.innings1?.team === teamAName));
+      const isBBatting = isCur && ((currentInnings === 1 && lm.innings1?.team === teamBName) || (currentInnings === 2 && lm.innings2?.team === teamBName));
+
+      const sA = isABatting ? `${liveRuns}/${liveWickets}` : `${innForA?.runs ?? 128}/${innForA?.wickets ?? 4}`;
+      const ovA = isABatting ? `${oversStr} Ov` : `${innForA?.overs ?? '16.3'} Ov`;
+      const sB = isBBatting ? `${liveRuns}/${liveWickets}` : `${innForB?.runs ?? 144}/${innForB?.wickets ?? 8}`;
+      const ovB = isBBatting ? `${oversStr} Ov` : `${innForB?.overs ?? '20.0'} Ov`;
+      const eq = lm.equation || (isCur && currentInnings === 2 ? liveTargetEquation : 'Tigers XI need 17 runs in 21 balls');
+
       return {
         id: lm.id,
-        tournament: lm.tournament || 'CricketAdda Premier League',
-        venue: lm.venue || 'Stadium Ground',
+        tournament: lm.tournament || 'School Premier League',
+        venue: lm.venue || 'Green Valley Ground',
         format: lm.matchType || 'T20',
-        teamA: lm.innings1?.team || lm.teamA || 'Tigers XI',
-        flagA: lm.flagA || lm.innings1?.flag || '🐯',
+        teamA: teamAName,
+        flagA: lm.flagA || innForA?.flag || '🐯',
         scoreA: sA,
         oversA: ovA,
-        teamB: lm.innings2?.team || lm.teamB || 'Warriors XI',
-        flagB: lm.flagB || lm.innings2?.flag || '⚔️',
+        teamB: teamBName,
+        flagB: lm.flagB || innForB?.flag || '⚔️',
         scoreB: sB,
         oversB: ovB,
         equation: eq || 'Match in Progress',
@@ -5250,18 +5755,24 @@ function CricketAddaMain() {
   const displayRecentMatches = useMemo(() => {
     const completed = Object.values(matchesDb || {}).filter(isMatchCompleted);
     if (completed.length >= 3) {
-      return completed.slice(0, 5).map(m => ({
-        id: m.id,
-        teamA: m.teamA || m.innings1?.team || 'Tigers XI',
-        flagA: m.flagA || m.innings1?.flag || '🐯',
-        scoreA: `${m.innings1?.runs || 0}/${m.innings1?.wickets || 0} (${m.innings1?.overs || '20.0'} Ov)`,
-        teamB: m.teamB || m.innings2?.team || 'Warriors XI',
-        flagB: m.flagB || m.innings2?.flag || '⚔️',
-        scoreB: `${m.innings2?.runs || 0}/${m.innings2?.wickets || 0} (${m.innings2?.overs || '20.0'} Ov)`,
-        result: m.resultSummary?.toLowerCase().includes('won') || m.winner ? 'Won' : 'Won',
-        date: m.date || '27 Sep 2026',
-        format: m.matchType || 'T20',
-      }));
+      return completed.slice(0, 5).map(m => {
+        const tA = m.teamA || m.innings1?.team || 'Tigers XI';
+        const tB = m.teamB || m.innings2?.team || 'Warriors XI';
+        const innA = m.innings1?.team === tA ? m.innings1 : (m.innings2?.team === tA ? m.innings2 : m.innings1);
+        const innB = m.innings2?.team === tB ? m.innings2 : (m.innings1?.team === tB ? m.innings1 : m.innings2);
+        return {
+          id: m.id,
+          teamA: tA,
+          flagA: m.flagA || innA?.flag || '🐯',
+          scoreA: `${innA?.runs || 0}/${innA?.wickets || 0} (${innA?.overs || '20.0'} Ov)`,
+          teamB: tB,
+          flagB: m.flagB || innB?.flag || '⚔️',
+          scoreB: `${innB?.runs || 0}/${innB?.wickets || 0} (${innB?.overs || '20.0'} Ov)`,
+          result: m.userResult || (m.result === 'Lost' ? 'Lost' : (m.winner ? (m.winner === tA ? 'Won' : 'Lost') : 'Won')),
+          date: m.date || '27 Sep 2026',
+          format: m.matchType || 'T20',
+        };
+      });
     }
     return [
       {
@@ -5804,8 +6315,16 @@ function CricketAddaMain() {
           if (storedTeams) {
             try {
               const parsed = JSON.parse(storedTeams);
-              if (Array.isArray(parsed)) setRegisteredTeams(parsed);
-            } catch (e) {}
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                setRegisteredTeams(parsed);
+              } else {
+                setRegisteredTeams(REGISTERED_APP_TEAMS);
+              }
+            } catch (e) {
+              setRegisteredTeams(REGISTERED_APP_TEAMS);
+            }
+          } else {
+            setRegisteredTeams(REGISTERED_APP_TEAMS);
           }
           const storedCareer = await AsyncStorage.getItem(STORAGE_KEYS.USER_CAREER);
           if (storedCareer) {
@@ -5818,12 +6337,22 @@ function CricketAddaMain() {
           if (storedMatches) {
             try {
               const parsedMatches = JSON.parse(storedMatches);
-              if (parsedMatches && typeof parsedMatches === 'object') setMatchesDb(parsedMatches);
-            } catch (e) {}
+              if (parsedMatches && typeof parsedMatches === 'object' && Object.keys(parsedMatches).length > 0) {
+                setMatchesDb(prev => ({ ...MATCH_DATABASE, ...parsedMatches }));
+              } else {
+                setMatchesDb(MATCH_DATABASE);
+              }
+            } catch (e) {
+              setMatchesDb(MATCH_DATABASE);
+            }
+          } else {
+            setMatchesDb(MATCH_DATABASE);
           }
           const storedActiveMatch = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_MATCH_ID);
           if (storedActiveMatch) {
             setActiveMatchId(storedActiveMatch);
+          } else {
+            setActiveMatchId('match_live_spl_1');
           }
           const storedMyScoring = await AsyncStorage.getItem(STORAGE_KEYS.MY_SCORING_MATCHES);
           if (storedMyScoring) {
@@ -5836,8 +6365,16 @@ function CricketAddaMain() {
           if (storedPlayers) {
             try {
               const parsedPlayers = JSON.parse(storedPlayers);
-              if (Array.isArray(parsedPlayers) && parsedPlayers.length > 0) setRegisteredPlayers(parsedPlayers);
-            } catch (e) {}
+              if (Array.isArray(parsedPlayers) && parsedPlayers.length > 0) {
+                setRegisteredPlayers(parsedPlayers);
+              } else {
+                setRegisteredPlayers(INITIAL_REGISTERED_PLAYERS);
+              }
+            } catch (e) {
+              setRegisteredPlayers(INITIAL_REGISTERED_PLAYERS);
+            }
+          } else {
+            setRegisteredPlayers(INITIAL_REGISTERED_PLAYERS);
           }
           const storedUsersDb = await AsyncStorage.getItem(STORAGE_KEYS.USERS_DB);
           if (storedUsersDb) {
