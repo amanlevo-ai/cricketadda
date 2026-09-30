@@ -44,9 +44,11 @@ jobs:
 
       - name: 🔨 Build Standalone Release APK (Offline Bundle Embedded)
         working-directory: android
+        env:
+          GRADLE_OPTS: "-Dorg.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=1024m -XX:+HeapDumpOnOutOfMemoryError -Dfile.encoding=UTF-8"
         run: |
           chmod +x gradlew
-          ./gradlew assembleRelease --no-daemon --max-workers=2
+          ./gradlew assembleRelease --no-daemon --max-workers=2 --stacktrace
 
       - name: 📤 Upload Standalone APK Artifact
         uses: actions/upload-artifact@v4
