@@ -8371,6 +8371,7 @@ function CricketAddaMain() {
   }, [liveThisOver, liveBalls]);
 
   const [liveCarouselIndex, setLiveCarouselIndex] = useState(0);
+  const liveCarouselRef = useRef(null);
 
   const allLiveMatchesList = useMemo(() => {
     const list = Object.values(matchesDb || {}).filter(isMatchLive);
@@ -8383,9 +8384,8 @@ function CricketAddaMain() {
     ];
   }, [matchesDb]);
 
-  const featuredLiveMatch = useMemo(() => {
-    const safeIdx = Math.max(0, Math.min(liveCarouselIndex, allLiveMatchesList.length - 1));
-    const lm = allLiveMatchesList[safeIdx] || allLiveMatchesList[0];
+  const getLiveMatchCardData = useCallback((lm) => {
+    if (!lm) return null;
     const isCur = lm?.id === activeMatchId;
 
     const teamAName = lm?.teamA || lm?.innings2?.team || 'Tigers XI';
@@ -8428,10 +8428,12 @@ function CricketAddaMain() {
       scoreB: sB,
       oversB: ovB,
       equation: eq || 'Match in Progress',
-      totalMatches: allLiveMatchesList.length,
-      currentIndex: safeIdx,
     };
-  }, [allLiveMatchesList, liveCarouselIndex, activeMatchId, currentInnings, liveRuns, liveWickets, liveBalls, oversStr, targetRuns]);
+  }, [activeMatchId, currentInnings, liveRuns, liveWickets, liveBalls, oversStr, targetRuns]);
+
+  const featuredLiveMatch = useMemo(() => {
+    return getLiveMatchCardData(allLiveMatchesList[liveCarouselIndex] || allLiveMatchesList[0]);
+  }, [allLiveMatchesList, liveCarouselIndex, getLiveMatchCardData]);
 
   const displayRecentMatches = useMemo(() => {
     const completed = Object.values(matchesDb || {}).filter(isMatchCompleted);
@@ -15237,15 +15239,10 @@ function CricketAddaMain() {
                 </View>
               </TouchableOpacity>
 
-              {/* Center: Small CricketAdda Logo (Centered & Scaled Down as Requested) */}
-              <View style={styles.dashHeaderLogoCenter} pointerEvents="box-none">
-                <TouchableOpacity onPress={() => setShowSplash(true)} activeOpacity={0.85}>
-                  <Image source={require('./assets/header-logo.png')} style={styles.dashHeaderLogoSmall} resizeMode="contain" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Right: Spacer for perfect center alignment */}
-              <View style={styles.dashHeaderRightSpacer} />
+              {/* Right: Small CricketAdda Logo Shifted to Right */}
+              <TouchableOpacity onPress={() => setShowSplash(true)} activeOpacity={0.85} style={styles.dashHeaderLogoRight}>
+                <Image source={require('./assets/header-logo.png')} style={styles.dashHeaderLogoSmall} resizeMode="contain" />
+              </TouchableOpacity>
             </View>) : (
             <View style={[styles.navBar, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder }]}>
               <TouchableOpacity style={styles.navBrand} onPress={() => navigateTo('matches')}>
@@ -15334,631 +15331,269 @@ function CricketAddaMain() {
           {/* ========================================================================= */}
           {/* MOCKUP DASHBOARD HERO, QUICK ACTIONS, LIVE & RECENT SECTIONS */}
           {/* ========================================================================= */}
-          {matchFilter === 'all' && (
-            <>
-              {/* 1. HERO BANNER: LET'S PLAY CRICKET */}
-              <View style={styles.dashHeroWrapper}>
-                <ImageBackground
-                  source={require('./assets/hero-banner.jpg')}
-                  style={styles.dashHeroCard}
-                  imageStyle={{ borderRadius: 20 }}
-                  resizeMode="cover"
-                >
-                  <View style={styles.dashHeroOverlay}>
-                    <Text style={styles.dashHeroLets}>Let's</Text>
-                    <Text style={styles.dashHeroPlay}>
-                      Play <Text style={{ color: '#22c55e' }}>Cricket</Text>
-                    </Text>
-                    <Text style={styles.dashHeroSubtitle}>
-                      Create a match, join a match or manage your teams.
-                    </Text>
-                  </View>
-                </ImageBackground>
-              </View>
+          {/* 1. HERO BANNER: STADIUM SUNSET BATSMAN BANNER */}
+          <View style={styles.dashHeroWrapper}>
+            <Image
+              source={require('./assets/hero-banner.jpg')}
+              style={styles.dashHeroCard}
+              resizeMode="cover"
+            />
+          </View>
 
-              {/* 2. 3 QUICK-ACTION BUTTONS ROW */}
-              <View style={styles.dashActionGrid}>
-                {/* 1. Start a Match */}
-                <TouchableOpacity
-                  style={[styles.dashActionCard, { backgroundColor: '#073820', borderColor: 'rgba(34, 197, 94, 0.5)' }]}
-                  onPress={handleOpenMatchWizard}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.dashActionIconWrap}>
-                    <Image source={require('./assets/action-start.png')} style={styles.dashActionImg} resizeMode="contain" />
-                  </View>
-                  <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                    <Text style={styles.dashActionTitle} numberOfLines={1}>Start a Match</Text>
-                    <Text style={styles.dashActionSub} numberOfLines={1}>Score Live</Text>
-                  </View>
-                  <View style={[styles.dashActionArrowCircle, { backgroundColor: '#10b981' }]}>
-                    <Text style={styles.dashActionArrowText}>❯</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* 2. My Teams */}
-                <TouchableOpacity
-                  style={[styles.dashActionCard, { backgroundColor: '#0a3260', borderColor: 'rgba(56, 189, 248, 0.4)' }]}
-                  onPress={() => navigateTo('teams')}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.dashActionIconWrap}>
-                    <Image source={require('./assets/action-teams.png')} style={styles.dashActionImg} resizeMode="contain" />
-                  </View>
-                  <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                    <Text style={styles.dashActionTitle} numberOfLines={1}>My Teams</Text>
-                    <Text style={styles.dashActionSub} numberOfLines={1}>Manage Players</Text>
-                  </View>
-                  <View style={[styles.dashActionArrowCircle, { backgroundColor: '#0284c7' }]}>
-                    <Text style={styles.dashActionArrowText}>❯</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* 3. Join a Match */}
-                <TouchableOpacity
-                  style={[styles.dashActionCard, { backgroundColor: '#4a1772', borderColor: 'rgba(168, 85, 247, 0.4)' }]}
-                  onPress={() => setJoinMatchModalVisible(true)}
-                  activeOpacity={0.85}
-                >
-                  <View style={styles.dashActionIconWrap}>
-                    <Image source={require('./assets/action-join.png')} style={styles.dashActionImg} resizeMode="contain" />
-                  </View>
-                  <View style={{ flex: 1, justifyContent: 'flex-end' }}>
-                    <Text style={styles.dashActionTitle} numberOfLines={1}>Join a Match</Text>
-                    <Text style={styles.dashActionSub} numberOfLines={1}>Enter Match Code</Text>
-                  </View>
-                  <View style={[styles.dashActionArrowCircle, { backgroundColor: '#9333ea' }]}>
-                    <Text style={styles.dashActionArrowText}>❯</Text>
-                  </View>
-                </TouchableOpacity>
-              </View>
-
-              {/* 3. FEATURED LIVE MATCH CARD WITH LEFT/RIGHT NEXT & PREVIOUS SWITCHER */}
-              <View style={styles.dashFeaturedLiveCard}>
-                <View style={styles.dashFeaturedTopRow}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                    <View style={styles.dashLivePill}>
-                      <View style={styles.dashLiveDot} />
-                      <Text style={styles.dashLivePillText}>LIVE</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.dashFeaturedTournName} numberOfLines={1}>
-                        {featuredLiveMatch.tournament || 'School Premier League'}
-                      </Text>
-                      <Text style={styles.dashFeaturedVenue} numberOfLines={1}>
-                        {featuredLiveMatch.format || 'T20'} • {featuredLiveMatch.venue || 'Green Valley Ground'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Left / Right Carousel Controls */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginRight: 6 }}>
-                    <TouchableOpacity
-                      onPress={() => setLiveCarouselIndex(prev => (prev > 0 ? prev - 1 : (allLiveMatchesList.length - 1)))}
-                      style={styles.dashCarouselArrowBtn}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.dashCarouselArrowText}>‹</Text>
-                    </TouchableOpacity>
-
-                    <Text style={styles.dashCarouselCounterText}>
-                      {(featuredLiveMatch.currentIndex || 0) + 1}/{allLiveMatchesList.length}
-                    </Text>
-
-                    <TouchableOpacity
-                      onPress={() => setLiveCarouselIndex(prev => (prev < allLiveMatchesList.length - 1 ? prev + 1 : 0))}
-                      style={styles.dashCarouselArrowBtn}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.dashCarouselArrowText}>›</Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  <TouchableOpacity
-                    style={styles.dashViewLiveBtn}
-                    onPress={() => handleScoreMatchPress(featuredLiveMatch.id)}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={styles.dashViewLiveBtnText}>View Live ❯</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Scores Row */}
-                <View style={styles.dashFeaturedScoresRow}>
-                  {/* Team 1 */}
-                  <View style={styles.dashFeaturedTeamCol}>
-                    <View style={styles.dashFeaturedCrestWrapper}>
-                      {getDashTeamLogo(featuredLiveMatch.teamA) ? (
-                        <Image source={getDashTeamLogo(featuredLiveMatch.teamA)} style={styles.dashFeaturedCrestImg} resizeMode="contain" />
-                      ) : (
-                        <Text style={{ fontSize: 26 }}>{featuredLiveMatch.flagA || '🐯'}</Text>
-                      )}
-                    </View>
-                    <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
-                      {featuredLiveMatch.teamA || 'Tigers XI'}
-                    </Text>
-                  </View>
-
-                  {/* Center Scores + Divider */}
-                  <View style={styles.dashFeaturedCenterScores}>
-                    <View style={styles.dashFeaturedScoreCol}>
-                      <Text style={styles.dashFeaturedScoreBig}>
-                        {featuredLiveMatch.scoreA || '128/4'}
-                      </Text>
-                      <Text style={styles.dashFeaturedOvers}>
-                        {featuredLiveMatch.oversA || '16.3 Ov'}
-                      </Text>
-                    </View>
-
-                    <View style={styles.dashFeaturedDivider} />
-
-                    <View style={styles.dashFeaturedScoreCol}>
-                      <Text style={styles.dashFeaturedScoreBig}>
-                        {featuredLiveMatch.scoreB || '144/8'}
-                      </Text>
-                      <Text style={styles.dashFeaturedOvers}>
-                        {featuredLiveMatch.oversB || '20.0 Ov'}
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Team 2 */}
-                  <View style={styles.dashFeaturedTeamCol}>
-                    <View style={styles.dashFeaturedCrestWrapper}>
-                      {getDashTeamLogo(featuredLiveMatch.teamB) ? (
-                        <Image source={getDashTeamLogo(featuredLiveMatch.teamB)} style={styles.dashFeaturedCrestImg} resizeMode="contain" />
-                      ) : (
-                        <Text style={{ fontSize: 26 }}>{featuredLiveMatch.flagB || '⚔️'}</Text>
-                      )}
-                    </View>
-                    <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
-                      {featuredLiveMatch.teamB || 'Warriors XI'}
-                    </Text>
-                  </View>
-                </View>
-
-                {/* Equation Capsule */}
-                <View style={styles.dashEquationCapsule}>
-                  <Text style={styles.dashEquationText}>
-                    {featuredLiveMatch.equation || 'Tigers XI need 17 runs in 21 balls'}
-                  </Text>
-                </View>
-
-                {/* Interactive Carousel Dots - Tap to switch match */}
-                <View style={styles.dashCarouselDotsRow}>
-                  {allLiveMatchesList.map((m, idx) => (
-                    <TouchableOpacity
-                      key={m.id || `dot_${idx}`}
-                      onPress={() => setLiveCarouselIndex(idx)}
-                      hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                    >
-                      <View style={[
-                        styles.dashCarouselDot,
-                        idx === (featuredLiveMatch.currentIndex || 0) && styles.dashCarouselDotActive
-                      ]} />
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-
-                            {/* 4. RECENT MATCHES SECTION (COMPACT HORIZONTAL SINGLE-ROW CARDS) */}
-              <View style={styles.dashRecentSection}>
-                <View style={styles.dashRecentHeaderRow}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ fontSize: 16 }}>🕒</Text>
-                    <Text style={styles.dashRecentTitle}>Recent Matches</Text>
-                  </View>
-                  <TouchableOpacity onPress={() => setMatchFilter('recent')}>
-                    <Text style={styles.dashViewAllText}>View All ❯</Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Match Items - Sleek Horizontal Row */}
-                {displayRecentMatches.map((rm, idx) => {
-                  const logoA = getDashTeamLogo(rm.teamA);
-                  const logoB = getDashTeamLogo(rm.teamB);
-                  const isWon = rm.result === 'Won';
-
-                  return (
-                    <TouchableOpacity
-                      key={rm.id || `rm_${idx}`}
-                      style={[
-                        styles.dashRecentMatchCard,
-                        { borderLeftColor: isWon ? '#22c55e' : '#ef4444' }
-                      ]}
-                      onPress={() => openMatchScorecard(rm.id)}
-                      activeOpacity={0.8}
-                    >
-                      {/* Left: Team 1 Emblem + Name */}
-                      <View style={styles.dashRecentTeamBox}>
-                        {logoA ? (
-                          <Image source={logoA} style={styles.dashRecentLogo} resizeMode="contain" />
-                        ) : (
-                          <Text style={{ fontSize: 18 }}>{rm.flagA || '🐯'}</Text>
-                        )}
-                        <Text style={styles.dashRecentTeamName} numberOfLines={1}>{rm.teamA}</Text>
-                      </View>
-
-                      {/* Score 1 */}
-                      <View style={styles.dashRecentScoreBox}>
-                        <Text style={styles.dashRecentScoreNum}>{rm.scoreANum}</Text>
-                        <Text style={styles.dashRecentOversNum}>{rm.scoreAOvers}</Text>
-                      </View>
-
-                      {/* VS Circle */}
-                      <View style={styles.dashRecentVsCircle}>
-                        <Text style={styles.dashRecentVsText}>VS</Text>
-                      </View>
-
-                      {/* Score 2 */}
-                      <View style={styles.dashRecentScoreBox}>
-                        <Text style={styles.dashRecentScoreNum}>{rm.scoreBNum}</Text>
-                        <Text style={styles.dashRecentOversNum}>{rm.scoreBOvers}</Text>
-                      </View>
-
-                      {/* Right: Team 2 Emblem + Name */}
-                      <View style={styles.dashRecentTeamBox}>
-                        {logoB ? (
-                          <Image source={logoB} style={styles.dashRecentLogo} resizeMode="contain" />
-                        ) : (
-                          <Text style={{ fontSize: 18 }}>{rm.flagB || '⚔️'}</Text>
-                        )}
-                        <Text style={styles.dashRecentTeamName} numberOfLines={1}>{rm.teamB}</Text>
-                      </View>
-
-                      {/* End Column: Badge + Date + Chevron */}
-                      <View style={styles.dashRecentEndCol}>
-                        <View style={{ alignItems: 'flex-end' }}>
-                          <View style={[
-                            styles.dashResultBadge,
-                            { backgroundColor: isWon ? '#16a34a' : '#dc2626' }
-                          ]}>
-                            <Text style={styles.dashResultBadgeText}>{rm.result}</Text>
-                          </View>
-                          <Text style={styles.dashRecentDateText}>{rm.date} • {rm.format}</Text>
-                        </View>
-                        <Text style={styles.dashRecentChevron}>❯</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </>
-          )}
-
-          {/* Filter Pills */}
-          <View style={styles.filterPillsRow}>
+          {/* 2. 3 QUICK-ACTION BUTTONS ROW (NEW 3D IMAGES) */}
+          <View style={styles.dashActionGrid}>
+            {/* 1. Start a Match */}
             <TouchableOpacity
-              style={[styles.filterPill, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, matchFilter === 'all' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)]}
-              onPress={() => setMatchFilter('all')}
+              style={styles.dashActionBtn}
+              onPress={handleOpenMatchWizard}
+              activeOpacity={0.85}
             >
-              <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, matchFilter === 'all' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                All Matches ({Object.keys(matchesDb || {}).length})
-              </Text>
+              <Image
+                source={require('./assets/btn-start-match.png')}
+                style={styles.dashActionBtnImg}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
+
+            {/* 2. My Teams */}
             <TouchableOpacity
-              style={[styles.filterPill, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, matchFilter === 'live' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)]}
-              onPress={() => setMatchFilter('live')}
+              style={styles.dashActionBtn}
+              onPress={() => navigateTo('teams')}
+              activeOpacity={0.85}
             >
-              <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, matchFilter === 'live' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                🔴 Live ({Object.values(matchesDb || {}).filter(isMatchLive).length})
-              </Text>
+              <Image
+                source={require('./assets/btn-my-teams.png')}
+                style={styles.dashActionBtnImg}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
+
+            {/* 3. Join a Match */}
             <TouchableOpacity
-              style={[styles.filterPill, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, matchFilter === 'recent' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)]}
-              onPress={() => setMatchFilter('recent')}
+              style={styles.dashActionBtn}
+              onPress={() => setJoinMatchModalVisible(true)}
+              activeOpacity={0.85}
             >
-              <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, matchFilter === 'recent' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                📋 Completed ({Object.values(matchesDb || {}).filter(isMatchCompleted).length})
-              </Text>
+              <Image
+                source={require('./assets/btn-join-match.png')}
+                style={styles.dashActionBtnImg}
+                resizeMode="contain"
+              />
             </TouchableOpacity>
           </View>
 
-          {/* LIVE MATCH SECTION */}
-          {(matchFilter === 'all' || matchFilter === 'live') && (
-            <View style={{ marginBottom: 24 }}>
-              <View style={styles.sectionHeaderRow}>
-                <View style={styles.sectionTitleWithBadge}>
-                  <Text style={[styles.sectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>🔴 Live on CricketAdda</Text>
-                  <View style={styles.livePulseBadge}>
-                    <Text style={styles.livePulseText}>LIVE</Text>
-                  </View>
-                </View>
-                <TouchableOpacity onPress={() => openMatchScorecard(activeMatchId)}>
-                  <Text style={[styles.viewAllText, currentTheme.isLight && { color: '#0284c7' }]}>Scorecard →</Text>
-                </TouchableOpacity>
-              </View>
-
-              {Object.keys(matchesDb || {}).filter(id => isMatchLive(matchesDb?.[id])).length === 0 ? (
-                <View style={{
-                  backgroundColor: currentTheme.cardBg,
-                  borderColor: currentTheme.cardBorder,
-                  borderWidth: 1,
-                  borderRadius: 16,
-                  padding: 24,
-                  alignItems: 'center',
-                  marginBottom: 16,
-                }}>
-                  <Text style={{ fontSize: 36, marginBottom: 8 }}>🏟️</Text>
-                  <Text style={{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 16 }}>
-                    No Active Live Matches
-                  </Text>
-                  <TouchableOpacity
-                    style={{
-                      backgroundColor: currentTheme.primary,
-                      paddingVertical: 10,
-                      paddingHorizontal: 20,
-                      borderRadius: 10,
-                    }}
-                    onPress={handleOpenMatchWizard}
-                  >
-                    <Text style={{ color: currentTheme.primaryText, fontWeight: '900', fontSize: 13 }}>
-                      ➕ Start New Match
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                Object.keys(matchesDb || {})
-                  .filter(id => isMatchLive(matchesDb[id]))
-                  .map(id => {
-                    const m = matchesDb[id];
-                    const isCurrentActive = id === activeMatchId;
-                    const canScoreThisMatch = isUserScorerForMatch(m);
-                    const maxOv = m.innings1?.maxOvers || 20;
-                    const mLive = m.liveState;
-                    const mInnings = isCurrentActive ? currentInnings : (mLive?.currentInnings || 1);
-
-                    const inn1Runs = isCurrentActive && currentInnings === 1
-                      ? liveRuns
-                      : (firstInningsSummary?.runs ?? mLive?.firstInningsSummary?.runs ?? (mInnings === 1 && typeof mLive?.liveRuns === 'number' ? mLive.liveRuns : m.innings1?.runs ?? 0));
-
-                    const inn1Wkts = isCurrentActive && currentInnings === 1
-                      ? liveWickets
-                      : (firstInningsSummary?.wickets ?? mLive?.firstInningsSummary?.wickets ?? (mInnings === 1 && typeof mLive?.liveWickets === 'number' ? mLive.liveWickets : m.innings1?.wickets ?? 0));
-
-                    const inn1Overs = isCurrentActive && currentInnings === 1
-                      ? oversStr
-                      : (firstInningsSummary?.overs ?? mLive?.firstInningsSummary?.overs ?? (mInnings === 1 && typeof mLive?.liveBalls === 'number' ? `${Math.floor(mLive.liveBalls / 6)}.${mLive.liveBalls % 6}` : m.innings1?.overs ?? '0.0'));
-
-                    const inn2Runs = isCurrentActive && currentInnings === 2
-                      ? liveRuns
-                      : (mInnings === 2 && typeof mLive?.liveRuns === 'number' ? mLive.liveRuns : m.innings2?.runs ?? 0);
-
-                    const inn2Wkts = isCurrentActive && currentInnings === 2
-                      ? liveWickets
-                      : (mInnings === 2 && typeof mLive?.liveWickets === 'number' ? mLive.liveWickets : m.innings2?.wickets ?? 0);
-
-                    const inn2Overs = isCurrentActive && currentInnings === 2
-                      ? oversStr
-                      : (mInnings === 2 && typeof mLive?.liveBalls === 'number' ? `${Math.floor(mLive.liveBalls / 6)}.${mLive.liveBalls % 6}` : m.innings2?.overs ?? '0.0');
-
-                    const inn2HasStarted = isCurrentActive
-                      ? currentInnings === 2
-                      : (mInnings === 2 || (m.innings2?.runs > 0 || m.innings2?.wickets > 0));
-
-                    const cardStriker = isCurrentActive
-                      ? striker
-                      : (mLive?.currentStriker || m.currentStriker || Object.keys(mLive?.liveBatters || {})[0] || 'Batter 1');
-                    const cardBowler = isCurrentActive
-                      ? bowler
-                      : (mLive?.currentBowler || m.currentBowler || Object.keys(mLive?.liveBowlerStats || {})[0] || 'Bowler 1');
-                    const cardBatters = isCurrentActive ? liveBatters : (mLive?.liveBatters || {});
-                    const cardBowlerStats = isCurrentActive ? liveBowlerStats : (mLive?.liveBowlerStats || {});
-
-                    return (
-                      <View key={m.id} style={[styles.liveMatchHeroCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { marginBottom: 16 }]}>
-                        <View style={styles.liveCardTop}>
+          {/* 3. FEATURED LIVE MATCHES HORIZONTAL SWIPE CAROUSEL */}
+          <View style={{ marginBottom: 10 }}>
+            <ScrollView
+              ref={liveCarouselRef}
+              horizontal
+              pagingEnabled
+              showsHorizontalScrollIndicator={false}
+              decelerationRate="fast"
+              snapToInterval={width}
+              snapToAlignment="center"
+              onMomentumScrollEnd={(e) => {
+                const offsetX = e.nativeEvent.contentOffset.x;
+                const newIdx = Math.round(offsetX / width);
+                setLiveCarouselIndex(Math.max(0, Math.min(newIdx, allLiveMatchesList.length - 1)));
+              }}
+            >
+              {allLiveMatchesList.map((m, idx) => {
+                const liveData = getLiveMatchCardData(m);
+                if (!liveData) return null;
+                return (
+                  <View key={liveData.id || `live_${idx}`} style={{ width: width, paddingHorizontal: 10 }}>
+                    <View style={styles.dashFeaturedLiveCard}>
+                      <View style={styles.dashFeaturedTopRow}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                          <View style={styles.dashLivePill}>
+                            <View style={styles.dashLiveDot} />
+                            <Text style={styles.dashLivePillText}>LIVE</Text>
+                          </View>
                           <View style={{ flex: 1 }}>
-                            <Text style={[styles.liveTournName, currentTheme.isLight && { color: '#64748b' }]}>{m.tournament}</Text>
-                            <Text style={[styles.liveMatchName, currentTheme.isLight && { color: '#0f172a' }]}>{m.title}</Text>
-                          </View>
-                          <View style={styles.liveStatusTag}>
-                            <View style={styles.pulsingDot} />
-                            <Text style={styles.liveStatusText}>
-                              {isCurrentActive && currentInnings === 2 ? 'LIVE INNINGS 2 (CHASE)' : 'LIVE INNINGS 1'}
+                            <Text style={styles.dashFeaturedTournName} numberOfLines={1}>
+                              {liveData.tournament}
+                            </Text>
+                            <Text style={styles.dashFeaturedVenue} numberOfLines={1}>
+                              {liveData.format} • {liveData.venue}
                             </Text>
                           </View>
                         </View>
-
-                        <Text style={[styles.venueText, currentTheme.isLight && { color: '#64748b' }]}>📍 {m.venue}</Text>
-                        {m.toss && <Text style={[styles.liveTossText, currentTheme.isLight && { color: '#475569' }]}>🪙 {m.toss}</Text>}
-
-                        <View style={[styles.liveScoresBox, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                          <View style={styles.teamScoreRow}>
-                            <View style={styles.teamNameWithFlag}>
-                              <Text style={styles.flagIcon}>{m.flagA || m.innings1?.flag || '🦁'}</Text>
-                              <Text style={[styles.teamTitle, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings1?.team || m.teamA || 'Team A'}</Text>
-                            </View>
-                            <View style={styles.scoreNumberCol}>
-                              <Text style={styles.liveBigRuns}>
-                                {inn1Runs}/{inn1Wkts}
-                              </Text>
-                              <Text style={[styles.liveOversSmall, currentTheme.isLight && { color: '#64748b' }]}>
-                                ({inn1Overs} / {maxOv}.0 ov)
-                              </Text>
-                            </View>
-                          </View>
-
-                          <View style={[styles.teamScoreRow, { opacity: inn2HasStarted ? 1 : 0.6, marginTop: 6 }]}>
-                            <View style={styles.teamNameWithFlag}>
-                              <Text style={styles.flagIcon}>{m.flagB || m.innings2?.flag || '⚡'}</Text>
-                              <Text style={[styles.teamTitle, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings2?.team || m.teamB || 'Team B'}</Text>
-                            </View>
-                            {inn2HasStarted ? (
-                              <View style={styles.scoreNumberCol}>
-                                <Text style={[styles.liveBigRuns, { color: '#0284c7' }]}>
-                                  {inn2Runs}/{inn2Wkts}
-                                </Text>
-                                <Text style={[styles.liveOversSmall, currentTheme.isLight && { color: '#64748b' }]}>
-                                  ({inn2Overs} / {maxOv}.0 ov)
-                                </Text>
-                              </View>
-                            ) : (
-                              <Text style={styles.yetToBatText}>Yet to bat</Text>
-                            )}
-                          </View>
-                        </View>
-
-                        {(isCurrentActive || mLive) && (
-                          <View style={[styles.onPitchStrip, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0', borderWidth: 1 }]}>
-                            <View style={styles.pitchPlayerItem}>
-                              <PlayerAvatar name={cardStriker} size={32} customUri={cardStriker.includes(userProfile.name) ? userProfile.avatarUri : null} />
-                              <View style={{ flex: 1 }}>
-                                <Text style={[styles.pitchPlayerRole, currentTheme.isLight && { color: '#0284c7' }]}>STRIKER ★</Text>
-                                <Text style={[styles.pitchPlayerName, currentTheme.isLight && { color: '#0f172a' }]}>
-                                  {cardStriker.split(' ')[0]}: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{(cardBatters[cardStriker]?.runs || 0)}*</Text> ({(cardBatters[cardStriker]?.balls || 0)}b)
-                                </Text>
-                              </View>
-                            </View>
-
-                            <View style={styles.pitchPlayerItem}>
-                              <PlayerAvatar name={cardBowler} size={32} borderColor="#38bdf8" />
-                              <View style={{ flex: 1 }}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                                  <Text style={[styles.pitchPlayerRole, currentTheme.isLight && { color: '#0284c7' }]}>BOWLER</Text>
-                                  <RealisticCricketLeatherBall size={10} />
-                                </View>
-                                <Text style={[styles.pitchPlayerName, currentTheme.isLight && { color: '#0f172a' }]}>
-                                  {cardBowler.split(' ')[0]}: <Text style={{ color: '#0284c7', fontWeight: 'bold' }}>{(cardBowlerStats[cardBowler]?.wickets || 0)}-{(cardBowlerStats[cardBowler]?.runs || 0)}</Text> ({Math.floor((cardBowlerStats[cardBowler]?.balls || 0) / 6)}.{(cardBowlerStats[cardBowler]?.balls || 0) % 6} ov)
-                                </Text>
-                              </View>
-                            </View>
-                          </View>
-                        )}
-
-                        <View style={styles.liveActionBtnRow}>
-                          <TouchableOpacity
-                            style={[styles.scoreLiveMatchBtn, { backgroundColor: canScoreThisMatch ? currentTheme.primary : '#0284c7' }]}
-                            onPress={() => handleScoreMatchPress(m.id)}
-                          >
-                            <Text style={[styles.scoreLiveMatchText, { color: canScoreThisMatch ? currentTheme.primaryText : '#ffffff' }]}>
-                              {canScoreThisMatch ? '⚡ Score Match →' : '👁️ Watch Live Match →'}
-                            </Text>
-                          </TouchableOpacity>
-                          <TouchableOpacity
-                            style={[styles.wheelShortcutBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]}
-                            onPress={() => openMatchScorecard(m.id)}
-                          >
-                            <Text style={[styles.wheelShortcutText, currentTheme.isLight && { color: '#0284c7' }]}>📊 Scorecard</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    );
-                  })
-              )}
-            </View>
-          )}
-
-          {/* RECENT MATCHES */}
-          {(matchFilter === 'all' || matchFilter === 'recent') && (
-            <View>
-              <View style={styles.sectionHeaderRow}>
-                <Text style={[styles.sectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>
-                  📋 Completed Matches ({Object.values(matchesDb || {}).filter(isMatchCompleted).length})
-                </Text>
-                <Text style={[styles.subHeadingNote, currentTheme.isLight && { color: '#64748b' }]}>Official Tournaments</Text>
-              </View>
-
-              {Object.keys(matchesDb || {}).filter(id => isMatchCompleted(matchesDb?.[id])).length === 0 ? (
-                <View style={{
-                  backgroundColor: currentTheme.cardBg,
-                  borderColor: currentTheme.cardBorder,
-                  borderWidth: 1,
-                  borderRadius: 12,
-                  padding: 16,
-                  alignItems: 'center',
-                  marginBottom: 16,
-                }}>
-                  <Text style={{ fontSize: 13, color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>
-                    No completed matches yet. Finished tournament matches will appear here.
-                  </Text>
-                </View>
-              ) : (
-                Object.keys(matchesDb || {})
-                  .filter(id => isMatchCompleted(matchesDb[id]))
-                  .map(id => {
-                    const m = matchesDb[id];
-                    const isAbandoned = m.status === 'abandoned';
-                    return (
-                      <View key={m.id} style={[styles.recentMatchCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}>
-                        <View style={styles.recentTopRow}>
-                          <Text style={[styles.recentTournText, currentTheme.isLight && { color: '#64748b' }]}>{m.tournament}</Text>
-                          <Text style={[styles.recentDateText, currentTheme.isLight && { color: '#475569' }]}>{isAbandoned ? '⛔ Abandoned' : (m.date || 'Completed')}</Text>
-                        </View>
-
-                        <Text style={[styles.recentMatchTitle, currentTheme.isLight && { color: '#0f172a' }]}>{m.title}</Text>
-                        <Text style={[styles.recentVenueText, currentTheme.isLight && { color: '#64748b' }]}>📍 {m.venue}</Text>
-
-                        <View style={[styles.recentScoresBox, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                          <View style={styles.recentScoreLine}>
-                            <Text style={[styles.recentTeamName, currentTheme.isLight && { color: '#0f172a' }]}>{m.flagA || m.innings1?.flag || '🦁'} {m.innings1?.team || m.teamA || 'Team A'}</Text>
-                            <Text style={[styles.recentScoreVal, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings1?.runs ?? 0}/{m.innings1?.wickets ?? 0} ({m.innings1?.overs || '0.0'} ov)</Text>
-                          </View>
-                          <View style={styles.recentScoreLine}>
-                            <Text style={[styles.recentTeamName, currentTheme.isLight && { color: '#0f172a' }]}>{m.flagB || m.innings2?.flag || '⚡'} {m.innings2?.team || m.teamB || 'Team B'}</Text>
-                            <Text style={[styles.recentScoreVal, currentTheme.isLight && { color: '#0f172a' }]}>{m.innings2?.runs ?? 0}/{m.innings2?.wickets ?? 0} ({m.innings2?.overs || '0.0'} ov)</Text>
-                          </View>
-                        </View>
-
-                        <View style={[styles.resultBadgeBox, isAbandoned && { backgroundColor: '#450a0a', borderColor: '#ef4444' }]}>
-                          <Text style={[styles.resultText, isAbandoned && { color: '#fca5a5' }]}>
-                            {isAbandoned ? (m.result || '⛔ Match Abandoned (No Result)') : `🏆 ${m.result || 'Match Completed'}`}
-                          </Text>
-                        </View>
-                        {(() => {
-                          if (isAbandoned) return null;
-                          const cardAwards = calculateMatchAwardsAndMVP(m);
-                          const pomText = cardAwards?.pom || m.pom;
-                          const bestBat = cardAwards?.bestBatter;
-                          const bestBowl = cardAwards?.bestBowler;
-
-                          return (
-                            <View style={{ marginVertical: 6, gap: 4 }}>
-                              {pomText ? (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                                  <PlayerAvatar name={typeof pomText === 'string' ? pomText.split(' ')[0] : 'Player'} size={22} borderColor="#f59e0b" />
-                                  <Text style={[styles.pomText, currentTheme.isLight && { color: '#475569' }]} numberOfLines={1}>
-                                    👑 <Text style={{ color: '#f59e0b', fontWeight: 'bold' }}>POM:</Text> <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#fff', fontWeight: 'bold' }}>{pomText}</Text>
-                                  </Text>
-                                </View>
-                              ) : null}
-
-                              {(bestBat || bestBowl) ? (
-                                <View style={{ flexDirection: 'row', gap: 6, marginTop: 2 }}>
-                                  {bestBat ? (
-                                    <View style={{ flex: 1, backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.1)', borderColor: '#0284c7', borderWidth: 0.8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                      <Text style={{ fontSize: 10 }}>🏏</Text>
-                                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#bae6fd', fontSize: 10, fontWeight: 'bold' }} numberOfLines={1}>
-                                        {bestBat.name.split(' ')[0]}: <Text style={{ color: '#0284c7' }}>{bestBat.runs} ({bestBat.balls}b)</Text>
-                                      </Text>
-                                    </View>
-                                  ) : null}
-                                  {bestBowl ? (
-                                    <View style={{ flex: 1, backgroundColor: currentTheme.isLight ? '#ecfdf5' : 'rgba(52, 211, 153, 0.1)', borderColor: '#10b981', borderWidth: 0.8, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 3, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                      <Text style={{ fontSize: 10 }}>🎯</Text>
-                                      <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#a7f3d0', fontSize: 10, fontWeight: 'bold' }} numberOfLines={1}>
-                                        {bestBowl.name.split(' ')[0]}: <Text style={{ color: '#10b981' }}>{bestBowl.wickets}/{bestBowl.runsConceded}</Text>
-                                      </Text>
-                                    </View>
-                                  ) : null}
-                                </View>
-                              ) : null}
-                            </View>
-                          );
-                        })()}
 
                         <TouchableOpacity
-                          style={[styles.viewScorecardBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]}
-                          onPress={() => openMatchScorecard(m.id)}
+                          style={styles.dashViewLiveBtn}
+                          onPress={() => handleScoreMatchPress(liveData.id)}
+                          activeOpacity={0.8}
                         >
-                          <Text style={[styles.viewScorecardText, currentTheme.isLight && { color: '#0284c7' }]}>📊 View Full Scorecard & Wagon Wheel →</Text>
+                          <Text style={styles.dashViewLiveBtnText}>View Live ❯</Text>
                         </TouchableOpacity>
                       </View>
-                    );
-                  })
-              )}
+
+                      {/* Scores Row */}
+                      <View style={styles.dashFeaturedScoresRow}>
+                        {/* Team 1 */}
+                        <View style={styles.dashFeaturedTeamCol}>
+                          <View style={styles.dashFeaturedCrestWrapper}>
+                            {getDashTeamLogo(liveData.teamA) ? (
+                              <Image source={getDashTeamLogo(liveData.teamA)} style={styles.dashFeaturedCrestImg} resizeMode="contain" />
+                            ) : (
+                              <Text style={{ fontSize: 26 }}>{liveData.flagA || '🐯'}</Text>
+                            )}
+                          </View>
+                          <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
+                            {liveData.teamA}
+                          </Text>
+                        </View>
+
+                        {/* Center Scores + Divider */}
+                        <View style={styles.dashFeaturedCenterScores}>
+                          <View style={styles.dashFeaturedScoreCol}>
+                            <Text style={styles.dashFeaturedScoreBig}>
+                              {liveData.scoreA}
+                            </Text>
+                            <Text style={styles.dashFeaturedOvers}>
+                              {liveData.oversA}
+                            </Text>
+                          </View>
+
+                          <View style={styles.dashFeaturedDivider} />
+
+                          <View style={styles.dashFeaturedScoreCol}>
+                            <Text style={styles.dashFeaturedScoreBig}>
+                              {liveData.scoreB}
+                            </Text>
+                            <Text style={styles.dashFeaturedOvers}>
+                              {liveData.oversB}
+                            </Text>
+                          </View>
+                        </View>
+
+                        {/* Team 2 */}
+                        <View style={styles.dashFeaturedTeamCol}>
+                          <View style={styles.dashFeaturedCrestWrapper}>
+                            {getDashTeamLogo(liveData.teamB) ? (
+                              <Image source={getDashTeamLogo(liveData.teamB)} style={styles.dashFeaturedCrestImg} resizeMode="contain" />
+                            ) : (
+                              <Text style={{ fontSize: 26 }}>{liveData.flagB || '⚔️'}</Text>
+                            )}
+                          </View>
+                          <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
+                            {liveData.teamB}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Equation Capsule */}
+                      <View style={styles.dashEquationCapsule}>
+                        <Text style={styles.dashEquationText}>
+                          {liveData.equation}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            {/* Interactive Carousel Dots - Tap or swipe to switch match */}
+            <View style={styles.dashCarouselDotsRow}>
+              {allLiveMatchesList.map((m, idx) => (
+                <TouchableOpacity
+                  key={m.id || `dot_${idx}`}
+                  onPress={() => {
+                    setLiveCarouselIndex(idx);
+                    liveCarouselRef.current?.scrollTo({ x: idx * width, animated: true });
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                >
+                  <View style={[
+                    styles.dashCarouselDot,
+                    idx === liveCarouselIndex && styles.dashCarouselDotActive
+                  ]} />
+                </TouchableOpacity>
+              ))}
             </View>
-          )}
+          </View>
+
+          {/* 4. RECENT MATCHES SECTION (INCREASED HEIGHT & NO COLORFUL BRACKET) */}
+          <View style={styles.dashRecentSection}>
+            <View style={styles.dashRecentHeaderRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 16 }}>🕒</Text>
+                <Text style={styles.dashRecentTitle}>Recent Matches</Text>
+              </View>
+              <TouchableOpacity onPress={() => openMatchScorecard(displayRecentMatches[0]?.id)}>
+                <Text style={styles.dashViewAllText}>View All ❯</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Match Items - Clean Sleek Row with Bigger Height & No Bracket */}
+            {displayRecentMatches.map((rm, idx) => {
+              const logoA = getDashTeamLogo(rm.teamA);
+              const logoB = getDashTeamLogo(rm.teamB);
+              const isWon = rm.result === 'Won';
+
+              return (
+                <TouchableOpacity
+                  key={rm.id || `rm_${idx}`}
+                  style={styles.dashRecentMatchCard}
+                  onPress={() => openMatchScorecard(rm.id)}
+                  activeOpacity={0.8}
+                >
+                  {/* Left: Team 1 Emblem + Name */}
+                  <View style={styles.dashRecentTeamBox}>
+                    {logoA ? (
+                      <Image source={logoA} style={styles.dashRecentLogo} resizeMode="contain" />
+                    ) : (
+                      <Text style={{ fontSize: 18 }}>{rm.flagA || '🐯'}</Text>
+                    )}
+                    <Text style={styles.dashRecentTeamName} numberOfLines={1}>{rm.teamA}</Text>
+                  </View>
+
+                  {/* Score 1 */}
+                  <View style={styles.dashRecentScoreBox}>
+                    <Text style={styles.dashRecentScoreNum}>{rm.scoreANum}</Text>
+                    <Text style={styles.dashRecentOversNum}>{rm.scoreAOvers}</Text>
+                  </View>
+
+                  {/* VS Circle */}
+                  <View style={styles.dashRecentVsCircle}>
+                    <Text style={styles.dashRecentVsText}>VS</Text>
+                  </View>
+
+                  {/* Score 2 */}
+                  <View style={styles.dashRecentScoreBox}>
+                    <Text style={styles.dashRecentScoreNum}>{rm.scoreBNum}</Text>
+                    <Text style={styles.dashRecentOversNum}>{rm.scoreBOvers}</Text>
+                  </View>
+
+                  {/* Right: Team 2 Emblem + Name */}
+                  <View style={styles.dashRecentTeamBox}>
+                    {logoB ? (
+                      <Image source={logoB} style={styles.dashRecentLogo} resizeMode="contain" />
+                    ) : (
+                      <Text style={{ fontSize: 18 }}>{rm.flagB || '⚔️'}</Text>
+                    )}
+                    <Text style={styles.dashRecentTeamName} numberOfLines={1}>{rm.teamB}</Text>
+                  </View>
+
+                  {/* End Column: Badge + Date + Chevron */}
+                  <View style={styles.dashRecentEndCol}>
+                    <View style={{ alignItems: 'flex-end' }}>
+                      <View style={[
+                        styles.dashResultBadge,
+                        { backgroundColor: isWon ? '#16a34a' : '#dc2626' }
+                      ]}>
+                        <Text style={styles.dashResultBadgeText}>{rm.result}</Text>
+                      </View>
+                      <Text style={styles.dashRecentDateText}>{rm.date} • {rm.format}</Text>
+                    </View>
+                    <Text style={styles.dashRecentChevron}>❯</Text>
+                  </View>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </ScrollView>
           </View>
         </ImageBackground>
@@ -35044,10 +34679,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderBottomWidth: 1,
-    position: 'relative',
   },
   dashUserProfile: {
     flexDirection: 'row',
@@ -35065,131 +34699,51 @@ const styles = StyleSheet.create({
     marginTop: 1,
     fontWeight: '500',
   },
-  dashHeaderLogoCenter: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
+  dashHeaderLogoRight: {
+    alignItems: 'flex-end',
     justifyContent: 'center',
   },
   dashHeaderLogoSmall: {
-    width: 50,
-    height: 32,
-  },
-  dashHeaderRightSpacer: {
-    width: 36,
-  },
-  dashHeaderActions: {
-    display: 'none',
-  },
-  dashHeaderIconBtn: {
-    display: 'none',
-  },
-  dashBadge: {
-    display: 'none',
-  },
-  dashBadgeText: {
-    display: 'none',
+    width: 48,
+    height: 30,
   },
   dashHeroWrapper: {
     marginHorizontal: 10,
-    marginTop: 4,
-    marginBottom: 8,
-    borderRadius: 18,
+    marginTop: 6,
+    marginBottom: 10,
+    borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: 'rgba(56, 189, 248, 0.2)',
+    borderColor: 'rgba(56, 189, 248, 0.25)',
   },
   dashHeroCard: {
     width: '100%',
-    height: 135,
-    justifyContent: 'center',
-  },
-  dashHeroOverlay: {
-    paddingHorizontal: 16,
-    width: '64%',
-  },
-  dashHeroLets: {
-    color: '#ffffff',
-    fontSize: 22,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-  },
-  dashHeroPlay: {
-    color: '#ffffff',
-    fontSize: 24,
-    fontWeight: '900',
-    letterSpacing: -0.5,
-    marginTop: -4,
-  },
-  dashHeroSubtitle: {
-    color: '#cbd5e1',
-    fontSize: 10.5,
-    lineHeight: 14,
-    marginTop: 5,
-    fontWeight: '500',
+    height: 145,
   },
   dashActionGrid: {
     flexDirection: 'row',
-    gap: 6,
+    gap: 8,
     paddingHorizontal: 10,
-    marginBottom: 8,
-  },
-  dashActionCard: {
-    flex: 1,
-    borderRadius: 14,
-    padding: 8,
-    borderWidth: 1,
-    position: 'relative',
-    height: 105,
+    marginBottom: 10,
     justifyContent: 'space-between',
-  },
-  dashActionIconWrap: {
-    width: 36,
-    height: 36,
-    justifyContent: 'center',
-    alignItems: 'flex-start',
-  },
-  dashActionImg: {
-    width: 34,
-    height: 34,
-  },
-  dashActionTitle: {
-    color: '#ffffff',
-    fontSize: 11.5,
-    fontWeight: '800',
-    marginTop: 2,
-  },
-  dashActionSub: {
-    color: 'rgba(255, 255, 255, 0.75)',
-    fontSize: 8.5,
-    marginTop: 1,
-  },
-  dashActionArrowCircle: {
-    position: 'absolute',
-    bottom: 6,
-    right: 6,
-    width: 18,
-    height: 18,
-    borderRadius: 9,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  dashActionArrowText: {
-    color: '#ffffff',
-    fontSize: 9,
-    fontWeight: '900',
+  dashActionBtn: {
+    flex: 1,
+    height: 94,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dashActionBtnImg: {
+    width: '100%',
+    height: '100%',
   },
   dashFeaturedLiveCard: {
-    marginHorizontal: 10,
     backgroundColor: '#061220',
     borderColor: 'rgba(34, 197, 94, 0.35)',
     borderWidth: 1.5,
     borderRadius: 16,
     padding: 10,
-    marginBottom: 8,
   },
   dashFeaturedTopRow: {
     flexDirection: 'row',
@@ -35227,28 +34781,6 @@ const styles = StyleSheet.create({
     color: '#94a3b8',
     fontSize: 10,
     marginTop: 1,
-  },
-  dashCarouselArrowBtn: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#0f2438',
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 1,
-    borderColor: '#1e3d5c',
-  },
-  dashCarouselArrowText: {
-    color: '#38bdf8',
-    fontSize: 15,
-    fontWeight: '900',
-    lineHeight: 18,
-  },
-  dashCarouselCounterText: {
-    color: '#94a3b8',
-    fontSize: 10,
-    fontWeight: '700',
-    paddingHorizontal: 2,
   },
   dashViewLiveBtn: {
     borderColor: '#22c55e',
@@ -35374,13 +34906,13 @@ const styles = StyleSheet.create({
   },
   dashRecentMatchCard: {
     backgroundColor: '#061220',
-    borderRadius: 12,
-    borderLeftWidth: 3.5,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#0f2236',
-    paddingVertical: 7,
-    paddingHorizontal: 8,
-    marginBottom: 6,
+    borderColor: 'rgba(56, 189, 248, 0.15)',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    marginBottom: 8,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -35388,12 +34920,12 @@ const styles = StyleSheet.create({
   dashRecentTeamBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    width: 72,
+    gap: 6,
+    width: 74,
   },
   dashRecentLogo: {
-    width: 24,
-    height: 24,
+    width: 26,
+    height: 26,
   },
   dashRecentTeamName: {
     color: '#ffffff',
@@ -35407,7 +34939,7 @@ const styles = StyleSheet.create({
   },
   dashRecentScoreNum: {
     color: '#ffffff',
-    fontSize: 12.5,
+    fontSize: 13,
     fontWeight: '800',
   },
   dashRecentOversNum: {
@@ -35430,14 +34962,14 @@ const styles = StyleSheet.create({
   dashRecentEndCol: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    width: 80,
+    gap: 5,
+    width: 82,
     justifyContent: 'flex-end',
   },
   dashResultBadge: {
     borderRadius: 4,
     paddingHorizontal: 6,
-    paddingVertical: 1.5,
+    paddingVertical: 2,
   },
   dashResultBadgeText: {
     color: '#ffffff',
@@ -35455,7 +34987,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginLeft: 2,
   },
-    bottomNavActiveBar: {
+  bottomNavActiveBar: {
     position: 'absolute',
     bottom: -2,
     width: 22,
