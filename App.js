@@ -10723,8 +10723,13 @@ function CricketAddaMain() {
   const [scorecardInning, setScorecardInning] = useState(1);
   const [scorecardTab, setScorecardTab] = useState('scorecard'); // 'scorecard' | 'mvp'
   const [mvpInfoModalVisible, setMvpInfoModalVisible] = useState(false);
-  const currentMatchData = (activeMatchId && matchesDb[activeMatchId]) || Object.values(matchesDb || {})[0] || EMPTY_MATCH_TEMPLATE;
-    const [userProfile, setUserProfile] = useState({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
+  const currentMatchData = (activeMatchId && (matchesDb?.[activeMatchId] || MATCH_DATABASE?.[activeMatchId]))
+    || (matchesDb && matchesDb[activeMatchId])
+    || MATCH_DATABASE?.[activeMatchId]
+    || (matchesDb && Object.values(matchesDb)[0])
+    || Object.values(MATCH_DATABASE)[0]
+    || EMPTY_MATCH_TEMPLATE;
+  const [userProfile, setUserProfile] = useState({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
   const [userCareerData, setUserCareerData] = useState(USER_CAREER_DATA);
   const [liveCommentaryList, setLiveCommentaryList] = useState([]);
   const [liveBatters, setLiveBatters] = useState({});
@@ -12095,7 +12100,9 @@ function CricketAddaMain() {
   const navigateTo = (tab, matchId = null) => {
     if (matchId) {
       setActiveMatchId(matchId);
-      setScorecardInning(1);
+      if (tab === 'scorecard') {
+        setScorecardInning(1);
+      }
     }
     setNavHistory(prev => {
       const filtered = prev.filter(t => t !== tab);
@@ -12292,10 +12299,10 @@ function CricketAddaMain() {
             } catch (e) {}
           }
           const storedDbVersion = await AsyncStorage.getItem('CA_DB_VERSION_KEY');
-          if (storedDbVersion !== 'ca_v9_full_live_match_sync') {
+          if (storedDbVersion !== 'ca_v10_tournament_match_sync') {
             await AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(MATCH_DATABASE));
             await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS));
-            await AsyncStorage.setItem('CA_DB_VERSION_KEY', 'ca_v9_full_live_match_sync');
+            await AsyncStorage.setItem('CA_DB_VERSION_KEY', 'ca_v10_tournament_match_sync');
             setMatchesDb(MATCH_DATABASE);
             setRegisteredTeams(REGISTERED_APP_TEAMS);
           } else {
@@ -12304,7 +12311,7 @@ function CricketAddaMain() {
               try {
                 const parsed = JSON.parse(storedMatches);
                 if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-                  setMatchesDb(parsed);
+                  setMatchesDb({ ...MATCH_DATABASE, ...parsed });
                 } else {
                   setMatchesDb(MATCH_DATABASE);
                 }
@@ -12641,13 +12648,7 @@ function CricketAddaMain() {
     // 3. Matches DB Real-Time Subscription
     const unsubMatches = subscribeToFirebaseMatchesDb(cloudMatches => {
       if (!cloudMatches || typeof cloudMatches !== 'object' || Object.keys(cloudMatches).length === 0) {
-        setMatchesDb(prev => {
-          if (prev && Object.keys(prev).length > 0) {
-            AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({})).catch(() => {});
-            return {};
-          }
-          return prev;
-        });
+        setMatchesDb(prev => ({ ...MATCH_DATABASE, ...(prev || {}) }));
         return;
       }
       setMatchesDb(prev => {
@@ -13457,22 +13458,22 @@ function CricketAddaMain() {
   const maxLegalBalls = maxOvers * 6; // e.g. 20 * 6 = 120 legal balls
 
   const battingTeamName = currentInnings === 1
-    ? (currentMatchData.innings1?.team || currentMatchData.teamA || 'India')
-    : (currentMatchData.innings2?.team || currentMatchData.teamB || 'Australia');
+    ? (currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Tigers XI')
+    : (currentMatchData.innings2?.team || (currentMatchData.innings1?.team === currentMatchData.teamA ? currentMatchData.teamB : currentMatchData.teamA) || currentMatchData.teamB || match?.teamB || 'Warriors XI');
 
   const bowlingTeamName = currentInnings === 1
-    ? (currentMatchData.innings2?.team || currentMatchData.teamB || 'Australia')
-    : (currentMatchData.innings1?.team || currentMatchData.teamA || 'India');
+    ? (currentMatchData.innings2?.team || (currentMatchData.innings1?.team === currentMatchData.teamA ? currentMatchData.teamB : currentMatchData.teamA) || currentMatchData.teamB || match?.teamB || 'Warriors XI')
+    : (currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Tigers XI');
 
   const battingTeamFlag = currentInnings === 1
-    ? (currentMatchData.innings1?.flag || currentMatchData.flagA || '🇮🇳')
-    : (currentMatchData.innings2?.flag || currentMatchData.flagB || '🇦🇺');
+    ? (currentMatchData.innings1?.flag || currentMatchData.flagA || match?.flagA || '🦁')
+    : (currentMatchData.innings2?.flag || currentMatchData.flagB || match?.flagB || '⚔️');
 
   const bowlingTeamFlag = currentInnings === 1
-    ? (currentMatchData.innings2?.flag || currentMatchData.flagB || '🇦🇺')
-    : (currentMatchData.innings1?.flag || currentMatchData.flagA || '🇮🇳');
+    ? (currentMatchData.innings2?.flag || currentMatchData.flagB || match?.flagB || '⚔️')
+    : (currentMatchData.innings1?.flag || currentMatchData.flagA || match?.flagA || '🦁');
 
-  const battingTeamLogo = resolveTeamLogo(
+  const battingTeamLogo = getDashTeamLogo(battingTeamName) || resolveTeamLogo(
     {
       name: battingTeamName,
       logo: currentInnings === 1 ? (currentMatchData.innings1?.logo || currentMatchData.innings1?.logoUri || currentMatchData.logoA) : (currentMatchData.innings2?.logo || currentMatchData.innings2?.logoUri || currentMatchData.logoB),
@@ -13480,9 +13481,9 @@ function CricketAddaMain() {
     },
     allAvailableMatchTeams,
     usersDb
-  );
+  ) || getRandomCrestForTeam(battingTeamName);
 
-  const bowlingTeamLogo = resolveTeamLogo(
+  const bowlingTeamLogo = getDashTeamLogo(bowlingTeamName) || resolveTeamLogo(
     {
       name: bowlingTeamName,
       logo: currentInnings === 1 ? (currentMatchData.innings2?.logo || currentMatchData.innings2?.logoUri || currentMatchData.logoB) : (currentMatchData.innings1?.logo || currentMatchData.innings1?.logoUri || currentMatchData.logoA),
@@ -13490,7 +13491,7 @@ function CricketAddaMain() {
     },
     allAvailableMatchTeams,
     usersDb
-  );
+  ) || getRandomCrestForTeam(bowlingTeamName);
 
   const getTeamShortName = (fullName, fallbackFlag) => {
     if (!fullName) return 'TEAM';
@@ -14312,35 +14313,22 @@ function CricketAddaMain() {
   }, [allLiveMatchesList, liveCarouselIndex, getLiveMatchCardData]);
 
   const displayRecentMatches = useMemo(() => {
-    const completed = Object.values(matchesDb || {}).filter(isMatchCompleted);
-    if (completed.length >= 10) {
-      return completed.slice(0, 10).map(m => {
-        const tA = m.teamA || m.innings1?.team || 'Tigers XI';
-        const tB = m.teamB || m.innings2?.team || 'Warriors XI';
-        const innA = m.innings1?.team === tA ? m.innings1 : (m.innings2?.team === tA ? m.innings2 : m.innings1);
-        const innB = m.innings2?.team === tB ? m.innings2 : (m.innings1?.team === tB ? m.innings1 : m.innings2);
-        return {
-          id: m.id,
-          teamA: tA,
-          flagA: m.flagA || innA?.flag || '🐯',
-          scoreANum: `${innA?.runs ?? 0}/${innA?.wickets ?? 0}`,
-          scoreAOvers: `${innA?.overs ?? '20.0'} Ov`,
-          teamB: tB,
-          flagB: m.flagB || innB?.flag || '⚔️',
-          scoreBNum: `${innB?.runs ?? 0}/${innB?.wickets ?? 0}`,
-          scoreBOvers: `${innB?.overs ?? '20.0'} Ov`,
-          result: m.userResult || (m.winner ? (m.winner === tA ? 'Won' : 'Lost') : 'Won'),
-          date: m.date || '27 Sep 2026',
-          format: m.format || m.matchType || 'T20',
-        };
-      });
-    }
+    const userCompleted = Object.values(matchesDb || {}).filter(isMatchCompleted);
     const baseKeys = [
       'match_rec_1', 'match_rec_2', 'match_rec_3', 'match_rec_4', 'match_rec_5',
       'match_rec_6', 'match_rec_7', 'match_rec_8', 'match_rec_9', 'match_rec_10'
     ];
-    return baseKeys.map(k => {
-      const m = matchesDb?.[k] || MATCH_DATABASE[k];
+    const tournamentRec = baseKeys.map(k => matchesDb?.[k] || MATCH_DATABASE[k]).filter(Boolean);
+
+    const combined = [...userCompleted];
+    tournamentRec.forEach(tr => {
+      if (!combined.some(c => c && c.id === tr.id)) {
+        combined.push(tr);
+      }
+    });
+
+    const finalMatches = combined.length >= 10 ? combined.slice(0, 10) : tournamentRec;
+    return finalMatches.map(m => {
       if (!m) return null;
       const tA = m.teamA || m.innings1?.team || 'Tigers XI';
       const tB = m.teamB || m.innings2?.team || 'Warriors XI';
@@ -14349,7 +14337,7 @@ function CricketAddaMain() {
       return {
         id: m.id,
         teamA: tA,
-        flagA: m.flagA || innA?.flag || '🐯',
+        flagA: m.flagA || innA?.flag || '🦁',
         scoreANum: `${innA?.runs ?? 0}/${innA?.wickets ?? 0}`,
         scoreAOvers: `${innA?.overs ?? '20.0'} Ov`,
         teamB: tB,
@@ -20375,10 +20363,19 @@ function CricketAddaMain() {
   };
 
   const handleScoreMatchPress = matchId => {
-    const targetMatch = matchesDb[matchId] || MATCH_DATABASE[matchId];
+    const targetMatch = matchesDb?.[matchId] || MATCH_DATABASE[matchId];
     if (!targetMatch) return;
 
     setActiveMatchId(matchId);
+    setMatchesDb(prev => ({
+      ...MATCH_DATABASE,
+      ...(prev || {}),
+      [matchId]: {
+        ...(MATCH_DATABASE[matchId] || {}),
+        ...((prev || {})[matchId] || {}),
+        ...targetMatch,
+      }
+    }));
 
     const inn1 = targetMatch.innings1 || {};
     const inn2 = targetMatch.innings2 || {};
@@ -20392,12 +20389,13 @@ function CricketAddaMain() {
     // 1. Properly set firstInningsSummary when in 2nd inning
     if (isInn2 && inn1) {
       const fSummary = targetMatch.firstInningsSummary || {
-        team: inn1.team || targetMatch.teamA || 'Team 1',
+        team: inn1.team || targetMatch.teamA || 'Royals XI',
         flag: inn1.flag || targetMatch.flagA || '🦁',
         runs: Number(inn1.runs) || 0,
         wickets: Number(inn1.wickets) || 0,
         overs: String(inn1.overs || '20.0'),
         target: Number(inn2.target) || (Number(inn1.runs || 0) + 1),
+        oppTeam: inn2.team || targetMatch.teamB || (targetMatch.teamA === inn1.team ? targetMatch.teamB : targetMatch.teamA),
         batting: inn1.batting || [],
         bowling: inn1.bowling || [],
         extras: inn1.extras || '0 (b 0, lb 0, w 0, nb 0)',
@@ -20474,8 +20472,15 @@ function CricketAddaMain() {
 
     setMatch(prev => ({
       ...prev,
+      id: targetMatch.id || matchId,
       title: targetMatch.title,
       status: targetMatch.status || 'live',
+      teamA: targetMatch.teamA || inn1.team,
+      teamB: targetMatch.teamB || inn2.team,
+      flagA: targetMatch.flagA || inn1.flag,
+      flagB: targetMatch.flagB || inn2.flag,
+      logoA: targetMatch.logoA,
+      logoB: targetMatch.logoB,
       overs: activeInn.maxOvers || targetMatch.innings1?.maxOvers || targetMatch.totalOvers || 20,
       currentStriker: initialStriker,
       currentNonStriker: initialNonStriker,
@@ -21179,7 +21184,15 @@ function CricketAddaMain() {
           resizeMode="cover"
         >
           <View style={{ flex: 1, backgroundColor: 'rgba(3, 9, 20, 0.88)' }}>
-            <ScrollView style={styles.mainContentNoPad} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
+            <ScrollView
+              style={styles.mainContentNoPad}
+              contentContainerStyle={{ paddingBottom: bottomInset + 140 }}
+              showsVerticalScrollIndicator={true}
+              persistentScrollbar={true}
+              indicatorStyle="white"
+              nestedScrollEnabled={true}
+              scrollIndicatorInsets={{ right: 2 }}
+            >
           {/* AUTO-SAVED MATCH DRAFT BANNER */}
           {matchDraft.hasDraft && matchDraft.myTeam && matchDraft.opponentTeam && ((matchDraft.myPlayingXI?.length >= 11 && matchDraft.opponentPlayingXI?.length >= 11) || matchDraft.step > 1) && (
             <View style={[styles.draftCardBanner, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
@@ -21427,6 +21440,17 @@ function CricketAddaMain() {
                 <Text style={styles.dashViewAllText}>View All ❯</Text>
               </TouchableOpacity>
             </View>
+
+            {displayRecentMatches.length > 3 && (
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 2 }}>
+                <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600' }}>
+                  Showing {displayRecentMatches.length} matches • Scroll down to view all
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(34, 197, 94, 0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: '#22c55e' }}>
+                  <Text style={{ color: '#22c55e', fontSize: 10, fontWeight: '800' }}>↕ Scrollable</Text>
+                </View>
+              </View>
+            )}
 
             {/* Match Items - Clean Sleek Row with Bigger Height, No Bracket & Centered Date */}
             {displayRecentMatches.map((rm, idx) => {
