@@ -92,62 +92,88 @@ const PLAYER_AVATARS = {
   'Rohit Sharma': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/107.png',
   'Rohit Sharma (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/107.png',
   'Virat Kohli': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/164.png',
+  'Virat Kohli (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/164.png',
   'MS Dhoni': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/265.png',
-  'Sachin Tendulkar': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/104.png',
+  'MS Dhoni (c & wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/265.png',
+  'MS Dhoni (wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/265.png',
   'Shubman Gill': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3752.png',
+  'Shubman Gill (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3752.png',
   'KL Rahul': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1120.png',
+  'KL Rahul (c & wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1120.png',
   'Sanju Samson': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2967.png',
+  'Sanju Samson (c & wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2967.png',
+  'Sanju Samson (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2967.png',
   'Rishabh Pant': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/657.png',
+  'Rishabh Pant (c & wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/657.png',
   'Rishabh Pant (wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/657.png',
   'Suryakumar Yadav': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1180.png',
   'Hardik Pandya': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2740.png',
+  'Hardik Pandya (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2740.png',
   'Shivam Dube': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5431.png',
   'Axar Patel': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1113.png',
   'Ravindra Jadeja': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/9.png',
   'Jasprit Bumrah': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1124.png',
   'Arshdeep Singh': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4698.png',
   'Mohammed Siraj': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3840.png',
+  'Mohammed Shami': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/94.png',
   'Kuldeep Yadav': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/261.png',
-  'Mitchell Starc': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/490.png',
-  'Pat Cummins': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/488.png',
-  'Josh Hazlewood': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/857.png',
-  'Adam Zampa': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/958.png',
+  'Ruturaj Gaikwad': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5443.png',
+  'Ruturaj Gaikwad (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5443.png',
+  'Devon Conway': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2050.png',
+  'Ajinkya Rahane': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/135.png',
+  'Deepak Chahar': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/140.png',
+  'Shardul Thakur': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/175.png',
+  'Matheesha Pathirana': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5730.png',
+  'Faf du Plessis': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/24.png',
+  'Faf du Plessis (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/24.png',
   'Glenn Maxwell': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/282.png',
-  'Travis Head': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1020.png',
-  'David Warner': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/170.png',
-  'Mitchell Marsh': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/221.png',
-  'Mitchell Marsh (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/221.png',
-  'Marcus Stoinis': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/964.png',
-  'Josh Inglis': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3655.png',
-  'Josh Inglis (wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3655.png',
-  'Quinton de Kock': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/834.png',
-  'Quinton de Kock (wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/834.png',
-  'Heinrich Klaasen': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3869.png',
-  'David Miller': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/187.png',
-  'Aiden Markram': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1665.png',
-  'Aiden Markram (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1665.png',
-  'Tristan Stubbs': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5958.png',
-  'Marco Jansen': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5725.png',
-  'Keshav Maharaj': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3333.png',
-  'Kagiso Rabada': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1664.png',
-  'Anrich Nortje': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5433.png',
-  'Reeza Hendricks': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3233.png',
+  'Dinesh Karthik': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/102.png',
+  'Dinesh Karthik (wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/102.png',
+  'Rajat Patidar': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5460.png',
+  'Lockie Ferguson': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3729.png',
+  'Yash Dayal': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5920.png',
+  'Yashasvi Jaiswal': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5334.png',
   'Jos Buttler': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/509.png',
   'Jos Buttler (c & wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/509.png',
+  'Jos Buttler (wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/509.png',
+  'Riyan Parag': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4420.png',
+  'Shimron Hetmyer': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1709.png',
+  'Trent Boult': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/969.png',
+  'Yuzvendra Chahal': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/111.png',
+  'Ravichandran Ashwin': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/8.png',
+  'Avesh Khan': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1564.png',
+  'Sandeep Sharma': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1114.png',
+  'Shreyas Iyer': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1563.png',
+  'Shreyas Iyer (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1563.png',
   'Phil Salt': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5472.png',
-  'Harry Brook': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4932.png',
-  'Liam Livingstone': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3644.png',
-  'Jofra Archer': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3547.png',
-  'Mark Wood': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1040.png',
-  'Mohammad Rizwan': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/127.png',
-  'Mohammad Rizwan (wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/127.png',
-  'Babar Azam': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/275.png',
-  'Fakhar Zaman': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3801.png',
-  'Naseem Shah': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5728.png',
-  'Haris Rauf': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5490.png',
+  'Phil Salt (wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5472.png',
+  'Andre Russell': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/177.png',
+  'Rinku Singh': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4230.png',
+  'Sunil Narine': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/203.png',
+  'Mitchell Starc': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/490.png',
+  'Varun Chakravarthy': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5432.png',
+  'Harshit Rana': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/6080.png',
+  'Pat Cummins': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/488.png',
+  'Pat Cummins (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/488.png',
+  'Travis Head': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1020.png',
+  'Abhishek Sharma': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3750.png',
+  'Heinrich Klaasen': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3869.png',
+  'Heinrich Klaasen (wk)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3869.png',
+  'Bhuvneshwar Kumar': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/116.png',
+  'T Natarajan': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3838.png',
+  'Rashid Khan': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2887.png',
+  'Sai Sudharsan': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/6020.png',
+  'David Miller': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/187.png',
+  'Rahul Tewatia': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3820.png',
+  'Mohit Sharma': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1122.png',
+  'David Warner': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/170.png',
+  'David Warner (c)': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/170.png',
+  'Prithvi Shaw': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3764.png',
+  'Tristan Stubbs': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5958.png',
+  'Anrich Nortje': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5433.png',
+  'Khaleel Ahmed': 'https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2968.png',
 };
 
-// MOCKUP DASHBOARD OFFICIAL TEAM LOGOS MAP
 const DASH_TEAM_LOGOS = {
   'tigers xi': require('./assets/team-tigers.png'),
   'warriors xi': require('./assets/team-warriors.png'),
@@ -155,6 +181,8 @@ const DASH_TEAM_LOGOS = {
   'royals xi': require('./assets/team-royals.png'),
   'blasters xi': require('./assets/team-blasters.png'),
   'united xi': require('./assets/team-united.png'),
+  'titans xi': require('./assets/team-tigers.png'),
+  'sunrisers xi': require('./assets/team-warriors.png'),
 };
 
 const getDashTeamLogo = (name) => {
@@ -1713,496 +1741,5082 @@ const getResponsiveBadgePos = (wheelDimension, angleDegrees, badgeW, badgeH) => 
 // COMPREHENSIVE MATCH DATABASE (LIVE & RECENT TOURNAMENT MATCHES)
 // ============================================================================
 const MATCH_DATABASE = {
-  match_live_spl_1: {
-    id: 'match_live_spl_1',
-    title: 'Tigers XI vs Warriors XI',
-    tournament: 'School Premier League',
-    venue: 'Green Valley Ground',
-    format: 'T20',
-    matchType: 'T20',
-    totalOvers: 20,
-    status: 'live',
-    teamA: 'Tigers XI',
-    teamB: 'Warriors XI',
-    flagA: '🐯',
-    flagB: '⚔️',
-    toss: 'Warriors XI won the toss & elected to BAT',
-    selectedInning: 2,
-    equation: 'Tigers XI need 17 runs in 21 balls',
-    fieldingSquad: ['Ruturaj Gaikwad', 'Devon Conway', 'Ajinkya Rahane', 'Shivam Dube', 'MS Dhoni', 'Moeen Ali', 'Ravindra Jadeja', 'Deepak Chahar', 'Shardul Thakur', 'Matheesha Pathirana', 'Tushar Deshpande'],
-    innings1: {
-      team: 'Warriors XI',
-      flag: '⚔️',
-      runs: 144,
-      wickets: 8,
-      overs: '20.0',
-      maxOvers: 20,
-      crr: '7.20',
-      extras: '7 (w 4, nb 1, b 1, lb 1)',
-      fow: '28-1, 52-2, 78-3, 115-4, 124-5, 128-6, 131-7, 132-8',
-      batting: [
-        { name: 'Ruturaj Gaikwad', runs: 42, balls: 31, fours: 4, sixes: 1, strikeRate: '135.48', dismissal: 'c Rohit b Bumrah' },
-        { name: 'Devon Conway', runs: 18, balls: 14, fours: 2, sixes: 0, strikeRate: '128.57', dismissal: 'b Shami' },
-        { name: 'Ajinkya Rahane', runs: 12, balls: 10, fours: 1, sixes: 0, strikeRate: '120.00', dismissal: 'lbw b Kuldeep' },
-        { name: 'Shivam Dube', runs: 36, balls: 22, fours: 2, sixes: 3, strikeRate: '163.64', dismissal: 'c Surya b Pandya' },
-        { name: 'MS Dhoni (c & wk)', runs: 28, balls: 19, fours: 2, sixes: 1, strikeRate: '147.37', notOut: true, dismissal: 'not out' },
-        { name: 'Moeen Ali', runs: 4, balls: 5, fours: 0, sixes: 0, strikeRate: '80.00', dismissal: 'b Bumrah' },
-        { name: 'Ravindra Jadeja', runs: 2, balls: 3, fours: 0, sixes: 0, strikeRate: '66.67', dismissal: 'run out (Gill)' },
-        { name: 'Deepak Chahar', runs: 1, balls: 2, fours: 0, sixes: 0, strikeRate: '50.00', dismissal: 'c Pant b Shami' },
-        { name: 'Shardul Thakur', runs: 0, balls: 1, fours: 0, sixes: 0, strikeRate: '0.00', dismissal: 'b Bumrah' },
+  "match_live_1": {
+    "id": "match_live_1",
+    "title": "Tigers XI vs Warriors XI",
+    "tournament": "School Premier League",
+    "venue": "Green Valley Ground",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "Tigers XI",
+    "teamB": "Warriors XI",
+    "flagA": "\ud83d\udc2f",
+    "flagB": "\u2694\ufe0f",
+    "toss": "Warriors XI won the toss & elected to BAT",
+    "selectedInning": 2,
+    "equation": "Tigers XI need 17 runs in 21 balls",
+    "innings1": {
+      "team": "Warriors XI",
+      "flag": "\u2694\ufe0f",
+      "runs": 144,
+      "wickets": 8,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "7.20",
+      "extras": "8 (w 4, nb 1, lb 3)",
+      "fow": "28-1, 52-2, 78-3, 115-4, 138-5",
+      "batting": [
+        {
+          "name": "Ruturaj Gaikwad",
+          "runs": 42,
+          "balls": 31,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "135.48",
+          "dismissal": "c Rohit b Bumrah",
+          "notOut": false,
+          "dots": 16,
+          "singles": 0,
+          "doubles": 10
+        },
+        {
+          "name": "Devon Conway",
+          "runs": 18,
+          "balls": 14,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "128.57",
+          "dismissal": "b Shami",
+          "notOut": false,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Ajinkya Rahane",
+          "runs": 12,
+          "balls": 10,
+          "fours": 1,
+          "sixes": 0,
+          "strikeRate": "120.00",
+          "dismissal": "lbw b Kuldeep",
+          "notOut": false,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Shivam Dube",
+          "runs": 36,
+          "balls": 22,
+          "fours": 2,
+          "sixes": 3,
+          "strikeRate": "163.64",
+          "dismissal": "c Surya b Pandya",
+          "notOut": false,
+          "dots": 12,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "MS Dhoni (c & wk)",
+          "runs": 28,
+          "balls": 19,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "147.37",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 7
+        }
       ],
-      bowling: [
-        { name: 'Mohammed Shami', overs: '4.0', maidens: 0, runs: 32, wickets: 2, econ: '8.00' },
-        { name: 'Jasprit Bumrah', overs: '4.0', maidens: 1, runs: 22, wickets: 3, econ: '5.50' },
-        { name: 'Hardik Pandya', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
-        { name: 'Kuldeep Yadav', overs: '4.0', maidens: 0, runs: 34, wickets: 1, econ: '8.50' },
-        { name: 'Axar Patel', overs: '4.0', maidens: 0, runs: 26, wickets: 0, econ: '6.50' },
-      ],
+      "bowling": [
+        {
+          "name": "Mohammed Shami",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Jasprit Bumrah",
+          "overs": "4.0",
+          "maidens": 1,
+          "runs": 22,
+          "wickets": 3,
+          "econ": "5.50",
+          "dots": 13,
+          "fours": 2,
+          "sixes": 1
+        },
+        {
+          "name": "Hardik Pandya",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Axar Patel",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 26,
+          "wickets": 0,
+          "econ": "6.50",
+          "dots": 11,
+          "fours": 3,
+          "sixes": 1
+        }
+      ]
     },
-    innings2: {
-      team: 'Tigers XI',
-      flag: '🐯',
-      runs: 128,
-      wickets: 4,
-      overs: '16.3',
-      maxOvers: 20,
-      crr: '7.76',
-      target: 145,
-      extras: '6 (w 4, nb 1, lb 1)',
-      fow: '22-1, 35-2, 98-3, 118-4',
-      batting: [
-        { name: 'Rohit Sharma (c)', runs: 54, balls: 38, fours: 6, sixes: 2, strikeRate: '142.11', dismissal: 'c Dhoni b Pathirana' },
-        { name: 'Shubman Gill', runs: 14, balls: 12, fours: 2, sixes: 0, strikeRate: '116.67', dismissal: 'b Deepak Chahar' },
-        { name: 'Virat Kohli', runs: 5, balls: 7, fours: 0, sixes: 0, strikeRate: '71.43', dismissal: 'c Rahane b Moeen Ali' },
-        { name: 'Suryakumar Yadav', runs: 41, balls: 24, fours: 4, sixes: 2, strikeRate: '170.83', dismissal: 'c Gaikwad b Pathirana' },
-        { name: 'Hardik Pandya', runs: 16, balls: 9, fours: 1, sixes: 1, strikeRate: '177.78', notOut: true, dismissal: 'not out' },
-        { name: 'Rishabh Pant (wk)', runs: 12, balls: 8, fours: 1, sixes: 0, strikeRate: '150.00', notOut: true, dismissal: 'not out' },
+    "innings2": {
+      "team": "Tigers XI",
+      "flag": "\ud83d\udc2f",
+      "runs": 128,
+      "wickets": 4,
+      "overs": "16.3",
+      "maxOvers": 20,
+      "crr": "7.76",
+      "target": 145,
+      "extras": "6 (w 3, nb 1, lb 2)",
+      "fow": "22-1, 35-2, 98-3, 118-4",
+      "batting": [
+        {
+          "name": "Rohit Sharma (c)",
+          "runs": 54,
+          "balls": 38,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "142.11",
+          "dismissal": "c Dhoni b Pathirana",
+          "notOut": false,
+          "dots": 21,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Shubman Gill",
+          "runs": 14,
+          "balls": 12,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "116.67",
+          "dismissal": "b Chahar",
+          "notOut": false,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Virat Kohli",
+          "runs": 5,
+          "balls": 7,
+          "fours": 0,
+          "sixes": 0,
+          "strikeRate": "71.43",
+          "dismissal": "c Rahane b Moeen",
+          "notOut": false,
+          "dots": 4,
+          "singles": 1,
+          "doubles": 2
+        },
+        {
+          "name": "Suryakumar Yadav",
+          "runs": 41,
+          "balls": 24,
+          "fours": 4,
+          "sixes": 2,
+          "strikeRate": "170.83",
+          "dismissal": "c Gaikwad b Pathirana",
+          "notOut": false,
+          "dots": 11,
+          "singles": 1,
+          "doubles": 6
+        },
+        {
+          "name": "Hardik Pandya",
+          "runs": 16,
+          "balls": 9,
+          "fours": 1,
+          "sixes": 1,
+          "strikeRate": "177.78",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 4,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Rishabh Pant (wk)",
+          "runs": 12,
+          "balls": 8,
+          "fours": 1,
+          "sixes": 0,
+          "strikeRate": "150.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 3,
+          "singles": 0,
+          "doubles": 4
+        }
       ],
-      bowling: [
-        { name: 'Deepak Chahar', overs: '4.0', maidens: 0, runs: 30, wickets: 1, econ: '7.50' },
-        { name: 'Shardul Thakur', overs: '3.0', maidens: 0, runs: 28, wickets: 0, econ: '9.33' },
-        { name: 'Moeen Ali', overs: '4.0', maidens: 0, runs: 24, wickets: 1, econ: '6.00' },
-        { name: 'Matheesha Pathirana', overs: '3.3', maidens: 0, runs: 26, wickets: 2, econ: '7.43' },
-        { name: 'Ravindra Jadeja', overs: '2.0', maidens: 0, runs: 18, wickets: 0, econ: '9.00' },
-      ],
+      "bowling": [
+        {
+          "name": "Deepak Chahar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 1,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Shardul Thakur",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 0,
+          "econ": "9.33",
+          "dots": 4,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Moeen Ali",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 24,
+          "wickets": 1,
+          "econ": "6.00",
+          "dots": 12,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Matheesha Pathirana",
+          "overs": "3.3",
+          "maidens": 0,
+          "runs": 26,
+          "wickets": 2,
+          "econ": "7.43",
+          "dots": 8,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Ravindra Jadeja",
+          "overs": "2.0",
+          "maidens": 0,
+          "runs": 18,
+          "wickets": 0,
+          "econ": "9.00",
+          "dots": 3,
+          "fours": 2,
+          "sixes": 1
+        }
+      ]
     },
-    liveState: {
-      currentInnings: 2,
-      liveRuns: 128,
-      liveWickets: 4,
-      liveBalls: 99,
-      currentStriker: 'Hardik Pandya',
-      currentNonStriker: 'Rishabh Pant (wk)',
-      currentBowler: 'Matheesha Pathirana',
-      target: 145,
-    },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 128,
+      "liveWickets": 4,
+      "liveBalls": 99,
+      "currentStriker": "Hardik Pandya",
+      "currentNonStriker": "Rishabh Pant (wk)",
+      "currentBowler": "Matheesha Pathirana",
+      "target": 145
+    }
   },
-  match_live_cpl_2: {
-    id: 'match_live_cpl_2',
-    title: 'King XI vs Royals XI',
-    tournament: 'Corporate Premier League',
-    venue: 'Chinnaswamy Stadium',
-    format: 'T20',
-    matchType: 'T20',
-    totalOvers: 20,
-    status: 'live',
-    teamA: 'King XI',
-    teamB: 'Royals XI',
-    flagA: '👑',
-    flagB: '🦁',
-    toss: 'Royals XI won the toss & elected to BAT',
-    selectedInning: 2,
-    equation: 'King XI need 34 runs in 28 balls',
-    innings1: {
-      team: 'Royals XI',
-      flag: '🦁',
-      runs: 175,
-      wickets: 6,
-      overs: '20.0',
-      maxOvers: 20,
-      crr: '8.75',
-      batting: [
-        { name: 'Yashasvi Jaiswal', runs: 54, balls: 35, fours: 7, sixes: 2, strikeRate: '154.29', dismissal: 'c Karthik b Siraj' },
-        { name: 'Jos Buttler (wk)', runs: 32, balls: 22, fours: 4, sixes: 1, strikeRate: '145.45', dismissal: 'b Dayal' },
-        { name: 'Sanju Samson (c)', runs: 48, balls: 30, fours: 5, sixes: 2, strikeRate: '160.00', dismissal: 'c Maxwell b Ferguson' },
-        { name: 'Riyan Parag', runs: 26, balls: 18, fours: 2, sixes: 1, strikeRate: '144.44', notOut: true, dismissal: 'not out' },
+  "match_live_2": {
+    "id": "match_live_2",
+    "title": "King XI vs Royals XI",
+    "tournament": "Corporate Premier League",
+    "venue": "Chinnaswamy Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "King XI",
+    "teamB": "Royals XI",
+    "flagA": "\ud83d\udc51",
+    "flagB": "\ud83e\udd81",
+    "toss": "Royals XI won the toss & elected to BAT",
+    "selectedInning": 2,
+    "equation": "King XI need 34 runs in 28 balls",
+    "innings1": {
+      "team": "Royals XI",
+      "flag": "\ud83e\udd81",
+      "runs": 175,
+      "wickets": 6,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.75",
+      "extras": "9 (w 5, nb 1, lb 3)",
+      "fow": "48-1, 92-2, 138-3",
+      "batting": [
+        {
+          "name": "Yashasvi Jaiswal",
+          "runs": 54,
+          "balls": 35,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "154.29",
+          "dismissal": "c Karthik b Siraj",
+          "notOut": false,
+          "dots": 19,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Jos Buttler (wk)",
+          "runs": 32,
+          "balls": 22,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "145.45",
+          "dismissal": "b Dayal",
+          "notOut": false,
+          "dots": 12,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Sanju Samson (c)",
+          "runs": 48,
+          "balls": 30,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "160.00",
+          "dismissal": "c Maxwell b Ferguson",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Riyan Parag",
+          "runs": 26,
+          "balls": 18,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "144.44",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 6
+        }
       ],
-      bowling: [
-        { name: 'Mohammed Siraj', overs: '4.0', maidens: 0, runs: 34, wickets: 2, econ: '8.50' },
-        { name: 'Lockie Ferguson', overs: '4.0', maidens: 0, runs: 42, wickets: 2, econ: '10.50' },
-        { name: 'Glenn Maxwell', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
-        { name: 'Yash Dayal', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
-      ],
+      "bowling": [
+        {
+          "name": "Mohammed Siraj",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 2,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Lockie Ferguson",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 42,
+          "wickets": 2,
+          "econ": "10.50",
+          "dots": 3,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Glenn Maxwell",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Yash Dayal",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
     },
-    innings2: {
-      team: 'King XI',
-      flag: '👑',
-      runs: 142,
-      wickets: 3,
-      overs: '15.2',
-      maxOvers: 20,
-      crr: '9.26',
-      target: 176,
-      batting: [
-        { name: 'Faf du Plessis (c)', runs: 36, balls: 24, fours: 4, sixes: 1, strikeRate: '150.00', dismissal: 'b Boult' },
-        { name: 'Virat Kohli', runs: 58, balls: 41, fours: 6, sixes: 2, strikeRate: '141.46', notOut: true, dismissal: 'not out' },
-        { name: 'Rajat Patidar', runs: 18, balls: 14, fours: 2, sixes: 0, strikeRate: '128.57', dismissal: 'c Samson b Chahal' },
-        { name: 'Glenn Maxwell', runs: 24, balls: 12, fours: 2, sixes: 2, strikeRate: '200.00', notOut: true, dismissal: 'not out' },
+    "innings2": {
+      "team": "King XI",
+      "flag": "\ud83d\udc51",
+      "runs": 142,
+      "wickets": 3,
+      "overs": "15.2",
+      "maxOvers": 20,
+      "crr": "9.26",
+      "target": 176,
+      "extras": "6 (w 4, nb 1, lb 1)",
+      "fow": "44-1, 88-2, 118-3",
+      "batting": [
+        {
+          "name": "Faf du Plessis (c)",
+          "runs": 36,
+          "balls": 24,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "150.00",
+          "dismissal": "b Boult",
+          "notOut": false,
+          "dots": 12,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Virat Kohli",
+          "runs": 58,
+          "balls": 41,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "141.46",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 22,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Rajat Patidar",
+          "runs": 18,
+          "balls": 14,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "128.57",
+          "dismissal": "c Samson b Chahal",
+          "notOut": false,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Glenn Maxwell",
+          "runs": 24,
+          "balls": 12,
+          "fours": 2,
+          "sixes": 2,
+          "strikeRate": "200.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 6,
+          "singles": 0,
+          "doubles": 2
+        }
       ],
-      bowling: [
-        { name: 'Trent Boult', overs: '4.0', maidens: 0, runs: 30, wickets: 1, econ: '7.50' },
-        { name: 'Ravichandran Ashwin', overs: '3.0', maidens: 0, runs: 26, wickets: 0, econ: '8.67' },
-        { name: 'Yuzvendra Chahal', overs: '3.2', maidens: 0, runs: 28, wickets: 1, econ: '8.40' },
-        { name: 'Avesh Khan', overs: '3.0', maidens: 0, runs: 34, wickets: 0, econ: '11.33' },
-      ],
+      "bowling": [
+        {
+          "name": "Trent Boult",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 1,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Ravichandran Ashwin",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 26,
+          "wickets": 0,
+          "econ": "8.67",
+          "dots": 5,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Yuzvendra Chahal",
+          "overs": "3.2",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "8.40",
+          "dots": 6,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Avesh Khan",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 0,
+          "econ": "11.33",
+          "dots": 1,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
     },
-    liveState: {
-      currentInnings: 2,
-      liveRuns: 142,
-      liveWickets: 3,
-      liveBalls: 92,
-      currentStriker: 'Virat Kohli',
-      currentNonStriker: 'Glenn Maxwell',
-      currentBowler: 'Yuzvendra Chahal',
-      target: 176,
-    },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 142,
+      "liveWickets": 3,
+      "liveBalls": 92,
+      "currentStriker": "Virat Kohli",
+      "currentNonStriker": "Glenn Maxwell",
+      "currentBowler": "Yuzvendra Chahal",
+      "target": 176
+    }
   },
-  match_live_sup_3: {
-    id: 'match_live_sup_3',
-    title: 'Blasters XI vs United XI',
-    tournament: 'Super Cup 2026',
-    venue: 'Eden Gardens',
-    format: 'T20',
-    matchType: 'T20',
-    totalOvers: 20,
-    status: 'live',
-    teamA: 'Blasters XI',
-    teamB: 'United XI',
-    flagA: '🔴',
-    flagB: '🛡️',
-    toss: 'Blasters XI won the toss & elected to BOWL',
-    selectedInning: 2,
-    equation: 'Blasters XI need 18 runs in 11 balls',
-    innings1: {
-      team: 'United XI',
-      flag: '🛡️',
-      runs: 182,
-      wickets: 7,
-      overs: '20.0',
-      maxOvers: 20,
-      crr: '9.10',
-      batting: [
-        { name: 'David Warner (c)', runs: 52, balls: 34, fours: 6, sixes: 2, strikeRate: '152.94', dismissal: 'c Iyer b Starc' },
-        { name: 'Prithvi Shaw', runs: 24, balls: 15, fours: 4, sixes: 0, strikeRate: '160.00', dismissal: 'b Harshit' },
-        { name: 'Rishabh Pant (wk)', runs: 46, balls: 28, fours: 4, sixes: 3, strikeRate: '164.29', dismissal: 'c Salt b Varun' },
-        { name: 'Tristan Stubbs', runs: 31, balls: 19, fours: 3, sixes: 1, strikeRate: '163.16', notOut: true, dismissal: 'not out' },
+  "match_live_3": {
+    "id": "match_live_3",
+    "title": "Blasters XI vs United XI",
+    "tournament": "Super Cup 2026",
+    "venue": "Eden Gardens",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "Blasters XI",
+    "teamB": "United XI",
+    "flagA": "\ud83d\udd34",
+    "flagB": "\ud83d\udee1\ufe0f",
+    "toss": "Blasters XI won the toss & elected to BOWL",
+    "selectedInning": 2,
+    "equation": "Blasters XI need 18 runs in 11 balls",
+    "innings1": {
+      "team": "United XI",
+      "flag": "\ud83d\udee1\ufe0f",
+      "runs": 182,
+      "wickets": 7,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "9.10",
+      "extras": "7 (w 4, nb 1, lb 2)",
+      "fow": "38-1, 84-2, 140-3",
+      "batting": [
+        {
+          "name": "David Warner (c)",
+          "runs": 52,
+          "balls": 34,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "152.94",
+          "dismissal": "c Iyer b Starc",
+          "notOut": false,
+          "dots": 18,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Prithvi Shaw",
+          "runs": 24,
+          "balls": 15,
+          "fours": 4,
+          "sixes": 0,
+          "strikeRate": "160.00",
+          "dismissal": "b Harshit",
+          "notOut": false,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Rishabh Pant (wk)",
+          "runs": 46,
+          "balls": 28,
+          "fours": 4,
+          "sixes": 3,
+          "strikeRate": "164.29",
+          "dismissal": "c Salt b Varun",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Tristan Stubbs",
+          "runs": 31,
+          "balls": 19,
+          "fours": 3,
+          "sixes": 1,
+          "strikeRate": "163.16",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 8,
+          "singles": 1,
+          "doubles": 6
+        }
       ],
-      bowling: [
-        { name: 'Mitchell Starc', overs: '4.0', maidens: 0, runs: 28, wickets: 3, econ: '7.00' },
-        { name: 'Harshit Rana', overs: '4.0', maidens: 0, runs: 38, wickets: 2, econ: '9.50' },
-        { name: 'Sunil Narine', overs: '4.0', maidens: 0, runs: 26, wickets: 1, econ: '6.50' },
-        { name: 'Varun Chakravarthy', overs: '4.0', maidens: 0, runs: 34, wickets: 1, econ: '8.50' },
-      ],
+      "bowling": [
+        {
+          "name": "Mitchell Starc",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 3,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Harshit Rana",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 2,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Sunil Narine",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 26,
+          "wickets": 1,
+          "econ": "6.50",
+          "dots": 11,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Varun Chakravarthy",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
     },
-    innings2: {
-      team: 'Blasters XI',
-      flag: '🔴',
-      runs: 165,
-      wickets: 5,
-      overs: '18.1',
-      maxOvers: 20,
-      crr: '9.08',
-      target: 183,
-      batting: [
-        { name: 'Phil Salt (wk)', runs: 42, balls: 25, fours: 5, sixes: 2, strikeRate: '168.00', dismissal: 'c Warner b Nortje' },
-        { name: 'Shreyas Iyer (c)', runs: 38, balls: 28, fours: 4, sixes: 1, strikeRate: '135.71', dismissal: 'b Axar' },
-        { name: 'Andre Russell', runs: 38, balls: 14, fours: 2, sixes: 4, strikeRate: '271.43', notOut: true, dismissal: 'not out' },
-        { name: 'Rinku Singh', runs: 14, balls: 7, fours: 2, sixes: 0, strikeRate: '200.00', notOut: true, dismissal: 'not out' },
+    "innings2": {
+      "team": "Blasters XI",
+      "flag": "\ud83d\udd34",
+      "runs": 165,
+      "wickets": 5,
+      "overs": "18.1",
+      "maxOvers": 20,
+      "crr": "9.08",
+      "target": 183,
+      "extras": "6 (w 3, nb 1, lb 2)",
+      "fow": "48-1, 92-2, 132-3",
+      "batting": [
+        {
+          "name": "Phil Salt (wk)",
+          "runs": 42,
+          "balls": 25,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "168.00",
+          "dismissal": "c Warner b Nortje",
+          "notOut": false,
+          "dots": 13,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Shreyas Iyer (c)",
+          "runs": 38,
+          "balls": 28,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "135.71",
+          "dismissal": "b Axar",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Andre Russell",
+          "runs": 38,
+          "balls": 14,
+          "fours": 2,
+          "sixes": 4,
+          "strikeRate": "271.43",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Rinku Singh",
+          "runs": 14,
+          "balls": 7,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "200.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 2,
+          "singles": 0,
+          "doubles": 3
+        }
       ],
-      bowling: [
-        { name: 'Anrich Nortje', overs: '3.1', maidens: 0, runs: 35, wickets: 2, econ: '11.05' },
-        { name: 'Khaleel Ahmed', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
-        { name: 'Axar Patel', overs: '4.0', maidens: 0, runs: 30, wickets: 1, econ: '7.50' },
-        { name: 'Kuldeep Yadav', overs: '4.0', maidens: 0, runs: 32, wickets: 1, econ: '8.00' },
-      ],
+      "bowling": [
+        {
+          "name": "Anrich Nortje",
+          "overs": "3.1",
+          "maidens": 0,
+          "runs": 35,
+          "wickets": 2,
+          "econ": "11.05",
+          "dots": 2,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Khaleel Ahmed",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Axar Patel",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 1,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
     },
-    liveState: {
-      currentInnings: 2,
-      liveRuns: 165,
-      liveWickets: 5,
-      liveBalls: 109,
-      currentStriker: 'Andre Russell',
-      currentNonStriker: 'Rinku Singh',
-      currentBowler: 'Anrich Nortje',
-      target: 183,
-    },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 165,
+      "liveWickets": 5,
+      "liveBalls": 109,
+      "currentStriker": "Andre Russell",
+      "currentNonStriker": "Rinku Singh",
+      "currentBowler": "Anrich Nortje",
+      "target": 183
+    }
   },
-  match_live_derby_4: {
-    id: 'match_live_derby_4',
-    title: 'Warriors XI vs King XI',
-    tournament: 'Champions Derby',
-    venue: 'Chepauk Fortress',
-    format: 'T20',
-    matchType: 'T20',
-    totalOvers: 20,
-    status: 'live',
-    teamA: 'Warriors XI',
-    teamB: 'King XI',
-    flagA: '⚔️',
-    flagB: '👑',
-    toss: 'Warriors XI won the toss & elected to BOWL',
-    selectedInning: 2,
-    equation: 'Warriors XI need 13 runs in 13 balls',
-    innings1: {
-      team: 'King XI',
-      flag: '👑',
-      runs: 170,
-      wickets: 7,
-      overs: '20.0',
-      maxOvers: 20,
-      crr: '8.50',
-      batting: [
-        { name: 'Faf du Plessis', runs: 64, balls: 42, fours: 7, sixes: 2, strikeRate: '152.38', dismissal: 'c Dhoni b Chahar' },
-        { name: 'Virat Kohli (c)', runs: 38, balls: 29, fours: 4, sixes: 0, strikeRate: '131.03', dismissal: 'b Jadeja' },
-        { name: 'Rajat Patidar', runs: 28, balls: 18, fours: 3, sixes: 1, strikeRate: '155.56', dismissal: 'c Dube b Pathirana' },
-        { name: 'Dinesh Karthik (wk)', runs: 18, balls: 11, fours: 2, sixes: 1, strikeRate: '163.64', notOut: true, dismissal: 'not out' },
+  "match_live_4": {
+    "id": "match_live_4",
+    "title": "Titans XI vs Sunrisers XI",
+    "tournament": "National T20 Trophy",
+    "venue": "Narendra Modi Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "Titans XI",
+    "teamB": "Sunrisers XI",
+    "flagA": "\u26a1",
+    "flagB": "\ud83e\udd85",
+    "toss": "Sunrisers XI won the toss & elected to BAT",
+    "selectedInning": 2,
+    "equation": "Titans XI need 29 runs in 19 balls",
+    "innings1": {
+      "team": "Sunrisers XI",
+      "flag": "\ud83e\udd85",
+      "runs": 188,
+      "wickets": 6,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "9.40",
+      "extras": "8 (w 5, nb 1, lb 2)",
+      "fow": "68-1, 112-2, 162-3",
+      "batting": [
+        {
+          "name": "Travis Head",
+          "runs": 64,
+          "balls": 38,
+          "fours": 8,
+          "sixes": 3,
+          "strikeRate": "168.42",
+          "dismissal": "c Gill b Rashid",
+          "notOut": false,
+          "dots": 20,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Abhishek Sharma",
+          "runs": 38,
+          "balls": 22,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "172.73",
+          "dismissal": "b Mohit",
+          "notOut": false,
+          "dots": 12,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Heinrich Klaasen (wk)",
+          "runs": 42,
+          "balls": 24,
+          "fours": 3,
+          "sixes": 3,
+          "strikeRate": "175.00",
+          "dismissal": "c Miller b Spencer",
+          "notOut": false,
+          "dots": 12,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Pat Cummins (c)",
+          "runs": 18,
+          "balls": 11,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "163.64",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 6,
+          "singles": 0,
+          "doubles": 2
+        }
       ],
-      bowling: [
-        { name: 'Deepak Chahar', overs: '4.0', maidens: 0, runs: 26, wickets: 2, econ: '6.50' },
-        { name: 'Matheesha Pathirana', overs: '4.0', maidens: 0, runs: 31, wickets: 2, econ: '7.75' },
-        { name: 'Ravindra Jadeja', overs: '4.0', maidens: 0, runs: 28, wickets: 2, econ: '7.00' },
-        { name: 'Moeen Ali', overs: '4.0', maidens: 0, runs: 32, wickets: 0, econ: '8.00' },
-      ],
+      "bowling": [
+        {
+          "name": "Mohit Sharma",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 2,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Rashid Khan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 2,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Spencer Johnson",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 42,
+          "wickets": 1,
+          "econ": "10.50",
+          "dots": 3,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Rahul Tewatia",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
     },
-    innings2: {
-      team: 'Warriors XI',
-      flag: '⚔️',
-      runs: 158,
-      wickets: 4,
-      overs: '17.5',
-      maxOvers: 20,
-      crr: '8.86',
-      target: 171,
-      batting: [
-        { name: 'Ruturaj Gaikwad', runs: 62, balls: 43, fours: 7, sixes: 2, strikeRate: '144.19', dismissal: 'c Kohli b Siraj' },
-        { name: 'Devon Conway', runs: 28, balls: 21, fours: 3, sixes: 0, strikeRate: '133.33', dismissal: 'b Dayal' },
-        { name: 'Shivam Dube', runs: 32, balls: 19, fours: 2, sixes: 3, strikeRate: '168.42', dismissal: 'c Patidar b Maxwell' },
-        { name: 'MS Dhoni (c & wk)', runs: 22, balls: 14, fours: 2, sixes: 1, strikeRate: '157.14', notOut: true, dismissal: 'not out' },
+    "innings2": {
+      "team": "Titans XI",
+      "flag": "\u26a1",
+      "runs": 160,
+      "wickets": 4,
+      "overs": "16.5",
+      "maxOvers": 20,
+      "crr": "9.50",
+      "target": 189,
+      "extras": "7 (w 4, nb 1, lb 2)",
+      "fow": "54-1, 110-2, 142-3",
+      "batting": [
+        {
+          "name": "Shubman Gill (c)",
+          "runs": 62,
+          "balls": 41,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "151.22",
+          "dismissal": "c Markram b Cummins",
+          "notOut": false,
+          "dots": 21,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Sai Sudharsan",
+          "runs": 44,
+          "balls": 30,
+          "fours": 5,
+          "sixes": 1,
+          "strikeRate": "146.67",
+          "dismissal": "b Natarajan",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "David Miller",
+          "runs": 28,
+          "balls": 16,
+          "fours": 2,
+          "sixes": 2,
+          "strikeRate": "175.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 8,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Rahul Tewatia",
+          "runs": 14,
+          "balls": 8,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "175.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 3,
+          "singles": 0,
+          "doubles": 3
+        }
       ],
-      bowling: [
-        { name: 'Mohammed Siraj', overs: '4.0', maidens: 0, runs: 32, wickets: 2, econ: '8.00' },
-        { name: 'Lockie Ferguson', overs: '3.5', maidens: 0, runs: 35, wickets: 1, econ: '9.13' },
-        { name: 'Glenn Maxwell', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
-        { name: 'Yash Dayal', overs: '3.0', maidens: 0, runs: 31, wickets: 0, econ: '10.33' },
-      ],
+      "bowling": [
+        {
+          "name": "Pat Cummins",
+          "overs": "3.5",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.35",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Bhuvneshwar Kumar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "T Natarajan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Shahbaz Ahmed",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 0,
+          "econ": "9.33",
+          "dots": 4,
+          "fours": 3,
+          "sixes": 1
+        }
+      ]
     },
-    liveState: {
-      currentInnings: 2,
-      liveRuns: 158,
-      liveWickets: 4,
-      liveBalls: 107,
-      currentStriker: 'MS Dhoni (c & wk)',
-      currentNonStriker: 'Ruturaj Gaikwad',
-      currentBowler: 'Lockie Ferguson',
-      target: 171,
-    },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 160,
+      "liveWickets": 4,
+      "liveBalls": 101,
+      "currentStriker": "David Miller",
+      "currentNonStriker": "Rahul Tewatia",
+      "currentBowler": "Pat Cummins",
+      "target": 189
+    }
   },
-  match_rec_1: {
-    id: 'match_rec_1',
-    title: 'Tigers XI vs Warriors XI',
-    tournament: 'School Premier League',
-    venue: 'Green Valley Ground',
-    format: 'T20',
-    matchType: 'T20',
-    totalOvers: 20,
-    status: 'completed',
-    date: '27 Sep 2026',
-    winner: 'Tigers XI',
-    userResult: 'Won',
-    result: 'Won',
-    resultSummary: 'Tigers XI won by 16 runs',
-    teamA: 'Tigers XI',
-    teamB: 'Warriors XI',
-    flagA: '🐯',
-    flagB: '⚔️',
-    innings1: {
-      team: 'Tigers XI',
-      flag: '🐯',
-      runs: 178,
-      wickets: 6,
-      overs: '20.0',
-      maxOvers: 20,
-      crr: '8.90',
-      batting: [
-        { name: 'Rohit Sharma (c)', runs: 68, balls: 44, fours: 7, sixes: 3, strikeRate: '154.55', dismissal: 'c Dhoni b Chahar' },
-        { name: 'Shubman Gill', runs: 22, balls: 18, fours: 3, sixes: 0, strikeRate: '122.22', dismissal: 'b Thakur' },
-        { name: 'Virat Kohli', runs: 14, balls: 12, fours: 1, sixes: 0, strikeRate: '116.67', dismissal: 'c Jadeja b Moeen' },
-        { name: 'Suryakumar Yadav', runs: 52, balls: 29, fours: 5, sixes: 3, strikeRate: '179.31', dismissal: 'c Dube b Pathirana' },
-        { name: 'Hardik Pandya', runs: 12, balls: 9, fours: 1, sixes: 0, strikeRate: '133.33', dismissal: 'b Pathirana' },
-        { name: 'Rishabh Pant (wk)', runs: 8, balls: 6, fours: 1, sixes: 0, strikeRate: '133.33', notOut: true, dismissal: 'not out' },
+  "match_live_5": {
+    "id": "match_live_5",
+    "title": "Warriors XI vs King XI",
+    "tournament": "Champions Derby",
+    "venue": "Chepauk Fortress",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "Warriors XI",
+    "teamB": "King XI",
+    "flagA": "\u2694\ufe0f",
+    "flagB": "\ud83d\udc51",
+    "toss": "Warriors XI won the toss & elected to BOWL",
+    "selectedInning": 2,
+    "equation": "Warriors XI need 13 runs in 13 balls",
+    "innings1": {
+      "team": "King XI",
+      "flag": "\ud83d\udc51",
+      "runs": 170,
+      "wickets": 7,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.50",
+      "extras": "6 (w 4, nb 1, lb 1)",
+      "fow": "48-1, 98-2, 142-3",
+      "batting": [
+        {
+          "name": "Faf du Plessis",
+          "runs": 64,
+          "balls": 42,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "152.38",
+          "dismissal": "c Dhoni b Chahar",
+          "notOut": false,
+          "dots": 21,
+          "singles": 0,
+          "doubles": 12
+        },
+        {
+          "name": "Virat Kohli (c)",
+          "runs": 38,
+          "balls": 29,
+          "fours": 4,
+          "sixes": 0,
+          "strikeRate": "131.03",
+          "dismissal": "b Jadeja",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Rajat Patidar",
+          "runs": 28,
+          "balls": 18,
+          "fours": 3,
+          "sixes": 1,
+          "strikeRate": "155.56",
+          "dismissal": "c Dube b Pathirana",
+          "notOut": false,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Dinesh Karthik (wk)",
+          "runs": 18,
+          "balls": 11,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "163.64",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 6,
+          "singles": 0,
+          "doubles": 2
+        }
       ],
-      bowling: [
-        { name: 'Deepak Chahar', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
-        { name: 'Shardul Thakur', overs: '4.0', maidens: 0, runs: 42, wickets: 1, econ: '10.50' },
-        { name: 'Moeen Ali', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
-        { name: 'Matheesha Pathirana', overs: '4.0', maidens: 0, runs: 38, wickets: 2, econ: '9.50' },
-        { name: 'Ravindra Jadeja', overs: '4.0', maidens: 0, runs: 32, wickets: 0, econ: '8.00' },
-      ],
+      "bowling": [
+        {
+          "name": "Deepak Chahar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 26,
+          "wickets": 2,
+          "econ": "6.50",
+          "dots": 11,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Matheesha Pathirana",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 31,
+          "wickets": 2,
+          "econ": "7.75",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Ravindra Jadeja",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 2,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Moeen Ali",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 0,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
     },
-    innings2: {
-      team: 'Warriors XI',
-      flag: '⚔️',
-      runs: 162,
-      wickets: 8,
-      overs: '20.0',
-      maxOvers: 20,
-      crr: '8.10',
-      batting: [
-        { name: 'Ruturaj Gaikwad', runs: 58, balls: 41, fours: 6, sixes: 2, strikeRate: '141.46', dismissal: 'c Rohit b Bumrah' },
-        { name: 'Devon Conway', runs: 24, balls: 19, fours: 3, sixes: 0, strikeRate: '126.32', dismissal: 'b Shami' },
-        { name: 'Ajinkya Rahane', runs: 16, balls: 14, fours: 1, sixes: 1, strikeRate: '114.29', dismissal: 'c Pant b Pandya' },
-        { name: 'Shivam Dube', runs: 32, balls: 20, fours: 2, sixes: 2, strikeRate: '160.00', dismissal: 'c Surya b Kuldeep' },
-        { name: 'MS Dhoni (c & wk)', runs: 18, balls: 14, fours: 1, sixes: 1, strikeRate: '128.57', notOut: true, dismissal: 'not out' },
-        { name: 'Moeen Ali', runs: 6, balls: 5, fours: 0, sixes: 0, strikeRate: '120.00', dismissal: 'b Bumrah' },
+    "innings2": {
+      "team": "Warriors XI",
+      "flag": "\u2694\ufe0f",
+      "runs": 158,
+      "wickets": 4,
+      "overs": "17.5",
+      "maxOvers": 20,
+      "crr": "8.86",
+      "target": 171,
+      "extras": "5 (w 3, nb 1, lb 1)",
+      "fow": "52-1, 94-2, 138-3",
+      "batting": [
+        {
+          "name": "Ruturaj Gaikwad",
+          "runs": 62,
+          "balls": 43,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "144.19",
+          "dismissal": "c Kohli b Siraj",
+          "notOut": false,
+          "dots": 23,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Devon Conway",
+          "runs": 28,
+          "balls": 21,
+          "fours": 3,
+          "sixes": 0,
+          "strikeRate": "133.33",
+          "dismissal": "b Dayal",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Shivam Dube",
+          "runs": 32,
+          "balls": 19,
+          "fours": 2,
+          "sixes": 3,
+          "strikeRate": "168.42",
+          "dismissal": "c Patidar b Maxwell",
+          "notOut": false,
+          "dots": 11,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "MS Dhoni (c & wk)",
+          "runs": 22,
+          "balls": 14,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "157.14",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 4
+        }
       ],
-      bowling: [
-        { name: 'Jasprit Bumrah', overs: '4.0', maidens: 1, runs: 18, wickets: 3, econ: '4.50' },
-        { name: 'Mohammed Shami', overs: '4.0', maidens: 0, runs: 34, wickets: 2, econ: '8.50' },
-        { name: 'Hardik Pandya', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
-        { name: 'Kuldeep Yadav', overs: '4.0', maidens: 0, runs: 38, wickets: 1, econ: '9.50' },
-        { name: 'Axar Patel', overs: '4.0', maidens: 0, runs: 32, wickets: 1, econ: '8.00' },
-      ],
+      "bowling": [
+        {
+          "name": "Mohammed Siraj",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Lockie Ferguson",
+          "overs": "3.5",
+          "maidens": 0,
+          "runs": 35,
+          "wickets": 1,
+          "econ": "9.13",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Glenn Maxwell",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Yash Dayal",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 31,
+          "wickets": 0,
+          "econ": "10.33",
+          "dots": 3,
+          "fours": 3,
+          "sixes": 1
+        }
+      ]
     },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 158,
+      "liveWickets": 4,
+      "liveBalls": 107,
+      "currentStriker": "MS Dhoni (c & wk)",
+      "currentNonStriker": "Ruturaj Gaikwad",
+      "currentBowler": "Lockie Ferguson",
+      "target": 171
+    }
   },
-  match_rec_2: {
-    id: 'match_rec_2',
-    title: 'King XI vs Royals XI',
-    tournament: 'City Championship Trophy',
-    venue: 'National Cricket Arena',
-    format: 'T20',
-    matchType: 'T20',
-    totalOvers: 20,
-    status: 'completed',
-    date: '25 Sep 2026',
-    winner: 'Royals XI',
-    userResult: 'Lost',
-    result: 'Lost',
-    resultSummary: 'Royals XI won by 4 wickets',
-    teamA: 'King XI',
-    teamB: 'Royals XI',
-    flagA: '👑',
-    flagB: '🦁',
-    innings1: {
-      team: 'King XI',
-      flag: '👑',
-      runs: 155,
-      wickets: 7,
-      overs: '20.0',
-      maxOvers: 20,
-      crr: '7.75',
-      batting: [
-        { name: 'Virat Kohli', runs: 64, balls: 48, fours: 6, sixes: 2, strikeRate: '133.33', dismissal: 'c Samson b Chahal' },
-        { name: 'Faf du Plessis (c)', runs: 28, balls: 22, fours: 3, sixes: 1, strikeRate: '127.27', dismissal: 'b Boult' },
-        { name: 'Glenn Maxwell', runs: 16, balls: 11, fours: 2, sixes: 0, strikeRate: '145.45', dismissal: 'c Hetmyer b Ashwin' },
-        { name: 'Dinesh Karthik (wk)', runs: 31, balls: 17, fours: 3, sixes: 2, strikeRate: '182.35', notOut: true, dismissal: 'not out' },
+  "match_live_6": {
+    "id": "match_live_6",
+    "title": "Royals XI vs Blasters XI",
+    "tournament": "Desert Gold Cup",
+    "venue": "Sawai Mansingh Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "Royals XI",
+    "teamB": "Blasters XI",
+    "flagA": "\ud83e\udd81",
+    "flagB": "\ud83d\udd34",
+    "toss": "Blasters XI won the toss & elected to BAT",
+    "selectedInning": 2,
+    "equation": "Royals XI need 42 runs in 24 balls",
+    "innings1": {
+      "team": "Blasters XI",
+      "flag": "\ud83d\udd34",
+      "runs": 195,
+      "wickets": 5,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "9.75",
+      "extras": "8 (w 5, nb 1, lb 2)",
+      "fow": "72-1, 118-2, 160-3",
+      "batting": [
+        {
+          "name": "Phil Salt (wk)",
+          "runs": 58,
+          "balls": 34,
+          "fours": 7,
+          "sixes": 3,
+          "strikeRate": "170.59",
+          "dismissal": "c Samson b Boult",
+          "notOut": false,
+          "dots": 18,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Sunil Narine",
+          "runs": 44,
+          "balls": 21,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "209.52",
+          "dismissal": "b Chahal",
+          "notOut": false,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Shreyas Iyer (c)",
+          "runs": 38,
+          "balls": 26,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "146.15",
+          "dismissal": "c Ashwin b Sandeep",
+          "notOut": false,
+          "dots": 13,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Andre Russell",
+          "runs": 32,
+          "balls": 15,
+          "fours": 2,
+          "sixes": 3,
+          "strikeRate": "213.33",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 3
+        }
       ],
-      bowling: [
-        { name: 'Trent Boult', overs: '4.0', maidens: 1, runs: 26, wickets: 2, econ: '6.50' },
-        { name: 'Ravichandran Ashwin', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
-        { name: 'Yuzvendra Chahal', overs: '4.0', maidens: 0, runs: 32, wickets: 2, econ: '8.00' },
-        { name: 'Avesh Khan', overs: '4.0', maidens: 0, runs: 38, wickets: 1, econ: '9.50' },
-        { name: 'Sandeep Sharma', overs: '4.0', maidens: 0, runs: 30, wickets: 1, econ: '7.50' },
-      ],
+      "bowling": [
+        {
+          "name": "Trent Boult",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Yuzvendra Chahal",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Sandeep Sharma",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Ravichandran Ashwin",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 0,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
     },
-    innings2: {
-      team: 'Royals XI',
-      flag: '🦁',
-      runs: 156,
-      wickets: 6,
-      overs: '19.2',
-      maxOvers: 20,
-      crr: '8.07',
-      batting: [
-        { name: 'Yashasvi Jaiswal', runs: 51, balls: 32, fours: 7, sixes: 2, strikeRate: '159.38', dismissal: 'c Maxwell b Siraj' },
-        { name: 'Jos Buttler', runs: 24, balls: 18, fours: 3, sixes: 0, strikeRate: '133.33', dismissal: 'b Dayal' },
-        { name: 'Sanju Samson (c & wk)', runs: 44, balls: 28, fours: 4, sixes: 2, strikeRate: '157.14', dismissal: 'c Karthik b Ferguson' },
-        { name: 'Riyan Parag', runs: 22, balls: 16, fours: 2, sixes: 1, strikeRate: '137.50', notOut: true, dismissal: 'not out' },
-        { name: 'Shimron Hetmyer', runs: 12, balls: 7, fours: 1, sixes: 1, strikeRate: '171.43', notOut: true, dismissal: 'not out' },
+    "innings2": {
+      "team": "Royals XI",
+      "flag": "\ud83e\udd81",
+      "runs": 154,
+      "wickets": 3,
+      "overs": "16.0",
+      "maxOvers": 20,
+      "crr": "9.62",
+      "target": 196,
+      "extras": "6 (w 4, nb 1, lb 1)",
+      "fow": "62-1, 114-2",
+      "batting": [
+        {
+          "name": "Yashasvi Jaiswal",
+          "runs": 68,
+          "balls": 42,
+          "fours": 8,
+          "sixes": 3,
+          "strikeRate": "161.90",
+          "dismissal": "c Salt b Starc",
+          "notOut": false,
+          "dots": 22,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Jos Buttler",
+          "runs": 34,
+          "balls": 22,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "154.55",
+          "dismissal": "b Varun",
+          "notOut": false,
+          "dots": 11,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Sanju Samson (c & wk)",
+          "runs": 36,
+          "balls": 21,
+          "fours": 3,
+          "sixes": 2,
+          "strikeRate": "171.43",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Riyan Parag",
+          "runs": 12,
+          "balls": 7,
+          "fours": 1,
+          "sixes": 1,
+          "strikeRate": "171.43",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 4,
+          "singles": 0,
+          "doubles": 1
+        }
       ],
-      bowling: [
-        { name: 'Mohammed Siraj', overs: '4.0', maidens: 0, runs: 32, wickets: 2, econ: '8.00' },
-        { name: 'Lockie Ferguson', overs: '3.2', maidens: 0, runs: 34, wickets: 2, econ: '10.20' },
-        { name: 'Glenn Maxwell', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
-        { name: 'Yash Dayal', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
-        { name: 'Karn Sharma', overs: '4.0', maidens: 0, runs: 26, wickets: 0, econ: '6.50' },
-      ],
+      "bowling": [
+        {
+          "name": "Mitchell Starc",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Varun Chakravarthy",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Sunil Narine",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 0,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Harshit Rana",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 0,
+          "econ": "11.33",
+          "dots": 1,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
     },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 154,
+      "liveWickets": 3,
+      "liveBalls": 96,
+      "currentStriker": "Sanju Samson (c & wk)",
+      "currentNonStriker": "Riyan Parag",
+      "currentBowler": "Harshit Rana",
+      "target": 196
+    }
   },
-  match_rec_3: {
-    id: 'match_rec_3',
-    title: 'Blasters XI vs United XI',
-    tournament: 'Super Cup 2026',
-    venue: 'Eden Park Grounds',
-    format: 'T20',
-    matchType: 'T20',
-    totalOvers: 20,
-    status: 'completed',
-    date: '22 Sep 2026',
-    winner: 'Blasters XI',
-    userResult: 'Won',
-    result: 'Won',
-    resultSummary: 'Blasters XI won by 28 runs',
-    teamA: 'Blasters XI',
-    teamB: 'United XI',
-    flagA: '🔴',
-    flagB: '🛡️',
-    innings1: {
-      team: 'Blasters XI',
-      flag: '🔴',
-      runs: 192,
-      wickets: 5,
-      overs: '20.0',
-      maxOvers: 20,
-      crr: '9.60',
-      batting: [
-        { name: 'Phil Salt (wk)', runs: 38, balls: 22, fours: 5, sixes: 2, strikeRate: '172.73', dismissal: 'c Warner b Nortje' },
-        { name: 'Sunil Narine', runs: 24, balls: 13, fours: 3, sixes: 2, strikeRate: '184.62', dismissal: 'b Khaleel' },
-        { name: 'Shreyas Iyer (c)', runs: 48, balls: 34, fours: 4, sixes: 2, strikeRate: '141.18', dismissal: 'c Stubbs b Axar' },
-        { name: 'Andre Russell', runs: 62, balls: 25, fours: 4, sixes: 6, strikeRate: '248.00', notOut: true, dismissal: 'not out' },
-        { name: 'Rinku Singh', runs: 16, balls: 8, fours: 2, sixes: 1, strikeRate: '200.00', notOut: true, dismissal: 'not out' },
+  "match_live_7": {
+    "id": "match_live_7",
+    "title": "United XI vs Tigers XI",
+    "tournament": "Metro Championship",
+    "venue": "Arun Jaitley Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "United XI",
+    "teamB": "Tigers XI",
+    "flagA": "\ud83d\udee1\ufe0f",
+    "flagB": "\ud83d\udc2f",
+    "toss": "United XI won the toss & elected to BOWL",
+    "selectedInning": 2,
+    "equation": "United XI need 23 runs in 16 balls",
+    "innings1": {
+      "team": "Tigers XI",
+      "flag": "\ud83d\udc2f",
+      "runs": 162,
+      "wickets": 8,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.10",
+      "extras": "7 (w 4, nb 1, lb 2)",
+      "fow": "52-1, 98-2, 134-3",
+      "batting": [
+        {
+          "name": "Rohit Sharma (c)",
+          "runs": 48,
+          "balls": 32,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "150.00",
+          "dismissal": "c Warner b Nortje",
+          "notOut": false,
+          "dots": 18,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Suryakumar Yadav",
+          "runs": 52,
+          "balls": 31,
+          "fours": 5,
+          "sixes": 3,
+          "strikeRate": "167.74",
+          "dismissal": "c Pant b Kuldeep",
+          "notOut": false,
+          "dots": 16,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Hardik Pandya",
+          "runs": 28,
+          "balls": 18,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "155.56",
+          "dismissal": "b Axar",
+          "notOut": false,
+          "dots": 8,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Rishabh Pant",
+          "runs": 20,
+          "balls": 14,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "142.86",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 6,
+          "singles": 0,
+          "doubles": 6
+        }
       ],
-      bowling: [
-        { name: 'Mitchell Starc', overs: '4.0', maidens: 0, runs: 32, wickets: 1, econ: '8.00' },
-        { name: 'Khaleel Ahmed', overs: '4.0', maidens: 0, runs: 42, wickets: 1, econ: '10.50' },
-        { name: 'Anrich Nortje', overs: '4.0', maidens: 0, runs: 45, wickets: 1, econ: '11.25' },
-        { name: 'Axar Patel', overs: '4.0', maidens: 0, runs: 36, wickets: 1, econ: '9.00' },
-        { name: 'Kuldeep Yadav', overs: '4.0', maidens: 0, runs: 35, wickets: 1, econ: '8.75' },
-      ],
+      "bowling": [
+        {
+          "name": "Anrich Nortje",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 2,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 2,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Axar Patel",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 26,
+          "wickets": 1,
+          "econ": "6.50",
+          "dots": 11,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Khaleel Ahmed",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
     },
-    innings2: {
-      team: 'United XI',
-      flag: '🛡️',
-      runs: 164,
-      wickets: 9,
-      overs: '20.0',
-      maxOvers: 20,
-      crr: '8.20',
-      batting: [
-        { name: 'David Warner (c)', runs: 45, balls: 30, fours: 5, sixes: 2, strikeRate: '150.00', dismissal: 'c Iyer b Starc' },
-        { name: 'Prithvi Shaw', runs: 18, balls: 12, fours: 3, sixes: 0, strikeRate: '150.00', dismissal: 'b Harshit' },
-        { name: 'Rishabh Pant (wk)', runs: 34, balls: 24, fours: 3, sixes: 2, strikeRate: '141.67', dismissal: 'c Salt b Varun' },
-        { name: 'Tristan Stubbs', runs: 28, balls: 18, fours: 2, sixes: 2, strikeRate: '155.56', dismissal: 'b Russell' },
-        { name: 'Axar Patel', runs: 14, balls: 11, fours: 1, sixes: 0, strikeRate: '127.27', dismissal: 'b Starc' },
+    "innings2": {
+      "team": "United XI",
+      "flag": "\ud83d\udee1\ufe0f",
+      "runs": 140,
+      "wickets": 5,
+      "overs": "17.2",
+      "maxOvers": 20,
+      "crr": "8.08",
+      "target": 163,
+      "extras": "6 (w 3, nb 1, lb 2)",
+      "fow": "48-1, 88-2, 126-3",
+      "batting": [
+        {
+          "name": "David Warner (c)",
+          "runs": 46,
+          "balls": 30,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "153.33",
+          "dismissal": "c Rohit b Bumrah",
+          "notOut": false,
+          "dots": 16,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Prithvi Shaw",
+          "runs": 28,
+          "balls": 17,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "164.71",
+          "dismissal": "b Shami",
+          "notOut": false,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Mitchell Marsh",
+          "runs": 34,
+          "balls": 22,
+          "fours": 3,
+          "sixes": 2,
+          "strikeRate": "154.55",
+          "dismissal": "c Surya b Pandya",
+          "notOut": false,
+          "dots": 12,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Tristan Stubbs",
+          "runs": 22,
+          "balls": 15,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "146.67",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 8,
+          "singles": 0,
+          "doubles": 4
+        }
       ],
-      bowling: [
-        { name: 'Mitchell Starc', overs: '4.0', maidens: 0, runs: 24, wickets: 3, econ: '6.00' },
-        { name: 'Harshit Rana', overs: '4.0', maidens: 0, runs: 36, wickets: 2, econ: '9.00' },
-        { name: 'Sunil Narine', overs: '4.0', maidens: 0, runs: 28, wickets: 1, econ: '7.00' },
-        { name: 'Varun Chakravarthy', overs: '4.0', maidens: 0, runs: 34, wickets: 2, econ: '8.50' },
-        { name: 'Andre Russell', overs: '4.0', maidens: 0, runs: 40, wickets: 1, econ: '10.00' },
-      ],
+      "bowling": [
+        {
+          "name": "Jasprit Bumrah",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 22,
+          "wickets": 2,
+          "econ": "5.50",
+          "dots": 13,
+          "fours": 2,
+          "sixes": 1
+        },
+        {
+          "name": "Mohammed Shami",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Hardik Pandya",
+          "overs": "3.2",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "8.40",
+          "dots": 6,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 26,
+          "wickets": 0,
+          "econ": "8.67",
+          "dots": 5,
+          "fours": 3,
+          "sixes": 1
+        }
+      ]
     },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 140,
+      "liveWickets": 5,
+      "liveBalls": 104,
+      "currentStriker": "Tristan Stubbs",
+      "currentNonStriker": "Axar Patel",
+      "currentBowler": "Hardik Pandya",
+      "target": 163
+    }
   },
+  "match_live_8": {
+    "id": "match_live_8",
+    "title": "Sunrisers XI vs Warriors XI",
+    "tournament": "Southern Clash",
+    "venue": "Rajiv Gandhi Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "Sunrisers XI",
+    "teamB": "Warriors XI",
+    "flagA": "\ud83e\udd85",
+    "flagB": "\u2694\ufe0f",
+    "toss": "Sunrisers XI won the toss & elected to BOWL",
+    "selectedInning": 2,
+    "equation": "Sunrisers XI need 15 runs in 9 balls",
+    "innings1": {
+      "team": "Warriors XI",
+      "flag": "\u2694\ufe0f",
+      "runs": 178,
+      "wickets": 6,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.90",
+      "extras": "8 (w 5, nb 1, lb 2)",
+      "fow": "54-1, 102-2, 156-3",
+      "batting": [
+        {
+          "name": "Ruturaj Gaikwad (c)",
+          "runs": 54,
+          "balls": 38,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "142.11",
+          "dismissal": "c Klaasen b Cummins",
+          "notOut": false,
+          "dots": 21,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Devon Conway",
+          "runs": 32,
+          "balls": 24,
+          "fours": 4,
+          "sixes": 0,
+          "strikeRate": "133.33",
+          "dismissal": "b Bhuvi",
+          "notOut": false,
+          "dots": 12,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Shivam Dube",
+          "runs": 48,
+          "balls": 28,
+          "fours": 3,
+          "sixes": 4,
+          "strikeRate": "171.43",
+          "dismissal": "c Head b Natarajan",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "MS Dhoni (wk)",
+          "runs": 26,
+          "balls": 16,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "162.50",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 6
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Pat Cummins",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Bhuvneshwar Kumar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 2,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "T Natarajan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Shahbaz Ahmed",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 0,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Sunrisers XI",
+      "flag": "\ud83e\udd85",
+      "runs": 164,
+      "wickets": 5,
+      "overs": "18.3",
+      "maxOvers": 20,
+      "crr": "8.86",
+      "target": 179,
+      "extras": "6 (w 3, nb 1, lb 2)",
+      "fow": "68-1, 118-2, 152-3",
+      "batting": [
+        {
+          "name": "Travis Head",
+          "runs": 58,
+          "balls": 33,
+          "fours": 7,
+          "sixes": 3,
+          "strikeRate": "175.76",
+          "dismissal": "c Dhoni b Chahar",
+          "notOut": false,
+          "dots": 17,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Abhishek Sharma",
+          "runs": 42,
+          "balls": 25,
+          "fours": 4,
+          "sixes": 3,
+          "strikeRate": "168.00",
+          "dismissal": "b Jadeja",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Heinrich Klaasen (wk)",
+          "runs": 38,
+          "balls": 20,
+          "fours": 3,
+          "sixes": 3,
+          "strikeRate": "190.00",
+          "dismissal": "c Dube b Pathirana",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Nitish Kumar Reddy",
+          "runs": 16,
+          "balls": 9,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "177.78",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 3,
+          "singles": 0,
+          "doubles": 4
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Deepak Chahar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Ravindra Jadeja",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Matheesha Pathirana",
+          "overs": "3.3",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 2,
+          "econ": "10.29",
+          "dots": 3,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Shardul Thakur",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 0,
+          "econ": "10.67",
+          "dots": 2,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 164,
+      "liveWickets": 5,
+      "liveBalls": 111,
+      "currentStriker": "Nitish Kumar Reddy",
+      "currentNonStriker": "Pat Cummins",
+      "currentBowler": "Matheesha Pathirana",
+      "target": 179
+    }
+  },
+  "match_live_9": {
+    "id": "match_live_9",
+    "title": "King XI vs Titans XI",
+    "tournament": "Premier League Knockout",
+    "venue": "Chinnaswamy Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "King XI",
+    "teamB": "Titans XI",
+    "flagA": "\ud83d\udc51",
+    "flagB": "\u26a1",
+    "toss": "King XI won the toss & elected to BOWL",
+    "selectedInning": 2,
+    "equation": "King XI need 31 runs in 22 balls",
+    "innings1": {
+      "team": "Titans XI",
+      "flag": "\u26a1",
+      "runs": 185,
+      "wickets": 6,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "9.25",
+      "extras": "8 (w 5, nb 1, lb 2)",
+      "fow": "64-1, 122-2, 160-3",
+      "batting": [
+        {
+          "name": "Shubman Gill (c)",
+          "runs": 56,
+          "balls": 38,
+          "fours": 7,
+          "sixes": 1,
+          "strikeRate": "147.37",
+          "dismissal": "c Kohli b Siraj",
+          "notOut": false,
+          "dots": 19,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Sai Sudharsan",
+          "runs": 48,
+          "balls": 32,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "150.00",
+          "dismissal": "b Ferguson",
+          "notOut": false,
+          "dots": 17,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "David Miller",
+          "runs": 36,
+          "balls": 21,
+          "fours": 3,
+          "sixes": 2,
+          "strikeRate": "171.43",
+          "dismissal": "c Karthik b Dayal",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Rahul Tewatia",
+          "runs": 24,
+          "balls": 13,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "184.62",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 5
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mohammed Siraj",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Lockie Ferguson",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 2,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Yash Dayal",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Glenn Maxwell",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 0,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "King XI",
+      "flag": "\ud83d\udc51",
+      "runs": 155,
+      "wickets": 4,
+      "overs": "16.2",
+      "maxOvers": 20,
+      "crr": "9.49",
+      "target": 186,
+      "extras": "6 (w 4, nb 1, lb 1)",
+      "fow": "72-1, 118-2, 146-3",
+      "batting": [
+        {
+          "name": "Virat Kohli (c)",
+          "runs": 64,
+          "balls": 43,
+          "fours": 8,
+          "sixes": 2,
+          "strikeRate": "148.84",
+          "dismissal": "c Miller b Rashid",
+          "notOut": false,
+          "dots": 23,
+          "singles": 0,
+          "doubles": 10
+        },
+        {
+          "name": "Faf du Plessis",
+          "runs": 38,
+          "balls": 25,
+          "fours": 4,
+          "sixes": 2,
+          "strikeRate": "152.00",
+          "dismissal": "b Mohit",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Rajat Patidar",
+          "runs": 26,
+          "balls": 16,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "162.50",
+          "dismissal": "c Gill b Spencer",
+          "notOut": false,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Glenn Maxwell",
+          "runs": 18,
+          "balls": 9,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "200.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 4,
+          "singles": 0,
+          "doubles": 2
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Rashid Khan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 2,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Mohit Sharma",
+          "overs": "3.2",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "10.20",
+          "dots": 3,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Spencer Johnson",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 1,
+          "econ": "10.00",
+          "dots": 3,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Rahul Tewatia",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 26,
+          "wickets": 0,
+          "econ": "8.67",
+          "dots": 5,
+          "fours": 3,
+          "sixes": 1
+        }
+      ]
+    },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 155,
+      "liveWickets": 4,
+      "liveBalls": 98,
+      "currentStriker": "Glenn Maxwell",
+      "currentNonStriker": "Dinesh Karthik",
+      "currentBowler": "Mohit Sharma",
+      "target": 186
+    }
+  },
+  "match_live_10": {
+    "id": "match_live_10",
+    "title": "Blasters XI vs Tigers XI",
+    "tournament": "All-Stars Classic",
+    "venue": "Wankhede Arena",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "live",
+    "teamA": "Blasters XI",
+    "teamB": "Tigers XI",
+    "flagA": "\ud83d\udd34",
+    "flagB": "\ud83d\udc2f",
+    "toss": "Blasters XI won the toss & elected to BOWL",
+    "selectedInning": 2,
+    "equation": "Blasters XI need 9 runs in 6 balls",
+    "innings1": {
+      "team": "Tigers XI",
+      "flag": "\ud83d\udc2f",
+      "runs": 168,
+      "wickets": 7,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.40",
+      "extras": "7 (w 4, nb 1, lb 2)",
+      "fow": "58-1, 108-2, 142-3",
+      "batting": [
+        {
+          "name": "Rohit Sharma (c)",
+          "runs": 52,
+          "balls": 36,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "144.44",
+          "dismissal": "c Salt b Starc",
+          "notOut": false,
+          "dots": 20,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Suryakumar Yadav",
+          "runs": 46,
+          "balls": 29,
+          "fours": 4,
+          "sixes": 3,
+          "strikeRate": "158.62",
+          "dismissal": "c Iyer b Varun",
+          "notOut": false,
+          "dots": 16,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Hardik Pandya",
+          "runs": 28,
+          "balls": 18,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "155.56",
+          "dismissal": "b Narine",
+          "notOut": false,
+          "dots": 8,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Rishabh Pant (wk)",
+          "runs": 24,
+          "balls": 15,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "160.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 5
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mitchell Starc",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Varun Chakravarthy",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 2,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Sunil Narine",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 24,
+          "wickets": 1,
+          "econ": "6.00",
+          "dots": 12,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Harshit Rana",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Blasters XI",
+      "flag": "\ud83d\udd34",
+      "runs": 160,
+      "wickets": 6,
+      "overs": "19.0",
+      "maxOvers": 20,
+      "crr": "8.42",
+      "target": 169,
+      "extras": "6 (w 3, nb 1, lb 2)",
+      "fow": "52-1, 102-2, 148-3",
+      "batting": [
+        {
+          "name": "Phil Salt (wk)",
+          "runs": 48,
+          "balls": 30,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "160.00",
+          "dismissal": "c Rohit b Bumrah",
+          "notOut": false,
+          "dots": 16,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Shreyas Iyer (c)",
+          "runs": 42,
+          "balls": 28,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "150.00",
+          "dismissal": "c Surya b Shami",
+          "notOut": false,
+          "dots": 13,
+          "singles": 0,
+          "doubles": 10
+        },
+        {
+          "name": "Andre Russell",
+          "runs": 36,
+          "balls": 17,
+          "fours": 2,
+          "sixes": 4,
+          "strikeRate": "211.76",
+          "dismissal": "b Bumrah",
+          "notOut": false,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 2
+        },
+        {
+          "name": "Rinku Singh",
+          "runs": 22,
+          "balls": 12,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "183.33",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 4
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Jasprit Bumrah",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 26,
+          "wickets": 3,
+          "econ": "6.50",
+          "dots": 11,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Mohammed Shami",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Hardik Pandya",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "9.33",
+          "dots": 4,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "liveState": {
+      "currentInnings": 2,
+      "liveRuns": 160,
+      "liveWickets": 6,
+      "liveBalls": 114,
+      "currentStriker": "Rinku Singh",
+      "currentNonStriker": "Mitchell Starc",
+      "currentBowler": "Hardik Pandya",
+      "target": 169
+    }
+  },
+  "match_rec_1": {
+    "id": "match_rec_1",
+    "title": "Tigers XI vs Warriors XI",
+    "tournament": "School Premier League",
+    "venue": "Green Valley Ground",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "27 Sep 2026",
+    "winner": "Tigers XI",
+    "userResult": "Won",
+    "result": "Won",
+    "resultSummary": "Tigers XI won by 16 runs",
+    "teamA": "Tigers XI",
+    "teamB": "Warriors XI",
+    "flagA": "\ud83d\udc2f",
+    "flagB": "\u2694\ufe0f",
+    "pom": "Rohit Sharma (68 runs)",
+    "innings1": {
+      "team": "Tigers XI",
+      "flag": "\ud83d\udc2f",
+      "runs": 178,
+      "wickets": 6,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.90",
+      "batting": [
+        {
+          "name": "Rohit Sharma (c)",
+          "runs": 68,
+          "balls": 44,
+          "fours": 7,
+          "sixes": 3,
+          "strikeRate": "154.55",
+          "dismissal": "c Dhoni b Chahar",
+          "notOut": false,
+          "dots": 23,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Shubman Gill",
+          "runs": 22,
+          "balls": 18,
+          "fours": 3,
+          "sixes": 0,
+          "strikeRate": "122.22",
+          "dismissal": "b Thakur",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Virat Kohli",
+          "runs": 14,
+          "balls": 12,
+          "fours": 1,
+          "sixes": 0,
+          "strikeRate": "116.67",
+          "dismissal": "c Jadeja b Moeen",
+          "notOut": false,
+          "dots": 6,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Suryakumar Yadav",
+          "runs": 52,
+          "balls": 29,
+          "fours": 5,
+          "sixes": 3,
+          "strikeRate": "179.31",
+          "dismissal": "c Dube b Pathirana",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Hardik Pandya",
+          "runs": 12,
+          "balls": 9,
+          "fours": 1,
+          "sixes": 0,
+          "strikeRate": "133.33",
+          "dismissal": "b Pathirana",
+          "notOut": false,
+          "dots": 4,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Rishabh Pant (wk)",
+          "runs": 8,
+          "balls": 6,
+          "fours": 1,
+          "sixes": 0,
+          "strikeRate": "133.33",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 3,
+          "singles": 0,
+          "doubles": 2
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Deepak Chahar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Shardul Thakur",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 42,
+          "wickets": 1,
+          "econ": "10.50",
+          "dots": 3,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Moeen Ali",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Matheesha Pathirana",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 2,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Ravindra Jadeja",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 0,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Warriors XI",
+      "flag": "\u2694\ufe0f",
+      "runs": 162,
+      "wickets": 8,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.10",
+      "batting": [
+        {
+          "name": "Ruturaj Gaikwad",
+          "runs": 58,
+          "balls": 41,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "141.46",
+          "dismissal": "c Rohit b Bumrah",
+          "notOut": false,
+          "dots": 22,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Devon Conway",
+          "runs": 24,
+          "balls": 19,
+          "fours": 3,
+          "sixes": 0,
+          "strikeRate": "126.32",
+          "dismissal": "b Shami",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Ajinkya Rahane",
+          "runs": 16,
+          "balls": 14,
+          "fours": 1,
+          "sixes": 1,
+          "strikeRate": "114.29",
+          "dismissal": "c Pant b Pandya",
+          "notOut": false,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Shivam Dube",
+          "runs": 32,
+          "balls": 20,
+          "fours": 2,
+          "sixes": 2,
+          "strikeRate": "160.00",
+          "dismissal": "c Surya b Kuldeep",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "MS Dhoni (c & wk)",
+          "runs": 18,
+          "balls": 14,
+          "fours": 1,
+          "sixes": 1,
+          "strikeRate": "128.57",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 8,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Moeen Ali",
+          "runs": 6,
+          "balls": 5,
+          "fours": 0,
+          "sixes": 0,
+          "strikeRate": "120.00",
+          "dismissal": "b Bumrah",
+          "notOut": false,
+          "dots": 2,
+          "singles": 0,
+          "doubles": 3
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Jasprit Bumrah",
+          "overs": "4.0",
+          "maidens": 1,
+          "runs": 18,
+          "wickets": 3,
+          "econ": "4.50",
+          "dots": 15,
+          "fours": 2,
+          "sixes": 1
+        },
+        {
+          "name": "Mohammed Shami",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 2,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Hardik Pandya",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Axar Patel",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 0,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    }
+  },
+  "match_rec_2": {
+    "id": "match_rec_2",
+    "title": "King XI vs Royals XI",
+    "tournament": "City Championship Trophy",
+    "venue": "National Cricket Arena",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "25 Sep 2026",
+    "winner": "Royals XI",
+    "userResult": "Lost",
+    "result": "Lost",
+    "resultSummary": "Royals XI won by 4 wickets",
+    "teamA": "King XI",
+    "teamB": "Royals XI",
+    "flagA": "\ud83d\udc51",
+    "flagB": "\ud83e\udd81",
+    "pom": "Yashasvi Jaiswal (51 runs)",
+    "innings1": {
+      "team": "King XI",
+      "flag": "\ud83d\udc51",
+      "runs": 155,
+      "wickets": 7,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "7.75",
+      "batting": [
+        {
+          "name": "Virat Kohli",
+          "runs": 64,
+          "balls": 48,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "133.33",
+          "dismissal": "c Samson b Chahal",
+          "notOut": false,
+          "dots": 26,
+          "singles": 0,
+          "doubles": 14
+        },
+        {
+          "name": "Faf du Plessis (c)",
+          "runs": 28,
+          "balls": 22,
+          "fours": 3,
+          "sixes": 1,
+          "strikeRate": "127.27",
+          "dismissal": "b Boult",
+          "notOut": false,
+          "dots": 13,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Glenn Maxwell",
+          "runs": 16,
+          "balls": 11,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "145.45",
+          "dismissal": "c Hetmyer b Ashwin",
+          "notOut": false,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Dinesh Karthik (wk)",
+          "runs": 31,
+          "balls": 17,
+          "fours": 3,
+          "sixes": 2,
+          "strikeRate": "182.35",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 8,
+          "singles": 1,
+          "doubles": 3
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Trent Boult",
+          "overs": "4.0",
+          "maidens": 1,
+          "runs": 26,
+          "wickets": 2,
+          "econ": "6.50",
+          "dots": 11,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Ravichandran Ashwin",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Yuzvendra Chahal",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Avesh Khan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Royals XI",
+      "flag": "\ud83e\udd81",
+      "runs": 156,
+      "wickets": 6,
+      "overs": "19.2",
+      "maxOvers": 20,
+      "crr": "8.07",
+      "batting": [
+        {
+          "name": "Yashasvi Jaiswal",
+          "runs": 51,
+          "balls": 32,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "159.38",
+          "dismissal": "c Maxwell b Siraj",
+          "notOut": false,
+          "dots": 17,
+          "singles": 1,
+          "doubles": 5
+        },
+        {
+          "name": "Jos Buttler",
+          "runs": 24,
+          "balls": 18,
+          "fours": 3,
+          "sixes": 0,
+          "strikeRate": "133.33",
+          "dismissal": "b Dayal",
+          "notOut": false,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Sanju Samson (c & wk)",
+          "runs": 44,
+          "balls": 28,
+          "fours": 4,
+          "sixes": 2,
+          "strikeRate": "157.14",
+          "dismissal": "c Karthik b Ferguson",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Riyan Parag",
+          "runs": 22,
+          "balls": 16,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "137.50",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Shimron Hetmyer",
+          "runs": 12,
+          "balls": 7,
+          "fours": 1,
+          "sixes": 1,
+          "strikeRate": "171.43",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 4,
+          "singles": 0,
+          "doubles": 1
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mohammed Siraj",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Lockie Ferguson",
+          "overs": "3.2",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 2,
+          "econ": "10.20",
+          "dots": 3,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Glenn Maxwell",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Yash Dayal",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    }
+  },
+  "match_rec_3": {
+    "id": "match_rec_3",
+    "title": "Blasters XI vs United XI",
+    "tournament": "Super Cup 2026",
+    "venue": "Eden Park Grounds",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "22 Sep 2026",
+    "winner": "Blasters XI",
+    "userResult": "Won",
+    "result": "Won",
+    "resultSummary": "Blasters XI won by 28 runs",
+    "teamA": "Blasters XI",
+    "teamB": "United XI",
+    "flagA": "\ud83d\udd34",
+    "flagB": "\ud83d\udee1\ufe0f",
+    "pom": "Andre Russell (62* runs & 1 wkt)",
+    "innings1": {
+      "team": "Blasters XI",
+      "flag": "\ud83d\udd34",
+      "runs": 192,
+      "wickets": 5,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "9.60",
+      "batting": [
+        {
+          "name": "Phil Salt (wk)",
+          "runs": 38,
+          "balls": 22,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "172.73",
+          "dismissal": "c Warner b Nortje",
+          "notOut": false,
+          "dots": 12,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Sunil Narine",
+          "runs": 24,
+          "balls": 13,
+          "fours": 3,
+          "sixes": 2,
+          "strikeRate": "184.62",
+          "dismissal": "b Khaleel",
+          "notOut": false,
+          "dots": 8,
+          "singles": 0,
+          "doubles": 0
+        },
+        {
+          "name": "Shreyas Iyer (c)",
+          "runs": 48,
+          "balls": 34,
+          "fours": 4,
+          "sixes": 2,
+          "strikeRate": "141.18",
+          "dismissal": "c Stubbs b Axar",
+          "notOut": false,
+          "dots": 18,
+          "singles": 0,
+          "doubles": 10
+        },
+        {
+          "name": "Andre Russell",
+          "runs": 62,
+          "balls": 25,
+          "fours": 4,
+          "sixes": 6,
+          "strikeRate": "248.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Rinku Singh",
+          "runs": 16,
+          "balls": 8,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "200.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 4,
+          "singles": 0,
+          "doubles": 1
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mitchell Starc",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Khaleel Ahmed",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 42,
+          "wickets": 1,
+          "econ": "10.50",
+          "dots": 3,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Anrich Nortje",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 45,
+          "wickets": 1,
+          "econ": "11.25",
+          "dots": 2,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Axar Patel",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 35,
+          "wickets": 1,
+          "econ": "8.75",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "United XI",
+      "flag": "\ud83d\udee1\ufe0f",
+      "runs": 164,
+      "wickets": 9,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.20",
+      "batting": [
+        {
+          "name": "David Warner (c)",
+          "runs": 45,
+          "balls": 30,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "150.00",
+          "dismissal": "c Iyer b Starc",
+          "notOut": false,
+          "dots": 16,
+          "singles": 1,
+          "doubles": 6
+        },
+        {
+          "name": "Prithvi Shaw",
+          "runs": 18,
+          "balls": 12,
+          "fours": 3,
+          "sixes": 0,
+          "strikeRate": "150.00",
+          "dismissal": "b Harshit",
+          "notOut": false,
+          "dots": 6,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Rishabh Pant (wk)",
+          "runs": 34,
+          "balls": 24,
+          "fours": 3,
+          "sixes": 2,
+          "strikeRate": "141.67",
+          "dismissal": "c Salt b Varun",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Tristan Stubbs",
+          "runs": 28,
+          "balls": 18,
+          "fours": 2,
+          "sixes": 2,
+          "strikeRate": "155.56",
+          "dismissal": "b Russell",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Axar Patel",
+          "runs": 14,
+          "balls": 11,
+          "fours": 1,
+          "sixes": 0,
+          "strikeRate": "127.27",
+          "dismissal": "b Starc",
+          "notOut": false,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 5
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mitchell Starc",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 24,
+          "wickets": 3,
+          "econ": "6.00",
+          "dots": 12,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Harshit Rana",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 2,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Sunil Narine",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Varun Chakravarthy",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 2,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Andre Russell",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 40,
+          "wickets": 1,
+          "econ": "10.00",
+          "dots": 4,
+          "fours": 5,
+          "sixes": 2
+        }
+      ]
+    }
+  },
+  "match_rec_4": {
+    "id": "match_rec_4",
+    "title": "Titans XI vs Sunrisers XI",
+    "tournament": "National Trophy",
+    "venue": "Narendra Modi Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "20 Sep 2026",
+    "winner": "Sunrisers XI",
+    "userResult": "Lost",
+    "result": "Lost",
+    "resultSummary": "Sunrisers XI won by 7 wickets",
+    "teamA": "Titans XI",
+    "teamB": "Sunrisers XI",
+    "flagA": "\u26a1",
+    "flagB": "\ud83e\udd85",
+    "pom": "Travis Head (68 runs)",
+    "innings1": {
+      "team": "Titans XI",
+      "flag": "\u26a1",
+      "runs": 169,
+      "wickets": 8,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.45",
+      "batting": [
+        {
+          "name": "Shubman Gill (c)",
+          "runs": 54,
+          "balls": 38,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "142.11",
+          "dismissal": "c Markram b Cummins",
+          "notOut": false,
+          "dots": 21,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Sai Sudharsan",
+          "runs": 42,
+          "balls": 31,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "135.48",
+          "dismissal": "b Natarajan",
+          "notOut": false,
+          "dots": 16,
+          "singles": 0,
+          "doubles": 10
+        },
+        {
+          "name": "David Miller",
+          "runs": 32,
+          "balls": 22,
+          "fours": 3,
+          "sixes": 1,
+          "strikeRate": "145.45",
+          "dismissal": "c Klaasen b Bhuvi",
+          "notOut": false,
+          "dots": 11,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Rahul Tewatia",
+          "runs": 18,
+          "balls": 12,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "150.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 5
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Pat Cummins",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 2,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Bhuvneshwar Kumar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "T Natarajan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 2,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Shahbaz Ahmed",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Sunrisers XI",
+      "flag": "\ud83e\udd85",
+      "runs": 170,
+      "wickets": 3,
+      "overs": "16.4",
+      "maxOvers": 20,
+      "crr": "10.20",
+      "batting": [
+        {
+          "name": "Travis Head",
+          "runs": 68,
+          "balls": 40,
+          "fours": 8,
+          "sixes": 3,
+          "strikeRate": "170.00",
+          "dismissal": "c Gill b Rashid",
+          "notOut": false,
+          "dots": 20,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Abhishek Sharma",
+          "runs": 48,
+          "balls": 28,
+          "fours": 5,
+          "sixes": 3,
+          "strikeRate": "171.43",
+          "dismissal": "c Miller b Mohit",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Heinrich Klaasen (wk)",
+          "runs": 34,
+          "balls": 19,
+          "fours": 3,
+          "sixes": 2,
+          "strikeRate": "178.95",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Aiden Markram",
+          "runs": 16,
+          "balls": 9,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "177.78",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 3,
+          "singles": 0,
+          "doubles": 4
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mohit Sharma",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Rashid Khan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Spencer Johnson",
+          "overs": "3.4",
+          "maidens": 0,
+          "runs": 42,
+          "wickets": 0,
+          "econ": "11.45",
+          "dots": 1,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Rahul Tewatia",
+          "overs": "3.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 0,
+          "econ": "10.00",
+          "dots": 3,
+          "fours": 3,
+          "sixes": 1
+        }
+      ]
+    }
+  },
+  "match_rec_5": {
+    "id": "match_rec_5",
+    "title": "Warriors XI vs King XI",
+    "tournament": "Southern Derby Cup",
+    "venue": "Chepauk Fortress",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "18 Sep 2026",
+    "winner": "King XI",
+    "userResult": "Lost",
+    "result": "Lost",
+    "resultSummary": "King XI won by 5 wickets",
+    "teamA": "Warriors XI",
+    "teamB": "King XI",
+    "flagA": "\u2694\ufe0f",
+    "flagB": "\ud83d\udc51",
+    "pom": "Virat Kohli (74* runs)",
+    "innings1": {
+      "team": "Warriors XI",
+      "flag": "\u2694\ufe0f",
+      "runs": 172,
+      "wickets": 7,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.60",
+      "batting": [
+        {
+          "name": "Ruturaj Gaikwad",
+          "runs": 62,
+          "balls": 44,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "140.91",
+          "dismissal": "c Kohli b Siraj",
+          "notOut": false,
+          "dots": 24,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Devon Conway",
+          "runs": 34,
+          "balls": 25,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "136.00",
+          "dismissal": "b Ferguson",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 6
+        },
+        {
+          "name": "Shivam Dube",
+          "runs": 44,
+          "balls": 26,
+          "fours": 3,
+          "sixes": 3,
+          "strikeRate": "169.23",
+          "dismissal": "c Green b Maxwell",
+          "notOut": false,
+          "dots": 13,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "MS Dhoni (c & wk)",
+          "runs": 24,
+          "balls": 14,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "171.43",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 6,
+          "singles": 0,
+          "doubles": 5
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mohammed Siraj",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Lockie Ferguson",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 2,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Glenn Maxwell",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 2,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Yash Dayal",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "King XI",
+      "flag": "\ud83d\udc51",
+      "runs": 175,
+      "wickets": 5,
+      "overs": "18.4",
+      "maxOvers": 20,
+      "crr": "9.38",
+      "batting": [
+        {
+          "name": "Virat Kohli",
+          "runs": 74,
+          "balls": 48,
+          "fours": 8,
+          "sixes": 3,
+          "strikeRate": "154.17",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 25,
+          "singles": 0,
+          "doubles": 12
+        },
+        {
+          "name": "Faf du Plessis (c)",
+          "runs": 42,
+          "balls": 28,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "150.00",
+          "dismissal": "c Dhoni b Chahar",
+          "notOut": false,
+          "dots": 16,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Rajat Patidar",
+          "runs": 28,
+          "balls": 18,
+          "fours": 3,
+          "sixes": 1,
+          "strikeRate": "155.56",
+          "dismissal": "b Jadeja",
+          "notOut": false,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Glenn Maxwell",
+          "runs": 18,
+          "balls": 10,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "180.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 2
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Deepak Chahar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Matheesha Pathirana",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Ravindra Jadeja",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Shardul Thakur",
+          "overs": "3.4",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 0,
+          "econ": "9.82",
+          "dots": 4,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    }
+  },
+  "match_rec_6": {
+    "id": "match_rec_6",
+    "title": "Royals XI vs Blasters XI",
+    "tournament": "Desert Champions Trophy",
+    "venue": "Sawai Mansingh Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "15 Sep 2026",
+    "winner": "Royals XI",
+    "userResult": "Won",
+    "result": "Won",
+    "resultSummary": "Royals XI won by 12 runs",
+    "teamA": "Royals XI",
+    "teamB": "Blasters XI",
+    "flagA": "\ud83e\udd81",
+    "flagB": "\ud83d\udd34",
+    "pom": "Sanju Samson (52 runs)",
+    "innings1": {
+      "team": "Royals XI",
+      "flag": "\ud83e\udd81",
+      "runs": 186,
+      "wickets": 6,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "9.30",
+      "batting": [
+        {
+          "name": "Yashasvi Jaiswal",
+          "runs": 58,
+          "balls": 36,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "161.11",
+          "dismissal": "c Salt b Starc",
+          "notOut": false,
+          "dots": 18,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Jos Buttler (wk)",
+          "runs": 48,
+          "balls": 32,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "150.00",
+          "dismissal": "b Varun",
+          "notOut": false,
+          "dots": 17,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Sanju Samson (c)",
+          "runs": 52,
+          "balls": 30,
+          "fours": 5,
+          "sixes": 3,
+          "strikeRate": "173.33",
+          "dismissal": "c Iyer b Narine",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Shimron Hetmyer",
+          "runs": 20,
+          "balls": 11,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "181.82",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 3
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mitchell Starc",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 2,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Varun Chakravarthy",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Sunil Narine",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Harshit Rana",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 42,
+          "wickets": 1,
+          "econ": "10.50",
+          "dots": 3,
+          "fours": 5,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Blasters XI",
+      "flag": "\ud83d\udd34",
+      "runs": 174,
+      "wickets": 8,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.70",
+      "batting": [
+        {
+          "name": "Phil Salt (wk)",
+          "runs": 46,
+          "balls": 28,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "164.29",
+          "dismissal": "c Samson b Boult",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Shreyas Iyer (c)",
+          "runs": 38,
+          "balls": 27,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "140.74",
+          "dismissal": "c Jaiswal b Ashwin",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Andre Russell",
+          "runs": 42,
+          "balls": 20,
+          "fours": 3,
+          "sixes": 4,
+          "strikeRate": "210.00",
+          "dismissal": "c Hetmyer b Chahal",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Rinku Singh",
+          "runs": 24,
+          "balls": 16,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "150.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 8,
+          "singles": 0,
+          "doubles": 5
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Trent Boult",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 2,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Yuzvendra Chahal",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 2,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Ravichandran Ashwin",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Avesh Khan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    }
+  },
+  "match_rec_7": {
+    "id": "match_rec_7",
+    "title": "United XI vs Tigers XI",
+    "tournament": "Capital Super Challenge",
+    "venue": "Arun Jaitley Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "12 Sep 2026",
+    "winner": "Tigers XI",
+    "userResult": "Won",
+    "result": "Won",
+    "resultSummary": "Tigers XI won by 6 wickets",
+    "teamA": "United XI",
+    "teamB": "Tigers XI",
+    "flagA": "\ud83d\udee1\ufe0f",
+    "flagB": "\ud83d\udc2f",
+    "pom": "Rohit Sharma (58 runs)",
+    "innings1": {
+      "team": "United XI",
+      "flag": "\ud83d\udee1\ufe0f",
+      "runs": 158,
+      "wickets": 8,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "7.90",
+      "batting": [
+        {
+          "name": "David Warner (c)",
+          "runs": 42,
+          "balls": 29,
+          "fours": 5,
+          "sixes": 2,
+          "strikeRate": "144.83",
+          "dismissal": "c Rohit b Bumrah",
+          "notOut": false,
+          "dots": 17,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Mitchell Marsh",
+          "runs": 38,
+          "balls": 26,
+          "fours": 4,
+          "sixes": 2,
+          "strikeRate": "146.15",
+          "dismissal": "b Shami",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Rishabh Pant (wk)",
+          "runs": 44,
+          "balls": 28,
+          "fours": 4,
+          "sixes": 2,
+          "strikeRate": "157.14",
+          "dismissal": "c Surya b Pandya",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Tristan Stubbs",
+          "runs": 22,
+          "balls": 16,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "137.50",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 4
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Jasprit Bumrah",
+          "overs": "4.0",
+          "maidens": 1,
+          "runs": 24,
+          "wickets": 3,
+          "econ": "6.00",
+          "dots": 12,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Mohammed Shami",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 2,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Hardik Pandya",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Tigers XI",
+      "flag": "\ud83d\udc2f",
+      "runs": 161,
+      "wickets": 4,
+      "overs": "17.3",
+      "maxOvers": 20,
+      "crr": "9.20",
+      "batting": [
+        {
+          "name": "Rohit Sharma (c)",
+          "runs": 58,
+          "balls": 38,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "152.63",
+          "dismissal": "c Warner b Nortje",
+          "notOut": false,
+          "dots": 20,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Shubman Gill",
+          "runs": 32,
+          "balls": 24,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "133.33",
+          "dismissal": "b Axar",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Virat Kohli",
+          "runs": 42,
+          "balls": 29,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "144.83",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 10
+        },
+        {
+          "name": "Suryakumar Yadav",
+          "runs": 24,
+          "balls": 14,
+          "fours": 3,
+          "sixes": 1,
+          "strikeRate": "171.43",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 3
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Anrich Nortje",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 1,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Axar Patel",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 1,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Khaleel Ahmed",
+          "overs": "3.3",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 0,
+          "econ": "10.29",
+          "dots": 3,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    }
+  },
+  "match_rec_8": {
+    "id": "match_rec_8",
+    "title": "Sunrisers XI vs Warriors XI",
+    "tournament": "Southern Premier League",
+    "venue": "Rajiv Gandhi Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "10 Sep 2026",
+    "winner": "Sunrisers XI",
+    "userResult": "Won",
+    "result": "Won",
+    "resultSummary": "Sunrisers XI won by 34 runs",
+    "teamA": "Sunrisers XI",
+    "teamB": "Warriors XI",
+    "flagA": "\ud83e\udd85",
+    "flagB": "\u2694\ufe0f",
+    "pom": "Travis Head (76 runs)",
+    "innings1": {
+      "team": "Sunrisers XI",
+      "flag": "\ud83e\udd85",
+      "runs": 204,
+      "wickets": 4,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "10.20",
+      "batting": [
+        {
+          "name": "Travis Head",
+          "runs": 76,
+          "balls": 42,
+          "fours": 9,
+          "sixes": 4,
+          "strikeRate": "180.95",
+          "dismissal": "c Dhoni b Chahar",
+          "notOut": false,
+          "dots": 21,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Abhishek Sharma",
+          "runs": 52,
+          "balls": 28,
+          "fours": 6,
+          "sixes": 3,
+          "strikeRate": "185.71",
+          "dismissal": "c Dube b Jadeja",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Heinrich Klaasen (wk)",
+          "runs": 48,
+          "balls": 22,
+          "fours": 4,
+          "sixes": 4,
+          "strikeRate": "218.18",
+          "dismissal": "c Conway b Pathirana",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "Pat Cummins (c)",
+          "runs": 20,
+          "balls": 11,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "181.82",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 3
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Deepak Chahar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 42,
+          "wickets": 1,
+          "econ": "10.50",
+          "dots": 3,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Matheesha Pathirana",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 44,
+          "wickets": 2,
+          "econ": "11.00",
+          "dots": 2,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Ravindra Jadeja",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Moeen Ali",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 40,
+          "wickets": 0,
+          "econ": "10.00",
+          "dots": 4,
+          "fours": 5,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Warriors XI",
+      "flag": "\u2694\ufe0f",
+      "runs": 170,
+      "wickets": 8,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.50",
+      "batting": [
+        {
+          "name": "Ruturaj Gaikwad (c)",
+          "runs": 48,
+          "balls": 34,
+          "fours": 6,
+          "sixes": 1,
+          "strikeRate": "141.18",
+          "dismissal": "c Klaasen b Cummins",
+          "notOut": false,
+          "dots": 18,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Shivam Dube",
+          "runs": 54,
+          "balls": 30,
+          "fours": 4,
+          "sixes": 4,
+          "strikeRate": "180.00",
+          "dismissal": "c Head b Natarajan",
+          "notOut": false,
+          "dots": 15,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Ajinkya Rahane",
+          "runs": 26,
+          "balls": 18,
+          "fours": 3,
+          "sixes": 1,
+          "strikeRate": "144.44",
+          "dismissal": "b Bhuvi",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 4
+        },
+        {
+          "name": "MS Dhoni (wk)",
+          "runs": 24,
+          "balls": 15,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "160.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 5
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Pat Cummins",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 3,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Bhuvneshwar Kumar",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 2,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "T Natarajan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 2,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Shahbaz Ahmed",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    }
+  },
+  "match_rec_9": {
+    "id": "match_rec_9",
+    "title": "King XI vs Titans XI",
+    "tournament": "Championship Trophy",
+    "venue": "Chinnaswamy Stadium",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "07 Sep 2026",
+    "winner": "King XI",
+    "userResult": "Won",
+    "result": "Won",
+    "resultSummary": "King XI won by 21 runs",
+    "teamA": "King XI",
+    "teamB": "Titans XI",
+    "flagA": "\ud83d\udc51",
+    "flagB": "\u26a1",
+    "pom": "Virat Kohli (72 runs)",
+    "innings1": {
+      "team": "King XI",
+      "flag": "\ud83d\udc51",
+      "runs": 188,
+      "wickets": 5,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "9.40",
+      "batting": [
+        {
+          "name": "Virat Kohli",
+          "runs": 72,
+          "balls": 46,
+          "fours": 8,
+          "sixes": 3,
+          "strikeRate": "156.52",
+          "dismissal": "c Miller b Rashid",
+          "notOut": false,
+          "dots": 24,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Faf du Plessis (c)",
+          "runs": 54,
+          "balls": 36,
+          "fours": 6,
+          "sixes": 2,
+          "strikeRate": "150.00",
+          "dismissal": "b Mohit",
+          "notOut": false,
+          "dots": 19,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Glenn Maxwell",
+          "runs": 36,
+          "balls": 18,
+          "fours": 3,
+          "sixes": 3,
+          "strikeRate": "200.00",
+          "dismissal": "c Gill b Spencer",
+          "notOut": false,
+          "dots": 9,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Dinesh Karthik (wk)",
+          "runs": 18,
+          "balls": 10,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "180.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 2
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Rashid Khan",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 2,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Mohit Sharma",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 42,
+          "wickets": 1,
+          "econ": "10.50",
+          "dots": 3,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Spencer Johnson",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 44,
+          "wickets": 1,
+          "econ": "11.00",
+          "dots": 2,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Rahul Tewatia",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Titans XI",
+      "flag": "\u26a1",
+      "runs": 167,
+      "wickets": 7,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "8.35",
+      "batting": [
+        {
+          "name": "Shubman Gill (c)",
+          "runs": 62,
+          "balls": 41,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "151.22",
+          "dismissal": "c Kohli b Siraj",
+          "notOut": false,
+          "dots": 21,
+          "singles": 0,
+          "doubles": 11
+        },
+        {
+          "name": "Sai Sudharsan",
+          "runs": 38,
+          "balls": 27,
+          "fours": 4,
+          "sixes": 1,
+          "strikeRate": "140.74",
+          "dismissal": "b Ferguson",
+          "notOut": false,
+          "dots": 14,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "David Miller",
+          "runs": 32,
+          "balls": 21,
+          "fours": 3,
+          "sixes": 1,
+          "strikeRate": "152.38",
+          "dismissal": "c Karthik b Dayal",
+          "notOut": false,
+          "dots": 10,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Rahul Tewatia",
+          "runs": 22,
+          "balls": 14,
+          "fours": 2,
+          "sixes": 1,
+          "strikeRate": "157.14",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 7,
+          "singles": 0,
+          "doubles": 4
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mohammed Siraj",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 2,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Lockie Ferguson",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 2,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Yash Dayal",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 2,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Glenn Maxwell",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 32,
+          "wickets": 1,
+          "econ": "8.00",
+          "dots": 8,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    }
+  },
+  "match_rec_10": {
+    "id": "match_rec_10",
+    "title": "Blasters XI vs Tigers XI",
+    "tournament": "Champions Super Series",
+    "venue": "Eden Gardens",
+    "format": "T20",
+    "matchType": "T20",
+    "totalOvers": 20,
+    "status": "completed",
+    "date": "04 Sep 2026",
+    "winner": "Tigers XI",
+    "userResult": "Won",
+    "result": "Won",
+    "resultSummary": "Tigers XI won by 3 wickets",
+    "teamA": "Blasters XI",
+    "teamB": "Tigers XI",
+    "flagA": "\ud83d\udd34",
+    "flagB": "\ud83d\udc2f",
+    "pom": "Rohit Sharma (62 runs)",
+    "innings1": {
+      "team": "Blasters XI",
+      "flag": "\ud83d\udd34",
+      "runs": 181,
+      "wickets": 6,
+      "overs": "20.0",
+      "maxOvers": 20,
+      "crr": "9.05",
+      "batting": [
+        {
+          "name": "Phil Salt (wk)",
+          "runs": 54,
+          "balls": 32,
+          "fours": 7,
+          "sixes": 2,
+          "strikeRate": "168.75",
+          "dismissal": "c Rohit b Bumrah",
+          "notOut": false,
+          "dots": 16,
+          "singles": 0,
+          "doubles": 7
+        },
+        {
+          "name": "Shreyas Iyer (c)",
+          "runs": 46,
+          "balls": 31,
+          "fours": 4,
+          "sixes": 2,
+          "strikeRate": "148.39",
+          "dismissal": "c Surya b Shami",
+          "notOut": false,
+          "dots": 16,
+          "singles": 0,
+          "doubles": 9
+        },
+        {
+          "name": "Andre Russell",
+          "runs": 52,
+          "balls": 23,
+          "fours": 4,
+          "sixes": 5,
+          "strikeRate": "226.09",
+          "dismissal": "b Bumrah",
+          "notOut": false,
+          "dots": 11,
+          "singles": 0,
+          "doubles": 3
+        },
+        {
+          "name": "Rinku Singh",
+          "runs": 18,
+          "balls": 12,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "150.00",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 5,
+          "singles": 0,
+          "doubles": 5
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Jasprit Bumrah",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 28,
+          "wickets": 3,
+          "econ": "7.00",
+          "dots": 10,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Mohammed Shami",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 1,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Hardik Pandya",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 40,
+          "wickets": 1,
+          "econ": "10.00",
+          "dots": 4,
+          "fours": 5,
+          "sixes": 2
+        },
+        {
+          "name": "Kuldeep Yadav",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 38,
+          "wickets": 1,
+          "econ": "9.50",
+          "dots": 5,
+          "fours": 4,
+          "sixes": 2
+        }
+      ]
+    },
+    "innings2": {
+      "team": "Tigers XI",
+      "flag": "\ud83d\udc2f",
+      "runs": 182,
+      "wickets": 7,
+      "overs": "19.5",
+      "maxOvers": 20,
+      "crr": "9.18",
+      "batting": [
+        {
+          "name": "Rohit Sharma (c)",
+          "runs": 62,
+          "balls": 40,
+          "fours": 7,
+          "sixes": 3,
+          "strikeRate": "155.00",
+          "dismissal": "c Salt b Starc",
+          "notOut": false,
+          "dots": 22,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Suryakumar Yadav",
+          "runs": 58,
+          "balls": 34,
+          "fours": 6,
+          "sixes": 3,
+          "strikeRate": "170.59",
+          "dismissal": "c Iyer b Varun",
+          "notOut": false,
+          "dots": 17,
+          "singles": 0,
+          "doubles": 8
+        },
+        {
+          "name": "Hardik Pandya",
+          "runs": 34,
+          "balls": 18,
+          "fours": 3,
+          "sixes": 2,
+          "strikeRate": "188.89",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 8,
+          "singles": 0,
+          "doubles": 5
+        },
+        {
+          "name": "Rishabh Pant (wk)",
+          "runs": 16,
+          "balls": 9,
+          "fours": 2,
+          "sixes": 0,
+          "strikeRate": "177.78",
+          "dismissal": "not out",
+          "notOut": true,
+          "dots": 3,
+          "singles": 0,
+          "doubles": 4
+        }
+      ],
+      "bowling": [
+        {
+          "name": "Mitchell Starc",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 36,
+          "wickets": 2,
+          "econ": "9.00",
+          "dots": 6,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Varun Chakravarthy",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 34,
+          "wickets": 2,
+          "econ": "8.50",
+          "dots": 7,
+          "fours": 4,
+          "sixes": 2
+        },
+        {
+          "name": "Sunil Narine",
+          "overs": "4.0",
+          "maidens": 0,
+          "runs": 30,
+          "wickets": 1,
+          "econ": "7.50",
+          "dots": 9,
+          "fours": 3,
+          "sixes": 1
+        },
+        {
+          "name": "Harshit Rana",
+          "overs": "3.5",
+          "maidens": 0,
+          "runs": 42,
+          "wickets": 1,
+          "econ": "10.96",
+          "dots": 2,
+          "fours": 5,
+          "sixes": 2
+        }
+      ]
+    }
+  }
 };
 
 const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, currentLiveMatch, currentLiveBatters, currentLiveBowlers, currentDroppedCatches) => {
@@ -2651,191 +7265,1317 @@ function sha256(ascii) {
 // ============================================================================
 const REGISTERED_APP_TEAMS = [
   {
-    id: 'team_tigers_xi',
-    name: 'Tigers XI',
-    shortName: 'TIG',
-    flag: '🐯',
-    logo: null,
-    logoUri: null,
-    club: 'Premier Cricket Club',
-    city: 'Mumbai',
-    homeGround: 'Wankhede Arena',
-    captain: 'Rohit Sharma',
-    wicketkeeper: 'Rishabh Pant',
-    createdBy: 'You',
-    createdByEmail: 'admin@cricketadda.com',
-    createdById: 'usr_admin',
-    isCustomCreated: true,
-    createdAt: '2026-09-01T00:00:00.000Z',
-    squad: [
-      { id: 'sq_1_1', name: 'Rohit Sharma', phone: '9876500001', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#45', isCaptain: true, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Rohit Sharma'] },
-      { id: 'sq_1_2', name: 'Shubman Gill', phone: '9876500007', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#77', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Shubman Gill'] },
-      { id: 'sq_1_3', name: 'Virat Kohli', phone: '9876500002', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#18', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Virat Kohli'] },
-      { id: 'sq_1_4', name: 'Suryakumar Yadav', phone: '9876500005', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#63', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Suryakumar Yadav'] },
-      { id: 'sq_1_5', name: 'Rishabh Pant', phone: '9876500008', role: 'WK', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#17', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Rishabh Pant'] },
-      { id: 'sq_1_6', name: 'Hardik Pandya', phone: '9876500004', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#33', isCaptain: false, isViceCaptain: true, isWk: false, avatarUri: PLAYER_AVATARS['Hardik Pandya'] },
-      { id: 'sq_1_7', name: 'Ravindra Jadeja', phone: '9876500010', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#8', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Ravindra Jadeja'] },
-      { id: 'sq_1_8', name: 'Axar Patel', phone: '9876500011', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#20', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Axar Patel'] },
-      { id: 'sq_1_9', name: 'Jasprit Bumrah', phone: '9876500006', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#93', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Jasprit Bumrah'] },
-      { id: 'sq_1_10', name: 'Mohammed Siraj', phone: '9876500012', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#73', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Mohammed Siraj'] },
-      { id: 'sq_1_11', name: 'Kuldeep Yadav', phone: '9876500013', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Wrist Spin', jersey: '#23', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Kuldeep Yadav'] },
-    ],
+    "id": "team_tigers_xi",
+    "name": "Tigers XI",
+    "shortName": "TIG",
+    "teamCode": "TIG-7821",
+    "flag": "\ud83d\udc2f",
+    "logo": null,
+    "logoUri": "assets/team-tigers.png",
+    "club": "Premier Cricket Club",
+    "city": "Mumbai",
+    "homeGround": "Wankhede Arena",
+    "captain": "Rohit Sharma",
+    "wicketkeeper": "Rishabh Pant",
+    "createdBy": "You",
+    "createdByEmail": "admin@cricketadda.com",
+    "createdById": "usr_admin",
+    "isCustomCreated": true,
+    "createdAt": "2026-09-01T00:00:00.000Z",
+    "squad": [
+      {
+        "id": "sq_1_1",
+        "name": "Rohit Sharma",
+        "phone": "9876500001",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#45",
+        "isCaptain": true,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/107.png"
+      },
+      {
+        "id": "sq_1_2",
+        "name": "Shubman Gill",
+        "phone": "9876500007",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#77",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3752.png"
+      },
+      {
+        "id": "sq_1_3",
+        "name": "Virat Kohli",
+        "phone": "9876500002",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#18",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/164.png"
+      },
+      {
+        "id": "sq_1_4",
+        "name": "Suryakumar Yadav",
+        "phone": "9876500005",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#63",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1180.png"
+      },
+      {
+        "id": "sq_1_5",
+        "name": "Rishabh Pant",
+        "phone": "9876500008",
+        "role": "WK",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#17",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": true,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/657.png"
+      },
+      {
+        "id": "sq_1_6",
+        "name": "Hardik Pandya",
+        "phone": "9876500004",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#33",
+        "isCaptain": false,
+        "isViceCaptain": true,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2740.png"
+      },
+      {
+        "id": "sq_1_7",
+        "name": "Ravindra Jadeja",
+        "phone": "9876500010",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Slow Left-arm Orthodox",
+        "jersey": "#8",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/9.png"
+      },
+      {
+        "id": "sq_1_8",
+        "name": "Axar Patel",
+        "phone": "9876500011",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Slow Left-arm Orthodox",
+        "jersey": "#20",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1113.png"
+      },
+      {
+        "id": "sq_1_9",
+        "name": "Jasprit Bumrah",
+        "phone": "9876500006",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#93",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1124.png"
+      },
+      {
+        "id": "sq_1_10",
+        "name": "Mohammed Siraj",
+        "phone": "9876500012",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#73",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3840.png"
+      },
+      {
+        "id": "sq_1_11",
+        "name": "Kuldeep Yadav",
+        "phone": "9876500013",
+        "role": "BOWL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Left-arm Wrist Spin",
+        "jersey": "#23",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/261.png"
+      }
+    ]
   },
   {
-    id: 'team_warriors_xi',
-    name: 'Warriors XI',
-    shortName: 'WAR',
-    flag: '⚔️',
-    logo: null,
-    logoUri: null,
-    club: 'Super Kings Cricket Academy',
-    city: 'Chennai',
-    homeGround: 'Chepauk Fortress',
-    captain: 'MS Dhoni',
-    wicketkeeper: 'MS Dhoni',
-    createdBy: 'Coach Stephen',
-    createdByEmail: 'coach@warriors.com',
-    createdById: 'usr_warriors',
-    isCustomCreated: true,
-    createdAt: '2026-09-02T00:00:00.000Z',
-    squad: [
-      { id: 'sq_2_1', name: 'Ruturaj Gaikwad', phone: '9876500014', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#31', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_2_2', name: 'Devon Conway', phone: '9876500027', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#88', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_2_3', name: 'Ajinkya Rahane', phone: '9876500028', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#27', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_2_4', name: 'Shivam Dube', phone: '9876500015', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#25', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Shivam Dube'] },
-      { id: 'sq_2_5', name: 'MS Dhoni', phone: '9876500003', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#7', isCaptain: true, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['MS Dhoni'] },
-      { id: 'sq_2_6', name: 'Moeen Ali', phone: '9876500029', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#18', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_2_7', name: 'Ravindra Jadeja', phone: '9876500010', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#8', isCaptain: false, isViceCaptain: true, isWk: false, avatarUri: PLAYER_AVATARS['Ravindra Jadeja'] },
-      { id: 'sq_2_8', name: 'Deepak Chahar', phone: '9876500030', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#90', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_2_9', name: 'Shardul Thakur', phone: '9876500031', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium Fast', jersey: '#54', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_2_10', name: 'Matheesha Pathirana', phone: '9876500032', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#99', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_2_11', name: 'Tushar Deshpande', phone: '9876500033', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast Medium', jersey: '#24', isCaptain: false, isViceCaptain: false, isWk: false },
-    ],
+    "id": "team_warriors_xi",
+    "name": "Warriors XI",
+    "shortName": "WAR",
+    "teamCode": "WAR-9902",
+    "flag": "\u2694\ufe0f",
+    "logo": null,
+    "logoUri": "assets/team-warriors.png",
+    "club": "Super Kings Cricket Academy",
+    "city": "Chennai",
+    "homeGround": "Chepauk Fortress",
+    "captain": "MS Dhoni",
+    "wicketkeeper": "MS Dhoni",
+    "createdBy": "Coach Stephen",
+    "createdByEmail": "coach@warriors.com",
+    "createdById": "usr_warriors",
+    "isCustomCreated": true,
+    "createdAt": "2026-09-02T00:00:00.000Z",
+    "squad": [
+      {
+        "id": "sq_2_1",
+        "name": "Ruturaj Gaikwad",
+        "phone": "9876500014",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#31",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5443.png"
+      },
+      {
+        "id": "sq_2_2",
+        "name": "Devon Conway",
+        "phone": "9876500027",
+        "role": "BAT",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#88",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2050.png"
+      },
+      {
+        "id": "sq_2_3",
+        "name": "Ajinkya Rahane",
+        "phone": "9876500028",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#27",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/135.png"
+      },
+      {
+        "id": "sq_2_4",
+        "name": "Shivam Dube",
+        "phone": "9876500015",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#25",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5431.png"
+      },
+      {
+        "id": "sq_2_5",
+        "name": "MS Dhoni",
+        "phone": "9876500003",
+        "role": "WK",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#7",
+        "isCaptain": true,
+        "isViceCaptain": false,
+        "isWk": true,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/265.png"
+      },
+      {
+        "id": "sq_2_6",
+        "name": "Moeen Ali",
+        "phone": "9876500029",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#18",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/282.png"
+      },
+      {
+        "id": "sq_2_7",
+        "name": "Ravindra Jadeja",
+        "phone": "9876500010",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Slow Left-arm Orthodox",
+        "jersey": "#8",
+        "isCaptain": false,
+        "isViceCaptain": true,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/9.png"
+      },
+      {
+        "id": "sq_2_8",
+        "name": "Deepak Chahar",
+        "phone": "9876500030",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#90",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/140.png"
+      },
+      {
+        "id": "sq_2_9",
+        "name": "Shardul Thakur",
+        "phone": "9876500031",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium Fast",
+        "jersey": "#54",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/175.png"
+      },
+      {
+        "id": "sq_2_10",
+        "name": "Matheesha Pathirana",
+        "phone": "9876500032",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#99",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5730.png"
+      },
+      {
+        "id": "sq_2_11",
+        "name": "Tushar Deshpande",
+        "phone": "9876500033",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast Medium",
+        "jersey": "#24",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3840.png"
+      }
+    ]
   },
   {
-    id: 'team_king_xi',
-    name: 'King XI',
-    shortName: 'KNG',
-    flag: '👑',
-    logo: null,
-    logoUri: null,
-    club: 'Royal Challengers Arena',
-    city: 'Bengaluru',
-    homeGround: 'Chinnaswamy Stadium',
-    captain: 'Virat Kohli',
-    wicketkeeper: 'Dinesh Karthik',
-    createdBy: 'Coach Andy',
-    createdByEmail: 'coach@kingxi.com',
-    createdById: 'usr_kingxi',
-    isCustomCreated: true,
-    createdAt: '2026-09-03T00:00:00.000Z',
-    squad: [
-      { id: 'sq_3_1', name: 'Faf du Plessis', phone: '9876500034', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#13', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_3_2', name: 'Virat Kohli', phone: '9876500002', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#18', isCaptain: true, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Virat Kohli'] },
-      { id: 'sq_3_3', name: 'Rajat Patidar', phone: '9876500035', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#97', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_3_4', name: 'Glenn Maxwell', phone: '9876500018', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#32', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Glenn Maxwell'] },
-      { id: 'sq_3_5', name: 'Cameron Green', phone: '9876500036', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast Medium', jersey: '#42', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_3_6', name: 'Dinesh Karthik', phone: '9876500026', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#21', isCaptain: false, isViceCaptain: false, isWk: true },
-      { id: 'sq_3_7', name: 'Mahipal Lomror', phone: '9876500037', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#70', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_3_8', name: 'Karn Sharma', phone: '9876500038', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Legbreak Googly', jersey: '#33', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_3_9', name: 'Mohammed Siraj', phone: '9876500012', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#73', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Mohammed Siraj'] },
-      { id: 'sq_3_10', name: 'Lockie Ferguson', phone: '9876500039', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#69', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_3_11', name: 'Yash Dayal', phone: '9876500040', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Fast Medium', jersey: '#13', isCaptain: false, isViceCaptain: false, isWk: false },
-    ],
+    "id": "team_king_xi",
+    "name": "King XI",
+    "shortName": "KNG",
+    "teamCode": "KNG-4418",
+    "flag": "\ud83d\udc51",
+    "logo": null,
+    "logoUri": "assets/team-king.png",
+    "club": "Royal Challengers Arena",
+    "city": "Bengaluru",
+    "homeGround": "Chinnaswamy Stadium",
+    "captain": "Faf du Plessis",
+    "wicketkeeper": "Dinesh Karthik",
+    "createdBy": "Andy Flower",
+    "createdByEmail": "coach@kingxi.com",
+    "createdById": "usr_kingxi",
+    "isCustomCreated": true,
+    "createdAt": "2026-09-03T00:00:00.000Z",
+    "squad": [
+      {
+        "id": "sq_3_1",
+        "name": "Faf du Plessis",
+        "phone": "9876500034",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#13",
+        "isCaptain": true,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/24.png"
+      },
+      {
+        "id": "sq_3_2",
+        "name": "Virat Kohli",
+        "phone": "9876500002",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#18",
+        "isCaptain": false,
+        "isViceCaptain": true,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/164.png"
+      },
+      {
+        "id": "sq_3_3",
+        "name": "Rajat Patidar",
+        "phone": "9876500035",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#97",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5460.png"
+      },
+      {
+        "id": "sq_3_4",
+        "name": "Glenn Maxwell",
+        "phone": "9876500018",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#32",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/282.png"
+      },
+      {
+        "id": "sq_3_5",
+        "name": "Cameron Green",
+        "phone": "9876500036",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast Medium",
+        "jersey": "#42",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/488.png"
+      },
+      {
+        "id": "sq_3_6",
+        "name": "Dinesh Karthik",
+        "phone": "9876500037",
+        "role": "WK",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#21",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": true,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/102.png"
+      },
+      {
+        "id": "sq_3_7",
+        "name": "Mahipal Lomror",
+        "phone": "9876500038",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Slow Left-arm Orthodox",
+        "jersey": "#6",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1113.png"
+      },
+      {
+        "id": "sq_3_8",
+        "name": "Karn Sharma",
+        "phone": "9876500039",
+        "role": "BOWL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#3",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/111.png"
+      },
+      {
+        "id": "sq_3_9",
+        "name": "Mohammed Siraj",
+        "phone": "9876500012",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#73",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3840.png"
+      },
+      {
+        "id": "sq_3_10",
+        "name": "Lockie Ferguson",
+        "phone": "9876500040",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#69",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3729.png"
+      },
+      {
+        "id": "sq_3_11",
+        "name": "Yash Dayal",
+        "phone": "9876500041",
+        "role": "BOWL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Left-arm Fast Medium",
+        "jersey": "#10",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5920.png"
+      }
+    ]
   },
   {
-    id: 'team_royals_xi',
-    name: 'Royals XI',
-    shortName: 'ROY',
-    flag: '🦁',
-    logo: null,
-    logoUri: null,
-    club: 'Desert Kings Sporting Club',
-    city: 'Jaipur',
-    homeGround: 'Sawai Mansingh Stadium',
-    captain: 'Sanju Samson',
-    wicketkeeper: 'Sanju Samson',
-    createdBy: 'Coach Sanga',
-    createdByEmail: 'coach@royals.com',
-    createdById: 'usr_royals',
-    isCustomCreated: true,
-    createdAt: '2026-09-04T00:00:00.000Z',
-    squad: [
-      { id: 'sq_4_1', name: 'Yashasvi Jaiswal', phone: '9876500025', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#64', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_4_2', name: 'Jos Buttler', phone: '9876500017', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#63', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Jos Buttler'] },
-      { id: 'sq_4_3', name: 'Sanju Samson', phone: '9876500009', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#11', isCaptain: true, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Sanju Samson'] },
-      { id: 'sq_4_4', name: 'Riyan Parag', phone: '9876500041', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#12', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_4_5', name: 'Shimron Hetmyer', phone: '9876500042', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#18', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_4_6', name: 'Dhruv Jurel', phone: '9876500043', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'None', jersey: '#21', isCaptain: false, isViceCaptain: false, isWk: true },
-      { id: 'sq_4_7', name: 'Ravichandran Ashwin', phone: '9876500044', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#99', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_4_8', name: 'Trent Boult', phone: '9876500045', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Left-arm Fast Medium', jersey: '#18', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_4_9', name: 'Avesh Khan', phone: '9876500046', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#65', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_4_10', name: 'Yuzvendra Chahal', phone: '9876500047', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Legbreak Googly', jersey: '#3', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_4_11', name: 'Sandeep Sharma', phone: '9876500048', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#66', isCaptain: false, isViceCaptain: false, isWk: false },
-    ],
+    "id": "team_royals_xi",
+    "name": "Royals XI",
+    "shortName": "ROY",
+    "teamCode": "ROY-5529",
+    "flag": "\ud83e\udd81",
+    "logo": null,
+    "logoUri": "assets/team-royals.png",
+    "club": "Desert Kings Academy",
+    "city": "Jaipur",
+    "homeGround": "Sawai Mansingh Stadium",
+    "captain": "Sanju Samson",
+    "wicketkeeper": "Sanju Samson",
+    "createdBy": "Kumar Sangakkara",
+    "createdByEmail": "coach@royalsxi.com",
+    "createdById": "usr_royals",
+    "isCustomCreated": true,
+    "createdAt": "2026-09-04T00:00:00.000Z",
+    "squad": [
+      {
+        "id": "sq_4_1",
+        "name": "Yashasvi Jaiswal",
+        "phone": "9876500042",
+        "role": "BAT",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#19",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5334.png"
+      },
+      {
+        "id": "sq_4_2",
+        "name": "Jos Buttler",
+        "phone": "9876500017",
+        "role": "WK",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#63",
+        "isCaptain": false,
+        "isViceCaptain": true,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/509.png"
+      },
+      {
+        "id": "sq_4_3",
+        "name": "Sanju Samson",
+        "phone": "9876500009",
+        "role": "WK",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#11",
+        "isCaptain": true,
+        "isViceCaptain": false,
+        "isWk": true,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2967.png"
+      },
+      {
+        "id": "sq_4_4",
+        "name": "Riyan Parag",
+        "phone": "9876500043",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#12",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4420.png"
+      },
+      {
+        "id": "sq_4_5",
+        "name": "Shimron Hetmyer",
+        "phone": "9876500044",
+        "role": "BAT",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#2",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1709.png"
+      },
+      {
+        "id": "sq_4_6",
+        "name": "Dhruv Jurel",
+        "phone": "9876500045",
+        "role": "WK",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#21",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/657.png"
+      },
+      {
+        "id": "sq_4_7",
+        "name": "Ravichandran Ashwin",
+        "phone": "9876500046",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#99",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/8.png"
+      },
+      {
+        "id": "sq_4_8",
+        "name": "Trent Boult",
+        "phone": "9876500047",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Left-arm Fast Medium",
+        "jersey": "#18",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/969.png"
+      },
+      {
+        "id": "sq_4_9",
+        "name": "Avesh Khan",
+        "phone": "9876500048",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast Medium",
+        "jersey": "#65",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1564.png"
+      },
+      {
+        "id": "sq_4_10",
+        "name": "Sandeep Sharma",
+        "phone": "9876500049",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#66",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1114.png"
+      },
+      {
+        "id": "sq_4_11",
+        "name": "Yuzvendra Chahal",
+        "phone": "9876500050",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#3",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/111.png"
+      }
+    ]
   },
   {
-    id: 'team_blasters_xi',
-    name: 'Blasters XI',
-    shortName: 'BLS',
-    flag: '🔴',
-    logo: null,
-    logoUri: null,
-    club: 'Knight Riders Club',
-    city: 'Kolkata',
-    homeGround: 'Eden Gardens',
-    captain: 'Shreyas Iyer',
-    wicketkeeper: 'Phil Salt',
-    createdBy: 'Coach Chandu',
-    createdByEmail: 'coach@blasters.com',
-    createdById: 'usr_blasters',
-    isCustomCreated: true,
-    createdAt: '2026-09-05T00:00:00.000Z',
-    squad: [
-      { id: 'sq_5_1', name: 'Phil Salt', phone: '9876500021', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#28', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: PLAYER_AVATARS['Phil Salt'] },
-      { id: 'sq_5_2', name: 'Sunil Narine', phone: '9876500049', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#74', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_5_3', name: 'Venkatesh Iyer', phone: '9876500050', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#25', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_5_4', name: 'Shreyas Iyer', phone: '9876500022', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#96', isCaptain: true, isViceCaptain: false, isWk: false },
-      { id: 'sq_5_5', name: 'Nitish Rana', phone: '9876500051', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#27', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_5_6', name: 'Rinku Singh', phone: '9876500023', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#35', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_5_7', name: 'Andre Russell', phone: '9876500024', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#12', isCaptain: false, isViceCaptain: true, isWk: false },
-      { id: 'sq_5_8', name: 'Ramandeep Singh', phone: '9876500052', role: 'ALL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#19', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_5_9', name: 'Mitchell Starc', phone: '9876500020', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Fast', jersey: '#56', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Mitchell Starc'] },
-      { id: 'sq_5_10', name: 'Harshit Rana', phone: '9876500053', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast Medium', jersey: '#22', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_5_11', name: 'Varun Chakravarthy', phone: '9876500054', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#29', isCaptain: false, isViceCaptain: false, isWk: false },
-    ],
+    "id": "team_blasters_xi",
+    "name": "Blasters XI",
+    "shortName": "BLS",
+    "teamCode": "BLS-3310",
+    "flag": "\ud83d\udd34",
+    "logo": null,
+    "logoUri": "assets/team-blasters.png",
+    "club": "Eden Knights Cricket Club",
+    "city": "Kolkata",
+    "homeGround": "Eden Gardens",
+    "captain": "Shreyas Iyer",
+    "wicketkeeper": "Phil Salt",
+    "createdBy": "Gautam Gambhir",
+    "createdByEmail": "mentor@blasters.com",
+    "createdById": "usr_blasters",
+    "isCustomCreated": true,
+    "createdAt": "2026-09-05T00:00:00.000Z",
+    "squad": [
+      {
+        "id": "sq_5_1",
+        "name": "Phil Salt",
+        "phone": "9876500021",
+        "role": "WK",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#28",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": true,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5472.png"
+      },
+      {
+        "id": "sq_5_2",
+        "name": "Sunil Narine",
+        "phone": "9876500051",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#74",
+        "isCaptain": false,
+        "isViceCaptain": true,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/203.png"
+      },
+      {
+        "id": "sq_5_3",
+        "name": "Shreyas Iyer",
+        "phone": "9876500022",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#96",
+        "isCaptain": true,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1563.png"
+      },
+      {
+        "id": "sq_5_4",
+        "name": "Venkatesh Iyer",
+        "phone": "9876500052",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#25",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5431.png"
+      },
+      {
+        "id": "sq_5_5",
+        "name": "Andre Russell",
+        "phone": "9876500053",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#12",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/177.png"
+      },
+      {
+        "id": "sq_5_6",
+        "name": "Rinku Singh",
+        "phone": "9876500023",
+        "role": "BAT",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#35",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4230.png"
+      },
+      {
+        "id": "sq_5_7",
+        "name": "Ramandeep Singh",
+        "phone": "9876500054",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#19",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3750.png"
+      },
+      {
+        "id": "sq_5_8",
+        "name": "Mitchell Starc",
+        "phone": "9876500020",
+        "role": "BOWL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Left-arm Fast",
+        "jersey": "#56",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/490.png"
+      },
+      {
+        "id": "sq_5_9",
+        "name": "Vaibhav Arora",
+        "phone": "9876500055",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast Medium",
+        "jersey": "#34",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/140.png"
+      },
+      {
+        "id": "sq_5_10",
+        "name": "Harshit Rana",
+        "phone": "9876500056",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#22",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/6080.png"
+      },
+      {
+        "id": "sq_5_11",
+        "name": "Varun Chakravarthy",
+        "phone": "9876500057",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Mystery Spin",
+        "jersey": "#29",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5432.png"
+      }
+    ]
   },
   {
-    id: 'team_united_xi',
-    name: 'United XI',
-    shortName: 'UTD',
-    flag: '🛡️',
-    logo: null,
-    logoUri: null,
-    club: 'Capitals Sports Club',
-    city: 'Delhi',
-    homeGround: 'Arun Jaitley Arena',
-    captain: 'David Warner',
-    wicketkeeper: 'Abishek Porel',
-    createdBy: 'Coach Ricky',
-    createdByEmail: 'coach@unitedxi.com',
-    createdById: 'usr_unitedxi',
-    isCustomCreated: true,
-    createdAt: '2026-09-06T00:00:00.000Z',
-    squad: [
-      { id: 'sq_6_1', name: 'David Warner', phone: '9876500019', role: 'BAT', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#31', isCaptain: true, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['David Warner'] },
-      { id: 'sq_6_2', name: 'Prithvi Shaw', phone: '9876500055', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#100', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_6_3', name: 'Jake Fraser-McGurk', phone: '9876500056', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Legbreak', jersey: '#23', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_6_4', name: 'Rishabh Pant', phone: '9876500008', role: 'WK', battingStyle: 'Left-hand Bat', bowlingStyle: 'Right-arm Medium', jersey: '#17', isCaptain: false, isViceCaptain: true, isWk: true, avatarUri: PLAYER_AVATARS['Rishabh Pant'] },
-      { id: 'sq_6_5', name: 'Tristan Stubbs', phone: '9876500057', role: 'BAT', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#89', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_6_6', name: 'Abishek Porel', phone: '9876500058', role: 'WK', battingStyle: 'Left-hand Bat', bowlingStyle: 'None', jersey: '#32', isCaptain: false, isViceCaptain: false, isWk: true },
-      { id: 'sq_6_7', name: 'Axar Patel', phone: '9876500011', role: 'ALL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Slow Left-arm Orthodox', jersey: '#20', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Axar Patel'] },
-      { id: 'sq_6_8', name: 'Kuldeep Yadav', phone: '9876500013', role: 'BOWL', battingStyle: 'Left-hand Bat', bowlingStyle: 'Left-arm Wrist Spin', jersey: '#23', isCaptain: false, isViceCaptain: false, isWk: false, avatarUri: PLAYER_AVATARS['Kuldeep Yadav'] },
-      { id: 'sq_6_9', name: 'Anrich Nortje', phone: '9876500059', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast', jersey: '#20', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_6_10', name: 'Khaleel Ahmed', phone: '9876500060', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Left-arm Fast Medium', jersey: '#71', isCaptain: false, isViceCaptain: false, isWk: false },
-      { id: 'sq_6_11', name: 'Mukesh Kumar', phone: '9876500061', role: 'BOWL', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Fast Medium', jersey: '#49', isCaptain: false, isViceCaptain: false, isWk: false },
-    ],
+    "id": "team_united_xi",
+    "name": "United XI",
+    "shortName": "UTD",
+    "teamCode": "UTD-6641",
+    "flag": "\ud83d\udee1\ufe0f",
+    "logo": null,
+    "logoUri": "assets/team-united.png",
+    "club": "Capital Strikers Academy",
+    "city": "Delhi",
+    "homeGround": "Arun Jaitley Stadium",
+    "captain": "Rishabh Pant",
+    "wicketkeeper": "Rishabh Pant",
+    "createdBy": "Ricky Ponting",
+    "createdByEmail": "coach@unitedxi.com",
+    "createdById": "usr_united",
+    "isCustomCreated": true,
+    "createdAt": "2026-09-06T00:00:00.000Z",
+    "squad": [
+      {
+        "id": "sq_6_1",
+        "name": "David Warner",
+        "phone": "9876500019",
+        "role": "BAT",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#31",
+        "isCaptain": false,
+        "isViceCaptain": true,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/170.png"
+      },
+      {
+        "id": "sq_6_2",
+        "name": "Prithvi Shaw",
+        "phone": "9876500058",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#100",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3764.png"
+      },
+      {
+        "id": "sq_6_3",
+        "name": "Mitchell Marsh",
+        "phone": "9876500059",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast Medium",
+        "jersey": "#8",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/221.png"
+      },
+      {
+        "id": "sq_6_4",
+        "name": "Rishabh Pant",
+        "phone": "9876500008",
+        "role": "WK",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#17",
+        "isCaptain": true,
+        "isViceCaptain": false,
+        "isWk": true,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/657.png"
+      },
+      {
+        "id": "sq_6_5",
+        "name": "Tristan Stubbs",
+        "phone": "9876500060",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#4",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5958.png"
+      },
+      {
+        "id": "sq_6_6",
+        "name": "Axar Patel",
+        "phone": "9876500011",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Slow Left-arm Orthodox",
+        "jersey": "#20",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1113.png"
+      },
+      {
+        "id": "sq_6_7",
+        "name": "Abishek Porel",
+        "phone": "9876500061",
+        "role": "WK",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#7",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/657.png"
+      },
+      {
+        "id": "sq_6_8",
+        "name": "Kuldeep Yadav",
+        "phone": "9876500013",
+        "role": "BOWL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Left-arm Wrist Spin",
+        "jersey": "#23",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/261.png"
+      },
+      {
+        "id": "sq_6_9",
+        "name": "Anrich Nortje",
+        "phone": "9876500062",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#20",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/5433.png"
+      },
+      {
+        "id": "sq_6_10",
+        "name": "Khaleel Ahmed",
+        "phone": "9876500063",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Left-arm Fast Medium",
+        "jersey": "#71",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2968.png"
+      },
+      {
+        "id": "sq_6_11",
+        "name": "Ishant Sharma",
+        "phone": "9876500064",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast Medium",
+        "jersey": "#97",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/95.png"
+      }
+    ]
   },
+  {
+    "id": "team_titans_xi",
+    "name": "Titans XI",
+    "shortName": "TTN",
+    "teamCode": "TTN-8824",
+    "flag": "\u26a1",
+    "logo": null,
+    "logoUri": "assets/team-tigers.png",
+    "club": "Gujarat Titans Cricket Hub",
+    "city": "Ahmedabad",
+    "homeGround": "Narendra Modi Stadium",
+    "captain": "Shubman Gill",
+    "wicketkeeper": "Matthew Wade",
+    "createdBy": "Ashish Nehra",
+    "createdByEmail": "coach@titansxi.com",
+    "createdById": "usr_titans",
+    "isCustomCreated": true,
+    "createdAt": "2026-09-07T00:00:00.000Z",
+    "squad": [
+      {
+        "id": "sq_7_1",
+        "name": "Shubman Gill",
+        "phone": "9876500007",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#77",
+        "isCaptain": true,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3752.png"
+      },
+      {
+        "id": "sq_7_2",
+        "name": "Wriddhiman Saha",
+        "phone": "9876500065",
+        "role": "WK",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#6",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": true,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/102.png"
+      },
+      {
+        "id": "sq_7_3",
+        "name": "Sai Sudharsan",
+        "phone": "9876500066",
+        "role": "BAT",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#23",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/6020.png"
+      },
+      {
+        "id": "sq_7_4",
+        "name": "David Miller",
+        "phone": "9876500067",
+        "role": "BAT",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#10",
+        "isCaptain": false,
+        "isViceCaptain": true,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/187.png"
+      },
+      {
+        "id": "sq_7_5",
+        "name": "Rahul Tewatia",
+        "phone": "9876500068",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#9",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3820.png"
+      },
+      {
+        "id": "sq_7_6",
+        "name": "Shahrukh Khan",
+        "phone": "9876500069",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#35",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4230.png"
+      },
+      {
+        "id": "sq_7_7",
+        "name": "Rashid Khan",
+        "phone": "9876500070",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#19",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2887.png"
+      },
+      {
+        "id": "sq_7_8",
+        "name": "Noor Ahmad",
+        "phone": "9876500071",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Left-arm Wrist Spin",
+        "jersey": "#15",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/2887.png"
+      },
+      {
+        "id": "sq_7_9",
+        "name": "Mohit Sharma",
+        "phone": "9876500072",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium",
+        "jersey": "#18",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1122.png"
+      },
+      {
+        "id": "sq_7_10",
+        "name": "Spencer Johnson",
+        "phone": "9876500073",
+        "role": "BOWL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Left-arm Fast",
+        "jersey": "#45",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/490.png"
+      },
+      {
+        "id": "sq_7_11",
+        "name": "Umesh Yadav",
+        "phone": "9876500074",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#11",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/94.png"
+      }
+    ]
+  },
+  {
+    "id": "team_sunrisers_xi",
+    "name": "Sunrisers XI",
+    "shortName": "SRH",
+    "teamCode": "SRH-1175",
+    "flag": "\ud83e\udd85",
+    "logo": null,
+    "logoUri": "assets/team-warriors.png",
+    "club": "Orange Army Academy",
+    "city": "Hyderabad",
+    "homeGround": "Rajiv Gandhi Stadium",
+    "captain": "Pat Cummins",
+    "wicketkeeper": "Heinrich Klaasen",
+    "createdBy": "Daniel Vettori",
+    "createdByEmail": "coach@sunrisers.com",
+    "createdById": "usr_sunrisers",
+    "isCustomCreated": true,
+    "createdAt": "2026-09-08T00:00:00.000Z",
+    "squad": [
+      {
+        "id": "sq_8_1",
+        "name": "Travis Head",
+        "phone": "9876500016",
+        "role": "BAT",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#62",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1020.png"
+      },
+      {
+        "id": "sq_8_2",
+        "name": "Abhishek Sharma",
+        "phone": "9876500075",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Slow Left-arm Orthodox",
+        "jersey": "#4",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3750.png"
+      },
+      {
+        "id": "sq_8_3",
+        "name": "Aiden Markram",
+        "phone": "9876500076",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#94",
+        "isCaptain": false,
+        "isViceCaptain": true,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1665.png"
+      },
+      {
+        "id": "sq_8_4",
+        "name": "Heinrich Klaasen",
+        "phone": "9876500077",
+        "role": "WK",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Offbreak",
+        "jersey": "#45",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": true,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3869.png"
+      },
+      {
+        "id": "sq_8_5",
+        "name": "Nitish Kumar Reddy",
+        "phone": "9876500078",
+        "role": "ALL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium Fast",
+        "jersey": "#67",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3752.png"
+      },
+      {
+        "id": "sq_8_6",
+        "name": "Abdul Samad",
+        "phone": "9876500079",
+        "role": "BAT",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Legbreak",
+        "jersey": "#1",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/4230.png"
+      },
+      {
+        "id": "sq_8_7",
+        "name": "Shahbaz Ahmed",
+        "phone": "9876500080",
+        "role": "ALL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Slow Left-arm Orthodox",
+        "jersey": "#21",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/1113.png"
+      },
+      {
+        "id": "sq_8_8",
+        "name": "Pat Cummins",
+        "phone": "9876500081",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Fast",
+        "jersey": "#30",
+        "isCaptain": true,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/488.png"
+      },
+      {
+        "id": "sq_8_9",
+        "name": "Bhuvneshwar Kumar",
+        "phone": "9876500082",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Right-arm Medium Fast",
+        "jersey": "#15",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/116.png"
+      },
+      {
+        "id": "sq_8_10",
+        "name": "Jaydev Unadkat",
+        "phone": "9876500083",
+        "role": "BOWL",
+        "battingStyle": "Right-hand Bat",
+        "bowlingStyle": "Left-arm Medium Fast",
+        "jersey": "#14",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/95.png"
+      },
+      {
+        "id": "sq_8_11",
+        "name": "T Natarajan",
+        "phone": "9876500084",
+        "role": "BOWL",
+        "battingStyle": "Left-hand Bat",
+        "bowlingStyle": "Left-arm Fast Medium",
+        "jersey": "#44",
+        "isCaptain": false,
+        "isViceCaptain": false,
+        "isWk": false,
+        "avatarUri": "https://images.icc-cricket.com/image/upload/t_player-headshot-portrait/prd/assets/players/generic/3838.png"
+      }
+    ]
+  }
 ];
 
 const MY_REGISTERED_TEAMS = REGISTERED_APP_TEAMS;
@@ -6444,20 +12184,29 @@ function CricketAddaMain() {
               if (parsedCareer && typeof parsedCareer === 'object') setUserCareerData(parsedCareer);
             } catch (e) {}
           }
-          const storedMatches = await AsyncStorage.getItem(STORAGE_KEYS.MATCHES_DB);
-          if (storedMatches) {
-            try {
-              const parsedMatches = JSON.parse(storedMatches);
-              if (parsedMatches && typeof parsedMatches === 'object' && Object.keys(parsedMatches).length > 0) {
-                setMatchesDb(prev => ({ ...MATCH_DATABASE, ...parsedMatches }));
-              } else {
+          const storedDbVersion = await AsyncStorage.getItem('CA_DB_VERSION_KEY');
+          if (storedDbVersion !== 'ca_v6_clean_20_matches') {
+            await AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(MATCH_DATABASE));
+            await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS));
+            await AsyncStorage.setItem('CA_DB_VERSION_KEY', 'ca_v6_clean_20_matches');
+            setMatchesDb(MATCH_DATABASE);
+            setRegisteredTeams(REGISTERED_APP_TEAMS);
+          } else {
+            const storedMatches = await AsyncStorage.getItem(STORAGE_KEYS.MATCHES_DB);
+            if (storedMatches) {
+              try {
+                const parsed = JSON.parse(storedMatches);
+                if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+                  setMatchesDb(parsed);
+                } else {
+                  setMatchesDb(MATCH_DATABASE);
+                }
+              } catch (e) {
                 setMatchesDb(MATCH_DATABASE);
               }
-            } catch (e) {
+            } else {
               setMatchesDb(MATCH_DATABASE);
             }
-          } else {
-            setMatchesDb(MATCH_DATABASE);
           }
           const storedActiveMatch = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_MATCH_ID);
           if (storedActiveMatch) {
@@ -8375,61 +14124,15 @@ function CricketAddaMain() {
 
   const allLiveMatchesList = useMemo(() => {
     const list = Object.values(matchesDb || {}).filter(isMatchLive);
-    if (list.length > 0) return list;
-    return [
-      MATCH_DATABASE.match_live_spl_1,
-      MATCH_DATABASE.match_live_cpl_2,
-      MATCH_DATABASE.match_live_sup_3,
-      MATCH_DATABASE.match_live_derby_4,
+    if (list.length >= 10) return list;
+    const baseKeys = [
+      'match_live_1', 'match_live_2', 'match_live_3', 'match_live_4', 'match_live_5',
+      'match_live_6', 'match_live_7', 'match_live_8', 'match_live_9', 'match_live_10'
     ];
+    const liveItems = baseKeys.map(k => matchesDb?.[k] || MATCH_DATABASE[k]).filter(Boolean);
+    if (liveItems.length > 0) return liveItems;
+    return list;
   }, [matchesDb]);
-
-  const getLiveMatchCardData = useCallback((lm) => {
-    if (!lm) return null;
-    const isCur = lm?.id === activeMatchId;
-
-    const teamAName = lm?.teamA || lm?.innings2?.team || 'Tigers XI';
-    const teamBName = lm?.teamB || lm?.innings1?.team || 'Warriors XI';
-
-    const innForA = lm?.innings2?.team === teamAName ? lm.innings2 : (lm?.innings1?.team === teamAName ? lm.innings1 : lm?.innings2);
-    const innForB = lm?.innings1?.team === teamBName ? lm.innings1 : (lm?.innings2?.team === teamBName ? lm.innings2 : lm?.innings1);
-
-    const isABatting = isCur && ((currentInnings === 2 && lm?.innings2?.team === teamAName) || (currentInnings === 1 && lm?.innings1?.team === teamAName));
-    const isBBatting = isCur && ((currentInnings === 1 && lm?.innings1?.team === teamBName) || (currentInnings === 2 && lm?.innings2?.team === teamBName));
-
-    const sA = isABatting ? `${liveRuns}/${liveWickets}` : `${innForA?.runs ?? 128}/${innForA?.wickets ?? 4}`;
-    const ovA = isABatting ? `${oversStr} Ov` : `${innForA?.overs ?? '16.3'} Ov`;
-    const sB = isBBatting ? `${liveRuns}/${liveWickets}` : `${innForB?.runs ?? 144}/${innForB?.wickets ?? 8}`;
-    const ovB = isBBatting ? `${oversStr} Ov` : `${innForB?.overs ?? '20.0'} Ov`;
-
-    let eq = lm?.equation;
-    if (!eq) {
-      if (isCur && currentInnings === 2) {
-        const tRuns = lm?.innings2?.target || (lm?.innings1?.runs ? lm.innings1.runs + 1 : (targetRuns || 0));
-        const rNeeded = Math.max(0, tRuns - liveRuns);
-        const bRemaining = Math.max(0, (lm?.totalOvers || 20) * 6 - liveBalls);
-        eq = `${teamAName} need ${rNeeded} runs in ${bRemaining} balls`;
-      } else {
-        eq = `${teamAName} vs ${teamBName}`;
-      }
-    }
-
-    return {
-      id: lm?.id || 'match_live_spl_1',
-      tournament: lm?.tournament || 'School Premier League',
-      venue: lm?.venue || 'Green Valley Ground',
-      format: lm?.format || lm?.matchType || 'T20',
-      teamA: teamAName,
-      flagA: lm?.flagA || innForA?.flag || '🐯',
-      scoreA: sA,
-      oversA: ovA,
-      teamB: teamBName,
-      flagB: lm?.flagB || innForB?.flag || '⚔️',
-      scoreB: sB,
-      oversB: ovB,
-      equation: eq || 'Match in Progress',
-    };
-  }, [activeMatchId, currentInnings, liveRuns, liveWickets, liveBalls, oversStr, targetRuns]);
 
   const featuredLiveMatch = useMemo(() => {
     return getLiveMatchCardData(allLiveMatchesList[liveCarouselIndex] || allLiveMatchesList[0]);
@@ -8437,8 +14140,8 @@ function CricketAddaMain() {
 
   const displayRecentMatches = useMemo(() => {
     const completed = Object.values(matchesDb || {}).filter(isMatchCompleted);
-    if (completed.length >= 3) {
-      return completed.slice(0, 5).map(m => {
+    if (completed.length >= 10) {
+      return completed.slice(0, 10).map(m => {
         const tA = m.teamA || m.innings1?.team || 'Tigers XI';
         const tB = m.teamB || m.innings2?.team || 'Warriors XI';
         const innA = m.innings1?.team === tA ? m.innings1 : (m.innings2?.team === tA ? m.innings2 : m.innings1);
@@ -8453,56 +14156,38 @@ function CricketAddaMain() {
           flagB: m.flagB || innB?.flag || '⚔️',
           scoreBNum: `${innB?.runs ?? 0}/${innB?.wickets ?? 0}`,
           scoreBOvers: `${innB?.overs ?? '20.0'} Ov`,
-          result: m.userResult || (m.result === 'Lost' ? 'Lost' : (m.winner ? (m.winner === tA ? 'Won' : 'Lost') : 'Won')),
+          result: m.userResult || (m.winner ? (m.winner === tA ? 'Won' : 'Lost') : 'Won'),
           date: m.date || '27 Sep 2026',
-          format: m.matchType || 'T20',
+          format: m.format || m.matchType || 'T20',
         };
       });
     }
-    return [
-      {
-        id: 'rm_1',
-        teamA: 'Tigers XI',
-        flagA: '🐯',
-        scoreANum: '178/6',
-        scoreAOvers: '20.0 Ov',
-        teamB: 'Warriors XI',
-        flagB: '⚔️',
-        scoreBNum: '162/8',
-        scoreBOvers: '20.0 Ov',
-        result: 'Won',
-        date: '27 Sep 2026',
-        format: 'T20',
-      },
-      {
-        id: 'rm_2',
-        teamA: 'King XI',
-        flagA: '👑',
-        scoreANum: '156/9',
-        scoreAOvers: '20.0 Ov',
-        teamB: 'Royals XI',
-        flagB: '🦁',
-        scoreBNum: '160/5',
-        scoreBOvers: '19.1 Ov',
-        result: 'Lost',
-        date: '24 Sep 2026',
-        format: 'T20',
-      },
-      {
-        id: 'rm_3',
-        teamA: 'Blasters XI',
-        flagA: '🔴',
-        scoreANum: '210/7',
-        scoreAOvers: '20.0 Ov',
-        teamB: 'United XI',
-        flagB: '🛡️',
-        scoreBNum: '198/10',
-        scoreBOvers: '19.3 Ov',
-        result: 'Won',
-        date: '20 Sep 2026',
-        format: 'ODI',
-      },
+    const baseKeys = [
+      'match_rec_1', 'match_rec_2', 'match_rec_3', 'match_rec_4', 'match_rec_5',
+      'match_rec_6', 'match_rec_7', 'match_rec_8', 'match_rec_9', 'match_rec_10'
     ];
+    return baseKeys.map(k => {
+      const m = matchesDb?.[k] || MATCH_DATABASE[k];
+      if (!m) return null;
+      const tA = m.teamA || m.innings1?.team || 'Tigers XI';
+      const tB = m.teamB || m.innings2?.team || 'Warriors XI';
+      const innA = m.innings1?.team === tA ? m.innings1 : (m.innings2?.team === tA ? m.innings2 : m.innings1);
+      const innB = m.innings2?.team === tB ? m.innings2 : (m.innings1?.team === tB ? m.innings1 : m.innings2);
+      return {
+        id: m.id,
+        teamA: tA,
+        flagA: m.flagA || innA?.flag || '🐯',
+        scoreANum: `${innA?.runs ?? 0}/${innA?.wickets ?? 0}`,
+        scoreAOvers: `${innA?.overs ?? '20.0'} Ov`,
+        teamB: tB,
+        flagB: m.flagB || innB?.flag || '⚔️',
+        scoreBNum: `${innB?.runs ?? 0}/${innB?.wickets ?? 0}`,
+        scoreBOvers: `${innB?.overs ?? '20.0'} Ov`,
+        result: m.userResult || (m.winner ? (m.winner === tA ? 'Won' : 'Lost') : 'Won'),
+        date: m.date || '27 Sep 2026',
+        format: m.format || m.matchType || 'T20',
+      };
+    }).filter(Boolean);
   }, [matchesDb]);
 
   const toggleExtraType = type => {
@@ -15331,13 +21016,24 @@ function CricketAddaMain() {
           {/* ========================================================================= */}
           {/* MOCKUP DASHBOARD HERO, QUICK ACTIONS, LIVE & RECENT SECTIONS */}
           {/* ========================================================================= */}
-          {/* 1. HERO BANNER: STADIUM SUNSET BATSMAN BANNER */}
+          {/* 1. HERO BANNER: STADIUM SUNSET BATSMAN BANNER WITH LET'S PLAY CRICKET OVERLAY */}
           <View style={styles.dashHeroWrapper}>
-            <Image
+            <ImageBackground
               source={require('./assets/hero-banner.jpg')}
               style={styles.dashHeroCard}
+              imageStyle={{ borderRadius: 16 }}
               resizeMode="cover"
-            />
+            >
+              <View style={styles.dashHeroOverlay}>
+                <Text style={styles.dashHeroLets}>Let's</Text>
+                <Text style={styles.dashHeroPlay}>
+                  Play <Text style={{ color: '#22c55e' }}>Cricket</Text>
+                </Text>
+                <Text style={styles.dashHeroSubtitle}>
+                  Create a match, join a match or manage your teams.
+                </Text>
+              </View>
+            </ImageBackground>
           </View>
 
           {/* 2. 3 QUICK-ACTION BUTTONS ROW (NEW 3D IMAGES) */}
@@ -15382,7 +21078,7 @@ function CricketAddaMain() {
             </TouchableOpacity>
           </View>
 
-          {/* 3. FEATURED LIVE MATCHES HORIZONTAL SWIPE CAROUSEL */}
+          {/* 3. FEATURED LIVE MATCHES HORIZONTAL SWIPE CAROUSEL (10 LIVE MATCHES) */}
           <View style={{ marginBottom: 10 }}>
             <ScrollView
               ref={liveCarouselRef}
@@ -15515,19 +21211,19 @@ function CricketAddaMain() {
             </View>
           </View>
 
-          {/* 4. RECENT MATCHES SECTION (INCREASED HEIGHT & NO COLORFUL BRACKET) */}
+          {/* 4. RECENT MATCHES SECTION (FULL TEAM NAME WRAP, CENTERED DATE & FORMAT, NO CHEVRON) */}
           <View style={styles.dashRecentSection}>
             <View style={styles.dashRecentHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={{ fontSize: 16 }}>🕒</Text>
-                <Text style={styles.dashRecentTitle}>Recent Matches</Text>
+                <Text style={styles.dashRecentTitle}>Recent Matches ({displayRecentMatches.length})</Text>
               </View>
               <TouchableOpacity onPress={() => openMatchScorecard(displayRecentMatches[0]?.id)}>
                 <Text style={styles.dashViewAllText}>View All ❯</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Match Items - Clean Sleek Row with Bigger Height & No Bracket */}
+            {/* Match Items - Clean Sleek Row with Bigger Height, No Bracket & Centered Date */}
             {displayRecentMatches.map((rm, idx) => {
               const logoA = getDashTeamLogo(rm.teamA);
               const logoB = getDashTeamLogo(rm.teamB);
@@ -15540,55 +21236,59 @@ function CricketAddaMain() {
                   onPress={() => openMatchScorecard(rm.id)}
                   activeOpacity={0.8}
                 >
-                  {/* Left: Team 1 Emblem + Name */}
+                  {/* Left: Team 1 Emblem + Full Name (wraps if needed) */}
                   <View style={styles.dashRecentTeamBox}>
                     {logoA ? (
                       <Image source={logoA} style={styles.dashRecentLogo} resizeMode="contain" />
                     ) : (
                       <Text style={{ fontSize: 18 }}>{rm.flagA || '🐯'}</Text>
                     )}
-                    <Text style={styles.dashRecentTeamName} numberOfLines={1}>{rm.teamA}</Text>
+                    <Text style={styles.dashRecentTeamName}>{rm.teamA}</Text>
                   </View>
 
-                  {/* Score 1 */}
-                  <View style={styles.dashRecentScoreBox}>
-                    <Text style={styles.dashRecentScoreNum}>{rm.scoreANum}</Text>
-                    <Text style={styles.dashRecentOversNum}>{rm.scoreAOvers}</Text>
+                  {/* Center: Scores & Centered Date/Format Below */}
+                  <View style={styles.dashRecentCenterCol}>
+                    <View style={styles.dashRecentScoreRow}>
+                      <View style={styles.dashRecentScoreBox}>
+                        <Text style={styles.dashRecentScoreNum}>{rm.scoreANum}</Text>
+                        <Text style={styles.dashRecentOversNum}>{rm.scoreAOvers}</Text>
+                      </View>
+
+                      {/* VS Circle */}
+                      <View style={styles.dashRecentVsCircle}>
+                        <Text style={styles.dashRecentVsText}>VS</Text>
+                      </View>
+
+                      <View style={styles.dashRecentScoreBox}>
+                        <Text style={styles.dashRecentScoreNum}>{rm.scoreBNum}</Text>
+                        <Text style={styles.dashRecentOversNum}>{rm.scoreBOvers}</Text>
+                      </View>
+                    </View>
+
+                    {/* Date and format centered directly under score */}
+                    <Text style={styles.dashRecentDateCentered}>
+                      {rm.date} • {rm.format}
+                    </Text>
                   </View>
 
-                  {/* VS Circle */}
-                  <View style={styles.dashRecentVsCircle}>
-                    <Text style={styles.dashRecentVsText}>VS</Text>
-                  </View>
-
-                  {/* Score 2 */}
-                  <View style={styles.dashRecentScoreBox}>
-                    <Text style={styles.dashRecentScoreNum}>{rm.scoreBNum}</Text>
-                    <Text style={styles.dashRecentOversNum}>{rm.scoreBOvers}</Text>
-                  </View>
-
-                  {/* Right: Team 2 Emblem + Name */}
-                  <View style={styles.dashRecentTeamBox}>
+                  {/* Right: Full Name + Team 2 Emblem */}
+                  <View style={styles.dashRecentTeamBoxRight}>
+                    <Text style={styles.dashRecentTeamNameRight}>{rm.teamB}</Text>
                     {logoB ? (
                       <Image source={logoB} style={styles.dashRecentLogo} resizeMode="contain" />
                     ) : (
                       <Text style={{ fontSize: 18 }}>{rm.flagB || '⚔️'}</Text>
                     )}
-                    <Text style={styles.dashRecentTeamName} numberOfLines={1}>{rm.teamB}</Text>
                   </View>
 
-                  {/* End Column: Badge + Date + Chevron */}
+                  {/* Far Right: Result Badge without > icon */}
                   <View style={styles.dashRecentEndCol}>
-                    <View style={{ alignItems: 'flex-end' }}>
-                      <View style={[
-                        styles.dashResultBadge,
-                        { backgroundColor: isWon ? '#16a34a' : '#dc2626' }
-                      ]}>
-                        <Text style={styles.dashResultBadgeText}>{rm.result}</Text>
-                      </View>
-                      <Text style={styles.dashRecentDateText}>{rm.date} • {rm.format}</Text>
+                    <View style={[
+                      styles.dashResultBadge,
+                      { backgroundColor: isWon ? '#16a34a' : '#dc2626' }
+                    ]}>
+                      <Text style={styles.dashResultBadgeText}>{rm.result}</Text>
                     </View>
-                    <Text style={styles.dashRecentChevron}>❯</Text>
                   </View>
                 </TouchableOpacity>
               );
@@ -34718,7 +40418,32 @@ const styles = StyleSheet.create({
   },
   dashHeroCard: {
     width: '100%',
-    height: 145,
+    height: 142,
+    justifyContent: 'center',
+  },
+  dashHeroOverlay: {
+    paddingHorizontal: 16,
+    width: '64%',
+  },
+  dashHeroLets: {
+    color: '#ffffff',
+    fontSize: 22,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+  },
+  dashHeroPlay: {
+    color: '#ffffff',
+    fontSize: 24,
+    fontWeight: '900',
+    letterSpacing: -0.5,
+    marginTop: -4,
+  },
+  dashHeroSubtitle: {
+    color: '#cbd5e1',
+    fontSize: 10.5,
+    lineHeight: 14,
+    marginTop: 5,
+    fontWeight: '500',
   },
   dashActionGrid: {
     flexDirection: 'row',
@@ -34909,10 +40634,10 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: 'rgba(56, 189, 248, 0.15)',
-    paddingVertical: 12,
-    paddingHorizontal: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
     marginBottom: 8,
-    minHeight: 56,
+    minHeight: 64,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -34921,7 +40646,16 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    width: 74,
+    flex: 1.15,
+    paddingRight: 4,
+  },
+  dashRecentTeamBoxRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 6,
+    flex: 1.15,
+    paddingLeft: 4,
   },
   dashRecentLogo: {
     width: 26,
@@ -34933,38 +40667,59 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     flexShrink: 1,
   },
+  dashRecentTeamNameRight: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'right',
+    flexShrink: 1,
+  },
+  dashRecentCenterCol: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 4,
+  },
+  dashRecentScoreRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
   dashRecentScoreBox: {
     alignItems: 'center',
-    width: 44,
   },
   dashRecentScoreNum: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '800',
   },
   dashRecentOversNum: {
     color: '#94a3b8',
-    fontSize: 9.5,
+    fontSize: 9,
   },
   dashRecentVsCircle: {
     backgroundColor: '#16283d',
-    borderRadius: 10,
-    width: 20,
-    height: 20,
+    borderRadius: 9,
+    width: 18,
+    height: 18,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dashRecentVsText: {
     color: '#94a3b8',
-    fontSize: 8.5,
+    fontSize: 8,
     fontWeight: '900',
   },
+  dashRecentDateCentered: {
+    color: '#64748b',
+    fontSize: 8.5,
+    fontWeight: '600',
+    marginTop: 3,
+    textAlign: 'center',
+  },
   dashRecentEndCol: {
-    flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
-    width: 82,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
+    marginLeft: 4,
   },
   dashResultBadge: {
     borderRadius: 4,
@@ -34975,17 +40730,6 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 9.5,
     fontWeight: '900',
-  },
-  dashRecentDateText: {
-    color: '#64748b',
-    fontSize: 8.5,
-    marginTop: 2,
-  },
-  dashRecentChevron: {
-    color: '#64748b',
-    fontSize: 13,
-    fontWeight: 'bold',
-    marginLeft: 2,
   },
   bottomNavActiveBar: {
     position: 'absolute',
