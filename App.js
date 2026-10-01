@@ -10597,6 +10597,7 @@ function CricketAddaMain() {
   const hasReceivedInitialCloudTeamsRef = useRef(false);
   const hasReceivedInitialCloudUsersRef = useRef(false);
   const [wzPhase, setWzPhase] = useState(1); // 1: Select Teams (A & B), 2: Settings, 3: Toss, 4: Playing XI, 5: Confirm
+  const [wzTeamStep, setWzTeamStep] = useState(1); // 1: Select Your Team (Team 1), 2: Select Opponent Team (Team 2)
   const [matchDraftScorerPhone, setMatchDraftScorerPhone] = useState('');
 
   // Inning Start Openers Selection Modal State
@@ -10802,6 +10803,7 @@ function CricketAddaMain() {
 
   const handleOpenMatchWizard = useCallback(() => {
     setWzPhase(1);
+    setWzTeamStep(1);
     setWizardVisible(true);
     if (isFirebaseConfigured()) {
       fetchFirebaseTeams().then(cloudTeams => {
@@ -14350,6 +14352,22 @@ function CricketAddaMain() {
       };
     }).filter(Boolean);
   }, [matchesDb]);
+
+  const [showAllRecentModal, setShowAllRecentModal] = useState(false);
+  const [allRecentSearchQuery, setAllRecentSearchQuery] = useState('');
+  const filteredAllRecentMatches = useMemo(() => {
+    const q = (allRecentSearchQuery || '').trim().toLowerCase();
+    if (!q) return displayRecentMatches;
+    return (displayRecentMatches || []).filter(rm => {
+      if (!rm) return false;
+      const tA = (rm.teamA || '').toLowerCase();
+      const tB = (rm.teamB || '').toLowerCase();
+      const fmt = (rm.format || '').toLowerCase();
+      const dt = (rm.date || '').toLowerCase();
+      const res = (rm.result || '').toLowerCase();
+      return tA.includes(q) || tB.includes(q) || fmt.includes(q) || dt.includes(q) || res.includes(q);
+    });
+  }, [displayRecentMatches, allRecentSearchQuery]);
 
   const toggleExtraType = type => {
     if (!isOfficialScorer) return;
@@ -21305,41 +21323,6 @@ function CricketAddaMain() {
                   <View style={styles.dashLiveDot} />
                   <Text style={styles.dashLivePillText}>LIVE</Text>
                 </View>
-                {allLiveMatchesList.length > 1 && (
-                  <View style={styles.dashLiveNavRow}>
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (liveCarouselIndex > 0) {
-                          const targetIdx = liveCarouselIndex - 1;
-                          setLiveCarouselIndex(targetIdx);
-                          liveCarouselRef.current?.scrollTo({ x: targetIdx * (width - 20), animated: true });
-                        }
-                      }}
-                      disabled={liveCarouselIndex === 0}
-                      style={[styles.dashLiveNavBtn, liveCarouselIndex === 0 && { opacity: 0.3 }]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.dashLiveNavArrow}>‹</Text>
-                    </TouchableOpacity>
-                    <Text style={styles.dashLiveCounterText}>
-                      {liveCarouselIndex + 1}/{allLiveMatchesList.length}
-                    </Text>
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (liveCarouselIndex < allLiveMatchesList.length - 1) {
-                          const targetIdx = liveCarouselIndex + 1;
-                          setLiveCarouselIndex(targetIdx);
-                          liveCarouselRef.current?.scrollTo({ x: targetIdx * (width - 20), animated: true });
-                        }
-                      }}
-                      disabled={liveCarouselIndex === allLiveMatchesList.length - 1}
-                      style={[styles.dashLiveNavBtn, liveCarouselIndex === allLiveMatchesList.length - 1 && { opacity: 0.3 }]}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    >
-                      <Text style={styles.dashLiveNavArrow}>›</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
 
               <TouchableOpacity
@@ -21466,30 +21449,19 @@ function CricketAddaMain() {
             </View>
           </View>
 
-          {/* 4. RECENT MATCHES SECTION (SHOW 5 MATCHES THEN VERTICAL SCROLLBAR) */}
-          <View style={styles.dashRecentSection}>
+          {/* 4. RECENT MATCHES SECTION (DEDICATED STYLED BOX WITH INTERNAL SCROLL) */}
+          <View style={styles.dashRecentBoxOuter}>
             <View style={styles.dashRecentHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <Text style={{ fontSize: 16 }}>🕒</Text>
                 <Text style={styles.dashRecentTitle}>Recent Matches ({displayRecentMatches.length})</Text>
               </View>
-              <TouchableOpacity onPress={() => openMatchScorecard(displayRecentMatches[0]?.id)}>
+              <TouchableOpacity onPress={() => setShowAllRecentModal(true)}>
                 <Text style={styles.dashViewAllText}>View All ❯</Text>
               </TouchableOpacity>
             </View>
 
-            {displayRecentMatches.length > 5 && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 2 }}>
-                <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600' }}>
-                  Showing 5 of {displayRecentMatches.length} matches • Scroll down to view all
-                </Text>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(34, 197, 94, 0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: '#22c55e' }}>
-                  <Text style={{ color: '#22c55e', fontSize: 10, fontWeight: '800' }}>↕ Scrollable</Text>
-                </View>
-              </View>
-            )}
-
-            {/* Match Items - Exactly 5 items in viewport then scrollbar */}
+            {/* Match Items - Exactly 5 items in viewport then scrollbar inside this box */}
             <ScrollView
               style={styles.dashRecentScrollView}
               nestedScrollEnabled={true}
@@ -29926,451 +29898,492 @@ function CricketAddaMain() {
         </View>
       </Modal>
 
-      {/* MODAL 6: CRICHEROES STYLE SELECT PLAYING TEAMS & MATCH SETUP ENGINE */}
-      <Modal visible={wizardVisible} animationType="slide" statusBarTranslucent={true}>
-        <View style={[styles.cricModalFullscreen, { backgroundColor: currentTheme.bg }]}>
-          {/* Top Header App Bar with Safe Area Top Inset */}
-          <View style={[styles.cricHeaderRed, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder, paddingTop: topInset, height: 56 + topInset }]}>
+      {/* MODAL: ALL RECENT MATCHES SCREEN WITH LIVE SEARCH */}
+      <Modal visible={showAllRecentModal} animationType="slide" statusBarTranslucent={true} onRequestClose={() => setShowAllRecentModal(false)}>
+        <View style={{ flex: 1, backgroundColor: '#030d18', paddingTop: topInset }}>
+          {/* Header */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#0f2744' }}>
             <TouchableOpacity
-              style={styles.cricHeaderIconBtn}
-              onPress={() => {
-                if (wzPhase > 1) {
-                  setWzPhase(s => s - 1);
-                } else {
-                  confirmCancelMatchSetup();
-                }
-              }}
+              onPress={() => setShowAllRecentModal(false)}
+              style={{ width: 38, height: 38, borderRadius: 19, backgroundColor: 'rgba(255, 255, 255, 0.08)', borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.15)', justifyContent: 'center', alignItems: 'center' }}
             >
-              <Text style={[styles.cricHeaderBackText, { color: currentTheme.primary }]}>←</Text>
+              <Text style={{ color: '#ffffff', fontSize: 22, fontWeight: '900', marginTop: -2 }}>‹</Text>
             </TouchableOpacity>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '800' }}>Recent Matches</Text>
+              <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', marginTop: 1 }}>
+                {filteredAllRecentMatches.length} {filteredAllRecentMatches.length === 1 ? 'match' : 'matches'}
+              </Text>
+            </View>
+            <View style={{ width: 38 }} />
+          </View>
 
-            <Text style={[styles.cricHeaderTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-              {wzPhase === 1
-                ? 'Select playing teams'
-                : wzPhase === 2
-                ? 'Match Settings'
-                : wzPhase === 3
-                ? 'Coin Toss 🪙'
-                : wzPhase === 4
-                ? 'Playing XI & Roles'
-                : 'Match Confirmation'}
-            </Text>
-
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <TouchableOpacity
-                style={styles.cricHeaderIconBtn}
-                onPress={() =>
-                  Alert.alert(
-                    'Match Setup Guide',
-                    '1. Select Your Team and Opponent Team\n2. Configure overs & venue\n3. Toss coin\n4. Select Playing XI & Roles\n5. Confirm & Start Match (Select Openers & Bowler at start of innings).'
-                  )
-                }
-              >
-                <View style={[styles.cricHelpCircle, { borderColor: currentTheme.primary }]}>
-                  <Text style={[styles.cricHeaderHelpText, { color: currentTheme.primary }]}>?</Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Explicit Close / Cancel Button */}
-              <TouchableOpacity
-                style={styles.cricHeaderCloseBtn}
-                onPress={confirmCancelMatchSetup}
-                accessibilityLabel="Close match setup"
-              >
-                <Text style={styles.cricHeaderCloseText}>✕</Text>
-              </TouchableOpacity>
+          {/* Live Search Bar */}
+          <View style={{ paddingHorizontal: 14, paddingVertical: 10 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#071829', borderWidth: 1, borderColor: '#1e3a5f', borderRadius: 12, paddingHorizontal: 12, height: 44 }}>
+              <Text style={{ fontSize: 15, marginRight: 8 }}>🔍</Text>
+              <TextInput
+                style={{ flex: 1, color: '#ffffff', fontSize: 14, fontWeight: '600' }}
+                placeholder="Search by team, tournament, format..."
+                placeholderTextColor="#64748b"
+                value={allRecentSearchQuery}
+                onChangeText={setAllRecentSearchQuery}
+                autoCorrect={false}
+              />
+              {allRecentSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setAllRecentSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: '800' }}>✕</Text>
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
+          {/* Matches List */}
+          <ScrollView
+            style={{ flex: 1, paddingHorizontal: 14 }}
+            contentContainerStyle={{ paddingBottom: bottomInset + 30 }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={true}
+          >
+            {filteredAllRecentMatches.length === 0 ? (
+              <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 60 }}>
+                <Text style={{ fontSize: 36, marginBottom: 10 }}>🏏</Text>
+                <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '700' }}>No matches found</Text>
+                <Text style={{ color: '#64748b', fontSize: 12, marginTop: 4 }}>Try searching for a different team or tournament</Text>
+              </View>
+            ) : (
+              filteredAllRecentMatches.map((rm, idx) => {
+                const logoA = getDashTeamLogo(rm.teamA);
+                const logoB = getDashTeamLogo(rm.teamB);
+                const isWon = rm.result === 'Won';
+
+                return (
+                  <TouchableOpacity
+                    key={rm.id || `all_rm_${idx}`}
+                    style={styles.dashRecentMatchCard}
+                    onPress={() => {
+                      setShowAllRecentModal(false);
+                      openMatchScorecard(rm.id);
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    {/* Left: Team 1 */}
+                    <View style={styles.dashRecentTeamBox}>
+                      {logoA ? (
+                        <Image source={logoA} style={styles.dashRecentLogo} resizeMode="contain" />
+                      ) : (
+                        <Text style={{ fontSize: 18 }}>{rm.flagA || '🐯'}</Text>
+                      )}
+                      <Text style={styles.dashRecentTeamName}>{rm.teamA}</Text>
+                    </View>
+
+                    {/* Center: Scores & Date */}
+                    <View style={styles.dashRecentCenterCol}>
+                      <View style={styles.dashRecentScoreRow}>
+                        <View style={styles.dashRecentScoreBox}>
+                          <Text style={styles.dashRecentScoreNum}>{rm.scoreANum}</Text>
+                          <Text style={styles.dashRecentOversNum}>{rm.scoreAOvers}</Text>
+                        </View>
+                        <View style={styles.dashRecentVsCircle}>
+                          <Text style={styles.dashRecentVsText}>VS</Text>
+                        </View>
+                        <View style={styles.dashRecentScoreBox}>
+                          <Text style={styles.dashRecentScoreNum}>{rm.scoreBNum}</Text>
+                          <Text style={styles.dashRecentOversNum}>{rm.scoreBOvers}</Text>
+                        </View>
+                      </View>
+                      <Text style={styles.dashRecentDateCentered}>
+                        {rm.date} • {rm.format}
+                      </Text>
+                    </View>
+
+                    {/* Right: Team 2 */}
+                    <View style={styles.dashRecentTeamBoxRight}>
+                      <Text style={styles.dashRecentTeamNameRight}>{rm.teamB}</Text>
+                      {logoB ? (
+                        <Image source={logoB} style={styles.dashRecentLogo} resizeMode="contain" />
+                      ) : (
+                        <Text style={{ fontSize: 18 }}>{rm.flagB || '⚔️'}</Text>
+                      )}
+                    </View>
+
+                    {/* Far Right: Result Badge */}
+                    <View style={styles.dashRecentEndCol}>
+                      <View style={[
+                        styles.dashResultBadge,
+                        { backgroundColor: isWon ? '#16a34a' : '#dc2626' }
+                      ]}>
+                        <Text style={styles.dashResultBadgeText}>{rm.result}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* MODAL 6: CRICHEROES STYLE SELECT PLAYING TEAMS & MATCH SETUP ENGINE */}
+      <Modal visible={wizardVisible} animationType="slide" statusBarTranslucent={true}>
+        <View style={[styles.cricModalFullscreen, { backgroundColor: currentTheme.bg }]}>
+          {/* Top Header App Bar (For Phases 2-5) */}
+          {wzPhase > 1 && (
+            <View style={[styles.cricHeaderRed, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder, paddingTop: topInset, height: 56 + topInset }]}>
+              <TouchableOpacity
+                style={styles.cricHeaderIconBtn}
+                onPress={() => {
+                  if (wzPhase === 2) {
+                    setWzPhase(1);
+                    setWzTeamStep(2);
+                  } else if (wzPhase > 2) {
+                    setWzPhase(s => s - 1);
+                  } else {
+                    confirmCancelMatchSetup();
+                  }
+                }}
+              >
+                <Text style={[styles.cricHeaderBackText, { color: currentTheme.primary }]}>←</Text>
+              </TouchableOpacity>
+
+              <Text style={[styles.cricHeaderTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
+                {wzPhase === 2
+                  ? 'Match Settings'
+                  : wzPhase === 3
+                  ? 'Coin Toss 🪙'
+                  : wzPhase === 4
+                  ? 'Playing XI & Roles'
+                  : 'Match Confirmation'}
+              </Text>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <TouchableOpacity
+                  style={styles.cricHeaderIconBtn}
+                  onPress={() =>
+                    Alert.alert(
+                      'Match Setup Guide',
+                      '1. Select Your Team and Opponent Team\n2. Configure overs & venue\n3. Toss coin\n4. Select Playing XI & Roles\n5. Confirm & Start Match (Select Openers & Bowler at start of innings).'
+                    )
+                  }
+                >
+                  <View style={[styles.cricHelpCircle, { borderColor: currentTheme.primary }]}>
+                    <Text style={[styles.cricHeaderHelpText, { color: currentTheme.primary }]}>?</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Explicit Close / Cancel Button */}
+                <TouchableOpacity
+                  style={styles.cricHeaderCloseBtn}
+                  onPress={confirmCancelMatchSetup}
+                  accessibilityLabel="Close match setup"
+                >
+                  <Text style={styles.cricHeaderCloseText}>✕</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          )}
+
           {/* ========================================================================= */}
-          {/* PHASE 1: EXACT MATCHUP SCREEN WITH AUTOFILL & DROPDOWN SELECTORS */}
+          {/* PHASE 1: 2-STEP TEAM SELECTION (STEP 1: TEAM 1, STEP 2: TEAM 2) */}
           {/* ========================================================================= */}
           {wzPhase === 1 && (
-            <ScrollView
-              style={[styles.cricScreenContent, { backgroundColor: currentTheme.bg }]}
-              contentContainerStyle={styles.cricScreenContentContainer}
-              keyboardShouldPersistTaps="always"
-              showsVerticalScrollIndicator={false}
-            >
-              {/* Vertical Matchup Center Stage */}
-              <View style={styles.cricMatchupCenterStage}>
-                {/* ==================== TEAM A SECTION ==================== */}
-                <View style={styles.cricTeamBlock}>
+            <View style={{ flex: 1, backgroundColor: '#020b14' }}>
+              {/* Stadium Banner Header with Logo and Back Button */}
+              <ImageBackground
+                source={require('./assets/hero-banner.jpg')}
+                style={{ width: '100%', paddingTop: topInset + 6, paddingBottom: 14, paddingHorizontal: 14 }}
+                resizeMode="cover"
+              >
+                {/* Top Row: Back Button */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                   <TouchableOpacity
-                    style={[
-                      styles.cricTeamCircle,
-                      { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                      matchDraft.myTeam ? styles.cricTeamCircleFilled : null,
-                    ]}
-                    activeOpacity={0.8}
                     onPress={() => {
-                      setTeamSearchQuery('');
-                      setActiveDropdown(activeDropdown === 'teamA' ? null : 'teamA');
+                      if (wzTeamStep === 2) {
+                        setWzTeamStep(1);
+                      } else {
+                        confirmCancelMatchSetup();
+                      }
                     }}
+                    style={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: 19,
+                      backgroundColor: 'rgba(0, 0, 0, 0.55)',
+                      borderWidth: 1.5,
+                      borderColor: '#22c55e',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                   >
-                    {matchDraft.myTeam ? (
-                      <SmartTeamLogo
-                        team={matchDraft.myTeam}
-                        allTeams={allAvailableMatchTeams}
-                        allUsers={usersDb}
-                        style={{ width: '100%', height: '100%' }}
-                        flagStyle={{ fontSize: 36 }}
-                        fallbackFlag="🦁"
-                      />
-                    ) : (
-                      <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
-                    )}
+                    <Text style={{ color: '#ffffff', fontSize: 22, fontWeight: '900', marginTop: -2 }}>‹</Text>
                   </TouchableOpacity>
 
-                  {/* Dropdown / Autofill Trigger Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.cricDropdownTriggerBtn,
-                      { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                      matchDraft.myTeam ? styles.cricDropdownTriggerBtnFilled : null,
-                      activeDropdown === 'teamA' ? styles.cricDropdownTriggerBtnActive : null,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setTeamSearchQuery('');
-                      setActiveDropdown(activeDropdown === 'teamA' ? null : 'teamA');
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.cricTeamBtnText,
-                        { color: currentTheme.isLight ? '#0f172a' : '#ffffff' },
-                        matchDraft.myTeam ? styles.cricTeamBtnTextFilled : null,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {matchDraft.myTeam ? `${matchDraft.myTeam.flag} ${matchDraft.myTeam.name}` : 'Select your team'}
-                    </Text>
-                    <Text style={[styles.cricDropdownChevron, matchDraft.myTeam ? { color: currentTheme.primary } : null]}>
-                      {activeDropdown === 'teamA' ? ' ▲' : ' ▼'}
-                    </Text>
-                  </TouchableOpacity>
+                  {/* Logo Center */}
+                  <Image
+                    source={require('./assets/logo.png')}
+                    style={{ width: 130, height: 55, resizeMode: 'contain' }}
+                  />
 
-                  {/* Team A QR Actions */}
-                  <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: currentTheme.cardBg,
-                        borderColor: currentTheme.primary,
-                        borderWidth: 1,
-                        borderRadius: 6,
-                        paddingVertical: 3.5,
-                        paddingHorizontal: 9,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                      onPress={() => openUniversalQrScanner('add_team_a')}
-                    >
-                      <Text style={{ fontSize: 11 }}>📷</Text>
-                      <Text style={{ color: currentTheme.primary, fontSize: 10.5, fontWeight: 'bold' }}>Scan QR</Text>
-                    </TouchableOpacity>
-                    {matchDraft.myTeam && (
-                      <TouchableOpacity
-                        style={{
-                          backgroundColor: currentTheme.cardBg,
-                          borderColor: '#10b981',
-                          borderWidth: 1,
-                          borderRadius: 6,
-                          paddingVertical: 3.5,
-                          paddingHorizontal: 9,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 4,
-                        }}
-                        onPress={() => openTeamQrCode(matchDraft.myTeam)}
-                      >
-                        <Text style={{ fontSize: 11 }}>🪪</Text>
-                        <Text style={{ color: '#34d399', fontSize: 10.5, fontWeight: 'bold' }}>Team QR</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {/* Team A Dropdown Menu with Autofill Search & Custom Team Creator */}
-                  {activeDropdown === 'teamA' ? (
-                    <View style={[styles.inlineDropdownCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                      <View style={[styles.dropdownSearchBox, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#020617', borderColor: currentTheme.cardBorder }]}>
-                        <Text style={{ fontSize: 13, marginRight: 4 }}>🔍</Text>
-                        <TextInput
-                          style={[styles.dropdownSearchInput, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}
-                          value={teamSearchQuery}
-                          onChangeText={setTeamSearchQuery}
-                          placeholder="Search or type custom team name..."
-                          placeholderTextColor="#64748b"
-                          autoFocus={true}
-                        />
-                        {(teamSearchQuery || '').length > 0 ? (
-                          <TouchableOpacity onPress={() => setTeamSearchQuery('')}>
-                            <Text style={{ color: '#94a3b8', fontSize: 13 }}>✕</Text>
-                          </TouchableOpacity>
-                        ) : null}
-                      </View>
-
-                      {/* 1-Tap Create & Select Custom Team when typed */}
-                      {(teamSearchQuery || '').trim().length > 0 && !allAvailableMatchTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
-                        <TouchableOpacity
-                          style={styles.dropdownAddNewTeamBtn}
-                          onPress={() => handleAddNewCustomTeam('teamA', teamSearchQuery)}
-                        >
-                          <Text style={{ fontSize: 16, marginRight: 6 }}>➕</Text>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.dropdownAddNewTeamTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>Add Team: "{teamSearchQuery.trim()}"</Text>
-                            <Text style={styles.dropdownAddNewTeamSub}>Tap to create & select this team</Text>
-                          </View>
-                          <View style={[styles.dropdownAddNewTeamTag, { backgroundColor: currentTheme.primary }]}>
-                            <Text style={[styles.dropdownAddNewTeamTagText, { color: currentTheme.primaryText }]}>CREATE</Text>
-                          </View>
-                        </TouchableOpacity>
-                      )}
-
-                      <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-                        {(allAvailableMatchTeams || []).filter(t => {
-                          const q = (teamSearchQuery || '').toLowerCase().trim();
-                          if (!q) return true;
-                          const matchName = (t.name || '').toLowerCase().includes(q);
-                          const matchCap = (t.captain || '').toLowerCase().includes(q);
-                          const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
-                          const matchSquad = Array.isArray(t.squad) && t.squad.some(p => {
-                            const pn = typeof p === 'string' ? p : (p.name || '');
-                            return (pn || '').toLowerCase().includes(q);
-                          });
-                          return matchName || matchCap || matchCity || matchSquad;
-                        }).map(t => {
-                          const isSelected = matchDraft.myTeam?.id === t.id;
-                          return (
-                            <TouchableOpacity
-                              key={t.id}
-                              style={[styles.dropdownItemRow, { backgroundColor: currentTheme.cardBg, borderBottomColor: currentTheme.cardBorder }, isSelected ? styles.dropdownItemRowSelected : null]}
-                              onPress={() => {
-                                selectTeamForSlot('teamA', t);
-                                setActiveDropdown(null);
-                                setTeamSearchQuery('');
-                              }}
-                            >
-                              <View style={{ width: 24, height: 24, borderRadius: 12, overflow: 'hidden', marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
-                                <SmartTeamLogo
-                                  team={t}
-                                  allTeams={allAvailableMatchTeams}
-                                  allUsers={usersDb}
-                                  style={{ width: '100%', height: '100%' }}
-                                  flagStyle={{ fontSize: 18 }}
-                                  fallbackFlag={t.flag || '🦁'}
-                                />
-                              </View>
-                              <View style={{ flex: 1 }}>
-                                <Text style={[styles.dropdownItemName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }, isSelected ? { color: currentTheme.primary } : null]}>{t.name}</Text>
-                                <Text style={[styles.dropdownItemSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>{t.city} • Capt: {t.captain}</Text>
-                              </View>
-                              {isSelected ? <Text style={{ color: '#10b981', fontWeight: 'bold' }}>✓</Text> : null}
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
-                    </View>
-                  ) : null}
+                  {/* Spacer for symmetry */}
+                  <View style={{ width: 38 }} />
                 </View>
 
-                {/* ==================== VS DIAMOND BADGE ==================== */}
-                <View style={[styles.cricVsDiamond, { backgroundColor: currentTheme.primary }]}>
-                  <Text style={[styles.cricVsDiamondText, { color: currentTheme.primaryText }]}>vs</Text>
-                </View>
-
-                {/* ==================== TEAM B SECTION ==================== */}
-                <View style={styles.cricTeamBlock}>
-                  <TouchableOpacity
-                    style={[
-                      styles.cricTeamCircle,
-                      { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                      matchDraft.opponentTeam ? styles.cricTeamCircleFilled : null,
-                    ]}
-                    activeOpacity={0.8}
-                    onPress={() => {
-                      setTeamSearchQuery('');
-                      setActiveDropdown(activeDropdown === 'teamB' ? null : 'teamB');
-                    }}
-                  >
-                    {matchDraft.opponentTeam ? (
-                      <SmartTeamLogo
-                        team={matchDraft.opponentTeam}
-                        allTeams={allAvailableMatchTeams}
-                        allUsers={usersDb}
-                        style={{ width: '100%', height: '100%' }}
-                        flagStyle={{ fontSize: 36 }}
-                        fallbackFlag="⚡"
-                      />
-                    ) : (
-                      <Text style={[styles.cricTeamCirclePlus, { color: currentTheme.primary }]}>+</Text>
-                    )}
-                  </TouchableOpacity>
-
-                  {/* Dropdown / Autofill Trigger Button */}
-                  <TouchableOpacity
-                    style={[
-                      styles.cricDropdownTriggerBtn,
-                      { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                      matchDraft.opponentTeam ? styles.cricDropdownTriggerBtnFilled : null,
-                      activeDropdown === 'teamB' ? styles.cricDropdownTriggerBtnActive : null,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setTeamSearchQuery('');
-                      setActiveDropdown(activeDropdown === 'teamB' ? null : 'teamB');
-                    }}
-                  >
-                    <Text
-                      style={[
-                        styles.cricTeamBtnText,
-                        { color: currentTheme.isLight ? '#0f172a' : '#ffffff' },
-                        matchDraft.opponentTeam ? styles.cricTeamBtnTextFilled : null,
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {matchDraft.opponentTeam ? `${matchDraft.opponentTeam.flag} ${matchDraft.opponentTeam.name}` : 'Select opponent team'}
-                    </Text>
-                    <Text style={[styles.cricDropdownChevron, matchDraft.opponentTeam ? { color: currentTheme.primary } : null]}>
-                      {activeDropdown === 'teamB' ? ' ▲' : ' ▼'}
-                    </Text>
-                  </TouchableOpacity>
-
-                  {/* Team B QR Actions */}
-                  <View style={{ flexDirection: 'row', gap: 6, marginTop: 6 }}>
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: currentTheme.cardBg,
-                        borderColor: currentTheme.primary,
-                        borderWidth: 1,
-                        borderRadius: 6,
-                        paddingVertical: 3.5,
-                        paddingHorizontal: 9,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                      onPress={() => openUniversalQrScanner('add_team_b')}
-                    >
-                      <Text style={{ fontSize: 11 }}>📷</Text>
-                      <Text style={{ color: currentTheme.primary, fontSize: 10.5, fontWeight: 'bold' }}>Scan QR</Text>
-                    </TouchableOpacity>
-                    {matchDraft.opponentTeam && (
-                      <TouchableOpacity
-                        style={{
-                          backgroundColor: currentTheme.cardBg,
-                          borderColor: '#10b981',
-                          borderWidth: 1,
-                          borderRadius: 6,
-                          paddingVertical: 3.5,
-                          paddingHorizontal: 9,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 4,
-                        }}
-                        onPress={() => openTeamQrCode(matchDraft.opponentTeam)}
-                      >
-                        <Text style={{ fontSize: 11 }}>🪪</Text>
-                        <Text style={{ color: '#34d399', fontSize: 10.5, fontWeight: 'bold' }}>Team QR</Text>
-                      </TouchableOpacity>
-                    )}
-                  </View>
-
-                  {/* Team B Dropdown Menu with Autofill Search & Custom Team Creator */}
-                  {activeDropdown === 'teamB' ? (
-                    <View style={[styles.inlineDropdownCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                      <View style={[styles.dropdownSearchBox, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#020617', borderColor: currentTheme.cardBorder }]}>
-                        <Text style={{ fontSize: 13, marginRight: 4 }}>🔍</Text>
-                        <TextInput
-                          style={[styles.dropdownSearchInput, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}
-                          value={teamSearchQuery}
-                          onChangeText={setTeamSearchQuery}
-                          placeholder="Search or type custom team name..."
-                          placeholderTextColor="#64748b"
-                          autoFocus={true}
-                        />
-                        {(teamSearchQuery || '').length > 0 ? (
-                          <TouchableOpacity onPress={() => setTeamSearchQuery('')}>
-                            <Text style={{ color: '#94a3b8', fontSize: 13 }}>✕</Text>
-                          </TouchableOpacity>
-                        ) : null}
-                      </View>
-
-                      {/* 1-Tap Create & Select Custom Team when typed */}
-                      {(teamSearchQuery || '').trim().length > 0 && !allAvailableMatchTeams.some(t => t.name.toLowerCase() === teamSearchQuery.trim().toLowerCase()) && (
-                        <TouchableOpacity
-                          style={styles.dropdownAddNewTeamBtn}
-                          onPress={() => handleAddNewCustomTeam('teamB', teamSearchQuery)}
-                        >
-                          <Text style={{ fontSize: 16, marginRight: 6 }}>➕</Text>
-                          <View style={{ flex: 1 }}>
-                            <Text style={[styles.dropdownAddNewTeamTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>Add Team: "{teamSearchQuery.trim()}"</Text>
-                            <Text style={styles.dropdownAddNewTeamSub}>Tap to create & select this team</Text>
-                          </View>
-                          <View style={[styles.dropdownAddNewTeamTag, { backgroundColor: currentTheme.primary }]}>
-                            <Text style={[styles.dropdownAddNewTeamTagText, { color: currentTheme.primaryText }]}>CREATE</Text>
-                          </View>
-                        </TouchableOpacity>
-                      )}
-
-                      <ScrollView style={{ maxHeight: 180 }} nestedScrollEnabled showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-                        {(allAvailableMatchTeams || []).filter(t => {
-                          const q = (teamSearchQuery || '').toLowerCase().trim();
-                          if (!q) return true;
-                          const matchName = (t.name || '').toLowerCase().includes(q);
-                          const matchCap = (t.captain || '').toLowerCase().includes(q);
-                          const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
-                          const matchSquad = Array.isArray(t.squad) && t.squad.some(p => {
-                            const pn = typeof p === 'string' ? p : (p.name || '');
-                            return (pn || '').toLowerCase().includes(q);
-                          });
-                          return matchName || matchCap || matchCity || matchSquad;
-                        }).map(t => {
-                          const isSelected = matchDraft.opponentTeam?.id === t.id;
-                          return (
-                            <TouchableOpacity
-                              key={t.id}
-                              style={[styles.dropdownItemRow, { backgroundColor: currentTheme.cardBg, borderBottomColor: currentTheme.cardBorder }, isSelected ? styles.dropdownItemRowSelected : null]}
-                              onPress={() => {
-                                selectTeamForSlot('teamB', t);
-                                setActiveDropdown(null);
-                                setTeamSearchQuery('');
-                              }}
-                            >
-                              <View style={{ width: 24, height: 24, borderRadius: 12, overflow: 'hidden', marginRight: 8, alignItems: 'center', justifyContent: 'center' }}>
-                                <SmartTeamLogo
-                                  team={t}
-                                  allTeams={allAvailableMatchTeams}
-                                  allUsers={usersDb}
-                                  style={{ width: '100%', height: '100%' }}
-                                  flagStyle={{ fontSize: 18 }}
-                                  fallbackFlag={t.flag || '⚡'}
-                                />
-                              </View>
-                              <View style={{ flex: 1 }}>
-                                <Text style={[styles.dropdownItemName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }, isSelected ? { color: currentTheme.primary } : null]}>{t.name}</Text>
-                                <Text style={[styles.dropdownItemSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>{t.city} • Capt: {t.captain}</Text>
-                              </View>
-                              {isSelected ? <Text style={{ color: '#10b981', fontWeight: 'bold' }}>✓</Text> : null}
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </ScrollView>
-                    </View>
-                  ) : null}
-                </View>
-              </View>
-
-              {/* Notice if same team selected */}
-              {matchDraft.myTeam && matchDraft.opponentTeam && matchDraft.myTeam.id === matchDraft.opponentTeam.id && (
-                <View style={{ paddingVertical: 12 }}>
-                  <Text style={{ color: '#ef4444', textAlign: 'center', fontWeight: 'bold' }}>
-                    ⚠️ Team A and Team B cannot be the same team.
+                {/* Title & Subtitle */}
+                <View style={{ alignItems: 'center', marginTop: 2 }}>
+                  <Text style={{
+                    fontSize: 21,
+                    fontWeight: '900',
+                    color: '#84cc16',
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5,
+                    textShadowColor: 'rgba(132, 204, 22, 0.4)',
+                    textShadowOffset: { width: 0, height: 1 },
+                    textShadowRadius: 6,
+                  }}>
+                    {wzTeamStep === 1 ? 'SELECT YOUR TEAM' : 'SELECT OPPONENT TEAM'}
+                  </Text>
+                  <Text style={{ color: '#e2e8f0', fontSize: 13, fontWeight: '600', marginTop: 3, fontStyle: 'italic' }}>
+                    {wzTeamStep === 1 ? 'Choose the team to play as Team 1' : 'Choose the team to play as Team 2'}
                   </Text>
                 </View>
-              )}
-            </ScrollView>
+              </ImageBackground>
+
+              {/* Action Row: Search Bar, Scan QR, Create Team */}
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                paddingHorizontal: 12,
+                paddingVertical: 10,
+                backgroundColor: '#020b14',
+                borderBottomWidth: 1,
+                borderBottomColor: '#0c2238',
+              }}>
+                {/* Search Bar */}
+                <View style={{
+                  flex: 1,
+                  height: 40,
+                  backgroundColor: '#05182a',
+                  borderWidth: 1,
+                  borderColor: 'rgba(56, 189, 248, 0.25)',
+                  borderRadius: 10,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingHorizontal: 10,
+                }}>
+                  <Text style={{ fontSize: 14, marginRight: 6 }}>🔍</Text>
+                  <TextInput
+                    style={{ flex: 1, color: '#ffffff', fontSize: 13, fontWeight: '600' }}
+                    placeholder="Search team..."
+                    placeholderTextColor="#64748b"
+                    value={teamSearchQuery}
+                    onChangeText={setTeamSearchQuery}
+                    autoCorrect={false}
+                  />
+                  {teamSearchQuery.length > 0 && (
+                    <TouchableOpacity onPress={() => setTeamSearchQuery('')} hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '800' }}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+
+                {/* Scan Team QR */}
+                <TouchableOpacity
+                  style={{
+                    height: 40,
+                    backgroundColor: '#05182a',
+                    borderWidth: 1,
+                    borderColor: '#10b981',
+                    borderRadius: 10,
+                    paddingHorizontal: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 5,
+                  }}
+                  onPress={() => openUniversalQrScanner(wzTeamStep === 1 ? 'add_team_a' : 'add_team_b')}
+                  activeOpacity={0.8}
+                >
+                  <Text style={{ fontSize: 13 }}>⛶</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '700' }}>Scan Team QR</Text>
+                </TouchableOpacity>
+
+                {/* Create Team */}
+                <TouchableOpacity
+                  style={{
+                    height: 40,
+                    backgroundColor: '#22c55e',
+                    borderRadius: 10,
+                    paddingHorizontal: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                  }}
+                  onPress={() => openNewTeamModal(wzTeamStep === 1 ? 'teamA' : 'teamB', teamSearchQuery || '')}
+                  activeOpacity={0.85}
+                >
+                  <Text style={{ color: '#000000', fontSize: 15, fontWeight: '900' }}>+</Text>
+                  <Text style={{ color: '#000000', fontSize: 12, fontWeight: '900' }}>Create Team</Text>
+                </TouchableOpacity>
+              </View>
+
+              {/* Teams List */}
+              <ScrollView
+                style={{ flex: 1, paddingHorizontal: 12, paddingTop: 8 }}
+                contentContainerStyle={{ paddingBottom: 20 }}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={true}
+              >
+                {allAvailableMatchTeams
+                  .filter(t => {
+                    const q = (teamSearchQuery || '').toLowerCase().trim();
+                    if (!q) return true;
+                    const matchName = (t.name || '').toLowerCase().includes(q);
+                    const matchCap = (t.captain || '').toLowerCase().includes(q);
+                    const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
+                    return matchName || matchCap || matchCity;
+                  })
+                  .map(t => {
+                    const isSelected = wzTeamStep === 1
+                      ? matchDraft.myTeam?.id === t.id
+                      : matchDraft.opponentTeam?.id === t.id;
+                    const isOtherTeam = wzTeamStep === 2 && matchDraft.myTeam?.id === t.id;
+                    const squadCount = Array.isArray(t.squad) && t.squad.length > 0 ? t.squad.length : 15;
+
+                    return (
+                      <TouchableOpacity
+                        key={t.id || t.name}
+                        style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          backgroundColor: isSelected ? 'rgba(34, 197, 94, 0.12)' : '#05182a',
+                          borderWidth: 1.5,
+                          borderColor: isSelected ? '#22c55e' : (isOtherTeam ? '#1e293b' : 'rgba(56, 189, 248, 0.18)'),
+                          borderRadius: 14,
+                          paddingVertical: 12,
+                          paddingHorizontal: 14,
+                          marginBottom: 9,
+                          opacity: isOtherTeam ? 0.45 : 1,
+                        }}
+                        onPress={() => {
+                          if (isOtherTeam) {
+                            showAppToast('Already selected as Team 1 🚫', '🚫', 'warning');
+                            return;
+                          }
+                          if (wzTeamStep === 1) {
+                            selectTeamForSlot('teamA', t);
+                          } else {
+                            selectTeamForSlot('teamB', t);
+                          }
+                        }}
+                        activeOpacity={0.8}
+                      >
+                        {/* Left: Team Emblem */}
+                        <View style={{
+                          width: 46,
+                          height: 46,
+                          borderRadius: 23,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          marginRight: 12,
+                          overflow: 'hidden',
+                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                        }}>
+                          <SmartTeamLogo
+                            team={t}
+                            allTeams={allAvailableMatchTeams}
+                            allUsers={usersDb}
+                            style={{ width: '100%', height: '100%' }}
+                            flagStyle={{ fontSize: 28 }}
+                            fallbackFlag={t.flag || '🦁'}
+                          />
+                        </View>
+
+                        {/* Center: Team Name & Players Count */}
+                        <View style={{ flex: 1, paddingRight: 8 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: '800' }} numberOfLines={1}>
+                            {t.name}
+                          </Text>
+                          <Text style={{ color: isOtherTeam ? '#eab308' : '#94a3b8', fontSize: 12.5, fontWeight: '600', marginTop: 3 }}>
+                            {isOtherTeam ? '⭐ Selected as Team 1' : `👥 ${squadCount} Players`}
+                          </Text>
+                        </View>
+
+                        {/* Right: Radio Selection Circle / Green Checkmark */}
+                        <View style={{
+                          width: 26,
+                          height: 26,
+                          borderRadius: 13,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderWidth: isSelected ? 0 : 2,
+                          borderColor: isSelected ? 'transparent' : '#64748b',
+                          backgroundColor: isSelected ? '#22c55e' : 'transparent',
+                        }}>
+                          {isSelected && (
+                            <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900' }}>✓</Text>
+                          )}
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+              </ScrollView>
+
+              {/* Bottom Sticky NEXT Button */}
+              <View style={{
+                paddingHorizontal: 14,
+                paddingTop: 8,
+                paddingBottom: Math.max(12, bottomInset),
+                backgroundColor: '#020b14',
+                borderTopWidth: 1,
+                borderTopColor: '#0a1d30',
+              }}>
+                <TouchableOpacity
+                  style={{
+                    height: 52,
+                    borderRadius: 12,
+                    backgroundColor: '#22c55e',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    shadowColor: '#22c55e',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 6,
+                    elevation: 5,
+                  }}
+                  onPress={() => {
+                    if (wzTeamStep === 1) {
+                      if (!matchDraft.myTeam) {
+                        showAppToast('Please select Team 1 to proceed 👥', '👥', 'warning');
+                        return;
+                      }
+                      setWzTeamStep(2);
+                      setTeamSearchQuery('');
+                    } else {
+                      if (!matchDraft.opponentTeam) {
+                        showAppToast('Please select Opponent Team (Team 2) 👥', '👥', 'warning');
+                        return;
+                      }
+                      if (matchDraft.myTeam?.id === matchDraft.opponentTeam?.id) {
+                        showAppToast('Team 1 and Team 2 cannot be the same team 🚫', '🚫', 'warning');
+                        return;
+                      }
+                      setWzPhase(2);
+                      setTeamSearchQuery('');
+                    }
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Text style={{ color: '#000000', fontSize: 18, fontWeight: '900', letterSpacing: 1 }}>
+                    NEXT
+                  </Text>
+                  <Text style={{ color: '#000000', fontSize: 20, fontWeight: '900' }}>❯</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
           )}
 
           {/* ========================================================================= */}
@@ -31267,62 +31280,55 @@ function CricketAddaMain() {
             </ScrollView>
           )}
 
-          {/* DOCKED FIXED FOOTER ACTION BAR AT THE VERY BOTTOM FOR ALL PHASES */}
-          <View style={[styles.wizardDockedBottomBar, { backgroundColor: currentTheme.headerBg, borderTopColor: currentTheme.navBorder, paddingBottom: Math.max(12, bottomInset) }]}>
-            <TouchableOpacity
-              style={styles.wizardCancelBtn}
-              onPress={confirmCancelMatchSetup}
-            >
-              <Text style={styles.wizardCancelBtnText}>✕ Cancel</Text>
-            </TouchableOpacity>
+          {/* DOCKED FIXED FOOTER ACTION BAR AT THE VERY BOTTOM FOR PHASES > 1 */}
+          {wzPhase > 1 && (
+            <View style={[styles.wizardDockedBottomBar, { backgroundColor: currentTheme.headerBg, borderTopColor: currentTheme.navBorder, paddingBottom: Math.max(12, bottomInset) }]}>
+              <TouchableOpacity
+                style={styles.wizardCancelBtn}
+                onPress={confirmCancelMatchSetup}
+              >
+                <Text style={styles.wizardCancelBtnText}>✕ Cancel</Text>
+              </TouchableOpacity>
 
-            {wzPhase > 1 && (
               <TouchableOpacity
                 style={[styles.wizardBackBtn, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}
-                onPress={() => setWzPhase(s => s - 1)}
+                onPress={() => {
+                  if (wzPhase === 2) {
+                    setWzPhase(1);
+                    setWzTeamStep(2);
+                  } else {
+                    setWzPhase(s => s - 1);
+                  }
+                }}
               >
                 <Text style={[styles.wizardBackBtnText, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>← Back</Text>
               </TouchableOpacity>
-            )}
 
-            {wzPhase === 1 ? (
-              <TouchableOpacity
-                style={[
-                  styles.wizardNextBtn,
-                  { backgroundColor: currentTheme.primary, flex: 2 },
-                  (!matchDraft.myTeam || !matchDraft.opponentTeam || matchDraft.myTeam.id === matchDraft.opponentTeam.id) && { opacity: 0.5 }
-                ]}
-                disabled={!matchDraft.myTeam || !matchDraft.opponentTeam || matchDraft.myTeam.id === matchDraft.opponentTeam.id}
-                onPress={handleWizardNext}
-              >
-                <Text style={[styles.wizardNextBtnText, { color: currentTheme.primaryText, fontWeight: '900' }]}>
-                  Next: Match Settings →
-                </Text>
-              </TouchableOpacity>
-            ) : wzPhase < 5 ? (
-              <TouchableOpacity
-                style={[styles.wizardNextBtn, { backgroundColor: currentTheme.primary, flex: 2 }]}
-                onPress={handleWizardNext}
-              >
-                <Text style={[styles.wizardNextBtnText, { color: currentTheme.primaryText, fontWeight: '900' }]}>
-                  {wzPhase === 2
-                    ? 'Next: Toss 🪙 →'
-                    : wzPhase === 3
-                    ? 'Next: Playing XI →'
-                    : 'Next: Confirm 🚀 →'}
-                </Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity
-                style={[styles.wizardNextBtn, { backgroundColor: currentTheme.primary, flex: 2 }]}
-                onPress={startNewMatchFromWizard}
-              >
-                <Text style={[styles.wizardNextBtnText, { color: currentTheme.primaryText, fontWeight: '900', fontSize: 13 }]}>
-                  🟢 START MATCH 🚀
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+              {wzPhase < 5 ? (
+                <TouchableOpacity
+                  style={[styles.wizardNextBtn, { backgroundColor: currentTheme.primary, flex: 2 }]}
+                  onPress={handleWizardNext}
+                >
+                  <Text style={[styles.wizardNextBtnText, { color: currentTheme.primaryText, fontWeight: '900' }]}>
+                    {wzPhase === 2
+                      ? 'Next: Toss 🪙 →'
+                      : wzPhase === 3
+                      ? 'Next: Playing XI →'
+                      : 'Next: Confirm 🚀 →'}
+                  </Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.wizardNextBtn, { backgroundColor: currentTheme.primary, flex: 2 }]}
+                  onPress={startNewMatchFromWizard}
+                >
+                  <Text style={[styles.wizardNextBtnText, { color: currentTheme.primaryText, fontWeight: '900', fontSize: 13 }]}>
+                    🟢 START MATCH 🚀
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
         </View>
       </Modal>
 
@@ -40977,6 +40983,16 @@ const styles = StyleSheet.create({
   dashRecentSection: {
     paddingHorizontal: 10,
     marginBottom: 12,
+  },
+  dashRecentBoxOuter: {
+    marginHorizontal: 10,
+    backgroundColor: '#061220',
+    borderColor: 'rgba(56, 189, 248, 0.25)',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    padding: 10,
+    marginBottom: 12,
+    overflow: 'hidden',
   },
   dashRecentScrollView: {
     maxHeight: 388,
