@@ -21296,19 +21296,73 @@ function CricketAddaMain() {
             </TouchableOpacity>
           </View>
 
-          {/* 3. FEATURED LIVE MATCHES HORIZONTAL SWIPE CAROUSEL (10 LIVE MATCHES) */}
-          <View style={{ marginBottom: 10 }}>
+          {/* 3. FEATURED LIVE MATCHES HORIZONTAL SWIPE CAROUSEL (STATIONARY GREEN BORDER FRAME) */}
+          <View style={styles.dashFeaturedOuterFrame}>
+            {/* Stationary Top Header Row */}
+            <View style={styles.dashFeaturedHeaderBar}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <View style={styles.dashLivePill}>
+                  <View style={styles.dashLiveDot} />
+                  <Text style={styles.dashLivePillText}>LIVE</Text>
+                </View>
+                {allLiveMatchesList.length > 1 && (
+                  <View style={styles.dashLiveNavRow}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (liveCarouselIndex > 0) {
+                          const targetIdx = liveCarouselIndex - 1;
+                          setLiveCarouselIndex(targetIdx);
+                          liveCarouselRef.current?.scrollTo({ x: targetIdx * (width - 20), animated: true });
+                        }
+                      }}
+                      disabled={liveCarouselIndex === 0}
+                      style={[styles.dashLiveNavBtn, liveCarouselIndex === 0 && { opacity: 0.3 }]}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.dashLiveNavArrow}>‹</Text>
+                    </TouchableOpacity>
+                    <Text style={styles.dashLiveCounterText}>
+                      {liveCarouselIndex + 1}/{allLiveMatchesList.length}
+                    </Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (liveCarouselIndex < allLiveMatchesList.length - 1) {
+                          const targetIdx = liveCarouselIndex + 1;
+                          setLiveCarouselIndex(targetIdx);
+                          liveCarouselRef.current?.scrollTo({ x: targetIdx * (width - 20), animated: true });
+                        }
+                      }}
+                      disabled={liveCarouselIndex === allLiveMatchesList.length - 1}
+                      style={[styles.dashLiveNavBtn, liveCarouselIndex === allLiveMatchesList.length - 1 && { opacity: 0.3 }]}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.dashLiveNavArrow}>›</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+
+              <TouchableOpacity
+                style={styles.dashViewLiveBtn}
+                onPress={() => handleScoreMatchPress(allLiveMatchesList[liveCarouselIndex]?.id)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.dashViewLiveBtnText}>View Live ❯</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Inner Horizontal ScrollView - Matches slide while green border stays still */}
             <ScrollView
               ref={liveCarouselRef}
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
               decelerationRate="fast"
-              snapToInterval={width}
-              snapToAlignment="center"
+              snapToInterval={width - 20}
+              snapToAlignment="start"
               onMomentumScrollEnd={(e) => {
                 const offsetX = e.nativeEvent.contentOffset.x;
-                const newIdx = Math.round(offsetX / width);
+                const newIdx = Math.round(offsetX / (width - 20));
                 setLiveCarouselIndex(Math.max(0, Math.min(newIdx, allLiveMatchesList.length - 1)));
               }}
             >
@@ -21316,107 +21370,90 @@ function CricketAddaMain() {
                 const liveData = getLiveMatchCardData(m);
                 if (!liveData) return null;
                 return (
-                  <View key={liveData.id || `live_${idx}`} style={{ width: width, paddingHorizontal: 10 }}>
-                    <View style={styles.dashFeaturedLiveCard}>
-                      <View style={styles.dashFeaturedTopRow}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                          <View style={styles.dashLivePill}>
-                            <View style={styles.dashLiveDot} />
-                            <Text style={styles.dashLivePillText}>LIVE</Text>
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={styles.dashFeaturedTournName} numberOfLines={1}>
-                              {liveData.tournament}
-                            </Text>
-                            <Text style={styles.dashFeaturedVenue} numberOfLines={1}>
-                              {liveData.format} • {liveData.venue}
-                            </Text>
-                          </View>
+                  <View key={liveData.id || `live_${idx}`} style={{ width: width - 20, paddingHorizontal: 12, paddingBottom: 6 }}>
+                    {/* Tournament & Venue */}
+                    <View style={{ marginBottom: 6 }}>
+                      <Text style={styles.dashFeaturedTournName} numberOfLines={1}>
+                        {liveData.tournament}
+                      </Text>
+                      <Text style={styles.dashFeaturedVenue} numberOfLines={1}>
+                        {liveData.format} • {liveData.venue}
+                      </Text>
+                    </View>
+
+                    {/* Scores Row */}
+                    <View style={styles.dashFeaturedScoresRow}>
+                      {/* Team 1 */}
+                      <View style={styles.dashFeaturedTeamCol}>
+                        <View style={styles.dashFeaturedCrestWrapper}>
+                          {getDashTeamLogo(liveData.teamA) ? (
+                            <Image source={getDashTeamLogo(liveData.teamA)} style={styles.dashFeaturedCrestImg} resizeMode="contain" />
+                          ) : (
+                            <Text style={{ fontSize: 26 }}>{liveData.flagA || '🐯'}</Text>
+                          )}
                         </View>
-
-                        <TouchableOpacity
-                          style={styles.dashViewLiveBtn}
-                          onPress={() => handleScoreMatchPress(liveData.id)}
-                          activeOpacity={0.8}
-                        >
-                          <Text style={styles.dashViewLiveBtnText}>View Live ❯</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      {/* Scores Row */}
-                      <View style={styles.dashFeaturedScoresRow}>
-                        {/* Team 1 */}
-                        <View style={styles.dashFeaturedTeamCol}>
-                          <View style={styles.dashFeaturedCrestWrapper}>
-                            {getDashTeamLogo(liveData.teamA) ? (
-                              <Image source={getDashTeamLogo(liveData.teamA)} style={styles.dashFeaturedCrestImg} resizeMode="contain" />
-                            ) : (
-                              <Text style={{ fontSize: 26 }}>{liveData.flagA || '🐯'}</Text>
-                            )}
-                          </View>
-                          <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
-                            {liveData.teamA}
-                          </Text>
-                        </View>
-
-                        {/* Center Scores + Divider */}
-                        <View style={styles.dashFeaturedCenterScores}>
-                          <View style={styles.dashFeaturedScoreCol}>
-                            <Text style={styles.dashFeaturedScoreBig}>
-                              {liveData.scoreA}
-                            </Text>
-                            <Text style={styles.dashFeaturedOvers}>
-                              {liveData.oversA}
-                            </Text>
-                          </View>
-
-                          <View style={styles.dashFeaturedDivider} />
-
-                          <View style={styles.dashFeaturedScoreCol}>
-                            <Text style={styles.dashFeaturedScoreBig}>
-                              {liveData.scoreB}
-                            </Text>
-                            <Text style={styles.dashFeaturedOvers}>
-                              {liveData.oversB}
-                            </Text>
-                          </View>
-                        </View>
-
-                        {/* Team 2 */}
-                        <View style={styles.dashFeaturedTeamCol}>
-                          <View style={styles.dashFeaturedCrestWrapper}>
-                            {getDashTeamLogo(liveData.teamB) ? (
-                              <Image source={getDashTeamLogo(liveData.teamB)} style={styles.dashFeaturedCrestImg} resizeMode="contain" />
-                            ) : (
-                              <Text style={{ fontSize: 26 }}>{liveData.flagB || '⚔️'}</Text>
-                            )}
-                          </View>
-                          <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
-                            {liveData.teamB}
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Equation Capsule */}
-                      <View style={styles.dashEquationCapsule}>
-                        <Text style={styles.dashEquationText}>
-                          {liveData.equation}
+                        <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
+                          {liveData.teamA}
                         </Text>
                       </View>
+
+                      {/* Center Scores + Divider */}
+                      <View style={styles.dashFeaturedCenterScores}>
+                        <View style={styles.dashFeaturedScoreCol}>
+                          <Text style={styles.dashFeaturedScoreBig}>
+                            {liveData.scoreA}
+                          </Text>
+                          <Text style={styles.dashFeaturedOvers}>
+                            {liveData.oversA}
+                          </Text>
+                        </View>
+
+                        <View style={styles.dashFeaturedDivider} />
+
+                        <View style={styles.dashFeaturedScoreCol}>
+                          <Text style={styles.dashFeaturedScoreBig}>
+                            {liveData.scoreB}
+                          </Text>
+                          <Text style={styles.dashFeaturedOvers}>
+                            {liveData.oversB}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Team 2 */}
+                      <View style={styles.dashFeaturedTeamCol}>
+                        <View style={styles.dashFeaturedCrestWrapper}>
+                          {getDashTeamLogo(liveData.teamB) ? (
+                            <Image source={getDashTeamLogo(liveData.teamB)} style={styles.dashFeaturedCrestImg} resizeMode="contain" />
+                          ) : (
+                            <Text style={{ fontSize: 26 }}>{liveData.flagB || '⚔️'}</Text>
+                          )}
+                        </View>
+                        <Text style={styles.dashFeaturedTeamName} numberOfLines={1}>
+                          {liveData.teamB}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Equation Capsule */}
+                    <View style={styles.dashEquationCapsule}>
+                      <Text style={styles.dashEquationText}>
+                        {liveData.equation}
+                      </Text>
                     </View>
                   </View>
                 );
               })}
             </ScrollView>
 
-            {/* Interactive Carousel Dots - Tap or swipe to switch match */}
-            <View style={styles.dashCarouselDotsRow}>
+            {/* Interactive Carousel Dots - Inside stationary frame */}
+            <View style={[styles.dashCarouselDotsRow, { marginTop: 4, marginBottom: 4 }]}>
               {allLiveMatchesList.map((m, idx) => (
                 <TouchableOpacity
                   key={m.id || `dot_${idx}`}
                   onPress={() => {
                     setLiveCarouselIndex(idx);
-                    liveCarouselRef.current?.scrollTo({ x: idx * width, animated: true });
+                    liveCarouselRef.current?.scrollTo({ x: idx * (width - 20), animated: true });
                   }}
                   hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                 >
@@ -21429,7 +21466,7 @@ function CricketAddaMain() {
             </View>
           </View>
 
-          {/* 4. RECENT MATCHES SECTION (FULL TEAM NAME WRAP, CENTERED DATE & FORMAT, NO CHEVRON) */}
+          {/* 4. RECENT MATCHES SECTION (SHOW 5 MATCHES THEN VERTICAL SCROLLBAR) */}
           <View style={styles.dashRecentSection}>
             <View style={styles.dashRecentHeaderRow}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
@@ -21441,10 +21478,10 @@ function CricketAddaMain() {
               </TouchableOpacity>
             </View>
 
-            {displayRecentMatches.length > 3 && (
+            {displayRecentMatches.length > 5 && (
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 2 }}>
                 <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600' }}>
-                  Showing {displayRecentMatches.length} matches • Scroll down to view all
+                  Showing 5 of {displayRecentMatches.length} matches • Scroll down to view all
                 </Text>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: 'rgba(34, 197, 94, 0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6, borderWidth: 0.5, borderColor: '#22c55e' }}>
                   <Text style={{ color: '#22c55e', fontSize: 10, fontWeight: '800' }}>↕ Scrollable</Text>
@@ -21452,76 +21489,84 @@ function CricketAddaMain() {
               </View>
             )}
 
-            {/* Match Items - Clean Sleek Row with Bigger Height, No Bracket & Centered Date */}
-            {displayRecentMatches.map((rm, idx) => {
-              const logoA = getDashTeamLogo(rm.teamA);
-              const logoB = getDashTeamLogo(rm.teamB);
-              const isWon = rm.result === 'Won';
+            {/* Match Items - Exactly 5 items in viewport then scrollbar */}
+            <ScrollView
+              style={styles.dashRecentScrollView}
+              nestedScrollEnabled={true}
+              showsVerticalScrollIndicator={true}
+              persistentScrollbar={true}
+              indicatorStyle="white"
+            >
+              {displayRecentMatches.map((rm, idx) => {
+                const logoA = getDashTeamLogo(rm.teamA);
+                const logoB = getDashTeamLogo(rm.teamB);
+                const isWon = rm.result === 'Won';
 
-              return (
-                <TouchableOpacity
-                  key={rm.id || `rm_${idx}`}
-                  style={styles.dashRecentMatchCard}
-                  onPress={() => openMatchScorecard(rm.id)}
-                  activeOpacity={0.8}
-                >
-                  {/* Left: Team 1 Emblem + Full Name (wraps if needed) */}
-                  <View style={styles.dashRecentTeamBox}>
-                    {logoA ? (
-                      <Image source={logoA} style={styles.dashRecentLogo} resizeMode="contain" />
-                    ) : (
-                      <Text style={{ fontSize: 18 }}>{rm.flagA || '🐯'}</Text>
-                    )}
-                    <Text style={styles.dashRecentTeamName}>{rm.teamA}</Text>
-                  </View>
-
-                  {/* Center: Scores & Centered Date/Format Below */}
-                  <View style={styles.dashRecentCenterCol}>
-                    <View style={styles.dashRecentScoreRow}>
-                      <View style={styles.dashRecentScoreBox}>
-                        <Text style={styles.dashRecentScoreNum}>{rm.scoreANum}</Text>
-                        <Text style={styles.dashRecentOversNum}>{rm.scoreAOvers}</Text>
-                      </View>
-
-                      {/* VS Circle */}
-                      <View style={styles.dashRecentVsCircle}>
-                        <Text style={styles.dashRecentVsText}>VS</Text>
-                      </View>
-
-                      <View style={styles.dashRecentScoreBox}>
-                        <Text style={styles.dashRecentScoreNum}>{rm.scoreBNum}</Text>
-                        <Text style={styles.dashRecentOversNum}>{rm.scoreBOvers}</Text>
-                      </View>
+                return (
+                  <TouchableOpacity
+                    key={rm.id || `rm_${idx}`}
+                    style={styles.dashRecentMatchCard}
+                    onPress={() => openMatchScorecard(rm.id)}
+                    activeOpacity={0.8}
+                  >
+                    {/* Left: Team 1 Emblem + Full Name (wraps if needed) */}
+                    <View style={styles.dashRecentTeamBox}>
+                      {logoA ? (
+                        <Image source={logoA} style={styles.dashRecentLogo} resizeMode="contain" />
+                      ) : (
+                        <Text style={{ fontSize: 18 }}>{rm.flagA || '🐯'}</Text>
+                      )}
+                      <Text style={styles.dashRecentTeamName}>{rm.teamA}</Text>
                     </View>
 
-                    {/* Date and format centered directly under score */}
-                    <Text style={styles.dashRecentDateCentered}>
-                      {rm.date} • {rm.format}
-                    </Text>
-                  </View>
+                    {/* Center: Scores & Centered Date/Format Below */}
+                    <View style={styles.dashRecentCenterCol}>
+                      <View style={styles.dashRecentScoreRow}>
+                        <View style={styles.dashRecentScoreBox}>
+                          <Text style={styles.dashRecentScoreNum}>{rm.scoreANum}</Text>
+                          <Text style={styles.dashRecentOversNum}>{rm.scoreAOvers}</Text>
+                        </View>
 
-                  {/* Right: Full Name + Team 2 Emblem */}
-                  <View style={styles.dashRecentTeamBoxRight}>
-                    <Text style={styles.dashRecentTeamNameRight}>{rm.teamB}</Text>
-                    {logoB ? (
-                      <Image source={logoB} style={styles.dashRecentLogo} resizeMode="contain" />
-                    ) : (
-                      <Text style={{ fontSize: 18 }}>{rm.flagB || '⚔️'}</Text>
-                    )}
-                  </View>
+                        {/* VS Circle */}
+                        <View style={styles.dashRecentVsCircle}>
+                          <Text style={styles.dashRecentVsText}>VS</Text>
+                        </View>
 
-                  {/* Far Right: Result Badge without > icon */}
-                  <View style={styles.dashRecentEndCol}>
-                    <View style={[
-                      styles.dashResultBadge,
-                      { backgroundColor: isWon ? '#16a34a' : '#dc2626' }
-                    ]}>
-                      <Text style={styles.dashResultBadgeText}>{rm.result}</Text>
+                        <View style={styles.dashRecentScoreBox}>
+                          <Text style={styles.dashRecentScoreNum}>{rm.scoreBNum}</Text>
+                          <Text style={styles.dashRecentOversNum}>{rm.scoreBOvers}</Text>
+                        </View>
+                      </View>
+
+                      {/* Date and format centered directly under score */}
+                      <Text style={styles.dashRecentDateCentered}>
+                        {rm.date} • {rm.format}
+                      </Text>
                     </View>
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+
+                    {/* Right: Full Name + Team 2 Emblem */}
+                    <View style={styles.dashRecentTeamBoxRight}>
+                      <Text style={styles.dashRecentTeamNameRight}>{rm.teamB}</Text>
+                      {logoB ? (
+                        <Image source={logoB} style={styles.dashRecentLogo} resizeMode="contain" />
+                      ) : (
+                        <Text style={{ fontSize: 18 }}>{rm.flagB || '⚔️'}</Text>
+                      )}
+                    </View>
+
+                    {/* Far Right: Result Badge without > icon */}
+                    <View style={styles.dashRecentEndCol}>
+                      <View style={[
+                        styles.dashResultBadge,
+                        { backgroundColor: isWon ? '#16a34a' : '#dc2626' }
+                      ]}>
+                        <Text style={styles.dashResultBadgeText}>{rm.result}</Text>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
           </View>
         </ScrollView>
           </View>
@@ -40727,13 +40772,61 @@ const styles = StyleSheet.create({
   },
   dashActionBtn: {
     flex: 1,
-    height: 94,
+    height: 72,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dashActionBtnImg: {
     width: '100%',
     height: '100%',
+  },
+  dashFeaturedOuterFrame: {
+    marginHorizontal: 10,
+    backgroundColor: '#061220',
+    borderColor: '#22c55e',
+    borderWidth: 1.5,
+    borderRadius: 16,
+    paddingTop: 10,
+    paddingBottom: 8,
+    marginBottom: 10,
+    overflow: 'hidden',
+  },
+  dashFeaturedHeaderBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 12,
+    marginBottom: 8,
+  },
+  dashLiveNavRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(255, 255, 255, 0.06)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 10,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  dashLiveNavBtn: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  dashLiveNavArrow: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '900',
+    lineHeight: 18,
+  },
+  dashLiveCounterText: {
+    color: '#22c55e',
+    fontSize: 10.5,
+    fontWeight: '800',
+    paddingHorizontal: 2,
   },
   dashFeaturedLiveCard: {
     backgroundColor: '#061220',
@@ -40884,6 +40977,9 @@ const styles = StyleSheet.create({
   dashRecentSection: {
     paddingHorizontal: 10,
     marginBottom: 12,
+  },
+  dashRecentScrollView: {
+    maxHeight: 388,
   },
   dashRecentHeaderRow: {
     flexDirection: 'row',
