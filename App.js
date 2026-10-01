@@ -175,23 +175,51 @@ const PLAYER_AVATARS = {
 };
 
 const DASH_TEAM_LOGOS = {
-  'tigers xi': require('./assets/team-tigers.png'),
-  'warriors xi': require('./assets/team-warriors.png'),
-  'king xi': require('./assets/team-king.png'),
+  'tigers xi': require('./assets/team-tigers-clean.png'),
+  'warriors xi': require('./assets/team-warriors-clean.png'),
+  'king xi': require('./assets/team-king-clean.png'),
   'royals xi': require('./assets/team-royals.png'),
-  'blasters xi': require('./assets/team-blasters.png'),
+  'blasters xi': require('./assets/team-blasters-clean.png'),
   'united xi': require('./assets/team-united.png'),
-  'titans xi': require('./assets/team-tigers.png'),
-  'sunrisers xi': require('./assets/team-warriors.png'),
+  'titans xi': require('./assets/team-titans.png'),
+  'sunrisers xi': require('./assets/team-sunrisers.png'),
+  'tigers': require('./assets/team-tigers-clean.png'),
+  'warriors': require('./assets/team-warriors-clean.png'),
+  'king': require('./assets/team-king-clean.png'),
+  'kings': require('./assets/team-king-clean.png'),
+  'royals': require('./assets/team-royals.png'),
+  'blasters': require('./assets/team-blasters-clean.png'),
+  'united': require('./assets/team-united.png'),
+  'titans': require('./assets/team-titans.png'),
+  'sunrisers': require('./assets/team-sunrisers.png'),
+  'tig': require('./assets/team-tigers-clean.png'),
+  'war': require('./assets/team-warriors-clean.png'),
+  'kng': require('./assets/team-king-clean.png'),
+  'kxip': require('./assets/team-king-clean.png'),
+  'rr': require('./assets/team-royals.png'),
+  'roy': require('./assets/team-royals.png'),
+  'bla': require('./assets/team-blasters-clean.png'),
+  'uni': require('./assets/team-united.png'),
+  'ttn': require('./assets/team-titans.png'),
+  'tit': require('./assets/team-titans.png'),
+  'srh': require('./assets/team-sunrisers.png'),
+  'sun': require('./assets/team-sunrisers.png'),
 };
 
 const getDashTeamLogo = (name) => {
   if (!name) return null;
   const clean = String(name).toLowerCase().trim();
   if (DASH_TEAM_LOGOS[clean]) return DASH_TEAM_LOGOS[clean];
-  for (const k of Object.keys(DASH_TEAM_LOGOS)) {
-    if (clean.includes(k) || k.includes(clean)) return DASH_TEAM_LOGOS[k];
-  }
+  const normalized = clean.replace(/[^a-z0-9 ]/g, '').trim();
+  if (DASH_TEAM_LOGOS[normalized]) return DASH_TEAM_LOGOS[normalized];
+  if (normalized.includes('tiger')) return DASH_TEAM_LOGOS['tigers'];
+  if (normalized.includes('warrior')) return DASH_TEAM_LOGOS['warriors'];
+  if (normalized.includes('king')) return DASH_TEAM_LOGOS['king'];
+  if (normalized.includes('royal')) return DASH_TEAM_LOGOS['royals'];
+  if (normalized.includes('blaster')) return DASH_TEAM_LOGOS['blasters'];
+  if (normalized.includes('united')) return DASH_TEAM_LOGOS['united'];
+  if (normalized.includes('titan')) return DASH_TEAM_LOGOS['titans'];
+  if (normalized.includes('sunriser')) return DASH_TEAM_LOGOS['sunrisers'];
   return null;
 };
 
@@ -7271,7 +7299,7 @@ const REGISTERED_APP_TEAMS = [
     "teamCode": "TIG-7821",
     "flag": "\ud83d\udc2f",
     "logo": null,
-    "logoUri": "assets/team-tigers.png",
+    "logoUri": null,
     "club": "Premier Cricket Club",
     "city": "Mumbai",
     "homeGround": "Wankhede Arena",
@@ -7435,7 +7463,7 @@ const REGISTERED_APP_TEAMS = [
     "teamCode": "WAR-9902",
     "flag": "\u2694\ufe0f",
     "logo": null,
-    "logoUri": "assets/team-warriors.png",
+    "logoUri": null,
     "club": "Super Kings Cricket Academy",
     "city": "Chennai",
     "homeGround": "Chepauk Fortress",
@@ -7599,7 +7627,7 @@ const REGISTERED_APP_TEAMS = [
     "teamCode": "KNG-4418",
     "flag": "\ud83d\udc51",
     "logo": null,
-    "logoUri": "assets/team-king.png",
+    "logoUri": null,
     "club": "Royal Challengers Arena",
     "city": "Bengaluru",
     "homeGround": "Chinnaswamy Stadium",
@@ -7763,7 +7791,7 @@ const REGISTERED_APP_TEAMS = [
     "teamCode": "ROY-5529",
     "flag": "\ud83e\udd81",
     "logo": null,
-    "logoUri": "assets/team-royals.png",
+    "logoUri": null,
     "club": "Desert Kings Academy",
     "city": "Jaipur",
     "homeGround": "Sawai Mansingh Stadium",
@@ -7927,7 +7955,7 @@ const REGISTERED_APP_TEAMS = [
     "teamCode": "BLS-3310",
     "flag": "\ud83d\udd34",
     "logo": null,
-    "logoUri": "assets/team-blasters.png",
+    "logoUri": null,
     "club": "Eden Knights Cricket Club",
     "city": "Kolkata",
     "homeGround": "Eden Gardens",
@@ -8091,7 +8119,7 @@ const REGISTERED_APP_TEAMS = [
     "teamCode": "UTD-6641",
     "flag": "\ud83d\udee1\ufe0f",
     "logo": null,
-    "logoUri": "assets/team-united.png",
+    "logoUri": null,
     "club": "Capital Strikers Academy",
     "city": "Delhi",
     "homeGround": "Arun Jaitley Stadium",
@@ -8255,7 +8283,7 @@ const REGISTERED_APP_TEAMS = [
     "teamCode": "TTN-8824",
     "flag": "\u26a1",
     "logo": null,
-    "logoUri": "assets/team-tigers.png",
+    "logoUri": null,
     "club": "Gujarat Titans Cricket Hub",
     "city": "Ahmedabad",
     "homeGround": "Narendra Modi Stadium",
@@ -8419,7 +8447,7 @@ const REGISTERED_APP_TEAMS = [
     "teamCode": "SRH-1175",
     "flag": "\ud83e\udd85",
     "logo": null,
-    "logoUri": "assets/team-warriors.png",
+    "logoUri": null,
     "club": "Orange Army Academy",
     "city": "Hyderabad",
     "homeGround": "Rajiv Gandhi Stadium",
@@ -9911,11 +9939,22 @@ function resolveTeamLogo(team, allTeams = [], allUsers = []) {
 // ============================================================================
 function SmartTeamLogo({ team, allTeams = [], allUsers = [], style, flagStyle, fallbackFlag = '🦁' }) {
   const [hasError, setHasError] = useState(false);
+  const localLogo = getDashTeamLogo(team?.name) || getDashTeamLogo(team?.shortName);
   const logoUri = resolveTeamLogo(team, allTeams, allUsers);
 
   useEffect(() => {
     setHasError(false);
   }, [logoUri]);
+
+  if (localLogo) {
+    return (
+      <Image
+        source={localLogo}
+        style={style}
+        resizeMode="contain"
+      />
+    );
+  }
 
   if (logoUri && !hasError) {
     return (
@@ -9976,7 +10015,38 @@ function TeamFlagBadge({ flag, logo, shortName, fullName, isBatting, theme, size
     );
   }
 
-  // 2. Priority 2: Custom Mascot / Team Flag Emoji (handles custom teams like Hp 11 with fallback)
+  // 2. Priority 2: Local Bundled Tournament Team Logo (Tigers, Warriors, Titans, etc.)
+  const localLogo = getDashTeamLogo(fullName) || getDashTeamLogo(shortName);
+  if (localLogo) {
+    return (
+      <View
+        style={{
+          width: dim,
+          height: dim,
+          borderRadius: dim / 2,
+          overflow: 'hidden',
+          backgroundColor: '#1e293b',
+          borderWidth: 1.5,
+          borderColor: borderColor,
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.3,
+          shadowRadius: 3,
+          elevation: 2,
+        }}
+      >
+        <Image
+          source={localLogo}
+          style={{ width: '85%', height: '85%' }}
+          resizeMode="contain"
+        />
+      </View>
+    );
+  }
+
+  // 3. Priority 3: Custom Mascot / Team Flag Emoji (handles custom teams like Hp 11 with fallback)
   const effectiveFlag = flag && String(flag).trim() ? String(flag).trim() : (isBatting ? '🦁' : '⚡');
 
   return (
@@ -12185,10 +12255,10 @@ function CricketAddaMain() {
             } catch (e) {}
           }
           const storedDbVersion = await AsyncStorage.getItem('CA_DB_VERSION_KEY');
-          if (storedDbVersion !== 'ca_v6_clean_20_matches') {
+          if (storedDbVersion !== 'ca_v8_perfect_sync_logos') {
             await AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(MATCH_DATABASE));
             await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS));
-            await AsyncStorage.setItem('CA_DB_VERSION_KEY', 'ca_v6_clean_20_matches');
+            await AsyncStorage.setItem('CA_DB_VERSION_KEY', 'ca_v8_perfect_sync_logos');
             setMatchesDb(MATCH_DATABASE);
             setRegisteredTeams(REGISTERED_APP_TEAMS);
           } else {
@@ -21578,7 +21648,13 @@ function CricketAddaMain() {
                           overflow: 'hidden',
                         }}
                       >
-                        {(t.logo || t.logoUri) ? (
+                        {getDashTeamLogo(t.name) ? (
+                          <Image
+                            source={getDashTeamLogo(t.name)}
+                            style={{ width: 44, height: 44 }}
+                            resizeMode="contain"
+                          />
+                        ) : (t.logo || t.logoUri) ? (
                           <Image
                             key={t.logo || t.logoUri}
                             source={{ uri: t.logo || t.logoUri }}
@@ -23978,19 +24054,29 @@ function CricketAddaMain() {
 
           <View style={styles.inningTabRow}>
             <TouchableOpacity
-              style={[styles.inningTabBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, scorecardInning === 1 && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.inningTabBtnActive)]}
+              style={[styles.inningTabBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, scorecardInning === 1 && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.inningTabBtnActive), { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
               onPress={() => setScorecardInning(1)}
             >
+              {getDashTeamLogo(inn1ScorecardData.team) ? (
+                <Image source={getDashTeamLogo(inn1ScorecardData.team)} style={{ width: 18, height: 18 }} resizeMode="contain" />
+              ) : (
+                <Text style={{ fontSize: 13 }}>{inn1ScorecardData.flag || '🏏'}</Text>
+              )}
               <Text style={[styles.inningTabText, currentTheme.isLight && { color: '#475569' }, scorecardInning === 1 && (currentTheme.isLight ? { color: '#0284c7' } : styles.inningTabTextActive)]}>
-                {inn1ScorecardData.flag} {inn1ScorecardData.team} ({inn1ScorecardData.runs}/{inn1ScorecardData.wickets})
+                {inn1ScorecardData.team} ({inn1ScorecardData.runs}/{inn1ScorecardData.wickets})
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={[styles.inningTabBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, scorecardInning === 2 && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.inningTabBtnActive)]}
+              style={[styles.inningTabBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, scorecardInning === 2 && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.inningTabBtnActive), { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
               onPress={() => setScorecardInning(2)}
             >
+              {getDashTeamLogo(inn2ScorecardData.team) ? (
+                <Image source={getDashTeamLogo(inn2ScorecardData.team)} style={{ width: 18, height: 18 }} resizeMode="contain" />
+              ) : (
+                <Text style={{ fontSize: 13 }}>{inn2ScorecardData.flag || '🏏'}</Text>
+              )}
               <Text style={[styles.inningTabText, currentTheme.isLight && { color: '#475569' }, scorecardInning === 2 && (currentTheme.isLight ? { color: '#0284c7' } : styles.inningTabTextActive)]}>
-                {inn2ScorecardData.flag} {inn2ScorecardData.team} ({inn2ScorecardData.runs}/{inn2ScorecardData.wickets})
+                {inn2ScorecardData.team} ({inn2ScorecardData.runs}/{inn2ScorecardData.wickets})
               </Text>
             </TouchableOpacity>
           </View>
@@ -28124,9 +28210,16 @@ function CricketAddaMain() {
                     🏏 1ST INNINGS FINISHED
                   </Text>
                 </View>
-                <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', textAlign: 'center' }}>
-                  {firstInningsSummary ? `${firstInningsSummary.flag} ${firstInningsSummary.team}` : `${battingTeamFlag} ${battingTeamName}`}
-                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginVertical: 4 }}>
+                  {getDashTeamLogo(firstInningsSummary ? firstInningsSummary.team : battingTeamName) ? (
+                    <Image source={getDashTeamLogo(firstInningsSummary ? firstInningsSummary.team : battingTeamName)} style={{ width: 26, height: 26 }} resizeMode="contain" />
+                  ) : (
+                    <Text style={{ fontSize: 20 }}>{firstInningsSummary ? firstInningsSummary.flag : battingTeamFlag}</Text>
+                  )}
+                  <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', textAlign: 'center' }}>
+                    {firstInningsSummary ? firstInningsSummary.team : battingTeamName}
+                  </Text>
+                </View>
                 <Text style={{ color: '#34d399', fontSize: 28, fontWeight: '900', marginVertical: 4 }}>
                   {firstInningsSummary ? `${firstInningsSummary.runs}/${firstInningsSummary.wickets}` : `${liveRuns}/${liveWickets}`}
                 </Text>
@@ -28744,18 +28837,28 @@ function CricketAddaMain() {
 
               {/* Innings Recap Box */}
               <View style={{ backgroundColor: '#082f49', borderRadius: 10, padding: 12, borderWidth: 1, borderColor: '#0369a1', marginVertical: 10 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 }}>
-                  <Text style={{ color: '#bae6fd', fontSize: 13, fontWeight: 'bold' }}>
-                    1st Innings ({firstInningsSummary?.team || 'Team 1'}):
-                  </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                    {getDashTeamLogo(firstInningsSummary?.team || 'Team 1') ? (
+                      <Image source={getDashTeamLogo(firstInningsSummary?.team || 'Team 1')} style={{ width: 16, height: 16 }} resizeMode="contain" />
+                    ) : null}
+                    <Text style={{ color: '#bae6fd', fontSize: 13, fontWeight: 'bold' }}>
+                      1st Innings ({firstInningsSummary?.team || 'Team 1'}):
+                    </Text>
+                  </View>
                   <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>
                     {firstInningsSummary ? `${firstInningsSummary.runs}/${firstInningsSummary.wickets} (${firstInningsSummary.overs} ov)` : ''}
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4, borderTopWidth: 1, borderTopColor: '#0369a1' }}>
-                  <Text style={{ color: '#bae6fd', fontSize: 13, fontWeight: 'bold' }}>
-                    2nd Innings ({battingTeamName}):
-                  </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4, borderTopWidth: 1, borderTopColor: '#0369a1' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                    {getDashTeamLogo(battingTeamName) ? (
+                      <Image source={getDashTeamLogo(battingTeamName)} style={{ width: 16, height: 16 }} resizeMode="contain" />
+                    ) : null}
+                    <Text style={{ color: '#bae6fd', fontSize: 13, fontWeight: 'bold' }}>
+                      2nd Innings ({battingTeamName}):
+                    </Text>
+                  </View>
                   <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>
                     {liveRuns}/{liveWickets} ({oversStr} ov)
                   </Text>
@@ -31141,7 +31244,9 @@ function CricketAddaMain() {
                     onPress={() => selectTeamForSlot(targetTeamSlot, t)}
                   >
                     <View style={[styles.teamCardFlagBox, { overflow: 'hidden' }]}>
-                      {(t.logo || t.logoUri) ? (
+                      {getDashTeamLogo(t.name) ? (
+                        <Image source={getDashTeamLogo(t.name)} style={{ width: '85%', height: '85%' }} resizeMode="contain" />
+                      ) : (t.logo || t.logoUri) ? (
                         <Image key={t.logo || t.logoUri} source={{ uri: t.logo || t.logoUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
                       ) : (
                         <Text style={{ fontSize: 28 }}>{t.flag || '🦁'}</Text>
