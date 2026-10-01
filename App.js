@@ -14134,6 +14134,53 @@ function CricketAddaMain() {
     return list;
   }, [matchesDb]);
 
+  const getLiveMatchCardData = useCallback((lm) => {
+    if (!lm) return null;
+    const isCur = lm.id === activeMatchId;
+
+    const teamAName = lm.teamA || lm.innings2?.team || 'Tigers XI';
+    const teamBName = lm.teamB || lm.innings1?.team || 'Warriors XI';
+
+    const innForA = lm.innings2?.team === teamAName ? lm.innings2 : (lm.innings1?.team === teamAName ? lm.innings1 : lm.innings2);
+    const innForB = lm.innings1?.team === teamBName ? lm.innings1 : (lm.innings2?.team === teamBName ? lm.innings2 : lm.innings1);
+
+    const isABatting = isCur && ((currentInnings === 2 && lm.innings2?.team === teamAName) || (currentInnings === 1 && lm.innings1?.team === teamAName));
+    const isBBatting = isCur && ((currentInnings === 1 && lm.innings1?.team === teamBName) || (currentInnings === 2 && lm.innings2?.team === teamBName));
+
+    const sA = isABatting ? `${liveRuns}/${liveWickets}` : `${innForA?.runs ?? 128}/${innForA?.wickets ?? 4}`;
+    const ovA = isABatting ? `${oversStr} Ov` : `${innForA?.overs ?? '16.3'} Ov`;
+    const sB = isBBatting ? `${liveRuns}/${liveWickets}` : `${innForB?.runs ?? 144}/${innForB?.wickets ?? 8}`;
+    const ovB = isBBatting ? `${oversStr} Ov` : `${innForB?.overs ?? '20.0'} Ov`;
+
+    let eq = lm.equation;
+    if (!eq) {
+      if (isCur && currentInnings === 2) {
+        const tRuns = lm.innings2?.target || (lm.innings1?.runs ? lm.innings1.runs + 1 : (targetRuns || 0));
+        const rNeeded = Math.max(0, tRuns - liveRuns);
+        const bRemaining = Math.max(0, (lm.totalOvers || 20) * 6 - liveBalls);
+        eq = `${teamAName} need ${rNeeded} runs in ${bRemaining} balls`;
+      } else {
+        eq = `${teamAName} vs ${teamBName}`;
+      }
+    }
+
+    return {
+      id: lm.id || 'match_live_1',
+      tournament: lm.tournament || 'School Premier League',
+      venue: lm.venue || 'Green Valley Ground',
+      format: lm.format || lm.matchType || 'T20',
+      teamA: teamAName,
+      flagA: lm.flagA || innForA?.flag || '🐯',
+      scoreA: sA,
+      oversA: ovA,
+      teamB: teamBName,
+      flagB: lm.flagB || innForB?.flag || '⚔️',
+      scoreB: sB,
+      oversB: ovB,
+      equation: eq || 'Match in Progress',
+    };
+  }, [activeMatchId, currentInnings, liveRuns, liveWickets, liveBalls, oversStr, targetRuns]);
+
   const featuredLiveMatch = useMemo(() => {
     return getLiveMatchCardData(allLiveMatchesList[liveCarouselIndex] || allLiveMatchesList[0]);
   }, [allLiveMatchesList, liveCarouselIndex, getLiveMatchCardData]);
