@@ -9970,6 +9970,129 @@ function resolveTeamLogo(team, allTeams = [], allUsers = []) {
 }
 
 // ============================================================================
+// MATCH SETUP 6-STEP PROGRESS WIZARD COMPONENT (MATCHING MOCKUP DESIGN)
+// ============================================================================
+const WIZARD_PROGRESS_STEPS = [
+  { id: 1, label: 'Select\nYour Team', phase: 1, teamStep: 1 },
+  { id: 2, label: 'Select\nOpponent Team', phase: 1, teamStep: 2 },
+  { id: 3, label: 'Match\nDetails', phase: 2 },
+  { id: 4, label: 'Playing XI', phase: 4 },
+  { id: 5, label: 'Toss', phase: 3 },
+  { id: 6, label: "Let's Play", phase: 5 },
+];
+
+function MatchWizardStepper({ activeStep, onStepPress }) {
+  return (
+    <View style={{
+      width: '100%',
+      paddingHorizontal: 6,
+      paddingTop: 6,
+      paddingBottom: 6,
+      backgroundColor: 'rgba(2, 11, 20, 0.78)',
+      borderBottomWidth: 1,
+      borderBottomColor: 'rgba(56, 189, 248, 0.15)',
+    }}>
+      <View style={{
+        flexDirection: 'row',
+        alignItems: 'flex-start',
+        justifyContent: 'space-between',
+        width: '100%',
+      }}>
+        {WIZARD_PROGRESS_STEPS.map((s, idx) => {
+          const isCompleted = s.id < activeStep;
+          const isActive = s.id === activeStep;
+          const hasNext = idx < WIZARD_PROGRESS_STEPS.length - 1;
+
+          return (
+            <View key={s.id} style={{ flex: 1, alignItems: 'center', position: 'relative' }}>
+              {/* Connector lines + Circle badge container */}
+              <View style={{ width: '100%', height: 26, justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+                {/* Left line segment */}
+                {idx > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    left: 0,
+                    right: '50%',
+                    height: 2.5,
+                    backgroundColor: s.id <= activeStep ? '#22c55e' : '#334155',
+                    zIndex: 1,
+                  }} />
+                )}
+
+                {/* Right line segment */}
+                {hasNext && (
+                  <View style={{
+                    position: 'absolute',
+                    left: '50%',
+                    right: 0,
+                    height: 2.5,
+                    backgroundColor: s.id < activeStep ? '#22c55e' : '#334155',
+                    zIndex: 1,
+                  }} />
+                )}
+
+                {/* Circle Badge */}
+                <TouchableOpacity
+                  onPress={() => {
+                    if (isCompleted && onStepPress) onStepPress(s);
+                  }}
+                  disabled={!isCompleted}
+                  activeOpacity={0.8}
+                  style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: isCompleted ? '#22c55e' : (isActive ? '#020b14' : 'rgba(15, 23, 42, 0.95)'),
+                    borderWidth: isCompleted ? 0 : 2.5,
+                    borderColor: isCompleted ? '#22c55e' : (isActive ? '#22c55e' : '#475569'),
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 2,
+                    shadowColor: (isActive || isCompleted) ? '#22c55e' : 'transparent',
+                    shadowOffset: { width: 0, height: 0 },
+                    shadowOpacity: 0.85,
+                    shadowRadius: 5,
+                    elevation: (isActive || isCompleted) ? 4 : 0,
+                  }}
+                >
+                  {isCompleted ? (
+                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900', marginTop: -1 }}>✓</Text>
+                  ) : (
+                    <Text style={{
+                      color: isActive ? '#22c55e' : '#94a3b8',
+                      fontSize: 11.5,
+                      fontWeight: '900',
+                    }}>
+                      {s.id}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
+
+              {/* Step Label below circle */}
+              <Text
+                style={{
+                  marginTop: 3,
+                  fontSize: 9,
+                  fontWeight: isActive ? '800' : (isCompleted ? '700' : '500'),
+                  color: isActive ? '#4ade80' : (isCompleted ? '#ffffff' : '#64748b'),
+                  textAlign: 'center',
+                  lineHeight: 11,
+                  paddingHorizontal: 1,
+                }}
+                numberOfLines={2}
+              >
+                {s.label}
+              </Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+}
+
+// ============================================================================
 // SMART TEAM LOGO COMPONENT (FAIL-SAFE IMAGE RENDERING WITH AUTOMATIC FLAG FALLBACK)
 // ============================================================================
 function SmartTeamLogo({ team, allTeams = [], allUsers = [], style, flagStyle, fallbackFlag = '🦁' }) {
@@ -10663,6 +10786,25 @@ function CricketAddaMain() {
     }, 2800);
   };
 
+  // Custom App-Themed Alert Modal State (Replaces OS generic gray alert boxes)
+  const [customAlertModal, setCustomAlertModal] = useState({
+    visible: false,
+    title: '',
+    message: '',
+    icon: '🏏',
+    buttonText: 'Got It',
+  });
+
+  const showThemedAlert = useCallback((title, message, icon = '🏏', buttonText = 'Got It') => {
+    setCustomAlertModal({
+      visible: true,
+      title,
+      message,
+      icon,
+      buttonText,
+    });
+  }, []);
+
   // Guest Player Modal & Input State
   const [guestModalVisible, setGuestModalVisible] = useState(false);
   const [guestTargetTeam, setGuestTargetTeam] = useState('opponentTeam'); // 'myTeam' | 'opponentTeam'
@@ -10776,6 +10918,10 @@ function CricketAddaMain() {
 
   const allAvailableMatchTeams = useMemo(() => {
     const map = new Map();
+    // 0. Base tournament / app teams so team list is NEVER empty
+    (REGISTERED_APP_TEAMS || []).forEach(t => {
+      if (t && t.name) map.set(String(t.id || t.name).toLowerCase(), t);
+    });
     // 1. Registered teams from cloud/local
     (registeredTeams || []).forEach(t => {
       if (t && t.name) map.set(String(t.id || t.name).toLowerCase(), t);
@@ -18523,31 +18669,17 @@ function CricketAddaMain() {
       return;
     }
 
-    // Phase 2 Validation: Settings
+    // Phase 2 Validation: Settings -> Proceed to Phase 4 (Playing XI)
     if (wzPhase === 2) {
       if (!matchDraft.totalOvers || matchDraft.totalOvers < 1) {
         showAppToast('Please set valid match overs ⏱️', '⏱️', 'warning');
-        return;
-      }
-      setWzPhase(3);
-      return;
-    }
-
-    // Phase 3 Validation: Toss Winner & Toss Decision are COMPULSORY!
-    if (wzPhase === 3) {
-      if (!matchDraft.tossWinner) {
-        showAppToast('Please flip coin or select toss winner 🪙', '🪙', 'warning');
-        return;
-      }
-      if (!matchDraft.tossDecision) {
-        showAppToast('Please select Toss Decision (Elected to Bat/Bowl) 🏏', '🏏', 'warning');
         return;
       }
       setWzPhase(4);
       return;
     }
 
-    // Phase 4 Validation: Playing XI & Roles (Captain & Keeper for both teams)
+    // Phase 4 Validation: Playing XI & Roles -> Proceed to Phase 3 (Toss)
     if (wzPhase === 4) {
       if (!matchDraft.myPlayingXI || (matchDraft?.myPlayingXI || []).length < 2) {
         showAppToast(`Select at least 2 players in Playing XI for ${matchDraft.myTeam?.name || 'Team A'} 👥`, '👥', 'warning');
@@ -18596,7 +18728,21 @@ function CricketAddaMain() {
         showAppToast(`Please select a Wicketkeeper (WK) for ${matchDraft.opponentTeam?.name || 'Team B'} 🧤`, '🧤', 'warning');
         return;
       }
-      setWzPhase(5); // Direct to Match Confirmation
+      setWzPhase(3); // Direct to Toss
+      return;
+    }
+
+    // Phase 3 Validation: Toss Winner & Toss Decision -> Proceed to Phase 5 (Confirmation / Let's Play)
+    if (wzPhase === 3) {
+      if (!matchDraft.tossWinner) {
+        showAppToast('Please flip coin or select toss winner 🪙', '🪙', 'warning');
+        return;
+      }
+      if (!matchDraft.tossDecision) {
+        showAppToast('Please select Toss Decision (Elected to Bat/Bowl) 🏏', '🏏', 'warning');
+        return;
+      }
+      setWzPhase(5);
       return;
     }
 
@@ -18604,6 +18750,26 @@ function CricketAddaMain() {
       setWzPhase(s => s + 1);
     }
   };
+
+  const activeWizardStep = wzPhase === 1
+    ? (wzTeamStep === 1 ? 1 : 2)
+    : wzPhase === 2
+    ? 3
+    : wzPhase === 4
+    ? 4
+    : wzPhase === 3
+    ? 5
+    : 6;
+
+  const handleWizardStepPress = useCallback((stepObj) => {
+    if (!stepObj) return;
+    if (stepObj.phase === 1) {
+      setWzPhase(1);
+      setWzTeamStep(stepObj.teamStep || 1);
+    } else {
+      setWzPhase(stepObj.phase);
+    }
+  }, []);
 
   // Phase 1: Dual Slot Team Selection (Team A & Team B)
   const selectTeamForSlot = (slot, team) => {
@@ -29793,6 +29959,108 @@ function CricketAddaMain() {
       </Modal>
 
       {/* ========================================================================= */}
+      {/* THEMED IN-APP MODAL: CUSTOM ALERT DIALOG (REPLACES OLD OS GRAY ALERTS) */}
+      {/* ========================================================================= */}
+      <Modal
+        visible={customAlertModal.visible}
+        transparent={true}
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => setCustomAlertModal(prev => ({ ...prev, visible: false }))}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 5, 12, 0.85)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 24,
+        }}>
+          <View style={{
+            width: '100%',
+            maxWidth: 360,
+            backgroundColor: '#05182a',
+            borderRadius: 20,
+            borderWidth: 1.5,
+            borderColor: '#22c55e',
+            padding: 22,
+            alignItems: 'center',
+            shadowColor: '#22c55e',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.35,
+            shadowRadius: 16,
+            elevation: 20,
+          }}>
+            {/* Header Icon Badge */}
+            <View style={{
+              width: 58,
+              height: 58,
+              borderRadius: 29,
+              backgroundColor: 'rgba(34, 197, 94, 0.15)',
+              borderWidth: 2,
+              borderColor: '#22c55e',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 14,
+            }}>
+              <Text style={{ fontSize: 28 }}>{customAlertModal.icon || '🏏'}</Text>
+            </View>
+
+            {/* Title */}
+            <Text style={{
+              color: '#ffffff',
+              fontSize: 18,
+              fontWeight: '900',
+              textAlign: 'center',
+              marginBottom: 8,
+              letterSpacing: 0.5,
+            }}>
+              {customAlertModal.title}
+            </Text>
+
+            {/* Message */}
+            <Text style={{
+              color: '#94a3b8',
+              fontSize: 13.5,
+              fontWeight: '500',
+              textAlign: 'center',
+              lineHeight: 20,
+              marginBottom: 20,
+            }}>
+              {customAlertModal.message}
+            </Text>
+
+            {/* Action Button */}
+            <TouchableOpacity
+              style={{
+                width: '100%',
+                height: 44,
+                backgroundColor: '#22c55e',
+                borderRadius: 12,
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#22c55e',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.4,
+                shadowRadius: 6,
+                elevation: 6,
+              }}
+              onPress={() => setCustomAlertModal(prev => ({ ...prev, visible: false }))}
+              activeOpacity={0.85}
+            >
+              <Text style={{
+                color: '#000000',
+                fontSize: 15,
+                fontWeight: '900',
+                letterSpacing: 0.8,
+              }}>
+                {customAlertModal.buttonText || 'GOT IT ❯'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================================= */}
       {/* THEMED IN-APP MODAL: CLOSE MATCH SETUP CONFIRMATION */}
       {/* ========================================================================= */}
       <Modal
@@ -30106,57 +30374,71 @@ function CricketAddaMain() {
 
           {/* Top Header App Bar (For Phases 2-5) */}
           {wzPhase > 1 && (
-            <View style={[styles.cricHeaderRed, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder, paddingTop: topInset, height: 56 + topInset }]}>
-              <TouchableOpacity
-                style={styles.cricHeaderIconBtn}
-                onPress={() => {
-                  if (wzPhase === 2) {
-                    setWzPhase(1);
-                    setWzTeamStep(2);
-                  } else if (wzPhase > 2) {
-                    setWzPhase(s => s - 1);
-                  } else {
-                    confirmCancelMatchSetup();
-                  }
-                }}
-              >
-                <Text style={[styles.cricHeaderBackText, { color: currentTheme.primary }]}>←</Text>
-              </TouchableOpacity>
-
-              <Text style={[styles.cricHeaderTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-                {wzPhase === 2
-                  ? 'Match Settings'
-                  : wzPhase === 3
-                  ? 'Coin Toss 🪙'
-                  : wzPhase === 4
-                  ? 'Playing XI & Roles'
-                  : 'Match Confirmation'}
-              </Text>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <View>
+              <View style={[styles.cricHeaderRed, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder, paddingTop: topInset, height: 56 + topInset }]}>
                 <TouchableOpacity
                   style={styles.cricHeaderIconBtn}
-                  onPress={() =>
-                    Alert.alert(
-                      'Match Setup Guide',
-                      '1. Select Your Team and Opponent Team\n2. Configure overs & venue\n3. Toss coin\n4. Select Playing XI & Roles\n5. Confirm & Start Match (Select Openers & Bowler at start of innings).'
-                    )
-                  }
+                  onPress={() => {
+                    if (wzPhase === 2) {
+                      setWzPhase(1);
+                      setWzTeamStep(2);
+                    } else if (wzPhase === 4) {
+                      setWzPhase(2);
+                    } else if (wzPhase === 3) {
+                      setWzPhase(4);
+                    } else if (wzPhase === 5) {
+                      setWzPhase(3);
+                    } else {
+                      confirmCancelMatchSetup();
+                    }
+                  }}
                 >
-                  <View style={[styles.cricHelpCircle, { borderColor: currentTheme.primary }]}>
-                    <Text style={[styles.cricHeaderHelpText, { color: currentTheme.primary }]}>?</Text>
-                  </View>
+                  <Text style={[styles.cricHeaderBackText, { color: currentTheme.primary }]}>←</Text>
                 </TouchableOpacity>
 
-                {/* Explicit Close / Cancel Button */}
-                <TouchableOpacity
-                  style={styles.cricHeaderCloseBtn}
-                  onPress={confirmCancelMatchSetup}
-                  accessibilityLabel="Close match setup"
-                >
-                  <Text style={styles.cricHeaderCloseText}>✕</Text>
-                </TouchableOpacity>
+                <Text style={[styles.cricHeaderTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
+                  {wzPhase === 2
+                    ? 'Match Details'
+                    : wzPhase === 4
+                    ? 'Playing XI & Roles'
+                    : wzPhase === 3
+                    ? 'Coin Toss 🪙'
+                    : 'Match Confirmation'}
+                </Text>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <TouchableOpacity
+                    style={styles.cricHeaderIconBtn}
+                    onPress={() =>
+                      showThemedAlert(
+                        'Match Setup Guide 📖',
+                        '1. Select Your Team and Opponent Team\n2. Configure overs & venue\n3. Select Playing XI & Roles\n4. Flip coin for Toss\n5. Confirm & Start Match!',
+                        '📖',
+                        'Got It'
+                      )
+                    }
+                  >
+                    <View style={[styles.cricHelpCircle, { borderColor: currentTheme.primary }]}>
+                      <Text style={[styles.cricHeaderHelpText, { color: currentTheme.primary }]}>?</Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Explicit Close / Cancel Button */}
+                  <TouchableOpacity
+                    style={styles.cricHeaderCloseBtn}
+                    onPress={confirmCancelMatchSetup}
+                    accessibilityLabel="Close match setup"
+                  >
+                    <Text style={styles.cricHeaderCloseText}>✕</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
+
+              {/* 6-Step Wizard Stepper (For Phases 2-5) */}
+              <MatchWizardStepper
+                activeStep={activeWizardStep}
+                onStepPress={handleWizardStepPress}
+              />
             </View>
           )}
 
@@ -30169,51 +30451,77 @@ function CricketAddaMain() {
               style={{ flex: 1, backgroundColor: '#020b14' }}
               resizeMode="cover"
             >
-              {/* Header: Back Button, 3D Logo Space, and Title */}
+              {/* Header: Back Button, 3D Logo Space, Stepper, and Title */}
               <View
                 style={{
                   width: '100%',
-                  paddingTop: topInset + 6,
-                  paddingBottom: 8,
-                  paddingHorizontal: 14,
+                  paddingTop: topInset + 4,
                   position: 'relative',
                 }}
               >
-                {/* Back Button (Top Left) */}
-                <TouchableOpacity
-                  onPress={() => {
-                    if (wzTeamStep === 2) {
-                      setWzTeamStep(1);
-                    } else {
-                      confirmCancelMatchSetup();
-                    }
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: topInset + 6,
-                    left: 14,
-                    zIndex: 10,
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: 'rgba(0, 0, 0, 0.65)',
-                    borderWidth: 1.5,
-                    borderColor: '#22c55e',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                  }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                >
-                  <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: -2, marginLeft: -1 }}>‹</Text>
-                </TouchableOpacity>
+                {/* Top Nav Row: Back Button & Close Button */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 14,
+                  height: 38,
+                  zIndex: 10,
+                }}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      if (wzTeamStep === 2) {
+                        setWzTeamStep(1);
+                      } else {
+                        confirmCancelMatchSetup();
+                      }
+                    }}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                      borderWidth: 1.5,
+                      borderColor: '#22c55e',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: -2, marginLeft: -1 }}>‹</Text>
+                  </TouchableOpacity>
 
-                {/* Space reserved for centered 3D CricketAdda logo in header background */}
-                <View style={{ height: 75 }} />
+                  <TouchableOpacity
+                    onPress={confirmCancelMatchSetup}
+                    style={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: 18,
+                      backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(239, 68, 68, 0.6)',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <Text style={{ color: '#f87171', fontSize: 16, fontWeight: '900' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
 
-                {/* Title */}
-                <View style={{ alignItems: 'center', marginTop: 2 }}>
+                {/* Space reserved for 10% smaller 3D CricketAdda logo in header background */}
+                <View style={{ height: 44 }} />
+
+                {/* 6-Step Wizard Stepper (matching user mockup image) */}
+                <MatchWizardStepper
+                  activeStep={activeWizardStep}
+                  onStepPress={handleWizardStepPress}
+                />
+
+                {/* Title (Positioned cleanly below wizard stepper, completely free of the logo!) */}
+                <View style={{ alignItems: 'center', paddingVertical: 8 }}>
                   <Text style={{
-                    fontSize: 20,
+                    fontSize: 18.5,
                     fontWeight: '900',
                     letterSpacing: 0.5,
                     textTransform: 'uppercase',
@@ -30410,7 +30718,7 @@ function CricketAddaMain() {
 
                           {/* Center: Team Name, Captain Name & Performance Stats */}
                           <View style={{ flex: 1, paddingRight: 8 }}>
-                            <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: '800' }} numberOfLines={1}>
+                            <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: '900', letterSpacing: 0.3 }} numberOfLines={1}>
                               {t.name}
                             </Text>
                             {isOtherTeam ? (
@@ -30418,7 +30726,7 @@ function CricketAddaMain() {
                                 ⭐ Selected as Team 1
                               </Text>
                             ) : (
-                              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 5, flexWrap: 'wrap' }}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2.5, gap: 5, flexWrap: 'wrap' }}>
                                 <Text style={{ color: '#93c5fd', fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>
                                   👑 {capName}
                                 </Text>
@@ -30448,6 +30756,23 @@ function CricketAddaMain() {
                         </TouchableOpacity>
                       );
                     })}
+
+                  {allAvailableMatchTeams.filter(t => {
+                    const q = (teamSearchQuery || '').toLowerCase().trim();
+                    if (!q) return true;
+                    const matchName = (t.name || '').toLowerCase().includes(q);
+                    const matchCap = (t.captain || '').toLowerCase().includes(q);
+                    const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
+                    return matchName || matchCap || matchCity;
+                  }).length === 0 && (
+                    <View style={{ paddingVertical: 36, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ fontSize: 32, marginBottom: 8 }}>🏏</Text>
+                      <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '800' }}>No Teams Found</Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 12.5, textAlign: 'center', marginTop: 4 }}>
+                        {teamSearchQuery ? `No teams match "${teamSearchQuery}"` : 'No registered teams found.'}
+                      </Text>
+                    </View>
+                  )}
                 </ScrollView>
               </View>
 
@@ -30505,10 +30830,11 @@ function CricketAddaMain() {
                     if (wzTeamStep === 1) {
                       if (!matchDraft.myTeam) {
                         showAppToast('⚠️ Please select Team 1 to proceed', '⚠️', 'error');
-                        Alert.alert(
+                        showThemedAlert(
                           'Select Team 1 🏏',
                           'Please select your team (Team 1) from the list before proceeding.',
-                          [{ text: 'OK' }]
+                          '🏏',
+                          'Select Team'
                         );
                         return;
                       }
@@ -30517,19 +30843,21 @@ function CricketAddaMain() {
                     } else {
                       if (!matchDraft.opponentTeam) {
                         showAppToast('⚠️ Please select Opponent Team (Team 2) to proceed', '⚠️', 'error');
-                        Alert.alert(
+                        showThemedAlert(
                           'Select Opponent Team 🏏',
                           'Please select the opponent team (Team 2) from the list before proceeding.',
-                          [{ text: 'OK' }]
+                          '🏏',
+                          'Select Opponent'
                         );
                         return;
                       }
                       if (matchDraft.myTeam?.id === matchDraft.opponentTeam?.id) {
                         showAppToast('Team 1 and Team 2 cannot be the same team 🚫', '🚫', 'warning');
-                        Alert.alert(
+                        showThemedAlert(
                           'Invalid Selection 🚫',
                           'Both teams cannot be the same. Please choose a different opponent team.',
-                          [{ text: 'OK' }]
+                          '🚫',
+                          'Choose Different'
                         );
                         return;
                       }
