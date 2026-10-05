@@ -11079,7 +11079,9 @@ function CricketAddaMain() {
     setGeneratedOtp(newOtp);
 
     // Check if email already exists in users database
-    const existing = usersDb.find(u => u.email && u.email.toLowerCase() === cleanEmail);
+    const existing = Array.isArray(usersDb)
+      ? usersDb.find(u => u && ((u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail)))
+      : null;
     const isOldUser = Boolean(existing);
     setIsExistingUser(isOldUser);
 
@@ -11142,9 +11144,24 @@ function CricketAddaMain() {
 
     try {
       // 1. Check local usersDb
-      let existing = Array.isArray(usersDb) ? usersDb.find(u => u && ((u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail))) : null;
+      let existing = Array.isArray(usersDb)
+        ? usersDb.find(u => u && ((u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail)))
+        : null;
 
-      // 2. If not found locally (e.g. app freshly installed), fetch from Firebase Cloud Database!
+      // 2. Check AsyncStorage for usersDb if not found in state
+      if (!existing) {
+        try {
+          const storedUsersDb = await AsyncStorage.getItem(STORAGE_KEYS.USERS_DB);
+          if (storedUsersDb) {
+            const parsed = JSON.parse(storedUsersDb);
+            if (Array.isArray(parsed)) {
+              existing = parsed.find(u => u && ((u.email && u.email.toLowerCase() === cleanEmail) || ((u.profile && u.profile.email) && u.profile.email.toLowerCase() === cleanEmail)));
+            }
+          }
+        } catch (e) {}
+      }
+
+      // 3. If not found locally (e.g. app freshly installed), fetch from Firebase Cloud Database!
       if (!existing && isFirebaseConfigured()) {
         try {
           const cloudUser = await fetchCloudUserByEmail(cleanEmail);
@@ -11167,103 +11184,120 @@ function CricketAddaMain() {
         }
       }
 
-      setAuthLoading(false);
+      // 4. Check AsyncStorage stored profile as well
+      let storedProfileObj = null;
+      try {
+        const storedProf = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+        if (storedProf) {
+          const parsed = JSON.parse(storedProf);
+          if (parsed && (parsed.name || parsed.email)) {
+            storedProfileObj = parsed;
+          }
+        }
+      } catch (e) {}
 
-      // Resolve profile from existing userDb record, existing profile, current profile state, or registered players
+      // Resolve profile from existing userDb record, existing profile, stored profile, current profile state, or registered players
       const matchedPlayer = (registeredPlayers || []).find(p => p && ((p.email && p.email.toLowerCase() === cleanEmail) || (p.phone && (existing?.phone || existing?.profile?.phone) && p.phone === (existing?.phone || existing?.profile?.phone))));
-      const prof = (existing && existing.profile) || existing || matchedPlayer || (userProfile?.name ? userProfile : null);
+      const prof = (existing && existing.profile) || existing || storedProfileObj || matchedPlayer || (userProfile?.name ? userProfile : null);
 
-      const hasProfileInfo = Boolean(
-        (prof && (prof.name || prof.phone)) ||
-        (existing && (existing.name || existing.phone || existing.email)) ||
-        isExistingUser
-      );
+      const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+      const fallbackName = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Player';
 
-      if (hasProfileInfo) {
-        const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
-        const fallbackName = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Player';
+      const restoredProfile = {
+        id: prof?.id || existing?.id || `usr_${prof?.phone || Date.now()}`,
+        name: prof?.name || existing?.name || fallbackName,
+        phone: prof?.phone || existing?.phone || '',
+        jersey: prof?.jersey || existing?.jersey || '#18',
+        role: prof?.role || existing?.role || 'Top-Order Batter',
+        battingStyle: prof?.battingStyle || existing?.battingStyle || 'Right Hand Bat',
+        bowlingStyle: prof?.bowlingStyle || existing?.bowlingStyle || 'Right Arm Medium',
+        avatarUri: prof?.avatarUri || existing?.avatarUri || null,
+        email: cleanEmail,
+      };
 
-        const restoredProfile = {
-          id: prof?.id || existing?.id || `usr_${prof?.phone || Date.now()}`,
-          name: prof?.name || existing?.name || fallbackName,
-          phone: prof?.phone || existing?.phone || '',
-          jersey: prof?.jersey || existing?.jersey || '#18',
-          role: prof?.role || existing?.role || 'Top-Order Batter',
-          battingStyle: prof?.battingStyle || existing?.battingStyle || 'Right Hand Bat',
-          bowlingStyle: prof?.bowlingStyle || existing?.bowlingStyle || 'Right Arm Medium',
-          avatarUri: prof?.avatarUri || existing?.avatarUri || null,
-          email: cleanEmail,
-        };
-        const restoredCareer = existing?.careerStats || EMPTY_USER_CAREER_DATA;
-        const userTeams = Array.isArray(existing?.createdTeams) ? existing.createdTeams : [];
+      const restoredCareer = existing?.careerStats || EMPTY_USER_CAREER_DATA;
+      const userTeams = Array.isArray(existing?.createdTeams) ? existing.createdTeams : [];
 
-        setUserProfile(restoredProfile);
-        setUserCareerData(restoredCareer);
-        if (userTeams.length > 0) {
-          setRegisteredTeams(prev => {
-            const map = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
-            userTeams.forEach(t => {
-              if (t && t.name) map.set(String(t.id || t.name).toLowerCase(), t);
-            });
-            const merged = Array.from(map.values());
-            AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(merged)).catch(() => {});
-            return merged;
+      setUserProfile(restoredProfile);
+      setUserCareerData(restoredCareer);
+
+      // Save user record to usersDb so subsequent logins find this user immediately
+      const userRecord = {
+        email: cleanEmail,
+        profile: restoredProfile,
+        careerStats: restoredCareer,
+        createdTeams: userTeams,
+        updatedAt: new Date().toISOString(),
+      };
+
+      setUsersDb(prev => {
+        const safePrev = Array.isArray(prev) ? prev.filter(Boolean) : [];
+        const filtered = safePrev.filter(u => u && String(u.email || u.profile?.email || '').toLowerCase() !== cleanEmail);
+        const updated = [userRecord, ...filtered];
+        AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updated)).catch(() => {});
+        syncUsersToFirebase(updated).catch(() => {});
+        return updated;
+      });
+
+      if (userTeams.length > 0) {
+        setRegisteredTeams(prev => {
+          const map = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
+          userTeams.forEach(t => {
+            if (t && t.name) map.set(String(t.id || t.name).toLowerCase(), t);
           });
-        }
-        if (isFirebaseConfigured()) {
-          fetchFirebaseTeams().then(cloudTeams => {
-            if (Array.isArray(cloudTeams) && cloudTeams.length > 0) {
-              setRegisteredTeams(prev => {
-                const map = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
-                cloudTeams.forEach(ct => {
-                  if (ct && ct.name) map.set(String(ct.id || ct.name).toLowerCase(), ct);
-                });
-                const nextList = Array.from(map.values());
-                AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(nextList)).catch(() => {});
-                return nextList;
-              });
-            }
-          }).catch(() => {});
-        }
-        AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(restoredProfile)).catch(() => {});
-        AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(restoredCareer)).catch(() => {});
-        AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
-
-        // Restore into registeredPlayers
-        if (restoredProfile.name) {
-          setRegisteredPlayers(prev => {
-            const cleanPhone = (restoredProfile.phone || '').replace(/[^0-9]/g, '');
-            const filtered = (prev || []).filter(p => (cleanPhone && (p.phone || '').replace(/[^0-9]/g, '') !== cleanPhone) && p.name.toLowerCase() !== restoredProfile.name.toLowerCase());
-            const newRecord = {
-              id: restoredProfile.id || `usr_${cleanPhone || Date.now()}`,
-              name: restoredProfile.name,
-              phone: cleanPhone,
-              role: restoredProfile.role?.includes('BOWL') ? 'BOWL' : restoredProfile.role?.includes('WK') ? 'WK' : restoredProfile.role?.includes('ALL') ? 'ALL' : 'BAT',
-              battingStyle: restoredProfile.battingStyle || 'Right Hand Bat',
-              bowlingStyle: restoredProfile.bowlingStyle || 'Right Arm Medium',
-              jersey: (restoredProfile.jersey || '18').replace('#', ''),
-              avatarUri: restoredProfile.avatarUri || null,
-            };
-            const updated = [newRecord, ...filtered];
-            AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updated)).catch(() => {});
-            return updated;
-          });
-        }
-
-        setIsAuthenticated(true);
-        setAuthStep(1);
-        setActiveTab('matches'); // Directly to Dashboard page!
-        showAppToast(`Welcome back, ${restoredProfile?.name || 'Player'}! Profile restored.`, '👋');
-        return;
+          const merged = Array.from(map.values());
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(merged)).catch(() => {});
+          return merged;
+        });
       }
 
-      // If brand-new user: Proceed to Step 3: Setup Profile
-      const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
-      const cap = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-      setAuthName((existing && existing.profile && existing.profile.name) || cap || '');
-      setAuthPhone((existing && existing.profile && existing.profile.phone) || '');
-      setAuthJersey((existing && existing.profile && existing.profile.jersey) || '#18');
-      setAuthStep(3);
+      if (isFirebaseConfigured()) {
+        fetchFirebaseTeams().then(cloudTeams => {
+          if (Array.isArray(cloudTeams) && cloudTeams.length > 0) {
+            setRegisteredTeams(prev => {
+              const map = new Map((prev || []).map(t => [String(t.id || t.name).toLowerCase(), t]));
+              cloudTeams.forEach(ct => {
+                if (ct && ct.name) map.set(String(ct.id || ct.name).toLowerCase(), ct);
+              });
+              const nextList = Array.from(map.values());
+              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(nextList)).catch(() => {});
+              return nextList;
+            });
+          }
+        }).catch(() => {});
+        syncSingleUserProfileToFirebase(restoredProfile, cleanEmail, null).catch(() => {});
+      }
+
+      AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(restoredProfile)).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEYS.USER_CAREER, JSON.stringify(restoredCareer)).catch(() => {});
+      AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(Date.now())).catch(() => {});
+
+      // Restore into registeredPlayers
+      if (restoredProfile.name) {
+        setRegisteredPlayers(prev => {
+          const cleanPhone = (restoredProfile.phone || '').replace(/[^0-9]/g, '');
+          const filtered = (prev || []).filter(p => (cleanPhone && (p.phone || '').replace(/[^0-9]/g, '') !== cleanPhone) && p.name.toLowerCase() !== restoredProfile.name.toLowerCase());
+          const newRecord = {
+            id: restoredProfile.id || `usr_${cleanPhone || Date.now()}`,
+            name: restoredProfile.name,
+            phone: cleanPhone,
+            role: restoredProfile.role?.includes('BOWL') ? 'BOWL' : restoredProfile.role?.includes('WK') ? 'WK' : restoredProfile.role?.includes('ALL') ? 'ALL' : 'BAT',
+            battingStyle: restoredProfile.battingStyle || 'Right Hand Bat',
+            bowlingStyle: restoredProfile.bowlingStyle || 'Right Arm Medium',
+            jersey: (restoredProfile.jersey || '18').replace('#', ''),
+            avatarUri: restoredProfile.avatarUri || null,
+          };
+          const updated = [newRecord, ...filtered];
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updated)).catch(() => {});
+          return updated;
+        });
+      }
+
+      setAuthLoading(false);
+      setIsAuthenticated(true);
+      setAuthStep(1);
+      setActiveTab('matches'); // Always land directly on Dashboard ('matches')!
+      showAppToast(`Welcome back, ${restoredProfile?.name || 'Player'}! 👋`, '🏏');
     } catch (err) {
       setAuthLoading(false);
       setAuthError('Authentication check failed. Please try again.');
@@ -12404,6 +12438,8 @@ function CricketAddaMain() {
                 if (parsedProfile.battingStyle) setAuthBattingStyle(parsedProfile.battingStyle);
                 if (parsedProfile.bowlingStyle) setAuthBowlingStyle(parsedProfile.bowlingStyle);
                 setIsAuthenticated(true);
+                setAuthStep(1);
+                setActiveTab('matches');
                 // Refresh heartbeat timestamp to now
                 await AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(nowMs));
               }
