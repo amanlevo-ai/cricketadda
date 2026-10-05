@@ -10916,31 +10916,20 @@ function CricketAddaMain() {
         return;
       }
 
-      // Check if user has already completed player profile setup
-      const hasCompletedProfile = Boolean(
-        existing &&
-        existing.profile &&
-        (existing.profile.name || existing.profile.phone)
-      );
-
-      if (!hasCompletedProfile) {
-        // User account exists but profile setup is pending -> go to Step 3 Profile Setup
-        const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
-        const cap = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
-        setAuthName((existing && existing.profile && existing.profile.name) || cap || '');
-        setAuthPhone((existing && existing.profile && existing.profile.phone) || '');
-        setAuthJersey((existing && existing.profile && existing.profile.jersey) || '#18');
-        setAuthStep(3);
-        showAppToast('Please complete your player profile setup.', '🏏');
-        return;
-      }
-
       // Successful login -> Restore profile & session and land directly on Dashboard ('matches')!
-      const restoredProfile = existing.profile || {
-        name: 'Player',
-        jersey: '#18',
-        role: 'Top-Order Batter',
-        avatarUri: null,
+      const prof = (existing && existing.profile) || existing || {};
+      const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+      const fallbackName = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Player';
+
+      const restoredProfile = {
+        id: prof.id || (existing && existing.id) || `usr_${prof.phone || Date.now()}`,
+        name: prof.name || (existing && existing.name) || userProfile?.name || fallbackName,
+        phone: prof.phone || (existing && existing.phone) || userProfile?.phone || '',
+        jersey: prof.jersey || (existing && existing.jersey) || userProfile?.jersey || '#18',
+        role: prof.role || (existing && existing.role) || userProfile?.role || 'Top-Order Batter',
+        battingStyle: prof.battingStyle || (existing && existing.battingStyle) || userProfile?.battingStyle || 'Right Hand Bat',
+        bowlingStyle: prof.bowlingStyle || (existing && existing.bowlingStyle) || userProfile?.bowlingStyle || 'Right Arm Medium',
+        avatarUri: prof.avatarUri || (existing && existing.avatarUri) || userProfile?.avatarUri || null,
         email: cleanEmail,
       };
       const restoredCareer = existing.careerStats || EMPTY_USER_CAREER_DATA;
@@ -11173,17 +11162,33 @@ function CricketAddaMain() {
 
       setAuthLoading(false);
 
-      // Check if user has already completed player profile setup
-      const hasCompletedProfile = Boolean(
-        existing &&
-        existing.profile &&
-        (existing.profile.name || existing.profile.phone)
+      // Resolve profile from existing userDb record, existing profile, current profile state, or registered players
+      const matchedPlayer = (registeredPlayers || []).find(p => p && ((p.email && p.email.toLowerCase() === cleanEmail) || (p.phone && (existing?.phone || existing?.profile?.phone) && p.phone === (existing?.phone || existing?.profile?.phone))));
+      const prof = (existing && existing.profile) || existing || matchedPlayer || (userProfile?.name ? userProfile : null);
+
+      const hasProfileInfo = Boolean(
+        (prof && (prof.name || prof.phone)) ||
+        (existing && (existing.name || existing.phone || existing.email)) ||
+        isExistingUser
       );
 
-      if (existing && hasCompletedProfile) {
-        const restoredProfile = existing.profile || { name: 'Player', jersey: '#18', role: 'Top-Order Batter', avatarUri: null };
-        const restoredCareer = existing.careerStats || EMPTY_USER_CAREER_DATA;
-        const userTeams = Array.isArray(existing.createdTeams) ? existing.createdTeams : [];
+      if (hasProfileInfo) {
+        const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
+        const fallbackName = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ') || 'Player';
+
+        const restoredProfile = {
+          id: prof?.id || existing?.id || `usr_${prof?.phone || Date.now()}`,
+          name: prof?.name || existing?.name || fallbackName,
+          phone: prof?.phone || existing?.phone || '',
+          jersey: prof?.jersey || existing?.jersey || '#18',
+          role: prof?.role || existing?.role || 'Top-Order Batter',
+          battingStyle: prof?.battingStyle || existing?.battingStyle || 'Right Hand Bat',
+          bowlingStyle: prof?.bowlingStyle || existing?.bowlingStyle || 'Right Arm Medium',
+          avatarUri: prof?.avatarUri || existing?.avatarUri || null,
+          email: cleanEmail,
+        };
+        const restoredCareer = existing?.careerStats || EMPTY_USER_CAREER_DATA;
+        const userTeams = Array.isArray(existing?.createdTeams) ? existing.createdTeams : [];
 
         setUserProfile(restoredProfile);
         setUserCareerData(restoredCareer);
@@ -11221,7 +11226,7 @@ function CricketAddaMain() {
         if (restoredProfile.name) {
           setRegisteredPlayers(prev => {
             const cleanPhone = (restoredProfile.phone || '').replace(/[^0-9]/g, '');
-            const filtered = prev.filter(p => (cleanPhone && (p.phone || '').replace(/[^0-9]/g, '') !== cleanPhone) && p.name.toLowerCase() !== restoredProfile.name.toLowerCase());
+            const filtered = (prev || []).filter(p => (cleanPhone && (p.phone || '').replace(/[^0-9]/g, '') !== cleanPhone) && p.name.toLowerCase() !== restoredProfile.name.toLowerCase());
             const newRecord = {
               id: restoredProfile.id || `usr_${cleanPhone || Date.now()}`,
               name: restoredProfile.name,
@@ -11245,7 +11250,7 @@ function CricketAddaMain() {
         return;
       }
 
-      // If new user or profile not completed yet: Proceed to Step 3: Setup Profile
+      // If brand-new user: Proceed to Step 3: Setup Profile
       const prefix = cleanEmail.split('@')[0].replace(/[._]/g, ' ');
       const cap = prefix.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
       setAuthName((existing && existing.profile && existing.profile.name) || cap || '');
@@ -11254,7 +11259,7 @@ function CricketAddaMain() {
       setAuthStep(3);
     } catch (err) {
       setAuthLoading(false);
-      setAuthStep(3);
+      setAuthError('Authentication check failed. Please try again.');
     }
   };
 
@@ -30090,60 +30095,66 @@ function CricketAddaMain() {
             <View style={{ flex: 1, backgroundColor: '#020b14' }}>
               {/* Stadium Banner Header with Logo and Back Button */}
               <ImageBackground
-                source={require('./assets/hero-banner.jpg')}
-                style={{ width: '100%', paddingTop: topInset + 6, paddingBottom: 14, paddingHorizontal: 14 }}
+                source={require('./assets/match-header-banner.jpg')}
+                style={{
+                  width: '100%',
+                  paddingTop: topInset + 6,
+                  paddingBottom: 12,
+                  paddingHorizontal: 14,
+                  position: 'relative',
+                }}
                 resizeMode="cover"
               >
-                {/* Top Row: Back Button */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <TouchableOpacity
-                    onPress={() => {
-                      if (wzTeamStep === 2) {
-                        setWzTeamStep(1);
-                      } else {
-                        confirmCancelMatchSetup();
-                      }
-                    }}
-                    style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: 19,
-                      backgroundColor: 'rgba(0, 0, 0, 0.55)',
-                      borderWidth: 1.5,
-                      borderColor: '#22c55e',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <Text style={{ color: '#ffffff', fontSize: 22, fontWeight: '900', marginTop: -2 }}>‹</Text>
-                  </TouchableOpacity>
+                {/* Back Button (Top Left) */}
+                <TouchableOpacity
+                  onPress={() => {
+                    if (wzTeamStep === 2) {
+                      setWzTeamStep(1);
+                    } else {
+                      confirmCancelMatchSetup();
+                    }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: topInset + 6,
+                    left: 14,
+                    zIndex: 10,
+                    width: 36,
+                    height: 36,
+                    borderRadius: 18,
+                    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+                    borderWidth: 1.5,
+                    borderColor: '#22c55e',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: -2, marginLeft: -1 }}>‹</Text>
+                </TouchableOpacity>
 
-                  {/* Logo Center */}
-                  <Image
-                    source={require('./assets/logo.png')}
-                    style={{ width: 130, height: 55, resizeMode: 'contain' }}
-                  />
-
-                  {/* Spacer for symmetry */}
-                  <View style={{ width: 38 }} />
-                </View>
+                {/* Space reserved for centered 3D CricketAdda logo in header background */}
+                <View style={{ height: 95 }} />
 
                 {/* Title & Subtitle */}
                 <View style={{ alignItems: 'center', marginTop: 2 }}>
                   <Text style={{
-                    fontSize: 21,
+                    fontSize: 20,
                     fontWeight: '900',
-                    color: '#84cc16',
-                    textTransform: 'uppercase',
                     letterSpacing: 0.5,
-                    textShadowColor: 'rgba(132, 204, 22, 0.4)',
-                    textShadowOffset: { width: 0, height: 1 },
-                    textShadowRadius: 6,
+                    textTransform: 'uppercase',
                   }}>
-                    {wzTeamStep === 1 ? 'SELECT YOUR TEAM' : 'SELECT OPPONENT TEAM'}
+                    <Text style={{ color: '#ffffff' }}>SELECT </Text>
+                    <Text style={{
+                      color: '#4ade80',
+                      textShadowColor: 'rgba(74, 222, 128, 0.45)',
+                      textShadowOffset: { width: 0, height: 1 },
+                      textShadowRadius: 8,
+                    }}>
+                      {wzTeamStep === 1 ? 'YOUR TEAM' : 'OPPONENT TEAM'}
+                    </Text>
                   </Text>
-                  <Text style={{ color: '#e2e8f0', fontSize: 13, fontWeight: '600', marginTop: 3, fontStyle: 'italic' }}>
+                  <Text style={{ color: '#cbd5e1', fontSize: 12.5, fontWeight: '600', marginTop: 3, fontStyle: 'italic' }}>
                     {wzTeamStep === 1 ? 'Choose the team to play as Team 1' : 'Choose the team to play as Team 2'}
                   </Text>
                 </View>
@@ -30260,10 +30271,10 @@ function CricketAddaMain() {
                           backgroundColor: isSelected ? 'rgba(34, 197, 94, 0.12)' : '#05182a',
                           borderWidth: 1.5,
                           borderColor: isSelected ? '#22c55e' : (isOtherTeam ? '#1e293b' : 'rgba(56, 189, 248, 0.18)'),
-                          borderRadius: 14,
-                          paddingVertical: 12,
-                          paddingHorizontal: 14,
-                          marginBottom: 9,
+                          borderRadius: 12,
+                          paddingVertical: 7,
+                          paddingHorizontal: 12,
+                          marginBottom: 7,
                           opacity: isOtherTeam ? 0.45 : 1,
                         }}
                         onPress={() => {
@@ -30281,12 +30292,12 @@ function CricketAddaMain() {
                       >
                         {/* Left: Team Emblem */}
                         <View style={{
-                          width: 46,
-                          height: 46,
-                          borderRadius: 23,
+                          width: 38,
+                          height: 38,
+                          borderRadius: 19,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          marginRight: 12,
+                          marginRight: 10,
                           overflow: 'hidden',
                           backgroundColor: 'rgba(255, 255, 255, 0.05)',
                         }}>
@@ -30295,26 +30306,26 @@ function CricketAddaMain() {
                             allTeams={allAvailableMatchTeams}
                             allUsers={usersDb}
                             style={{ width: '100%', height: '100%' }}
-                            flagStyle={{ fontSize: 28 }}
+                            flagStyle={{ fontSize: 24 }}
                             fallbackFlag={t.flag || '🦁'}
                           />
                         </View>
 
                         {/* Center: Team Name & Players Count */}
                         <View style={{ flex: 1, paddingRight: 8 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: '800' }} numberOfLines={1}>
+                          <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: '800' }} numberOfLines={1}>
                             {t.name}
                           </Text>
-                          <Text style={{ color: isOtherTeam ? '#eab308' : '#94a3b8', fontSize: 12.5, fontWeight: '600', marginTop: 3 }}>
+                          <Text style={{ color: isOtherTeam ? '#eab308' : '#94a3b8', fontSize: 11.8, fontWeight: '600', marginTop: 1.5 }}>
                             {isOtherTeam ? '⭐ Selected as Team 1' : `👥 ${squadCount} Players`}
                           </Text>
                         </View>
 
                         {/* Right: Radio Selection Circle / Green Checkmark */}
                         <View style={{
-                          width: 26,
-                          height: 26,
-                          borderRadius: 13,
+                          width: 22,
+                          height: 22,
+                          borderRadius: 11,
                           alignItems: 'center',
                           justifyContent: 'center',
                           borderWidth: isSelected ? 0 : 2,
@@ -30322,7 +30333,7 @@ function CricketAddaMain() {
                           backgroundColor: isSelected ? '#22c55e' : 'transparent',
                         }}>
                           {isSelected && (
-                            <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900' }}>✓</Text>
+                            <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>✓</Text>
                           )}
                         </View>
                       </TouchableOpacity>
@@ -30333,16 +30344,16 @@ function CricketAddaMain() {
               {/* Bottom Sticky NEXT Button */}
               <View style={{
                 paddingHorizontal: 14,
-                paddingTop: 8,
-                paddingBottom: Math.max(12, bottomInset),
+                paddingTop: 6,
+                paddingBottom: Math.max(10, bottomInset),
                 backgroundColor: '#020b14',
                 borderTopWidth: 1,
                 borderTopColor: '#0a1d30',
               }}>
                 <TouchableOpacity
                   style={{
-                    height: 52,
-                    borderRadius: 12,
+                    height: 42,
+                    borderRadius: 10,
                     backgroundColor: '#22c55e',
                     flexDirection: 'row',
                     alignItems: 'center',
@@ -30351,7 +30362,7 @@ function CricketAddaMain() {
                     shadowColor: '#22c55e',
                     shadowOffset: { width: 0, height: 2 },
                     shadowOpacity: 0.35,
-                    shadowRadius: 6,
+                    shadowRadius: 5,
                     elevation: 5,
                   }}
                   onPress={() => {
@@ -30377,10 +30388,10 @@ function CricketAddaMain() {
                   }}
                   activeOpacity={0.85}
                 >
-                  <Text style={{ color: '#000000', fontSize: 18, fontWeight: '900', letterSpacing: 1 }}>
+                  <Text style={{ color: '#000000', fontSize: 15.5, fontWeight: '900', letterSpacing: 0.8 }}>
                     NEXT
                   </Text>
-                  <Text style={{ color: '#000000', fontSize: 20, fontWeight: '900' }}>❯</Text>
+                  <Text style={{ color: '#000000', fontSize: 16, fontWeight: '900' }}>❯</Text>
                 </TouchableOpacity>
               </View>
             </View>
