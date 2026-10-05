@@ -30172,7 +30172,7 @@ function CricketAddaMain() {
                 </TouchableOpacity>
 
                 {/* Space reserved for centered 3D CricketAdda logo in header background */}
-                <View style={{ height: 95 }} />
+                <View style={{ height: 75 }} />
 
                 {/* Title */}
                 <View style={{ alignItems: 'center', marginTop: 2 }}>
@@ -30279,127 +30279,141 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
 
-              {/* Teams List */}
-              <ScrollView
-                style={{ flex: 1, paddingHorizontal: 12, paddingTop: 8 }}
-                contentContainerStyle={{ paddingBottom: 20 }}
-                keyboardShouldPersistTaps="handled"
-                showsVerticalScrollIndicator={true}
-              >
-                {allAvailableMatchTeams
-                  .filter(t => {
-                    const q = (teamSearchQuery || '').toLowerCase().trim();
-                    if (!q) return true;
-                    const matchName = (t.name || '').toLowerCase().includes(q);
-                    const matchCap = (t.captain || '').toLowerCase().includes(q);
-                    const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
-                    return matchName || matchCap || matchCity;
-                  })
-                  .map(t => {
-                    const isSelected = wzTeamStep === 1
-                      ? matchDraft.myTeam?.id === t.id
-                      : matchDraft.opponentTeam?.id === t.id;
-                    const isOtherTeam = wzTeamStep === 2 && matchDraft.myTeam?.id === t.id;
+              {/* Teams List Outer Box Container with Semi-Transparent Background */}
+              <View style={{
+                flex: 1,
+                marginHorizontal: 12,
+                marginTop: 8,
+                marginBottom: 6,
+                backgroundColor: 'rgba(5, 20, 36, 0.72)',
+                borderRadius: 16,
+                borderWidth: 1.5,
+                borderColor: 'rgba(56, 189, 248, 0.22)',
+                overflow: 'hidden',
+                paddingHorizontal: 8,
+                paddingTop: 8,
+              }}>
+                <ScrollView
+                  style={{ flex: 1 }}
+                  contentContainerStyle={{ paddingBottom: 10 }}
+                  keyboardShouldPersistTaps="handled"
+                  showsVerticalScrollIndicator={true}
+                >
+                  {allAvailableMatchTeams
+                    .filter(t => {
+                      const q = (teamSearchQuery || '').toLowerCase().trim();
+                      if (!q) return true;
+                      const matchName = (t.name || '').toLowerCase().includes(q);
+                      const matchCap = (t.captain || '').toLowerCase().includes(q);
+                      const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
+                      return matchName || matchCap || matchCity;
+                    })
+                    .map(t => {
+                      const isSelected = wzTeamStep === 1
+                        ? matchDraft.myTeam?.id === t.id
+                        : matchDraft.opponentTeam?.id === t.id;
+                      const isOtherTeam = wzTeamStep === 2 && matchDraft.myTeam?.id === t.id;
 
-                    // Resolve Captain and Performance Stats
-                    const capName = t.captain || (Array.isArray(t.squad) ? (t.squad.find(p => p && p.isCaptain)?.name || t.squad[0]?.name) : '') || 'Captain';
-                    const seed = Math.abs(String(t.name || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
-                    const tWins = t.wins ?? t.stats?.wins ?? ((seed % 10) + 3);
-                    const tLosses = t.losses ?? t.stats?.losses ?? ((seed % 5) + 1);
-                    const tTotal = tWins + tLosses;
-                    const tWinPct = tTotal > 0 ? Math.round((tWins / tTotal) * 100) : 0;
+                      // Resolve Captain and Performance Stats
+                      const capName = t.captain || (Array.isArray(t.squad) ? (t.squad.find(p => p && p.isCaptain)?.name || t.squad[0]?.name) : '') || 'Captain';
+                      const seed = Math.abs(String(t.name || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
+                      const tWins = t.wins ?? t.stats?.wins ?? ((seed % 10) + 3);
+                      const tLosses = t.losses ?? t.stats?.losses ?? ((seed % 5) + 1);
+                      const tTotal = tWins + tLosses;
+                      const tWinPct = tTotal > 0 ? Math.round((tWins / tTotal) * 100) : 0;
 
-                    return (
-                      <TouchableOpacity
-                        key={t.id || t.name}
-                        style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          backgroundColor: isSelected ? 'rgba(34, 197, 94, 0.16)' : 'rgba(5, 24, 42, 0.88)',
-                          borderWidth: 1.5,
-                          borderColor: isSelected ? '#22c55e' : (isOtherTeam ? '#1e293b' : 'rgba(56, 189, 248, 0.18)'),
-                          borderRadius: 12,
-                          paddingVertical: 7,
-                          paddingHorizontal: 12,
-                          marginBottom: 7,
-                          opacity: isOtherTeam ? 0.45 : 1,
-                        }}
-                        onPress={() => {
-                          if (isOtherTeam) {
-                            showAppToast('Already selected as Team 1 🚫', '🚫', 'warning');
-                            return;
-                          }
-                          if (wzTeamStep === 1) {
-                            selectTeamForSlot('teamA', t);
-                          } else {
-                            selectTeamForSlot('teamB', t);
-                          }
-                        }}
-                        activeOpacity={0.8}
-                      >
-                        {/* Left: Team Emblem */}
-                        <View style={{
-                          width: 38,
-                          height: 38,
-                          borderRadius: 19,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginRight: 10,
-                          overflow: 'hidden',
-                          backgroundColor: 'rgba(255, 255, 255, 0.05)',
-                        }}>
-                          <SmartTeamLogo
-                            team={t}
-                            allTeams={allAvailableMatchTeams}
-                            allUsers={usersDb}
-                            style={{ width: '100%', height: '100%' }}
-                            flagStyle={{ fontSize: 24 }}
-                            fallbackFlag={t.flag || '🦁'}
-                          />
-                        </View>
+                      return (
+                        <TouchableOpacity
+                          key={t.id || t.name}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            backgroundColor: isSelected ? 'rgba(34, 197, 94, 0.22)' : 'rgba(8, 28, 48, 0.78)',
+                            borderWidth: 1.5,
+                            borderColor: isSelected ? '#22c55e' : (isOtherTeam ? '#1e293b' : 'rgba(56, 189, 248, 0.16)'),
+                            borderRadius: 12,
+                            paddingVertical: 7,
+                            paddingHorizontal: 12,
+                            marginBottom: 7,
+                            opacity: isOtherTeam ? 0.45 : 1,
+                          }}
+                          onPress={() => {
+                            if (isOtherTeam) {
+                              showAppToast('Already selected as Team 1 🚫', '🚫', 'warning');
+                              return;
+                            }
+                            if (wzTeamStep === 1) {
+                              selectTeamForSlot('teamA', t);
+                            } else {
+                              selectTeamForSlot('teamB', t);
+                            }
+                          }}
+                          activeOpacity={0.8}
+                        >
+                          {/* Left: Team Emblem */}
+                          <View style={{
+                            width: 38,
+                            height: 38,
+                            borderRadius: 19,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: 10,
+                            overflow: 'hidden',
+                            backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                          }}>
+                            <SmartTeamLogo
+                              team={t}
+                              allTeams={allAvailableMatchTeams}
+                              allUsers={usersDb}
+                              style={{ width: '100%', height: '100%' }}
+                              flagStyle={{ fontSize: 24 }}
+                              fallbackFlag={t.flag || '🦁'}
+                            />
+                          </View>
 
-                        {/* Center: Team Name, Captain Name & Performance Stats */}
-                        <View style={{ flex: 1, paddingRight: 8 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: '800' }} numberOfLines={1}>
-                            {t.name}
-                          </Text>
-                          {isOtherTeam ? (
-                            <Text style={{ color: '#eab308', fontSize: 11.8, fontWeight: '700', marginTop: 1.5 }}>
-                              ⭐ Selected as Team 1
+                          {/* Center: Team Name, Captain Name & Performance Stats */}
+                          <View style={{ flex: 1, paddingRight: 8 }}>
+                            <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: '800' }} numberOfLines={1}>
+                              {t.name}
                             </Text>
-                          ) : (
-                            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 5, flexWrap: 'wrap' }}>
-                              <Text style={{ color: '#93c5fd', fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>
-                                👑 {capName}
+                            {isOtherTeam ? (
+                              <Text style={{ color: '#eab308', fontSize: 11.8, fontWeight: '700', marginTop: 1.5 }}>
+                                ⭐ Selected as Team 1
                               </Text>
-                              <Text style={{ color: '#64748b', fontSize: 11 }}>•</Text>
-                              <Text style={{ color: '#86efac', fontSize: 11.5, fontWeight: '700' }}>
-                                🏆 {tWins}W - {tLosses}L <Text style={{ color: '#eab308', fontWeight: '800' }}>({tWinPct}%)</Text>
-                              </Text>
-                            </View>
-                          )}
-                        </View>
+                            ) : (
+                              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 5, flexWrap: 'wrap' }}>
+                                <Text style={{ color: '#93c5fd', fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>
+                                  👑 {capName}
+                                </Text>
+                                <Text style={{ color: '#64748b', fontSize: 11 }}>•</Text>
+                                <Text style={{ color: '#86efac', fontSize: 11.5, fontWeight: '700' }}>
+                                  🏆 {tWins}W - {tLosses}L <Text style={{ color: '#eab308', fontWeight: '800' }}>({tWinPct}%)</Text>
+                                </Text>
+                              </View>
+                            )}
+                          </View>
 
-                        {/* Right: Radio Selection Circle / Green Checkmark */}
-                        <View style={{
-                          width: 22,
-                          height: 22,
-                          borderRadius: 11,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          borderWidth: isSelected ? 0 : 2,
-                          borderColor: isSelected ? 'transparent' : '#64748b',
-                          backgroundColor: isSelected ? '#22c55e' : 'transparent',
-                        }}>
-                          {isSelected && (
-                            <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>✓</Text>
-                          )}
-                        </View>
-                      </TouchableOpacity>
-                    );
-                  })}
-              </ScrollView>
+                          {/* Right: Radio Selection Circle / Green Checkmark */}
+                          <View style={{
+                            width: 22,
+                            height: 22,
+                            borderRadius: 11,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            borderWidth: isSelected ? 0 : 2,
+                            borderColor: isSelected ? 'transparent' : '#64748b',
+                            backgroundColor: isSelected ? '#22c55e' : 'transparent',
+                          }}>
+                            {isSelected && (
+                              <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>✓</Text>
+                            )}
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                </ScrollView>
+              </View>
 
               {/* Bottom Sticky Action Bar: Create Team + NEXT Button */}
               <View style={{
