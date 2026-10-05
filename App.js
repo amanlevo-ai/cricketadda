@@ -30372,75 +30372,7 @@ function CricketAddaMain() {
             </View>
           )}
 
-          {/* Top Header App Bar (For Phases 2-5) */}
-          {wzPhase > 1 && (
-            <View>
-              <View style={[styles.cricHeaderRed, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder, paddingTop: topInset, height: 56 + topInset }]}>
-                <TouchableOpacity
-                  style={styles.cricHeaderIconBtn}
-                  onPress={() => {
-                    if (wzPhase === 2) {
-                      setWzPhase(1);
-                      setWzTeamStep(2);
-                    } else if (wzPhase === 4) {
-                      setWzPhase(2);
-                    } else if (wzPhase === 3) {
-                      setWzPhase(4);
-                    } else if (wzPhase === 5) {
-                      setWzPhase(3);
-                    } else {
-                      confirmCancelMatchSetup();
-                    }
-                  }}
-                >
-                  <Text style={[styles.cricHeaderBackText, { color: currentTheme.primary }]}>←</Text>
-                </TouchableOpacity>
 
-                <Text style={[styles.cricHeaderTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-                  {wzPhase === 2
-                    ? 'Match Details'
-                    : wzPhase === 4
-                    ? 'Playing XI & Roles'
-                    : wzPhase === 3
-                    ? 'Coin Toss 🪙'
-                    : 'Match Confirmation'}
-                </Text>
-
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <TouchableOpacity
-                    style={styles.cricHeaderIconBtn}
-                    onPress={() =>
-                      showThemedAlert(
-                        'Match Setup Guide 📖',
-                        '1. Select Your Team and Opponent Team\n2. Configure overs & venue\n3. Select Playing XI & Roles\n4. Flip coin for Toss\n5. Confirm & Start Match!',
-                        '📖',
-                        'Got It'
-                      )
-                    }
-                  >
-                    <View style={[styles.cricHelpCircle, { borderColor: currentTheme.primary }]}>
-                      <Text style={[styles.cricHeaderHelpText, { color: currentTheme.primary }]}>?</Text>
-                    </View>
-                  </TouchableOpacity>
-
-                  {/* Explicit Close / Cancel Button */}
-                  <TouchableOpacity
-                    style={styles.cricHeaderCloseBtn}
-                    onPress={confirmCancelMatchSetup}
-                    accessibilityLabel="Close match setup"
-                  >
-                    <Text style={styles.cricHeaderCloseText}>✕</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              {/* 6-Step Wizard Stepper (For Phases 2-5) */}
-              <MatchWizardStepper
-                activeStep={activeWizardStep}
-                onStepPress={handleWizardStepPress}
-              />
-            </View>
-          )}
 
           {/* ========================================================================= */}
           {/* PHASE 1: 2-STEP TEAM SELECTION (STEP 1: TEAM 1, STEP 2: TEAM 2) */}
@@ -30670,6 +30602,7 @@ function CricketAddaMain() {
                         <TouchableOpacity
                           key={t.id || t.name}
                           style={{
+                            height: 56,
                             flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'space-between',
@@ -30677,7 +30610,6 @@ function CricketAddaMain() {
                             borderWidth: 1.5,
                             borderColor: isSelected ? '#22c55e' : (isOtherTeam ? '#1e293b' : 'rgba(56, 189, 248, 0.16)'),
                             borderRadius: 12,
-                            paddingVertical: 7,
                             paddingHorizontal: 12,
                             marginBottom: 7,
                             opacity: isOtherTeam ? 0.45 : 1,
@@ -30717,21 +30649,21 @@ function CricketAddaMain() {
                           </View>
 
                           {/* Center: Team Name, Captain Name & Performance Stats */}
-                          <View style={{ flex: 1, paddingRight: 8 }}>
-                            <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: '900', letterSpacing: 0.3 }} numberOfLines={1}>
+                          <View style={{ flex: 1, paddingRight: 8, justifyContent: 'center' }}>
+                            <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', letterSpacing: 0.3 }} numberOfLines={1}>
                               {t.name}
                             </Text>
                             {isOtherTeam ? (
-                              <Text style={{ color: '#eab308', fontSize: 11.8, fontWeight: '700', marginTop: 1.5 }}>
+                              <Text style={{ color: '#eab308', fontSize: 11.5, fontWeight: '700', marginTop: 1 }} numberOfLines={1}>
                                 ⭐ Selected as Team 1
                               </Text>
                             ) : (
-                              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2.5, gap: 5, flexWrap: 'wrap' }}>
-                                <Text style={{ color: '#93c5fd', fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1, gap: 5 }}>
+                                <Text style={{ color: '#93c5fd', fontSize: 11, fontWeight: '700', flexShrink: 1 }} numberOfLines={1}>
                                   👑 {capName}
                                 </Text>
-                                <Text style={{ color: '#64748b', fontSize: 11 }}>•</Text>
-                                <Text style={{ color: '#86efac', fontSize: 11.5, fontWeight: '700' }}>
+                                <Text style={{ color: '#64748b', fontSize: 10 }}>•</Text>
+                                <Text style={{ color: '#86efac', fontSize: 11, fontWeight: '700', flexShrink: 0 }} numberOfLines={1}>
                                   🏆 {tWins}W - {tLosses}L <Text style={{ color: '#eab308', fontWeight: '800' }}>({tWinPct}%)</Text>
                                 </Text>
                               </View>
@@ -30877,799 +30809,464 @@ function CricketAddaMain() {
           )}
 
           {/* ========================================================================= */}
-          {/* PHASES 2 - 6: MATCH SETTINGS, TOSS, PLAYING XI, OPENERS, CONFIRM */}
+          {/* PHASES 2 - 5: MATCH DETAILS, PLAYING XI, TOSS, CONFIRMATION */}
           {/* ========================================================================= */}
           {wzPhase > 1 && (
-            <ScrollView
-              style={{ flex: 1, backgroundColor: currentTheme.bg, paddingHorizontal: 16 }}
-              contentContainerStyle={{ paddingBottom: 24, paddingTop: 10 }}
-              showsVerticalScrollIndicator={false}
+            <ImageBackground
+              source={require('./assets/select-team-bg-full.jpg')}
+              style={{ flex: 1, backgroundColor: '#020b14' }}
+              resizeMode="cover"
             >
-              {/* ========================================================================= */}
-              {/* PHASE 2: MATCH SETTINGS */}
-              {/* ========================================================================= */}
-              {wzPhase === 2 && (
-                <View>
-                  <View style={[styles.phaseHeaderBox, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                    <Text style={[styles.wizardSectionLabel, { color: currentTheme.primary }]}>⚙️ MATCH SETTINGS & FORMAT</Text>
-                    <Text style={[styles.phaseSubDesc, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-                      Select format, total overs, match title, ground venue, and date/time
-                    </Text>
-                  </View>
+              {/* Top Header App Bar (For Phases 2-5) */}
+              <View style={[styles.cricHeaderRed, { backgroundColor: 'rgba(2, 11, 20, 0.90)', borderBottomColor: 'rgba(56, 189, 248, 0.2)', paddingTop: topInset, height: 56 + topInset }]}>
+                <TouchableOpacity
+                  style={styles.cricHeaderIconBtn}
+                  onPress={() => {
+                    if (wzPhase === 2) {
+                      setWzPhase(1);
+                      setWzTeamStep(2);
+                    } else if (wzPhase === 4) {
+                      setWzPhase(2);
+                    } else if (wzPhase === 3) {
+                      setWzPhase(4);
+                    } else if (wzPhase === 5) {
+                      setWzPhase(3);
+                    } else {
+                      confirmCancelMatchSetup();
+                    }
+                  }}
+                >
+                  <Text style={[styles.cricHeaderBackText, { color: '#38bdf8' }]}>←</Text>
+                </TouchableOpacity>
 
-                  <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>Select Match Format:</Text>
-                  <View style={styles.formatPillsRow}>
-                    {[
-                      { label: 'T20 (20 Overs)', overs: 20, format: 'T20' },
-                      { label: 'ODI (50 Overs)', overs: 50, format: 'ODI' },
-                      { label: 'T10 (10 Overs)', overs: 10, format: 'T10' },
-                      { label: '6 Overs (Super Six)', overs: 6, format: 'T6' },
-                      { label: 'Custom Overs', overs: matchDraft.totalOvers || 15, format: 'Custom' },
-                    ].map(f => (
-                      <TouchableOpacity
-                        key={f.label}
-                        style={[
-                          styles.formatPillBtn,
-                          { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                          matchDraft.format === f.format && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary }
-                        ]}
-                        onPress={() => updateDraft({ format: f.format, totalOvers: f.overs, oversPerBowler: Math.ceil(f.overs / 5) })}
-                      >
-                        <Text style={[
-                          styles.formatPillBtnText,
-                          { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
-                          matchDraft.format === f.format && { color: currentTheme.primaryText, fontWeight: '900' }
-                        ]}>
-                          {f.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                <Text style={[styles.cricHeaderTitle, { color: '#ffffff' }]}>
+                  {wzPhase === 2
+                    ? 'Match Details'
+                    : wzPhase === 4
+                    ? 'Playing XI & Roles'
+                    : wzPhase === 3
+                    ? 'Coin Toss 🪙'
+                    : 'Match Confirmation'}
+                </Text>
 
-                  <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', marginTop: 8 }]}>Custom Total Overs ({matchDraft.totalOvers} ov):</Text>
-                  <View style={styles.oversGrid}>
-                    {[5, 6, 8, 10, 12, 15, 20, 25, 30, 50].map(ov => (
-                      <TouchableOpacity
-                        key={ov}
-                        style={[
-                          styles.overNumBtn,
-                          { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                          matchDraft.totalOvers === ov && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary }
-                        ]}
-                        onPress={() => updateDraft({ totalOvers: ov, oversPerBowler: Math.ceil(ov / 5) })}
-                      >
-                        <Text style={[
-                          styles.overNumBtnText,
-                          { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
-                          matchDraft.totalOvers === ov && { color: currentTheme.primaryText, fontWeight: '900' }
-                        ]}>
-                          {ov}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <TouchableOpacity
+                    style={styles.cricHeaderIconBtn}
+                    onPress={() =>
+                      showThemedAlert(
+                        'Match Setup Guide 📖',
+                        '1. Select Your Team and Opponent Team\n2. Configure overs & venue\n3. Select Playing XI & Roles\n4. Flip coin for Toss\n5. Confirm & Start Match!',
+                        '📖',
+                        'Got It'
+                      )
+                    }
+                  >
+                    <View style={[styles.cricHelpCircle, { borderColor: '#38bdf8' }]}>
+                      <Text style={[styles.cricHeaderHelpText, { color: '#38bdf8' }]}>?</Text>
+                    </View>
+                  </TouchableOpacity>
 
-                  <View style={styles.wizardInputBox}>
-                    <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>Match Title:</Text>
-                    <TextInput
-                      style={[styles.wizardTextInput, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder, color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}
-                      value={matchDraft.title}
-                      onChangeText={txt => updateDraft({ title: txt })}
-                      placeholder="e.g. Punjab Warriors vs Delhi Strikers Final"
-                      placeholderTextColor="#64748b"
-                    />
-                  </View>
-
-                  <View style={styles.wizardInputBox}>
-                    <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>Ground / Stadium:</Text>
-                    <TextInput
-                      style={[styles.wizardTextInput, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder, color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}
-                      value={matchDraft.ground}
-                      onChangeText={txt => updateDraft({ ground: txt })}
-                      placeholder="e.g. PCA Stadium, Mohali"
-                      placeholderTextColor="#64748b"
-                    />
-                  </View>
-
-                  <View style={styles.wizardInputBox}>
-                    <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>Match Date & Time:</Text>
-                    <TextInput
-                      style={[styles.wizardTextInput, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder, color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}
-                      value={matchDraft.dateTime}
-                      onChangeText={txt => updateDraft({ dateTime: txt })}
-                      placeholder="e.g. Today, 03:30 PM"
-                      placeholderTextColor="#64748b"
-                    />
-                  </View>
-
-                  <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>Ball Type:</Text>
-                  <View style={styles.ballTypeRow}>
-                    {[
-                      { id: '⚪ White Leather', label: 'White Leather', isRed: false, emoji: '⚪' },
-                      { id: '🔴 Red Leather', label: 'Red Leather', isRed: true, emoji: null },
-                      { id: '🎾 Tennis / Box', label: 'Tennis / Box', isRed: false, emoji: '🎾' },
-                    ].map(bObj => {
-                      const isSel = matchDraft.ballType === bObj.id || matchDraft.ballType === bObj.label;
-                      return (
-                        <TouchableOpacity
-                          key={bObj.id}
-                          style={[
-                            styles.ballTypeBtn,
-                            { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                            isSel && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary }
-                          ]}
-                          onPress={() => updateDraft({ ballType: bObj.id })}
-                        >
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                            {bObj.isRed ? (
-                              <RealisticCricketLeatherBall size={13} />
-                            ) : (
-                              <Text style={{ fontSize: 12 }}>{bObj.emoji}</Text>
-                            )}
-                            <Text style={[
-                              styles.ballTypeBtnText,
-                              { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
-                              isSel && { color: currentTheme.primaryText, fontWeight: '900' }
-                            ]}>
-                              {bObj.label}
-                            </Text>
-                          </View>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
+                  {/* Explicit Close / Cancel Button */}
+                  <TouchableOpacity
+                    style={styles.cricHeaderCloseBtn}
+                    onPress={confirmCancelMatchSetup}
+                    accessibilityLabel="Close match setup"
+                  >
+                    <Text style={styles.cricHeaderCloseText}>✕</Text>
+                  </TouchableOpacity>
                 </View>
-              )}
+              </View>
 
-              {/* ========================================================================= */}
-              {/* PHASE 3: 3D ANIMATED CRICKET COIN TOSS */}
-              {/* ========================================================================= */}
-              {wzPhase === 3 && (
-                <View>
-                  <View style={[styles.phaseHeaderBox, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                    <Text style={[styles.wizardSectionLabel, { color: currentTheme.primary }]}>🪙 TIME TO TOSS</Text>
-                    <Text style={[styles.phaseSubDesc, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-                      Flip the cricket coin or tap a team to select the toss winner & their decision
-                    </Text>
-                  </View>
+              {/* 6-Step Wizard Stepper (For Phases 2-5) */}
+              <MatchWizardStepper
+                activeStep={activeWizardStep}
+                onStepPress={handleWizardStepPress}
+              />
 
-                  {/* Team A vs Team B Toss Lineup Banner (Tap to choose manually) */}
-                  <View style={[styles.tossMatchupCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                    <TouchableOpacity
-                      style={[
-                        styles.tossTeamItem,
-                        { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a', borderColor: currentTheme.cardBorder },
-                        !isCoinFlipping && matchDraft.tossWinner === 'myTeam' && {
-                          borderColor: '#10b981',
-                          backgroundColor: 'rgba(16, 185, 129, 0.18)',
-                          borderWidth: 1.5,
-                          borderRadius: 10,
-                        },
-                        isCoinFlipping && { opacity: 0.7 },
-                      ]}
-                      activeOpacity={isCoinFlipping ? 1 : 0.75}
-                      disabled={isCoinFlipping}
-                      onPress={() => {
-                        setCoinDisplayedSide('myTeam');
-                        updateDraft({ tossWinner: 'myTeam', tossCompleted: true });
-                      }}
-                    >
-                      <View style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                        borderWidth: 1.5,
-                        borderColor: currentTheme.primary,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        overflow: 'hidden',
-                        marginBottom: 6,
-                      }}>
-                        <SmartTeamLogo
-                          team={matchDraft.myTeam}
-                          allTeams={allAvailableMatchTeams}
-                          allUsers={usersDb}
-                          style={{ width: '100%', height: '100%' }}
-                          flagStyle={{ fontSize: 24 }}
-                          fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
-                        />
-                      </View>
-                      <Text style={[styles.tossTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>{matchDraft.myTeam?.name}</Text>
-                      <Text style={[styles.tossCoinSideTag, !isCoinFlipping && matchDraft.tossWinner === 'myTeam' && { color: '#34d399', fontWeight: 'bold' }]}>
-                        {!isCoinFlipping && matchDraft.tossWinner === 'myTeam' ? '🏆 TOSS WINNER' : 'HEAD (SIDE A)'}
+              <ScrollView
+                style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: 16 }}
+                contentContainerStyle={{ paddingBottom: 24, paddingTop: 10 }}
+                showsVerticalScrollIndicator={false}
+              >
+                {/* ========================================================================= */}
+                {/* PHASE 2: MATCH SETTINGS */}
+                {/* ========================================================================= */}
+                {wzPhase === 2 && (
+                  <View>
+                    <View style={[styles.phaseHeaderBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                      <Text style={[styles.wizardSectionLabel, { color: '#38bdf8' }]}>⚙️ MATCH SETTINGS & FORMAT</Text>
+                      <Text style={[styles.phaseSubDesc, { color: '#94a3b8' }]}>
+                        Select format, total overs, match title, ground venue, and date/time
                       </Text>
-                    </TouchableOpacity>
+                    </View>
 
-                    <Text style={[styles.tossVsBadge, { color: currentTheme.primary }]}>VS</Text>
-
-                    <TouchableOpacity
-                      style={[
-                        styles.tossTeamItem,
-                        { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a', borderColor: currentTheme.cardBorder },
-                        !isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' && {
-                          borderColor: '#10b981',
-                          backgroundColor: 'rgba(16, 185, 129, 0.18)',
-                          borderWidth: 1.5,
-                          borderRadius: 10,
-                        },
-                        isCoinFlipping && { opacity: 0.7 },
-                      ]}
-                      activeOpacity={isCoinFlipping ? 1 : 0.75}
-                      disabled={isCoinFlipping}
-                      onPress={() => {
-                        setCoinDisplayedSide('opponentTeam');
-                        updateDraft({ tossWinner: 'opponentTeam', tossCompleted: true });
-                      }}
-                    >
-                      <View style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                        borderWidth: 1.5,
-                        borderColor: '#38bdf8',
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        overflow: 'hidden',
-                        marginBottom: 6,
-                      }}>
-                        <SmartTeamLogo
-                          team={matchDraft.opponentTeam}
-                          allTeams={allAvailableMatchTeams}
-                          allUsers={usersDb}
-                          style={{ width: '100%', height: '100%' }}
-                          flagStyle={{ fontSize: 24 }}
-                          fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
-                        />
-                      </View>
-                      <Text style={[styles.tossTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>{matchDraft.opponentTeam?.name}</Text>
-                      <Text style={[styles.tossCoinSideTag, !isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' && { color: '#34d399', fontWeight: 'bold' }]}>
-                        {!isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' ? '🏆 TOSS WINNER' : 'TAIL (SIDE B)'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* 3D Animated Coin Stage */}
-                  <View style={[styles.coinStageBox, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                    <TouchableOpacity
-                      activeOpacity={isCoinFlipping ? 1 : 0.85}
-                      disabled={isCoinFlipping}
-                      onPress={flipCricketCoin}
-                      accessibilityLabel="Tap coin to flip"
-                    >
-                      <Animated.View
-                        style={[
-                          styles.cricketCoin3D,
-                          {
-                            transform: [
-                              { translateY: coinFlipAnim },
-                              {
-                                rotateY: coinRotateAnim.interpolate({
-                                  inputRange: [0, 1440],
-                                  outputRange: ['0deg', '1440deg'],
-                                }),
-                              },
-                            ],
-                          },
-                        ]}
-                      >
-                        <View style={styles.coinInnerFace}>
-                          {(() => {
-                            const targetTeam = coinDisplayedSide === 'opponentTeam' ? matchDraft.opponentTeam : matchDraft.myTeam;
-                            if (!targetTeam) return <Text style={{ fontSize: 34 }}>🪙</Text>;
-                            return (
-                              <SmartTeamLogo
-                                team={targetTeam}
-                                allTeams={allAvailableMatchTeams}
-                                allUsers={usersDb}
-                                style={{ width: '100%', height: '100%' }}
-                                flagStyle={{ fontSize: 40 }}
-                                fallbackFlag={targetTeam.flag || '🪙'}
-                              />
-                            );
-                          })()}
-                        </View>
-                      </Animated.View>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.flipCoinBtn, { backgroundColor: currentTheme.primary }, isCoinFlipping && { opacity: 0.6 }]}
-                      disabled={isCoinFlipping}
-                      onPress={flipCricketCoin}
-                    >
-                      <Text style={[styles.flipCoinBtnText, { color: currentTheme.primaryText }]}>
-                        {isCoinFlipping ? '🪙 Coin is in the Air...' : matchDraft.tossCompleted ? '🔄 Flip Again' : '🪙 Flip the Coin'}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Toss Result & Decision */}
-                  {!isCoinFlipping && matchDraft.tossCompleted && (
-                    <View style={[styles.tossResultCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                      <Text style={styles.tossResultTitle}>🎉 TOSS RESULT:</Text>
-                      <Text style={styles.tossWinnerBanner}>
-                        🏆 {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} WON THE TOSS!
-                      </Text>
-                      <Text style={[styles.tossDecisionPrompt, { color: currentTheme.isLight ? '#334155' : '#94a3b8' }]}>
-                        Select toss decision for {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name}:
-                      </Text>
-
-                      <View style={styles.tossDecisionRow}>
+                    <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Select Match Format:</Text>
+                    <View style={styles.formatPillsRow}>
+                      {[
+                        { label: 'T20 (20 Overs)', overs: 20, format: 'T20' },
+                        { label: 'ODI (50 Overs)', overs: 50, format: 'ODI' },
+                        { label: 'T10 (10 Overs)', overs: 10, format: 'T10' },
+                        { label: '6 Overs (Super Six)', overs: 6, format: 'T6' },
+                        { label: 'Custom Overs', overs: matchDraft.totalOvers || 15, format: 'Custom' },
+                      ].map(f => (
                         <TouchableOpacity
+                          key={f.label}
                           style={[
-                            styles.tossDecBtn,
-                            { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a', borderColor: currentTheme.cardBorder },
-                            matchDraft.tossDecision === 'bat' && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary }
+                            styles.formatPillBtn,
+                            { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                            matchDraft.format === f.format && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
                           ]}
-                          onPress={() => selectTossDecision('bat')}
+                          onPress={() => updateDraft({ format: f.format, totalOvers: f.overs, oversPerBowler: Math.ceil(f.overs / 5) })}
                         >
                           <Text style={[
-                            styles.tossDecBtnText,
-                            { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
-                            matchDraft.tossDecision === 'bat' && { color: currentTheme.primaryText, fontWeight: '900' }
+                            styles.formatPillBtnText,
+                            { color: '#94a3b8' },
+                            matchDraft.format === f.format && { color: '#000000', fontWeight: '900' }
                           ]}>
-                            🏏 ELECTED TO BAT FIRST
+                            {f.label}
                           </Text>
                         </TouchableOpacity>
+                      ))}
+                    </View>
 
+                    <Text style={[styles.inputFieldLabel, { color: '#cbd5e1', marginTop: 8 }]}>Custom Total Overs ({matchDraft.totalOvers} ov):</Text>
+                    <View style={styles.oversGrid}>
+                      {[5, 6, 8, 10, 12, 15, 20, 25, 30, 50].map(ov => (
                         <TouchableOpacity
+                          key={ov}
                           style={[
-                            styles.tossDecBtn,
-                            { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a', borderColor: currentTheme.cardBorder },
-                            matchDraft.tossDecision === 'bowl' && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary }
+                            styles.overNumBtn,
+                            { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                            matchDraft.totalOvers === ov && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
                           ]}
-                          onPress={() => selectTossDecision('bowl')}
+                          onPress={() => updateDraft({ totalOvers: ov, oversPerBowler: Math.ceil(ov / 5) })}
                         >
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                            <RealisticCricketLeatherBall size={13} />
-                            <Text style={[
-                              styles.tossDecBtnText,
-                              { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
-                              matchDraft.tossDecision === 'bowl' && { color: currentTheme.primaryText, fontWeight: '900' }
-                            ]}>
-                              ELECTED TO BOWL FIRST
-                            </Text>
-                          </View>
+                          <Text style={[
+                            styles.overNumBtnText,
+                            { color: '#94a3b8' },
+                            matchDraft.totalOvers === ov && { color: '#000000', fontWeight: '900' }
+                          ]}>
+                            {ov}
+                          </Text>
                         </TouchableOpacity>
-                      </View>
-                    </View>
-                  )}
-                </View>
-              )}
-
-              {/* ========================================================================= */}
-              {/* PHASE 4: PLAYING XI & CAPTAIN / WK */}
-              {/* ========================================================================= */}
-              {wzPhase === 4 && (
-                <View>
-                  <View style={[styles.phaseHeaderBox, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                    <Text style={[styles.wizardSectionLabel, { color: currentTheme.primary }]}>👥 PLAYING XI & CAPTAIN / WK</Text>
-                    <Text style={[styles.phaseSubDesc, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-                      Select exactly 11 players for both teams, plus Captain (C) & Wicketkeeper (WK)
-                    </Text>
-                  </View>
-
-                  {/* TEAM A PLAYING XI */}
-                    <View style={[styles.teamSetupCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1, paddingRight: 6 }}>
-                        <View style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          overflow: 'hidden',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                          borderWidth: 1,
-                          borderColor: currentTheme.primary,
-                        }}>
-                          <SmartTeamLogo
-                            team={matchDraft.myTeam}
-                            allTeams={allAvailableMatchTeams}
-                            allUsers={usersDb}
-                            style={{ width: '100%', height: '100%' }}
-                            flagStyle={{ fontSize: 13 }}
-                            fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
-                          />
-                        </View>
-                        <Text style={[styles.teamSetupHeader, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', flex: 1 }]} numberOfLines={1}>
-                          {matchDraft.myTeam?.name} (XI: {matchDraft.myPlayingXI?.length || 0}/11)
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={[styles.addGuestMiniBtn, { backgroundColor: currentTheme.primary }]}
-                        onPress={() => {
-                          setGuestTargetTeam('myTeam');
-                          setGuestModalVisible(true);
-                        }}
-                      >
-                        <Text style={[styles.addGuestMiniBtnText, { color: currentTheme.primaryText }]}>+ Guest</Text>
-                      </TouchableOpacity>
+                      ))}
                     </View>
 
-                    <TextInput
-                      style={[styles.wizardTextInput, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a', borderColor: currentTheme.cardBorder, color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginVertical: 6 }]}
-                      value={mySquadSearch}
-                      onChangeText={setMySquadSearch}
-                      placeholder="Search player in squad..."
-                      placeholderTextColor="#64748b"
-                    />
+                    <View style={styles.wizardInputBox}>
+                      <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Match Title:</Text>
+                      <TextInput
+                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff' }]}
+                        value={matchDraft.title}
+                        onChangeText={txt => updateDraft({ title: txt })}
+                        placeholder="e.g. Punjab Warriors vs Delhi Strikers Final"
+                        placeholderTextColor="#64748b"
+                      />
+                    </View>
 
-                    <View style={styles.squadSelectGrid}>
-                      {(matchDraft.myTeam?.squad || [])
-                        .concat((matchDraft.myPlayingXI || []).filter(p => p.isGuest && !(matchDraft.myTeam?.squad || []).some(s => s.name === p.name)))
-                        .filter(p => p.name.toLowerCase().includes(mySquadSearch.toLowerCase()))
-                        .map(p => {
-                          const isSelected = (matchDraft.myPlayingXI || []).some(xi => xi.name === p.name);
-                          return (
-                            <TouchableOpacity
-                              key={p.name}
-                              style={[
-                                styles.playerSelectChip,
-                                { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a', borderColor: currentTheme.cardBorder },
-                                isSelected && styles.playerSelectChipActive
-                              ]}
-                              onPress={() => togglePlayerInPlayingXI('myPlayingXI', p)}
-                            >
-                              <View style={styles.playerChipRoleTag}>
-                                <Text style={styles.playerChipRoleText}>{p.role}</Text>
-                              </View>
-                              <Text style={[styles.playerChipName, { color: currentTheme.isLight ? '#0f172a' : '#cbd5e1' }, isSelected && styles.playerChipNameActive]}>
-                                {p.name}
+                    <View style={styles.wizardInputBox}>
+                      <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Ground / Stadium:</Text>
+                      <TextInput
+                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff' }]}
+                        value={matchDraft.ground}
+                        onChangeText={txt => updateDraft({ ground: txt })}
+                        placeholder="e.g. PCA Stadium, Mohali"
+                        placeholderTextColor="#64748b"
+                      />
+                    </View>
+
+                    <View style={styles.wizardInputBox}>
+                      <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Match Date & Time:</Text>
+                      <TextInput
+                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff' }]}
+                        value={matchDraft.dateTime}
+                        onChangeText={txt => updateDraft({ dateTime: txt })}
+                        placeholder="e.g. Today, 03:30 PM"
+                        placeholderTextColor="#64748b"
+                      />
+                    </View>
+
+                    <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Ball Type:</Text>
+                    <View style={styles.ballTypeRow}>
+                      {[
+                        { id: '⚪ White Leather', label: 'White Leather', isRed: false, emoji: '⚪' },
+                        { id: '🔴 Red Leather', label: 'Red Leather', isRed: true, emoji: null },
+                        { id: '🎾 Tennis / Box', label: 'Tennis / Box', isRed: false, emoji: '🎾' },
+                      ].map(bObj => {
+                        const isSel = matchDraft.ballType === bObj.id || matchDraft.ballType === bObj.label;
+                        return (
+                          <TouchableOpacity
+                            key={bObj.id}
+                            style={[
+                              styles.ballTypeBtn,
+                              { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                              isSel && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
+                            ]}
+                            onPress={() => updateDraft({ ballType: bObj.id })}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                              {bObj.isRed ? (
+                                <RealisticCricketLeatherBall size={13} />
+                              ) : (
+                                <Text style={{ fontSize: 12 }}>{bObj.emoji}</Text>
+                              )}
+                              <Text style={[
+                                styles.ballTypeBtnText,
+                                { color: '#94a3b8' },
+                                isSel && { color: '#000000', fontWeight: '900' }
+                              ]}>
+                                {bObj.label}
                               </Text>
-                              <Text style={{ color: isSelected ? '#10b981' : '#64748b', fontSize: 13, fontWeight: 'bold' }}>
-                                {isSelected ? '✓' : '+'}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                    </View>
-
-                    {/* Separate Captain & WK Rows for Team A */}
-                    <View style={{ marginTop: 8 }}>
-                      {/* Captain Row */}
-                      <View style={[styles.rolePickerSectionRow, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder }]}>
-                        <View style={styles.rolePickerHeaderRow}>
-                          <Text style={[styles.roleSectionTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>👑 Select Captain (C):</Text>
-                          <Text style={styles.roleActiveValueTag}>{matchDraft.myCaptain || 'Select Captain'}</Text>
-                        </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
-                          {(matchDraft.myPlayingXI || []).map(p => {
-                            const isCap = matchDraft.myCaptain === p.name;
-                            return (
-                              <TouchableOpacity
-                                key={`cap_a_${p.name}`}
-                                style={[
-                                  styles.rolePickPillFull,
-                                  { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                                  isCap && styles.rolePickPillFullActive
-                                ]}
-                                onPress={() => updateDraft({ myCaptain: p.name })}
-                              >
-                                <Text style={[styles.rolePickPillFullText, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }, isCap && styles.rolePickPillFullTextActive]}>
-                                  {isCap ? '👑 ' : ''}{p.name} ({p.role})
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </ScrollView>
-                      </View>
-
-                      {/* Wicketkeeper Row */}
-                      <View style={[styles.rolePickerSectionRow, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder, marginTop: 8 }]}>
-                        <View style={styles.rolePickerHeaderRow}>
-                          <Text style={[styles.roleSectionTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>🧤 Select Wicketkeeper (WK):</Text>
-                          <Text style={[styles.roleActiveValueTag, { color: '#c084fc' }]}>{matchDraft.myWicketkeeper || 'Select Keeper'}</Text>
-                        </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
-                          {(matchDraft.myPlayingXI || []).map(p => {
-                            const isWk = matchDraft.myWicketkeeper === p.name;
-                            return (
-                              <TouchableOpacity
-                                key={`wk_a_${p.name}`}
-                                style={[
-                                  styles.rolePickPillFull,
-                                  { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                                  isWk && styles.rolePickPillFullWkActive
-                                ]}
-                                onPress={() => updateDraft({ myWicketkeeper: p.name })}
-                              >
-                                <Text style={[styles.rolePickPillFullText, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }, isWk && styles.rolePickPillFullTextActive]}>
-                                  {isWk ? '🧤 ' : ''}{p.name} ({p.role})
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </ScrollView>
-                      </View>
+                            </View>
+                          </TouchableOpacity>
+                        );
+                      })}
                     </View>
                   </View>
+                )}
 
-                  {/* TEAM B PLAYING XI */}
-                  <View style={[styles.teamSetupCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder, marginTop: 12 }]}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1, paddingRight: 6 }}>
-                        <View style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 12,
-                          overflow: 'hidden',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                          borderWidth: 1,
-                          borderColor: '#38bdf8',
-                        }}>
-                          <SmartTeamLogo
-                            team={matchDraft.opponentTeam}
-                            allTeams={allAvailableMatchTeams}
-                            allUsers={usersDb}
-                            style={{ width: '100%', height: '100%' }}
-                            flagStyle={{ fontSize: 13 }}
-                            fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
-                          />
-                        </View>
-                        <Text style={[styles.teamSetupHeader, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', flex: 1 }]} numberOfLines={1}>
-                          {matchDraft.opponentTeam?.name} (XI: {matchDraft.opponentPlayingXI?.length || 0}/11)
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        style={[styles.addGuestMiniBtn, { backgroundColor: currentTheme.primary }]}
-                        onPress={() => {
-                          setGuestTargetTeam('opponentTeam');
-                          setGuestModalVisible(true);
-                        }}
-                      >
-                        <Text style={[styles.addGuestMiniBtnText, { color: currentTheme.primaryText }]}>+ Guest</Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    <TextInput
-                      style={[styles.wizardTextInput, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a', borderColor: currentTheme.cardBorder, color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginVertical: 6 }]}
-                      value={oppSquadSearch}
-                      onChangeText={setOppSquadSearch}
-                      placeholder="Search player in squad..."
-                      placeholderTextColor="#64748b"
-                    />
-
-                    <View style={styles.squadSelectGrid}>
-                      {(matchDraft.opponentTeam?.squad || [])
-                        .concat((matchDraft.opponentPlayingXI || []).filter(p => p.isGuest && !(matchDraft.opponentTeam?.squad || []).some(s => s.name === p.name)))
-                        .filter(p => p.name.toLowerCase().includes(oppSquadSearch.toLowerCase()))
-                        .map(p => {
-                          const isSelected = (matchDraft.opponentPlayingXI || []).some(xi => xi.name === p.name);
-                          return (
-                            <TouchableOpacity
-                              key={p.name}
-                              style={[
-                                styles.playerSelectChip,
-                                { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a', borderColor: currentTheme.cardBorder },
-                                isSelected && styles.playerSelectChipActive
-                              ]}
-                              onPress={() => togglePlayerInPlayingXI('opponentPlayingXI', p)}
-                            >
-                              <View style={styles.playerChipRoleTag}>
-                                <Text style={styles.playerChipRoleText}>{p.role}</Text>
-                              </View>
-                              <Text style={[styles.playerChipName, { color: currentTheme.isLight ? '#0f172a' : '#cbd5e1' }, isSelected && styles.playerChipNameActive]}>
-                                {p.name}
-                              </Text>
-                              <Text style={{ color: isSelected ? '#10b981' : '#64748b', fontSize: 13, fontWeight: 'bold' }}>
-                                {isSelected ? '✓' : '+'}
-                              </Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                    </View>
-
-                    {/* Separate Captain & WK Rows for Team B */}
-                    <View style={{ marginTop: 8 }}>
-                      {/* Captain Row */}
-                      <View style={[styles.rolePickerSectionRow, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder }]}>
-                        <View style={styles.rolePickerHeaderRow}>
-                          <Text style={[styles.roleSectionTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>👑 Select Captain (C):</Text>
-                          <Text style={styles.roleActiveValueTag}>{matchDraft.oppCaptain || 'Select Captain'}</Text>
-                        </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
-                          {(matchDraft.opponentPlayingXI || []).map(p => {
-                            const isCap = matchDraft.oppCaptain === p.name;
-                            return (
-                              <TouchableOpacity
-                                key={`cap_b_${p.name}`}
-                                style={[
-                                  styles.rolePickPillFull,
-                                  { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                                  isCap && styles.rolePickPillFullActive
-                                ]}
-                                onPress={() => updateDraft({ oppCaptain: p.name })}
-                              >
-                                <Text style={[styles.rolePickPillFullText, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }, isCap && styles.rolePickPillFullTextActive]}>
-                                  {isCap ? '👑 ' : ''}{p.name} ({p.role})
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </ScrollView>
-                      </View>
-
-                      {/* Wicketkeeper Row */}
-                      <View style={[styles.rolePickerSectionRow, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder, marginTop: 8 }]}>
-                        <View style={styles.rolePickerHeaderRow}>
-                          <Text style={[styles.roleSectionTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>🧤 Select Wicketkeeper (WK):</Text>
-                          <Text style={[styles.roleActiveValueTag, { color: '#c084fc' }]}>{matchDraft.oppWicketkeeper || 'Select Keeper'}</Text>
-                        </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
-                          {(matchDraft.opponentPlayingXI || []).map(p => {
-                            const isWk = matchDraft.oppWicketkeeper === p.name;
-                            return (
-                              <TouchableOpacity
-                                key={`wk_b_${p.name}`}
-                                style={[
-                                  styles.rolePickPillFull,
-                                  { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                                  isWk && styles.rolePickPillFullWkActive
-                                ]}
-                                onPress={() => updateDraft({ oppWicketkeeper: p.name })}
-                              >
-                                <Text style={[styles.rolePickPillFullText, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }, isWk && styles.rolePickPillFullTextActive]}>
-                                  {isWk ? '🧤 ' : ''}{p.name} ({p.role})
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </ScrollView>
-                      </View>
-                    </View>
-                  </View>
-                </View>
-              )}
-
-              {/* ========================================================================= */}
-              {/* PHASE 5: FINAL CONFIRMATION CARD & START MATCH */}
-              {/* ========================================================================= */}
-              {wzPhase === 5 && (
-                <View style={{ paddingBottom: 16 }}>
-                  <View style={[styles.phaseHeaderBox, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                    <Text style={[styles.wizardSectionLabel, { color: currentTheme.primary }]}>📋 MATCH CONFIRMATION</Text>
-                    <Text style={[styles.phaseSubDesc, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-                      Review complete match parameters before beginning official live scoring
-                    </Text>
-                  </View>
-
-                  {/* Pre-Match Summary Card */}
-                  <View style={[styles.confirmMasterCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                    <View style={styles.confirmBrandRow}>
-                      <Text style={[styles.confirmBrandTitle, { color: currentTheme.primary }]}>CRICKETADDA PRO</Text>
-                      <View style={[styles.confirmReadyBadge, { backgroundColor: currentTheme.primary }]}>
-                        <Text style={[styles.confirmReadyBadgeText, { color: currentTheme.primaryText }]}>READY TO START</Text>
-                      </View>
-                    </View>
-
-                    {/* Matchup Header with Team Pictures & Names */}
-                    <View style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-around',
-                      marginVertical: 12,
-                      paddingHorizontal: 8,
-                    }}>
-                      {/* Team A Badge & Name */}
-                      <View style={{ alignItems: 'center', flex: 1, maxWidth: 130 }}>
-                        <View style={{
-                          width: 56,
-                          height: 56,
-                          borderRadius: 28,
-                          backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                          borderWidth: 2,
-                          borderColor: currentTheme.primary,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          overflow: 'hidden',
-                          marginBottom: 6,
-                          shadowColor: currentTheme.primary,
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.35,
-                          shadowRadius: 4,
-                          elevation: 3,
-                        }}>
-                          <SmartTeamLogo
-                            team={matchDraft.myTeam}
-                            allTeams={allAvailableMatchTeams}
-                            allUsers={usersDb}
-                            style={{ width: '100%', height: '100%' }}
-                            flagStyle={{ fontSize: 28 }}
-                            fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
-                          />
-                        </View>
-                        <Text
-                          style={[styles.confirmTeamBig, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', textAlign: 'center' }]}
-                          numberOfLines={2}
-                        >
-                          {matchDraft.myTeam?.name}
-                        </Text>
-                      </View>
-
-                      {/* VS Center Badge */}
-                      <View style={{
-                        width: 34,
-                        height: 34,
-                        borderRadius: 17,
-                        backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a',
-                        borderWidth: 1.5,
-                        borderColor: currentTheme.primary,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        marginHorizontal: 8,
-                        shadowColor: '#000',
-                        shadowOffset: { width: 0, height: 1 },
-                        shadowOpacity: 0.2,
-                        shadowRadius: 3,
-                        elevation: 3,
-                      }}>
-                        <Text style={{ color: currentTheme.primary, fontSize: 12, fontWeight: '900' }}>VS</Text>
-                      </View>
-
-                      {/* Team B Badge & Name */}
-                      <View style={{ alignItems: 'center', flex: 1, maxWidth: 130 }}>
-                        <View style={{
-                          width: 56,
-                          height: 56,
-                          borderRadius: 28,
-                          backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                          borderWidth: 2,
-                          borderColor: '#38bdf8',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          overflow: 'hidden',
-                          marginBottom: 6,
-                          shadowColor: '#38bdf8',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.35,
-                          shadowRadius: 4,
-                          elevation: 3,
-                        }}>
-                          <SmartTeamLogo
-                            team={matchDraft.opponentTeam}
-                            allTeams={allAvailableMatchTeams}
-                            allUsers={usersDb}
-                            style={{ width: '100%', height: '100%' }}
-                            flagStyle={{ fontSize: 28 }}
-                            fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
-                          />
-                        </View>
-                        <Text
-                          style={[styles.confirmTeamBig, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', textAlign: 'center' }]}
-                          numberOfLines={2}
-                        >
-                          {matchDraft.opponentTeam?.name}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Format & Venue Pill */}
-                    <View style={[styles.confirmFormatPill, { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a', borderColor: currentTheme.cardBorder }]}>
-                      <Text style={[styles.confirmFormatPillText, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>
-                        {matchDraft.format} • {matchDraft.totalOvers} Overs • 📍 {matchDraft.ground}
+                {/* ========================================================================= */}
+                {/* PHASE 3: 3D ANIMATED CRICKET COIN TOSS */}
+                {/* ========================================================================= */}
+                {wzPhase === 3 && (
+                  <View>
+                    <View style={[styles.phaseHeaderBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                      <Text style={[styles.wizardSectionLabel, { color: '#38bdf8' }]}>🪙 TIME TO TOSS</Text>
+                      <Text style={[styles.phaseSubDesc, { color: '#94a3b8' }]}>
+                        Flip the cricket coin or tap a team to select the toss winner & their decision
                       </Text>
                     </View>
 
-                    {/* 2-Column Dedicated Team Captain & Keeper Cards */}
-                    <View style={styles.confirmTeamsBlock}>
-                      {/* Team A Box */}
-                      <View style={[styles.confirmTeamColCard, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.cardBorder, paddingBottom: 6 }}>
+                    {/* Team A vs Team B Toss Lineup Banner (Tap to choose manually) */}
+                    <View style={[styles.tossMatchupCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                      <TouchableOpacity
+                        style={[
+                          styles.tossTeamItem,
+                          { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                          !isCoinFlipping && matchDraft.tossWinner === 'myTeam' && {
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.22)',
+                            borderWidth: 1.5,
+                            borderRadius: 10,
+                          },
+                          isCoinFlipping && { opacity: 0.7 },
+                        ]}
+                        activeOpacity={isCoinFlipping ? 1 : 0.75}
+                        disabled={isCoinFlipping}
+                        onPress={() => {
+                          setCoinDisplayedSide('myTeam');
+                          updateDraft({ tossWinner: 'myTeam', tossCompleted: true });
+                        }}
+                      >
+                        <View style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
+                          backgroundColor: '#1e293b',
+                          borderWidth: 1.5,
+                          borderColor: '#38bdf8',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          overflow: 'hidden',
+                          marginBottom: 6,
+                        }}>
+                          <SmartTeamLogo
+                            team={matchDraft.myTeam}
+                            allTeams={allAvailableMatchTeams}
+                            allUsers={usersDb}
+                            style={{ width: '100%', height: '100%' }}
+                            flagStyle={{ fontSize: 24 }}
+                            fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
+                          />
+                        </View>
+                        <Text style={[styles.tossTeamName, { color: '#ffffff' }]}>{matchDraft.myTeam?.name}</Text>
+                        <Text style={[styles.tossCoinSideTag, !isCoinFlipping && matchDraft.tossWinner === 'myTeam' && { color: '#34d399', fontWeight: 'bold' }]}>
+                          {!isCoinFlipping && matchDraft.tossWinner === 'myTeam' ? '🏆 TOSS WINNER' : 'HEAD (SIDE A)'}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <Text style={[styles.tossVsBadge, { color: '#38bdf8' }]}>VS</Text>
+
+                      <TouchableOpacity
+                        style={[
+                          styles.tossTeamItem,
+                          { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                          !isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' && {
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.22)',
+                            borderWidth: 1.5,
+                            borderRadius: 10,
+                          },
+                          isCoinFlipping && { opacity: 0.7 },
+                        ]}
+                        activeOpacity={isCoinFlipping ? 1 : 0.75}
+                        disabled={isCoinFlipping}
+                        onPress={() => {
+                          setCoinDisplayedSide('opponentTeam');
+                          updateDraft({ tossWinner: 'opponentTeam', tossCompleted: true });
+                        }}
+                      >
+                        <View style={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: 22,
+                          backgroundColor: '#1e293b',
+                          borderWidth: 1.5,
+                          borderColor: '#38bdf8',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          overflow: 'hidden',
+                          marginBottom: 6,
+                        }}>
+                          <SmartTeamLogo
+                            team={matchDraft.opponentTeam}
+                            allTeams={allAvailableMatchTeams}
+                            allUsers={usersDb}
+                            style={{ width: '100%', height: '100%' }}
+                            flagStyle={{ fontSize: 24 }}
+                            fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
+                          />
+                        </View>
+                        <Text style={[styles.tossTeamName, { color: '#ffffff' }]}>{matchDraft.opponentTeam?.name}</Text>
+                        <Text style={[styles.tossCoinSideTag, !isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' && { color: '#34d399', fontWeight: 'bold' }]}>
+                          {!isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' ? '🏆 TOSS WINNER' : 'TAIL (SIDE B)'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* 3D Animated Coin Stage */}
+                    <View style={[styles.coinStageBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                      <TouchableOpacity
+                        activeOpacity={isCoinFlipping ? 1 : 0.85}
+                        disabled={isCoinFlipping}
+                        onPress={flipCricketCoin}
+                        accessibilityLabel="Tap coin to flip"
+                      >
+                        <Animated.View
+                          style={[
+                            styles.cricketCoin3D,
+                            {
+                              transform: [
+                                { translateY: coinFlipAnim },
+                                {
+                                  rotateY: coinRotateAnim.interpolate({
+                                    inputRange: [0, 1440],
+                                    outputRange: ['0deg', '1440deg'],
+                                  }),
+                                },
+                              ],
+                            },
+                          ]}
+                        >
+                          <View style={styles.coinInnerFace}>
+                            {(() => {
+                              const targetTeam = coinDisplayedSide === 'opponentTeam' ? matchDraft.opponentTeam : matchDraft.myTeam;
+                              if (!targetTeam) return <Text style={{ fontSize: 34 }}>🪙</Text>;
+                              return (
+                                <SmartTeamLogo
+                                  team={targetTeam}
+                                  allTeams={allAvailableMatchTeams}
+                                  allUsers={usersDb}
+                                  style={{ width: '100%', height: '100%' }}
+                                  flagStyle={{ fontSize: 40 }}
+                                  fallbackFlag={targetTeam.flag || '🪙'}
+                                />
+                              );
+                            })()}
+                          </View>
+                        </Animated.View>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.flipCoinBtn, { backgroundColor: '#38bdf8' }, isCoinFlipping && { opacity: 0.6 }]}
+                        disabled={isCoinFlipping}
+                        onPress={flipCricketCoin}
+                      >
+                        <Text style={[styles.flipCoinBtnText, { color: '#000000', fontWeight: '900' }]}>
+                          {isCoinFlipping ? '🪙 Coin is in the Air...' : matchDraft.tossCompleted ? '🔄 Flip Again' : '🪙 Flip the Coin'}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Toss Result & Decision */}
+                    {!isCoinFlipping && matchDraft.tossCompleted && (
+                      <View style={[styles.tossResultCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                        <Text style={styles.tossResultTitle}>🎉 TOSS RESULT:</Text>
+                        <Text style={styles.tossWinnerBanner}>
+                          🏆 {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} WON THE TOSS!
+                        </Text>
+                        <Text style={[styles.tossDecisionPrompt, { color: '#cbd5e1' }]}>
+                          Select toss decision for {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name}:
+                        </Text>
+
+                        <View style={styles.tossDecisionRow}>
+                          <TouchableOpacity
+                            style={[
+                              styles.tossDecBtn,
+                              { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                              matchDraft.tossDecision === 'bat' && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
+                            ]}
+                            onPress={() => selectTossDecision('bat')}
+                          >
+                            <Text style={[
+                              styles.tossDecBtnText,
+                              { color: '#94a3b8' },
+                              matchDraft.tossDecision === 'bat' && { color: '#000000', fontWeight: '900' }
+                            ]}>
+                              🏏 ELECTED TO BAT FIRST
+                            </Text>
+                          </TouchableOpacity>
+
+                          <TouchableOpacity
+                            style={[
+                              styles.tossDecBtn,
+                              { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                              matchDraft.tossDecision === 'bowl' && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
+                            ]}
+                            onPress={() => selectTossDecision('bowl')}
+                          >
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                              <RealisticCricketLeatherBall size={13} />
+                              <Text style={[
+                                styles.tossDecBtnText,
+                                { color: '#94a3b8' },
+                                matchDraft.tossDecision === 'bowl' && { color: '#000000', fontWeight: '900' }
+                              ]}>
+                                ELECTED TO BOWL FIRST
+                              </Text>
+                            </View>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* ========================================================================= */}
+                {/* PHASE 4: PLAYING XI & CAPTAIN / WK */}
+                {/* ========================================================================= */}
+                {wzPhase === 4 && (
+                  <View>
+                    <View style={[styles.phaseHeaderBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                      <Text style={[styles.wizardSectionLabel, { color: '#38bdf8' }]}>👥 PLAYING XI & CAPTAIN / WK</Text>
+                      <Text style={[styles.phaseSubDesc, { color: '#94a3b8' }]}>
+                        Select exactly 11 players for both teams, plus Captain (C) & Wicketkeeper (WK)
+                      </Text>
+                    </View>
+
+                    {/* TEAM A PLAYING XI */}
+                    <View style={[styles.teamSetupCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1, paddingRight: 6 }}>
                           <View style={{
                             width: 24,
                             height: 24,
                             borderRadius: 12,
-                            backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                            borderWidth: 1.2,
-                            borderColor: currentTheme.primary,
+                            overflow: 'hidden',
                             justifyContent: 'center',
                             alignItems: 'center',
-                            overflow: 'hidden',
+                            backgroundColor: '#1e293b',
+                            borderWidth: 1,
+                            borderColor: '#38bdf8',
                           }}>
                             <SmartTeamLogo
                               team={matchDraft.myTeam}
@@ -31680,33 +31277,133 @@ function CricketAddaMain() {
                               fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
                             />
                           </View>
-                          <Text style={[styles.confirmColTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]} numberOfLines={1}>
-                            {matchDraft.myTeam?.name}
+                          <Text style={[styles.teamSetupHeader, { color: '#ffffff', flex: 1 }]} numberOfLines={1}>
+                            {matchDraft.myTeam?.name} (XI: {matchDraft.myPlayingXI?.length || 0}/11)
                           </Text>
                         </View>
-                        <View style={styles.confirmRoleItem}>
-                          <Text style={[styles.confirmRoleKey, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>👑 Captain (C):</Text>
-                          <Text style={[styles.confirmRoleVal, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]} numberOfLines={1}>{matchDraft.myCaptain || 'Not set'}</Text>
-                        </View>
-                        <View style={styles.confirmRoleItem}>
-                          <Text style={[styles.confirmRoleKey, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>🧤 Keeper (WK):</Text>
-                          <Text style={[styles.confirmRoleVal, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]} numberOfLines={1}>{matchDraft.myWicketkeeper || 'Not set'}</Text>
-                        </View>
+                        <TouchableOpacity
+                          style={[styles.addGuestMiniBtn, { backgroundColor: '#38bdf8' }]}
+                          onPress={() => {
+                            setGuestTargetTeam('myTeam');
+                            setGuestModalVisible(true);
+                          }}
+                        >
+                          <Text style={[styles.addGuestMiniBtnText, { color: '#000000', fontWeight: '800' }]}>+ Guest</Text>
+                        </TouchableOpacity>
                       </View>
 
-                      {/* Team B Box */}
-                      <View style={[styles.confirmTeamColCard, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder }]}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.cardBorder, paddingBottom: 6 }}>
+                      <TextInput
+                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff', marginVertical: 6 }]}
+                        value={mySquadSearch}
+                        onChangeText={setMySquadSearch}
+                        placeholder="Search player in squad..."
+                        placeholderTextColor="#64748b"
+                      />
+
+                      <View style={styles.squadSelectGrid}>
+                        {(matchDraft.myTeam?.squad || [])
+                          .concat((matchDraft.myPlayingXI || []).filter(p => p.isGuest && !(matchDraft.myTeam?.squad || []).some(s => s.name === p.name)))
+                          .filter(p => p.name.toLowerCase().includes(mySquadSearch.toLowerCase()))
+                          .map(p => {
+                            const isSelected = (matchDraft.myPlayingXI || []).some(xi => xi.name === p.name);
+                            return (
+                              <TouchableOpacity
+                                key={p.name}
+                                style={[
+                                  styles.playerSelectChip,
+                                  { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                                  isSelected && styles.playerSelectChipActive
+                                ]}
+                                onPress={() => togglePlayerInPlayingXI('myPlayingXI', p)}
+                              >
+                                <View style={styles.playerChipRoleTag}>
+                                  <Text style={styles.playerChipRoleText}>{p.role}</Text>
+                                </View>
+                                <Text style={[styles.playerChipName, { color: '#cbd5e1' }, isSelected && styles.playerChipNameActive]}>
+                                  {p.name}
+                                </Text>
+                                <Text style={{ color: isSelected ? '#10b981' : '#64748b', fontSize: 13, fontWeight: 'bold' }}>
+                                  {isSelected ? '✓' : '+'}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                      </View>
+
+                      {/* Separate Captain & WK Rows for Team A */}
+                      <View style={{ marginTop: 8 }}>
+                        {/* Captain Row */}
+                        <View style={[styles.rolePickerSectionRow, { backgroundColor: 'rgba(4, 16, 28, 0.75)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                          <View style={styles.rolePickerHeaderRow}>
+                            <Text style={[styles.roleSectionTitle, { color: '#ffffff' }]}>👑 Select Captain (C):</Text>
+                            <Text style={styles.roleActiveValueTag}>{matchDraft.myCaptain || 'Select Captain'}</Text>
+                          </View>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
+                            {(matchDraft.myPlayingXI || []).map(p => {
+                              const isCap = matchDraft.myCaptain === p.name;
+                              return (
+                                <TouchableOpacity
+                                  key={`cap_a_${p.name}`}
+                                  style={[
+                                    styles.rolePickPillFull,
+                                    { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                                    isCap && styles.rolePickPillFullActive
+                                  ]}
+                                  onPress={() => updateDraft({ myCaptain: p.name })}
+                                >
+                                  <Text style={[styles.rolePickPillFullText, { color: '#cbd5e1' }, isCap && styles.rolePickPillFullTextActive]}>
+                                    {isCap ? '👑 ' : ''}{p.name} ({p.role})
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+
+                        {/* Wicketkeeper Row */}
+                        <View style={[styles.rolePickerSectionRow, { backgroundColor: 'rgba(4, 16, 28, 0.75)', borderColor: 'rgba(56, 189, 248, 0.18)', marginTop: 8 }]}>
+                          <View style={styles.rolePickerHeaderRow}>
+                            <Text style={[styles.roleSectionTitle, { color: '#ffffff' }]}>🧤 Select Wicketkeeper (WK):</Text>
+                            <Text style={[styles.roleActiveValueTag, { color: '#c084fc' }]}>{matchDraft.myWicketkeeper || 'Select Keeper'}</Text>
+                          </View>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
+                            {(matchDraft.myPlayingXI || []).map(p => {
+                              const isWk = matchDraft.myWicketkeeper === p.name;
+                              return (
+                                <TouchableOpacity
+                                  key={`wk_a_${p.name}`}
+                                  style={[
+                                    styles.rolePickPillFull,
+                                    { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                                    isWk && styles.rolePickPillFullWkActive
+                                  ]}
+                                  onPress={() => updateDraft({ myWicketkeeper: p.name })}
+                                >
+                                  <Text style={[styles.rolePickPillFullText, { color: '#cbd5e1' }, isWk && styles.rolePickPillFullTextActive]}>
+                                    {isWk ? '🧤 ' : ''}{p.name} ({p.role})
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* TEAM B PLAYING XI */}
+                    <View style={[styles.teamSetupCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)', marginTop: 12 }]}>
+                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1, paddingRight: 6 }}>
                           <View style={{
                             width: 24,
                             height: 24,
                             borderRadius: 12,
-                            backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                            borderWidth: 1.2,
-                            borderColor: '#38bdf8',
+                            overflow: 'hidden',
                             justifyContent: 'center',
                             alignItems: 'center',
-                            overflow: 'hidden',
+                            backgroundColor: '#1e293b',
+                            borderWidth: 1,
+                            borderColor: '#38bdf8',
                           }}>
                             <SmartTeamLogo
                               team={matchDraft.opponentTeam}
@@ -31717,107 +31414,420 @@ function CricketAddaMain() {
                               fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
                             />
                           </View>
-                          <Text style={[styles.confirmColTeamName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]} numberOfLines={1}>
-                            {matchDraft.opponentTeam?.name}
+                          <Text style={[styles.teamSetupHeader, { color: '#ffffff', flex: 1 }]} numberOfLines={1}>
+                            {matchDraft.opponentTeam?.name} (XI: {matchDraft.opponentPlayingXI?.length || 0}/11)
                           </Text>
                         </View>
-                        <View style={styles.confirmRoleItem}>
-                          <Text style={[styles.confirmRoleKey, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>👑 Captain (C):</Text>
-                          <Text style={[styles.confirmRoleVal, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]} numberOfLines={1}>{matchDraft.oppCaptain || 'Not set'}</Text>
-                        </View>
-                        <View style={styles.confirmRoleItem}>
-                          <Text style={[styles.confirmRoleKey, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>🧤 Keeper (WK):</Text>
-                          <Text style={[styles.confirmRoleVal, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]} numberOfLines={1}>{matchDraft.oppWicketkeeper || 'Not set'}</Text>
-                        </View>
+                        <TouchableOpacity
+                          style={[styles.addGuestMiniBtn, { backgroundColor: '#38bdf8' }]}
+                          onPress={() => {
+                            setGuestTargetTeam('opponentTeam');
+                            setGuestModalVisible(true);
+                          }}
+                        >
+                          <Text style={[styles.addGuestMiniBtnText, { color: '#000000', fontWeight: '800' }]}>+ Guest</Text>
+                        </TouchableOpacity>
                       </View>
-                    </View>
 
-                    {/* Match Parameters List */}
-                    <View style={[styles.confirmParamSection, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#090d16', borderColor: currentTheme.cardBorder }]}>
-                      <View style={styles.confirmParamRow}>
-                        <Text style={[styles.confirmParamLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>🪙 Toss Result:</Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
-                          <View style={{
-                            width: 18,
-                            height: 18,
-                            borderRadius: 9,
-                            backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                            borderWidth: 1,
-                            borderColor: '#34d399',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            overflow: 'hidden',
-                          }}>
-                            <SmartTeamLogo
-                              team={matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam : matchDraft.opponentTeam}
-                              allTeams={allAvailableMatchTeams}
-                              allUsers={usersDb}
-                              style={{ width: '100%', height: '100%' }}
-                              flagStyle={{ fontSize: 10 }}
-                              fallbackFlag={matchDraft.tossWinner === 'myTeam' ? (matchDraft.myTeam?.flag || '🦁') : (matchDraft.opponentTeam?.flag || '⚡')}
-                            />
+                      <TextInput
+                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff', marginVertical: 6 }]}
+                        value={oppSquadSearch}
+                        onChangeText={setOppSquadSearch}
+                        placeholder="Search player in squad..."
+                        placeholderTextColor="#64748b"
+                      />
+
+                      <View style={styles.squadSelectGrid}>
+                        {(matchDraft.opponentTeam?.squad || [])
+                          .concat((matchDraft.opponentPlayingXI || []).filter(p => p.isGuest && !(matchDraft.opponentTeam?.squad || []).some(s => s.name === p.name)))
+                          .filter(p => p.name.toLowerCase().includes(oppSquadSearch.toLowerCase()))
+                          .map(p => {
+                            const isSelected = (matchDraft.opponentPlayingXI || []).some(xi => xi.name === p.name);
+                            return (
+                              <TouchableOpacity
+                                key={p.name}
+                                style={[
+                                  styles.playerSelectChip,
+                                  { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                                  isSelected && styles.playerSelectChipActive
+                                ]}
+                                onPress={() => togglePlayerInPlayingXI('opponentPlayingXI', p)}
+                              >
+                                <View style={styles.playerChipRoleTag}>
+                                  <Text style={styles.playerChipRoleText}>{p.role}</Text>
+                                </View>
+                                <Text style={[styles.playerChipName, { color: '#cbd5e1' }, isSelected && styles.playerChipNameActive]}>
+                                  {p.name}
+                                </Text>
+                                <Text style={{ color: isSelected ? '#10b981' : '#64748b', fontSize: 13, fontWeight: 'bold' }}>
+                                  {isSelected ? '✓' : '+'}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                      </View>
+
+                      {/* Separate Captain & WK Rows for Team B */}
+                      <View style={{ marginTop: 8 }}>
+                        {/* Captain Row */}
+                        <View style={[styles.rolePickerSectionRow, { backgroundColor: 'rgba(4, 16, 28, 0.75)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                          <View style={styles.rolePickerHeaderRow}>
+                            <Text style={[styles.roleSectionTitle, { color: '#ffffff' }]}>👑 Select Captain (C):</Text>
+                            <Text style={styles.roleActiveValueTag}>{matchDraft.oppCaptain || 'Select Captain'}</Text>
                           </View>
-                          <Text style={[styles.confirmParamValue, { color: '#34d399' }]} numberOfLines={1}>
-                            {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} ({matchDraft.tossDecision?.toUpperCase()} FIRST)
-                          </Text>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
+                            {(matchDraft.opponentPlayingXI || []).map(p => {
+                              const isCap = matchDraft.oppCaptain === p.name;
+                              return (
+                                <TouchableOpacity
+                                  key={`cap_b_${p.name}`}
+                                  style={[
+                                    styles.rolePickPillFull,
+                                    { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                                    isCap && styles.rolePickPillFullActive
+                                  ]}
+                                  onPress={() => updateDraft({ oppCaptain: p.name })}
+                                >
+                                  <Text style={[styles.rolePickPillFullText, { color: '#cbd5e1' }, isCap && styles.rolePickPillFullTextActive]}>
+                                    {isCap ? '👑 ' : ''}{p.name} ({p.role})
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
+                        </View>
+
+                        {/* Wicketkeeper Row */}
+                        <View style={[styles.rolePickerSectionRow, { backgroundColor: 'rgba(4, 16, 28, 0.75)', borderColor: 'rgba(56, 189, 248, 0.18)', marginTop: 8 }]}>
+                          <View style={styles.rolePickerHeaderRow}>
+                            <Text style={[styles.roleSectionTitle, { color: '#ffffff' }]}>🧤 Select Wicketkeeper (WK):</Text>
+                            <Text style={[styles.roleActiveValueTag, { color: '#c084fc' }]}>{matchDraft.oppWicketkeeper || 'Select Keeper'}</Text>
+                          </View>
+                          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
+                            {(matchDraft.opponentPlayingXI || []).map(p => {
+                              const isWk = matchDraft.oppWicketkeeper === p.name;
+                              return (
+                                <TouchableOpacity
+                                  key={`wk_b_${p.name}`}
+                                  style={[
+                                    styles.rolePickPillFull,
+                                    { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.2)' },
+                                    isWk && styles.rolePickPillFullWkActive
+                                  ]}
+                                  onPress={() => updateDraft({ oppWicketkeeper: p.name })}
+                                >
+                                  <Text style={[styles.rolePickPillFullText, { color: '#cbd5e1' }, isWk && styles.rolePickPillFullTextActive]}>
+                                    {isWk ? '🧤 ' : ''}{p.name} ({p.role})
+                                  </Text>
+                                </TouchableOpacity>
+                              );
+                            })}
+                          </ScrollView>
                         </View>
                       </View>
                     </View>
                   </View>
-                </View>
-              )}
+                )}
 
-            </ScrollView>
-          )}
+                {/* ========================================================================= */}
+                {/* PHASE 5: FINAL CONFIRMATION CARD & START MATCH */}
+                {/* ========================================================================= */}
+                {wzPhase === 5 && (
+                  <View style={{ paddingBottom: 16 }}>
+                    <View style={[styles.phaseHeaderBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                      <Text style={[styles.wizardSectionLabel, { color: '#38bdf8' }]}>📋 MATCH CONFIRMATION</Text>
+                      <Text style={[styles.phaseSubDesc, { color: '#94a3b8' }]}>
+                        Review complete match parameters before beginning official live scoring
+                      </Text>
+                    </View>
 
-          {/* DOCKED FIXED FOOTER ACTION BAR AT THE VERY BOTTOM FOR PHASES > 1 */}
-          {wzPhase > 1 && (
-            <View style={[styles.wizardDockedBottomBar, { backgroundColor: currentTheme.headerBg, borderTopColor: currentTheme.navBorder, paddingBottom: Math.max(12, bottomInset) }]}>
-              <TouchableOpacity
-                style={styles.wizardCancelBtn}
-                onPress={confirmCancelMatchSetup}
-              >
-                <Text style={styles.wizardCancelBtnText}>✕ Cancel</Text>
-              </TouchableOpacity>
+                    {/* Pre-Match Summary Card */}
+                    <View style={[styles.confirmMasterCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                      <View style={styles.confirmBrandRow}>
+                        <Text style={[styles.confirmBrandTitle, { color: '#38bdf8' }]}>CRICKETADDA PRO</Text>
+                        <View style={[styles.confirmReadyBadge, { backgroundColor: '#38bdf8' }]}>
+                          <Text style={[styles.confirmReadyBadgeText, { color: '#000000' }]}>READY TO START</Text>
+                        </View>
+                      </View>
 
-              <TouchableOpacity
-                style={[styles.wizardBackBtn, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}
-                onPress={() => {
-                  if (wzPhase === 2) {
-                    setWzPhase(1);
-                    setWzTeamStep(2);
-                  } else {
-                    setWzPhase(s => s - 1);
-                  }
-                }}
-              >
-                <Text style={[styles.wizardBackBtnText, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>← Back</Text>
-              </TouchableOpacity>
+                      {/* Matchup Header with Team Pictures & Names */}
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-around',
+                        marginVertical: 12,
+                        paddingHorizontal: 8,
+                      }}>
+                        {/* Team A Badge & Name */}
+                        <View style={{ alignItems: 'center', flex: 1, maxWidth: 130 }}>
+                          <View style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 28,
+                            backgroundColor: '#1e293b',
+                            borderWidth: 2,
+                            borderColor: '#38bdf8',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                            marginBottom: 6,
+                            shadowColor: '#38bdf8',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 4,
+                            elevation: 3,
+                          }}>
+                            <SmartTeamLogo
+                              team={matchDraft.myTeam}
+                              allTeams={allAvailableMatchTeams}
+                              allUsers={usersDb}
+                              style={{ width: '100%', height: '100%' }}
+                              flagStyle={{ fontSize: 28 }}
+                              fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
+                            />
+                          </View>
+                          <Text
+                            style={[styles.confirmTeamBig, { color: '#ffffff', textAlign: 'center' }]}
+                            numberOfLines={2}
+                          >
+                            {matchDraft.myTeam?.name}
+                          </Text>
+                        </View>
 
-              {wzPhase < 5 ? (
+                        {/* VS Center Badge */}
+                        <View style={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 17,
+                          backgroundColor: 'rgba(8, 28, 48, 0.90)',
+                          borderWidth: 1.5,
+                          borderColor: '#38bdf8',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          marginHorizontal: 8,
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 1 },
+                          shadowOpacity: 0.2,
+                          shadowRadius: 3,
+                          elevation: 3,
+                        }}>
+                          <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '900' }}>VS</Text>
+                        </View>
+
+                        {/* Team B Badge & Name */}
+                        <View style={{ alignItems: 'center', flex: 1, maxWidth: 130 }}>
+                          <View style={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: 28,
+                            backgroundColor: '#1e293b',
+                            borderWidth: 2,
+                            borderColor: '#38bdf8',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                            marginBottom: 6,
+                            shadowColor: '#38bdf8',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 4,
+                            elevation: 3,
+                          }}>
+                            <SmartTeamLogo
+                              team={matchDraft.opponentTeam}
+                              allTeams={allAvailableMatchTeams}
+                              allUsers={usersDb}
+                              style={{ width: '100%', height: '100%' }}
+                              flagStyle={{ fontSize: 28 }}
+                              fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
+                            />
+                          </View>
+                          <Text
+                            style={[styles.confirmTeamBig, { color: '#ffffff', textAlign: 'center' }]}
+                            numberOfLines={2}
+                          >
+                            {matchDraft.opponentTeam?.name}
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Format & Venue Pill */}
+                      <View style={[styles.confirmFormatPill, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                        <Text style={[styles.confirmFormatPillText, { color: '#cbd5e1' }]}>
+                          {matchDraft.format} • {matchDraft.totalOvers} Overs • 📍 {matchDraft.ground}
+                        </Text>
+                      </View>
+
+                      {/* 2-Column Dedicated Team Captain & Keeper Cards */}
+                      <View style={styles.confirmTeamsBlock}>
+                        {/* Team A Box */}
+                        <View style={[styles.confirmTeamColCard, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.15)', paddingBottom: 6 }}>
+                            <View style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 12,
+                              backgroundColor: '#1e293b',
+                              borderWidth: 1.2,
+                              borderColor: '#38bdf8',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              overflow: 'hidden',
+                            }}>
+                              <SmartTeamLogo
+                                team={matchDraft.myTeam}
+                                allTeams={allAvailableMatchTeams}
+                                allUsers={usersDb}
+                                style={{ width: '100%', height: '100%' }}
+                                flagStyle={{ fontSize: 13 }}
+                                fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
+                              />
+                            </View>
+                            <Text style={[styles.confirmColTeamName, { color: '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]} numberOfLines={1}>
+                              {matchDraft.myTeam?.name}
+                            </Text>
+                          </View>
+                          <View style={styles.confirmRoleItem}>
+                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>👑 Captain (C):</Text>
+                            <Text style={[styles.confirmRoleVal, { color: '#ffffff' }]} numberOfLines={1}>{matchDraft.myCaptain || 'Not set'}</Text>
+                          </View>
+                          <View style={styles.confirmRoleItem}>
+                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>🧤 Keeper (WK):</Text>
+                            <Text style={[styles.confirmRoleVal, { color: '#ffffff' }]} numberOfLines={1}>{matchDraft.myWicketkeeper || 'Not set'}</Text>
+                          </View>
+                        </View>
+
+                        {/* Team B Box */}
+                        <View style={[styles.confirmTeamColCard, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.15)', paddingBottom: 6 }}>
+                            <View style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 12,
+                              backgroundColor: '#1e293b',
+                              borderWidth: 1.2,
+                              borderColor: '#38bdf8',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              overflow: 'hidden',
+                            }}>
+                              <SmartTeamLogo
+                                team={matchDraft.opponentTeam}
+                                allTeams={allAvailableMatchTeams}
+                                allUsers={usersDb}
+                                style={{ width: '100%', height: '100%' }}
+                                flagStyle={{ fontSize: 13 }}
+                                fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
+                              />
+                            </View>
+                            <Text style={[styles.confirmColTeamName, { color: '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]} numberOfLines={1}>
+                              {matchDraft.opponentTeam?.name}
+                            </Text>
+                          </View>
+                          <View style={styles.confirmRoleItem}>
+                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>👑 Captain (C):</Text>
+                            <Text style={[styles.confirmRoleVal, { color: '#ffffff' }]} numberOfLines={1}>{matchDraft.oppCaptain || 'Not set'}</Text>
+                          </View>
+                          <View style={styles.confirmRoleItem}>
+                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>🧤 Keeper (WK):</Text>
+                            <Text style={[styles.confirmRoleVal, { color: '#ffffff' }]} numberOfLines={1}>{matchDraft.oppWicketkeeper || 'Not set'}</Text>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Match Parameters List */}
+                      <View style={[styles.confirmParamSection, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                        <View style={styles.confirmParamRow}>
+                          <Text style={[styles.confirmParamLabel, { color: '#94a3b8' }]}>🪙 Toss Result:</Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
+                            <View style={{
+                              width: 18,
+                              height: 18,
+                              borderRadius: 9,
+                              backgroundColor: '#1e293b',
+                              borderWidth: 1,
+                              borderColor: '#34d399',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              overflow: 'hidden',
+                            }}>
+                              <SmartTeamLogo
+                                team={matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam : matchDraft.opponentTeam}
+                                allTeams={allAvailableMatchTeams}
+                                allUsers={usersDb}
+                                style={{ width: '100%', height: '100%' }}
+                                flagStyle={{ fontSize: 10 }}
+                                fallbackFlag={matchDraft.tossWinner === 'myTeam' ? (matchDraft.myTeam?.flag || '🦁') : (matchDraft.opponentTeam?.flag || '⚡')}
+                              />
+                            </View>
+                            <Text style={[styles.confirmParamValue, { color: '#34d399' }]} numberOfLines={1}>
+                              {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} ({matchDraft.tossDecision?.toUpperCase()} FIRST)
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+                )}
+
+              </ScrollView>
+
+              {/* DOCKED FIXED FOOTER ACTION BAR AT THE VERY BOTTOM FOR PHASES > 1 */}
+              <View style={[styles.wizardDockedBottomBar, { backgroundColor: 'rgba(2, 11, 20, 0.94)', borderTopColor: '#0a1d30', paddingBottom: Math.max(12, bottomInset) }]}>
                 <TouchableOpacity
-                  style={[styles.wizardNextBtn, { backgroundColor: currentTheme.primary, flex: 2 }]}
-                  onPress={handleWizardNext}
+                  style={[styles.wizardCancelBtn, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)', borderWidth: 1 }]}
+                  onPress={confirmCancelMatchSetup}
                 >
-                  <Text style={[styles.wizardNextBtnText, { color: currentTheme.primaryText, fontWeight: '900' }]}>
-                    {wzPhase === 2
-                      ? 'Next: Toss 🪙 →'
-                      : wzPhase === 3
-                      ? 'Next: Playing XI →'
-                      : 'Next: Confirm 🚀 →'}
-                  </Text>
+                  <Text style={[styles.wizardCancelBtnText, { color: '#f87171' }]}>✕ Cancel</Text>
                 </TouchableOpacity>
-              ) : (
+
                 <TouchableOpacity
-                  style={[styles.wizardNextBtn, { backgroundColor: currentTheme.primary, flex: 2 }]}
-                  onPress={startNewMatchFromWizard}
+                  style={[styles.wizardBackBtn, { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.3)' }]}
+                  onPress={() => {
+                    if (wzPhase === 2) {
+                      setWzPhase(1);
+                      setWzTeamStep(2);
+                    } else if (wzPhase === 4) {
+                      setWzPhase(2);
+                    } else if (wzPhase === 3) {
+                      setWzPhase(4);
+                    } else if (wzPhase === 5) {
+                      setWzPhase(3);
+                    } else {
+                      setWzPhase(s => s - 1);
+                    }
+                  }}
                 >
-                  <Text style={[styles.wizardNextBtnText, { color: currentTheme.primaryText, fontWeight: '900', fontSize: 13 }]}>
-                    🟢 START MATCH 🚀
-                  </Text>
+                  <Text style={[styles.wizardBackBtnText, { color: '#ffffff' }]}>← Back</Text>
                 </TouchableOpacity>
-              )}
-            </View>
+
+                {wzPhase < 5 ? (
+                  <TouchableOpacity
+                    style={[styles.wizardNextBtn, { backgroundColor: '#38bdf8', flex: 2 }]}
+                    onPress={handleWizardNext}
+                  >
+                    <Text style={[styles.wizardNextBtnText, { color: '#000000', fontWeight: '900' }]}>
+                      {wzPhase === 2
+                        ? 'Next: Playing XI 👥 →'
+                        : wzPhase === 4
+                        ? 'Next: Toss 🪙 →'
+                        : wzPhase === 3
+                        ? 'Next: Confirm 🚀 →'
+                        : 'Next ❯'}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={[styles.wizardNextBtn, { backgroundColor: '#22c55e', flex: 2 }]}
+                    onPress={startNewMatchFromWizard}
+                  >
+                    <Text style={[styles.wizardNextBtnText, { color: '#000000', fontWeight: '900', fontSize: 13.5 }]}>
+                      🟢 START MATCH 🚀
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </ImageBackground>
           )}
         </View>
       </Modal>
