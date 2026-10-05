@@ -10802,8 +10802,15 @@ function CricketAddaMain() {
   }, [registeredTeams, userProfile?.createdTeams, usersDb]);
 
   const handleOpenMatchWizard = useCallback(() => {
+    setMatchDraft(prev => ({
+      ...INITIAL_MATCH_DRAFT,
+      ...prev,
+      myTeam: null,
+      opponentTeam: null,
+    }));
     setWzPhase(1);
     setWzTeamStep(1);
+    setTeamSearchQuery('');
     setWizardVisible(true);
     if (isFirebaseConfigured()) {
       fetchFirebaseTeams().then(cloudTeams => {
@@ -30032,6 +30039,35 @@ function CricketAddaMain() {
       {/* MODAL 6: CRICHEROES STYLE SELECT PLAYING TEAMS & MATCH SETUP ENGINE */}
       <Modal visible={wizardVisible} animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.cricModalFullscreen, { backgroundColor: currentTheme.bg }]}>
+          {/* In-Modal Floating Toast Notification (Guarantees toasts are visible above modal window) */}
+          {appToast && (
+            <View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                top: topInset + 12,
+                left: 16,
+                right: 16,
+                zIndex: 999999,
+                alignItems: 'center',
+              }}
+            >
+              <View style={[
+                styles.appToastCard,
+                appToast.type === 'error'
+                  ? styles.appToastCardError
+                  : appToast.type === 'warning'
+                  ? { backgroundColor: '#78350f', borderColor: '#f59e0b' }
+                  : styles.appToastCardSuccess
+              ]}>
+                <Text style={styles.appToastIconText}>{appToast.icon || '⚠️'}</Text>
+                <Text style={styles.appToastMessageText} numberOfLines={2}>
+                  {appToast.message}
+                </Text>
+              </View>
+            </View>
+          )}
+
           {/* Top Header App Bar (For Phases 2-5) */}
           {wzPhase > 1 && (
             <View style={[styles.cricHeaderRed, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder, paddingTop: topInset, height: 56 + topInset }]}>
@@ -30093,7 +30129,7 @@ function CricketAddaMain() {
           {/* ========================================================================= */}
           {wzPhase === 1 && (
             <ImageBackground
-              source={require('./assets/select-team-full-bg.jpg')}
+              source={require('./assets/select-team-bg-full.jpg')}
               style={{ flex: 1, backgroundColor: '#020b14' }}
               resizeMode="cover"
             >
@@ -30170,7 +30206,7 @@ function CricketAddaMain() {
                 borderBottomWidth: 1,
                 borderBottomColor: 'rgba(12, 34, 56, 0.6)',
               }}>
-                {/* Big Search Bar */}
+                {/* Big Search Bar with perfect vertical centering */}
                 <View style={{
                   flex: 1,
                   height: 42,
@@ -30180,11 +30216,21 @@ function CricketAddaMain() {
                   borderRadius: 12,
                   flexDirection: 'row',
                   alignItems: 'center',
+                  justifyContent: 'center',
                   paddingHorizontal: 12,
                 }}>
-                  <Text style={{ fontSize: 15, marginRight: 8 }}>🔍</Text>
+                  <Text style={{ fontSize: 15, marginRight: 8, textAlignVertical: 'center', lineHeight: 20 }}>🔍</Text>
                   <TextInput
-                    style={{ flex: 1, color: '#ffffff', fontSize: 13.5, fontWeight: '600' }}
+                    style={{
+                      flex: 1,
+                      height: '100%',
+                      color: '#ffffff',
+                      fontSize: 13.5,
+                      fontWeight: '600',
+                      paddingVertical: 0,
+                      textAlignVertical: 'center',
+                      includeFontPadding: false,
+                    }}
                     placeholder="Search team by name, captain..."
                     placeholderTextColor="#64748b"
                     value={teamSearchQuery}
@@ -30192,13 +30238,17 @@ function CricketAddaMain() {
                     autoCorrect={false}
                   />
                   {teamSearchQuery.length > 0 && (
-                    <TouchableOpacity onPress={() => setTeamSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                    <TouchableOpacity
+                      onPress={() => setTeamSearchQuery('')}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      style={{ justifyContent: 'center', alignItems: 'center' }}
+                    >
                       <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '800' }}>✕</Text>
                     </TouchableOpacity>
                   )}
                 </View>
 
-                {/* Scan Team QR */}
+                {/* Scan Team QR with High-Visibility Pure-View Viewfinder Icon */}
                 <TouchableOpacity
                   style={{
                     height: 42,
@@ -30214,7 +30264,17 @@ function CricketAddaMain() {
                   onPress={() => openUniversalQrScanner(wzTeamStep === 1 ? 'add_team_a' : 'add_team_b')}
                   activeOpacity={0.8}
                 >
-                  <Text style={{ fontSize: 14 }}>⛶</Text>
+                  <View style={{ width: 15, height: 15, justifyContent: 'space-between', marginRight: 2 }}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <View style={{ width: 4.5, height: 4.5, borderTopWidth: 2, borderLeftWidth: 2, borderColor: '#10b981' }} />
+                      <View style={{ width: 4.5, height: 4.5, borderTopWidth: 2, borderRightWidth: 2, borderColor: '#10b981' }} />
+                    </View>
+                    <View style={{ alignSelf: 'center', width: 3.5, height: 3.5, backgroundColor: '#10b981', borderRadius: 1 }} />
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <View style={{ width: 4.5, height: 4.5, borderBottomWidth: 2, borderLeftWidth: 2, borderColor: '#10b981' }} />
+                      <View style={{ width: 4.5, height: 4.5, borderBottomWidth: 2, borderRightWidth: 2, borderColor: '#10b981' }} />
+                    </View>
+                  </View>
                   <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '700' }}>Scan QR</Text>
                 </TouchableOpacity>
               </View>
@@ -30394,18 +30454,33 @@ function CricketAddaMain() {
                   onPress={() => {
                     if (wzTeamStep === 1) {
                       if (!matchDraft.myTeam) {
-                        showAppToast('Please select Team 1 to proceed 👥', '👥', 'warning');
+                        showAppToast('⚠️ Please select Team 1 to proceed', '⚠️', 'error');
+                        Alert.alert(
+                          'Select Team 1 🏏',
+                          'Please select your team (Team 1) from the list before proceeding.',
+                          [{ text: 'OK' }]
+                        );
                         return;
                       }
                       setWzTeamStep(2);
                       setTeamSearchQuery('');
                     } else {
                       if (!matchDraft.opponentTeam) {
-                        showAppToast('Please select Opponent Team (Team 2) 👥', '👥', 'warning');
+                        showAppToast('⚠️ Please select Opponent Team (Team 2) to proceed', '⚠️', 'error');
+                        Alert.alert(
+                          'Select Opponent Team 🏏',
+                          'Please select the opponent team (Team 2) from the list before proceeding.',
+                          [{ text: 'OK' }]
+                        );
                         return;
                       }
                       if (matchDraft.myTeam?.id === matchDraft.opponentTeam?.id) {
                         showAppToast('Team 1 and Team 2 cannot be the same team 🚫', '🚫', 'warning');
+                        Alert.alert(
+                          'Invalid Selection 🚫',
+                          'Both teams cannot be the same. Please choose a different opponent team.',
+                          [{ text: 'OK' }]
+                        );
                         return;
                       }
                       setWzPhase(2);
