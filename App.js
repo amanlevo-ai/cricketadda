@@ -30562,105 +30562,25 @@ function CricketAddaMain() {
             />
 
             {/* Dynamic Phase Sub-Title / Status Badge */}
-            <View style={{ alignItems: 'center', paddingTop: 6, paddingBottom: 4 }}>
+            <View style={{ alignItems: 'center', paddingTop: 6, paddingBottom: 6 }}>
               <Text style={{
                 fontSize: 16.5,
                 fontWeight: '900',
                 letterSpacing: 0.5,
                 textTransform: 'uppercase',
+                color: '#ffffff',
               }}>
                 {wzPhase === 1 ? (
-                  wzTeamStep === 1 ? (
-                    <>
-                      <Text style={{ color: '#ffffff' }}>SELECT </Text>
-                      <Text style={{
-                        color: '#4ade80',
-                        textShadowColor: 'rgba(74, 222, 128, 0.45)',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 8,
-                      }}>YOUR TEAM</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={{ color: '#ffffff' }}>SELECT </Text>
-                      <Text style={{
-                        color: '#38bdf8',
-                        textShadowColor: 'rgba(56, 189, 248, 0.45)',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 8,
-                      }}>OPPONENT TEAM</Text>
-                    </>
-                  )
+                  wzTeamStep === 1 ? 'SELECT YOUR TEAM' : 'SELECT OPPONENT TEAM'
                 ) : wzPhase === 2 ? (
-                  <>
-                    <Text style={{ color: '#ffffff' }}>MATCH </Text>
-                    <Text style={{
-                      color: '#4ade80',
-                      textShadowColor: 'rgba(74, 222, 128, 0.45)',
-                      textShadowOffset: { width: 0, height: 1 },
-                      textShadowRadius: 8,
-                    }}>DETAILS</Text>
-                  </>
+                  'MATCH DETAILS'
                 ) : wzPhase === 4 ? (
-                  xiTeamStep === 1 ? (
-                    <>
-                      <Text style={{ color: '#ffffff' }}>SELECT </Text>
-                      <Text style={{
-                        color: '#38bdf8',
-                        textShadowColor: 'rgba(56, 189, 248, 0.45)',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 8,
-                      }}>PLAYING XI</Text>
-                    </>
-                  ) : (
-                    <>
-                      <Text style={{ color: '#ffffff' }}>SELECT </Text>
-                      <Text style={{
-                        color: '#f87171',
-                        textShadowColor: 'rgba(239, 68, 68, 0.45)',
-                        textShadowOffset: { width: 0, height: 1 },
-                        textShadowRadius: 8,
-                      }}>OPPONENT XI</Text>
-                    </>
-                  )
+                  xiTeamStep === 1 ? 'SELECT PLAYING XI' : 'SELECT OPPONENT XI'
                 ) : wzPhase === 3 ? (
-                  <>
-                    <Text style={{ color: '#ffffff' }}>COIN </Text>
-                    <Text style={{
-                      color: '#facc15',
-                      textShadowColor: 'rgba(250, 204, 21, 0.45)',
-                      textShadowOffset: { width: 0, height: 1 },
-                      textShadowRadius: 8,
-                    }}>TOSS 🪙</Text>
-                  </>
+                  'COIN TOSS 🪙'
                 ) : (
-                  <>
-                    <Text style={{ color: '#ffffff' }}>MATCH </Text>
-                    <Text style={{
-                      color: '#4ade80',
-                      textShadowColor: 'rgba(74, 222, 128, 0.45)',
-                      textShadowOffset: { width: 0, height: 1 },
-                      textShadowRadius: 8,
-                    }}>CONFIRMATION 🚀</Text>
-                  </>
+                  'MATCH CONFIRMATION 🚀'
                 )}
-              </Text>
-              <Text style={{
-                fontSize: 11.5,
-                color: '#94a3b8',
-                marginTop: 2,
-                fontWeight: '500',
-                textAlign: 'center',
-              }}>
-                {wzPhase === 1
-                  ? (wzTeamStep === 1 ? 'Choose your primary playing team' : 'Choose opponent team for this match')
-                  : wzPhase === 2
-                  ? 'Enter match information to continue'
-                  : wzPhase === 4
-                  ? (xiTeamStep === 1 ? `Select 11 players for ${matchDraft.myTeam?.name || 'Your Team'}` : `Select 11 players for ${matchDraft.opponentTeam?.name || 'Opponent Team'}`)
-                  : wzPhase === 3
-                  ? 'Flip the coin to determine batting/bowling'
-                  : 'Review team squads & match rules'}
               </Text>
             </View>
           </View>
@@ -30707,7 +30627,7 @@ function CricketAddaMain() {
                       textAlignVertical: 'center',
                       includeFontPadding: false,
                     }}
-                    placeholder="Search team by name, captain..."
+                    placeholder="Search team by name..."
                     placeholderTextColor="#64748b"
                     value={teamSearchQuery}
                     onChangeText={setTeamSearchQuery}
@@ -30790,8 +30710,7 @@ function CricketAddaMain() {
                         : matchDraft.opponentTeam?.id === t.id;
                       const isOtherTeam = wzTeamStep === 2 && matchDraft.myTeam?.id === t.id;
 
-                      // Resolve Captain and Performance Stats
-                      const capName = t.captain || (Array.isArray(t.squad) ? (t.squad.find(p => p && p.isCaptain)?.name || t.squad[0]?.name) : '') || 'Captain';
+                      // Resolve Performance Stats
                       const seed = Math.abs(String(t.name || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
                       const tWins = t.wins ?? t.stats?.wins ?? ((seed % 10) + 3);
                       const tLosses = t.losses ?? t.stats?.losses ?? ((seed % 5) + 1);
@@ -30848,7 +30767,7 @@ function CricketAddaMain() {
                             />
                           </View>
 
-                          {/* Center: Team Name, Captain Name & Performance Stats */}
+                          {/* Center: Team Name & Performance Stats */}
                           <View style={{ flex: 1, paddingRight: 8, justifyContent: 'center' }}>
                             <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', letterSpacing: 0.3 }} numberOfLines={1}>
                               {t.name}
@@ -30859,13 +30778,17 @@ function CricketAddaMain() {
                               </Text>
                             ) : (
                               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1, gap: 5 }}>
-                                <Text style={{ color: '#93c5fd', fontSize: 11, fontWeight: '700', flexShrink: 1 }} numberOfLines={1}>
-                                  👑 {capName}
-                                </Text>
-                                <Text style={{ color: '#64748b', fontSize: 10 }}>•</Text>
                                 <Text style={{ color: '#86efac', fontSize: 11, fontWeight: '700', flexShrink: 0 }} numberOfLines={1}>
                                   🏆 {tWins}W - {tLosses}L <Text style={{ color: '#eab308', fontWeight: '800' }}>({tWinPct}%)</Text>
                                 </Text>
+                                {Boolean(t.city || t.homeGround) && (
+                                  <>
+                                    <Text style={{ color: '#64748b', fontSize: 10 }}>•</Text>
+                                    <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
+                                      📍 {t.city || t.homeGround}
+                                    </Text>
+                                  </>
+                                )}
                               </View>
                             )}
                           </View>
@@ -31015,36 +30938,40 @@ function CricketAddaMain() {
             <View style={{ flex: 1 }}>
               <ScrollView
                 style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: 16 }}
-                contentContainerStyle={{ paddingBottom: 24, paddingTop: 10 }}
+                contentContainerStyle={{ paddingBottom: wzPhase === 2 ? 6 : 24, paddingTop: wzPhase === 2 ? 6 : 10 }}
                 showsVerticalScrollIndicator={false}
+                scrollEnabled={wzPhase !== 2}
+                bounces={wzPhase !== 2}
               >
                 {/* ========================================================================= */}
-                {/* PHASE 2: MATCH DETAILS */}
+                {/* PHASE 2: MATCH DETAILS (NO SCROLLING - 2 SMALL FIELDS PER ROW) */}
                 {/* ========================================================================= */}
                 {wzPhase === 2 && (
-                  <View style={{ paddingTop: 4 }}>
-                    {/* Card 1: Match Name */}
+                  <View style={{ paddingTop: 2 }}>
+                    {/* Row 1: Match Name (Height: 58) */}
                     <View style={{
+                      height: 58,
                       backgroundColor: 'rgba(5, 22, 40, 0.88)',
                       borderWidth: 1.5,
                       borderColor: 'rgba(56, 189, 248, 0.35)',
-                      borderRadius: 14,
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                      marginBottom: 12,
+                      borderRadius: 12,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      justifyContent: 'center',
+                      marginBottom: 10,
                     }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13 }}>🏆</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Match Name</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                        <Text style={{ fontSize: 11 }}>🏆</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Match Name</Text>
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                         <TextInput
                           style={{
                             flex: 1,
                             color: '#ffffff',
-                            fontSize: 15.5,
+                            fontSize: 14.5,
                             fontWeight: 'bold',
-                            paddingVertical: 2,
+                            paddingVertical: 0,
                           }}
                           value={matchDraft.title}
                           onChangeText={txt => updateDraft({ title: txt })}
@@ -31056,112 +30983,154 @@ function CricketAddaMain() {
                             onPress={() => updateDraft({ title: '' })}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           >
-                            <Text style={{ color: '#94a3b8', fontSize: 15, fontWeight: 'bold' }}>✕</Text>
+                            <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
                           </TouchableOpacity>
                         )}
                       </View>
                     </View>
 
-                    {/* Card 2: Match Type */}
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
-                        borderWidth: 1.5,
-                        borderColor: 'rgba(56, 189, 248, 0.35)',
-                        borderRadius: 14,
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        marginBottom: 12,
-                      }}
-                      onPress={() => setMatchTypePickerVisible(true)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13 }}>⚪</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Match Type</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: 'bold' }}>
-                          {matchDraft.format || 'T20'}
-                        </Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold', marginTop: -2 }}>⌄</Text>
-                      </View>
-                    </TouchableOpacity>
+                    {/* Row 2: Match Type & Overs per Innings (2 PER ROW, Same Height: 58) */}
+                    <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                      {/* Left: Match Type */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          height: 58,
+                          backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                          borderWidth: 1.5,
+                          borderColor: 'rgba(56, 189, 248, 0.35)',
+                          borderRadius: 12,
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          justifyContent: 'center',
+                        }}
+                        onPress={() => setMatchTypePickerVisible(true)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                          <Text style={{ fontSize: 11 }}>⚪</Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Match Type</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: 'bold' }}>
+                            {matchDraft.format || 'T20'}
+                          </Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 16, fontWeight: 'bold' }}>⌄</Text>
+                        </View>
+                      </TouchableOpacity>
 
-                    {/* Card 3: Date */}
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
-                        borderWidth: 1.5,
-                        borderColor: 'rgba(56, 189, 248, 0.35)',
-                        borderRadius: 14,
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        marginBottom: 12,
-                      }}
-                      onPress={() => setDatePickerVisible(true)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13 }}>📅</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Date</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: 'bold' }}>
-                          {matchDraft.matchDate || '01 Oct 2026'}
-                        </Text>
-                        <Text style={{ fontSize: 16 }}>🗓️</Text>
-                      </View>
-                    </TouchableOpacity>
+                      {/* Right: Overs per Innings */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          height: 58,
+                          backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                          borderWidth: 1.5,
+                          borderColor: 'rgba(56, 189, 248, 0.35)',
+                          borderRadius: 12,
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          justifyContent: 'center',
+                        }}
+                        onPress={() => setOversPickerVisible(true)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                          <Text style={{ fontSize: 11 }}>🏏</Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Overs / Innings</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: 'bold' }}>
+                            {matchDraft.totalOvers || 20} Overs
+                          </Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 16, fontWeight: 'bold' }}>⌄</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
 
-                    {/* Card 4: Time */}
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
-                        borderWidth: 1.5,
-                        borderColor: 'rgba(56, 189, 248, 0.35)',
-                        borderRadius: 14,
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        marginBottom: 12,
-                      }}
-                      onPress={() => setTimePickerVisible(true)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13 }}>🕒</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Time</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: 'bold' }}>
-                          {matchDraft.matchTime || '04:00 PM'}
-                        </Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold', marginTop: -2 }}>⌄</Text>
-                      </View>
-                    </TouchableOpacity>
+                    {/* Row 3: Date & Time (2 PER ROW, Same Height: 58) */}
+                    <View style={{ flexDirection: 'row', gap: 10, marginBottom: 10 }}>
+                      {/* Left: Date */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          height: 58,
+                          backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                          borderWidth: 1.5,
+                          borderColor: 'rgba(56, 189, 248, 0.35)',
+                          borderRadius: 12,
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          justifyContent: 'center',
+                        }}
+                        onPress={() => setDatePickerVisible(true)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                          <Text style={{ fontSize: 11 }}>📅</Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Date</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: 'bold' }} numberOfLines={1}>
+                            {matchDraft.matchDate || '01 Oct 2026'}
+                          </Text>
+                          <Text style={{ fontSize: 15 }}>🗓️</Text>
+                        </View>
+                      </TouchableOpacity>
 
-                    {/* Card 5: Venue */}
+                      {/* Right: Time */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          height: 58,
+                          backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                          borderWidth: 1.5,
+                          borderColor: 'rgba(56, 189, 248, 0.35)',
+                          borderRadius: 12,
+                          paddingHorizontal: 12,
+                          paddingVertical: 6,
+                          justifyContent: 'center',
+                        }}
+                        onPress={() => setTimePickerVisible(true)}
+                        activeOpacity={0.8}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                          <Text style={{ fontSize: 11 }}>🕒</Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Time</Text>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: 'bold' }}>
+                            {matchDraft.matchTime || '04:00 PM'}
+                          </Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 16, fontWeight: 'bold' }}>⌄</Text>
+                        </View>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Row 4: Venue (Height: 58) */}
                     <View style={{
+                      height: 58,
                       backgroundColor: 'rgba(5, 22, 40, 0.88)',
                       borderWidth: 1.5,
                       borderColor: 'rgba(56, 189, 248, 0.35)',
-                      borderRadius: 14,
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                      marginBottom: 12,
+                      borderRadius: 12,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      justifyContent: 'center',
+                      marginBottom: 10,
                     }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13 }}>📍</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Venue</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
+                        <Text style={{ fontSize: 11 }}>📍</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Venue / Ground</Text>
                       </View>
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                         <TextInput
                           style={{
                             flex: 1,
                             color: '#ffffff',
-                            fontSize: 15.5,
+                            fontSize: 14,
                             fontWeight: 'bold',
-                            paddingVertical: 2,
+                            paddingVertical: 0,
                           }}
                           value={matchDraft.ground}
                           onChangeText={txt => updateDraft({ ground: txt })}
@@ -31173,57 +31142,33 @@ function CricketAddaMain() {
                             onPress={() => updateDraft({ ground: '' })}
                             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           >
-                            <Text style={{ color: '#94a3b8', fontSize: 15, fontWeight: 'bold' }}>✕</Text>
+                            <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
                           </TouchableOpacity>
                         )}
                       </View>
                     </View>
 
-                    {/* Card 6: Overs per Innings */}
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
-                        borderWidth: 1.5,
-                        borderColor: 'rgba(56, 189, 248, 0.35)',
-                        borderRadius: 14,
-                        paddingHorizontal: 16,
-                        paddingVertical: 12,
-                        marginBottom: 12,
-                      }}
-                      onPress={() => setOversPickerVisible(true)}
-                      activeOpacity={0.8}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 13 }}>🏏</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Overs per Innings</Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: 'bold' }}>
-                          {matchDraft.totalOvers || 20} Overs
-                        </Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold', marginTop: -2 }}>⌄</Text>
-                      </View>
-                    </TouchableOpacity>
-
-                    {/* Ball Type Selection */}
+                    {/* Row 5: Ball Type (Same Height: 58) */}
                     <View style={{
+                      height: 58,
                       backgroundColor: 'rgba(5, 22, 40, 0.88)',
                       borderWidth: 1.5,
                       borderColor: 'rgba(56, 189, 248, 0.35)',
-                      borderRadius: 14,
-                      paddingHorizontal: 16,
-                      paddingVertical: 12,
-                      marginBottom: 12,
+                      borderRadius: 12,
+                      paddingHorizontal: 12,
+                      paddingVertical: 6,
+                      justifyContent: 'center',
+                      marginBottom: 4,
                     }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-                        <Text style={{ fontSize: 13 }}>⚾</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Ball Type</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 11 }}>⚾</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Ball Type</Text>
                       </View>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         {[
-                          { id: '⚪ White Leather', label: 'White Leather', isRed: false, emoji: '⚪' },
-                          { id: '🔴 Red Leather', label: 'Red Leather', isRed: true, emoji: null },
-                          { id: '🎾 Tennis / Box', label: 'Tennis / Box', isRed: false, emoji: '🎾' },
+                          { id: '⚪ White Leather', label: 'White', isRed: false, emoji: '⚪' },
+                          { id: '🔴 Red Leather', label: 'Red', isRed: true, emoji: null },
+                          { id: '🎾 Tennis / Box', label: 'Tennis', isRed: false, emoji: '🎾' },
                         ].map(bObj => {
                           const isSel = matchDraft.ballType === bObj.id || matchDraft.ballType === bObj.label;
                           return (
@@ -31231,31 +31176,30 @@ function CricketAddaMain() {
                               key={bObj.id}
                               style={{
                                 flex: 1,
-                                paddingVertical: 8,
-                                paddingHorizontal: 6,
-                                borderRadius: 8,
+                                height: 26,
+                                borderRadius: 6,
                                 backgroundColor: isSel ? '#22c55e' : 'rgba(8, 28, 48, 0.80)',
                                 borderWidth: 1,
                                 borderColor: isSel ? '#22c55e' : 'rgba(56, 189, 248, 0.25)',
                                 alignItems: 'center',
                                 justifyContent: 'center',
+                                flexDirection: 'row',
+                                gap: 4,
                               }}
                               onPress={() => updateDraft({ ballType: bObj.id })}
                             >
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                {bObj.isRed ? (
-                                  <RealisticCricketLeatherBall size={13} />
-                                ) : (
-                                  <Text style={{ fontSize: 12 }}>{bObj.emoji}</Text>
-                                )}
-                                <Text style={{
-                                  color: isSel ? '#000000' : '#cbd5e1',
-                                  fontWeight: isSel ? '900' : '600',
-                                  fontSize: 11.5,
-                                }}>
-                                  {bObj.label}
-                                </Text>
-                              </View>
+                              {bObj.isRed ? (
+                                <RealisticCricketLeatherBall size={11} />
+                              ) : (
+                                <Text style={{ fontSize: 11 }}>{bObj.emoji}</Text>
+                              )}
+                              <Text style={{
+                                color: isSel ? '#000000' : '#cbd5e1',
+                                fontWeight: isSel ? '900' : '700',
+                                fontSize: 11,
+                              }}>
+                                {bObj.label}
+                              </Text>
                             </TouchableOpacity>
                           );
                         })}
