@@ -9872,10 +9872,12 @@ const INITIAL_MATCH_DRAFT = {
   step: 1, // 1: Select Playing Teams, 2: Match Settings, 3: Coin Toss, 4: Playing XI, 5: Opening Lineup, 6: Final Confirmation
   myTeam: null, // Team A (Empty by default for + circle)
   opponentTeam: null, // Team B (Empty by default for + circle)
-  title: '',
+  title: 'Friendly Match',
   tournament: 'Cricket Adda',
-  ground: 'PCA Stadium, Mohali',
-  dateTime: 'Today, 03:30 PM',
+  ground: "Joseph's Ground, Ludhiana",
+  matchDate: '01 Oct 2026',
+  matchTime: '04:00 PM',
+  dateTime: '01 Oct 2026, 04:00 PM',
   format: 'T20',
   totalOvers: 20,
   oversPerBowler: 4,
@@ -9886,8 +9888,10 @@ const INITIAL_MATCH_DRAFT = {
   myPlayingXI: [],
   opponentPlayingXI: [],
   myCaptain: '',
+  myViceCaptain: '',
   myWicketkeeper: '',
   oppCaptain: '',
+  oppViceCaptain: '',
   oppWicketkeeper: '',
   openingStriker: '',
   openingNonStriker: '',
@@ -10073,12 +10077,15 @@ function MatchWizardStepper({ activeStep, onStepPress }) {
               <Text
                 style={{
                   marginTop: 3,
-                  fontSize: 9,
-                  fontWeight: isActive ? '800' : (isCompleted ? '700' : '500'),
-                  color: isActive ? '#4ade80' : (isCompleted ? '#ffffff' : '#64748b'),
+                  fontSize: 9.5,
+                  fontWeight: isActive ? '900' : '700',
+                  color: isActive ? '#4ade80' : '#ffffff',
                   textAlign: 'center',
-                  lineHeight: 11,
+                  lineHeight: 12,
                   paddingHorizontal: 1,
+                  textShadowColor: 'rgba(0, 0, 0, 0.95)',
+                  textShadowOffset: { width: 0, height: 1 },
+                  textShadowRadius: 4,
                 }}
                 numberOfLines={2}
               >
@@ -10721,6 +10728,11 @@ function CricketAddaMain() {
   const hasReceivedInitialCloudUsersRef = useRef(false);
   const [wzPhase, setWzPhase] = useState(1); // 1: Select Teams (A & B), 2: Settings, 3: Toss, 4: Playing XI, 5: Confirm
   const [wzTeamStep, setWzTeamStep] = useState(1); // 1: Select Your Team (Team 1), 2: Select Opponent Team (Team 2)
+  const [xiTeamStep, setXiTeamStep] = useState(1); // 1: Your Team Playing XI, 2: Opponent Team Playing XI
+  const [matchTypePickerVisible, setMatchTypePickerVisible] = useState(false);
+  const [oversPickerVisible, setOversPickerVisible] = useState(false);
+  const [timePickerVisible, setTimePickerVisible] = useState(false);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const [matchDraftScorerPhone, setMatchDraftScorerPhone] = useState('');
 
   // Inning Start Openers Selection Modal State
@@ -18664,9 +18676,14 @@ function CricketAddaMain() {
       setWzPhase(1);
       setWzTeamStep(2);
     } else if (wzPhase === 4) {
-      setWzPhase(2);
+      if (xiTeamStep === 2) {
+        setXiTeamStep(1);
+      } else {
+        setWzPhase(2);
+      }
     } else if (wzPhase === 3) {
       setWzPhase(4);
+      setXiTeamStep(2);
     } else if (wzPhase === 5) {
       setWzPhase(3);
     } else {
@@ -18691,67 +18708,80 @@ function CricketAddaMain() {
       return;
     }
 
-    // Phase 2 Validation: Settings -> Proceed to Phase 4 (Playing XI)
+    // Phase 2 Validation: Settings -> Proceed to Phase 4 (Playing XI - Team 1)
     if (wzPhase === 2) {
       if (!matchDraft.totalOvers || matchDraft.totalOvers < 1) {
         showAppToast('Please set valid match overs ⏱️', '⏱️', 'warning');
         return;
       }
       setWzPhase(4);
+      setXiTeamStep(1);
       return;
     }
 
-    // Phase 4 Validation: Playing XI & Roles -> Proceed to Phase 3 (Toss)
+    // Phase 4 Validation: Playing XI & Roles -> Step 1: Your Team, Step 2: Opponent Team
     if (wzPhase === 4) {
-      if (!matchDraft.myPlayingXI || (matchDraft?.myPlayingXI || []).length < 2) {
-        showAppToast(`Select at least 2 players in Playing XI for ${matchDraft.myTeam?.name || 'Team A'} 👥`, '👥', 'warning');
+      if (xiTeamStep === 1) {
+        if (!matchDraft.myPlayingXI || (matchDraft?.myPlayingXI || []).length < 2) {
+          showAppToast(`Select at least 2 players in Playing XI for ${matchDraft.myTeam?.name || 'Your Team'} 👥`, '👥', 'warning');
+          return;
+        }
+        if (!matchDraft.myCaptain) {
+          const firstP = matchDraft.myPlayingXI[0];
+          const autoCap = typeof firstP === 'object' ? firstP.name : firstP;
+          updateDraft({ myCaptain: autoCap });
+        }
+        setXiTeamStep(2);
         return;
       }
-      if (!matchDraft.opponentPlayingXI || (matchDraft?.opponentPlayingXI || []).length < 2) {
-        showAppToast(`Select at least 2 players in Playing XI for ${matchDraft.opponentTeam?.name || 'Team B'} 👥`, '👥', 'warning');
-        return;
-      }
 
-      // CRITICAL RULE: A player CANNOT play on both sides in the SAME MATCH!
-      const conflictingPlayer = (matchDraft.myPlayingXI || []).find(pA => {
-        const rawA = typeof pA === 'object' ? (pA.name || '') : String(pA || '');
-        const cleanA = rawA.replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
-        const phoneA = typeof pA === 'object' ? String(pA.phone || '').replace(/[^0-9]/g, '').slice(-10) : '';
+      if (xiTeamStep === 2) {
+        if (!matchDraft.opponentPlayingXI || (matchDraft?.opponentPlayingXI || []).length < 2) {
+          showAppToast(`Select at least 2 players in Playing XI for ${matchDraft.opponentTeam?.name || 'Opponent Team'} 👥`, '👥', 'warning');
+          return;
+        }
 
-        return (matchDraft.opponentPlayingXI || []).some(pB => {
-          const rawB = typeof pB === 'object' ? (pB.name || '') : String(pB || '');
-          const cleanB = rawB.replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
-          const phoneB = typeof pB === 'object' ? String(pB.phone || '').replace(/[^0-9]/g, '').slice(-10) : '';
+        // CRITICAL RULE: A player CANNOT play on both sides in the SAME MATCH!
+        const conflictingPlayer = (matchDraft.myPlayingXI || []).find(pA => {
+          const rawA = typeof pA === 'object' ? (pA.name || '') : String(pA || '');
+          const cleanA = rawA.replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
+          const phoneA = typeof pA === 'object' ? String(pA.phone || '').replace(/[^0-9]/g, '').slice(-10) : '';
 
-          if (phoneA && phoneB && phoneA === phoneB) return true;
-          return cleanA && cleanB && cleanA === cleanB;
+          return (matchDraft.opponentPlayingXI || []).some(pB => {
+            const rawB = typeof pB === 'object' ? (pB.name || '') : String(pB || '');
+            const cleanB = rawB.replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase();
+            const phoneB = typeof pB === 'object' ? String(pB.phone || '').replace(/[^0-9]/g, '').slice(-10) : '';
+
+            if (phoneA && phoneB && phoneA === phoneB) return true;
+            return cleanA && cleanB && cleanA === cleanB;
+          });
         });
-      });
 
-      if (conflictingPlayer) {
-        const conflictName = typeof conflictingPlayer === 'object' ? conflictingPlayer.name : conflictingPlayer;
-        showAppToast(`🚫 Conflict: "${conflictName}" cannot play for both teams in the same match!`, '🚫', 'warning');
-        return;
-      }
+        if (conflictingPlayer) {
+          const conflictName = typeof conflictingPlayer === 'object' ? conflictingPlayer.name : conflictingPlayer;
+          showAppToast(`🚫 Conflict: "${conflictName}" cannot play for both teams in the same match!`, '🚫', 'warning');
+          return;
+        }
 
-      if (!matchDraft.myCaptain) {
-        showAppToast(`Please select a Captain (C) for ${matchDraft.myTeam?.name || 'Team A'} 👑`, '👑', 'warning');
+        if (!matchDraft.oppCaptain) {
+          const firstP = matchDraft.opponentPlayingXI[0];
+          const autoCap = typeof firstP === 'object' ? firstP.name : firstP;
+          updateDraft({ oppCaptain: autoCap });
+        }
+        if (!matchDraft.myWicketkeeper) {
+          const wkP = (matchDraft.myPlayingXI || []).find(p => p.isWk || p.role === 'WK');
+          const autoWk = wkP ? wkP.name : (matchDraft.myPlayingXI[1]?.name || matchDraft.myPlayingXI[0]?.name || '');
+          updateDraft({ myWicketkeeper: autoWk });
+        }
+        if (!matchDraft.oppWicketkeeper) {
+          const wkP = (matchDraft.opponentPlayingXI || []).find(p => p.isWk || p.role === 'WK');
+          const autoWk = wkP ? wkP.name : (matchDraft.opponentPlayingXI[1]?.name || matchDraft.opponentPlayingXI[0]?.name || '');
+          updateDraft({ oppWicketkeeper: autoWk });
+        }
+
+        setWzPhase(3); // Direct to Toss
         return;
       }
-      if (!matchDraft.myWicketkeeper) {
-        showAppToast(`Please select a Wicketkeeper (WK) for ${matchDraft.myTeam?.name || 'Team A'} 🧤`, '🧤', 'warning');
-        return;
-      }
-      if (!matchDraft.oppCaptain) {
-        showAppToast(`Please select a Captain (C) for ${matchDraft.opponentTeam?.name || 'Team B'} 👑`, '👑', 'warning');
-        return;
-      }
-      if (!matchDraft.oppWicketkeeper) {
-        showAppToast(`Please select a Wicketkeeper (WK) for ${matchDraft.opponentTeam?.name || 'Team B'} 🧤`, '🧤', 'warning');
-        return;
-      }
-      setWzPhase(3); // Direct to Toss
-      return;
     }
 
     // Phase 3 Validation: Toss Winner & Toss Decision -> Proceed to Phase 5 (Confirmation / Let's Play)
@@ -18788,6 +18818,9 @@ function CricketAddaMain() {
     if (stepObj.phase === 1) {
       setWzPhase(1);
       setWzTeamStep(stepObj.teamStep || 1);
+    } else if (stepObj.phase === 4) {
+      setWzPhase(4);
+      setXiTeamStep(1);
     } else {
       setWzPhase(stepObj.phase);
     }
@@ -20322,19 +20355,69 @@ function CricketAddaMain() {
 
     if (isSelected) {
       if ((currentXI || []).length <= 1) {
-        Alert.alert('Selection Error', 'Playing XI must have at least 1 player.');
+        showAppToast('Playing XI must have at least 1 player ⚠️', '⚠️', 'warning');
         return;
       }
       const updated = currentXI.filter(p => p.name !== player.name);
-      updateDraft({ [teamKey]: updated });
+      const updates = { [teamKey]: updated };
+      if (teamKey === 'myPlayingXI') {
+        if (matchDraft.myCaptain === player.name) {
+          updates.myCaptain = updated[0]?.name || '';
+        }
+        if (matchDraft.myViceCaptain === player.name) {
+          updates.myViceCaptain = '';
+        }
+      } else {
+        if (matchDraft.oppCaptain === player.name) {
+          updates.oppCaptain = updated[0]?.name || '';
+        }
+        if (matchDraft.oppViceCaptain === player.name) {
+          updates.oppViceCaptain = '';
+        }
+      }
+      updateDraft(updates);
     } else {
       if ((currentXI || []).length >= 11) {
-        Alert.alert('Maximum 11 Players', 'Playing XI can only contain exactly 11 players. Please deselect a player first.');
+        showAppToast('Playing XI is full (11/11). Deselect a player first ⚠️', '⚠️', 'warning');
         return;
       }
       const updated = [...currentXI, player];
       updateDraft({ [teamKey]: updated });
     }
+  };
+
+  const cycleCaptaincy = (isTeam1, player) => {
+    const capKey = isTeam1 ? 'myCaptain' : 'oppCaptain';
+    const vcKey = isTeam1 ? 'myViceCaptain' : 'oppViceCaptain';
+    const xiKey = isTeam1 ? 'myPlayingXI' : 'opponentPlayingXI';
+    const currentXI = matchDraft[xiKey] || [];
+
+    let nextXI = currentXI;
+    if (!currentXI.some(p => p.name === player.name)) {
+      if (currentXI.length >= 11) {
+        showAppToast('Playing XI is full (11/11). Deselect a player first ⚠️', '⚠️', 'warning');
+        return;
+      }
+      nextXI = [...currentXI, player];
+    }
+
+    const isCurrentCap = matchDraft[capKey] === player.name;
+    const isCurrentVc = matchDraft[vcKey] === player.name;
+
+    const updates = { [xiKey]: nextXI };
+    if (!isCurrentCap && !isCurrentVc) {
+      updates[capKey] = player.name;
+      if (matchDraft[vcKey] === player.name) updates[vcKey] = '';
+      showAppToast(`${player.name} is now Captain (C) 👑`, '👑');
+    } else if (isCurrentCap) {
+      updates[capKey] = '';
+      updates[vcKey] = player.name;
+      showAppToast(`${player.name} is now Vice-Captain (VC) ⭐`, '⭐');
+    } else {
+      updates[vcKey] = '';
+      showAppToast(`${player.name} role cleared 🔄`, '🔄');
+    }
+    updateDraft(updates);
   };
 
   const addGuestPlayer = () => {
@@ -30512,22 +30595,34 @@ function CricketAddaMain() {
                   <>
                     <Text style={{ color: '#ffffff' }}>MATCH </Text>
                     <Text style={{
-                      color: '#38bdf8',
-                      textShadowColor: 'rgba(56, 189, 248, 0.45)',
+                      color: '#4ade80',
+                      textShadowColor: 'rgba(74, 222, 128, 0.45)',
                       textShadowOffset: { width: 0, height: 1 },
                       textShadowRadius: 8,
-                    }}>DETAILS & FORMAT</Text>
+                    }}>DETAILS</Text>
                   </>
                 ) : wzPhase === 4 ? (
-                  <>
-                    <Text style={{ color: '#ffffff' }}>PLAYING XI </Text>
-                    <Text style={{
-                      color: '#c084fc',
-                      textShadowColor: 'rgba(192, 132, 252, 0.45)',
-                      textShadowOffset: { width: 0, height: 1 },
-                      textShadowRadius: 8,
-                    }}>& ROLES</Text>
-                  </>
+                  xiTeamStep === 1 ? (
+                    <>
+                      <Text style={{ color: '#ffffff' }}>SELECT </Text>
+                      <Text style={{
+                        color: '#38bdf8',
+                        textShadowColor: 'rgba(56, 189, 248, 0.45)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 8,
+                      }}>PLAYING XI</Text>
+                    </>
+                  ) : (
+                    <>
+                      <Text style={{ color: '#ffffff' }}>SELECT </Text>
+                      <Text style={{
+                        color: '#f87171',
+                        textShadowColor: 'rgba(239, 68, 68, 0.45)',
+                        textShadowOffset: { width: 0, height: 1 },
+                        textShadowRadius: 8,
+                      }}>OPPONENT XI</Text>
+                    </>
+                  )
                 ) : wzPhase === 3 ? (
                   <>
                     <Text style={{ color: '#ffffff' }}>COIN </Text>
@@ -30549,6 +30644,23 @@ function CricketAddaMain() {
                     }}>CONFIRMATION 🚀</Text>
                   </>
                 )}
+              </Text>
+              <Text style={{
+                fontSize: 11.5,
+                color: '#94a3b8',
+                marginTop: 2,
+                fontWeight: '500',
+                textAlign: 'center',
+              }}>
+                {wzPhase === 1
+                  ? (wzTeamStep === 1 ? 'Choose your primary playing team' : 'Choose opponent team for this match')
+                  : wzPhase === 2
+                  ? 'Enter match information to continue'
+                  : wzPhase === 4
+                  ? (xiTeamStep === 1 ? `Select 11 players for ${matchDraft.myTeam?.name || 'Your Team'}` : `Select 11 players for ${matchDraft.opponentTeam?.name || 'Opponent Team'}`)
+                  : wzPhase === 3
+                  ? 'Flip the coin to determine batting/bowling'
+                  : 'Review team squads & match rules'}
               </Text>
             </View>
           </View>
@@ -30907,137 +31019,247 @@ function CricketAddaMain() {
                 showsVerticalScrollIndicator={false}
               >
                 {/* ========================================================================= */}
-                {/* PHASE 2: MATCH SETTINGS */}
+                {/* PHASE 2: MATCH DETAILS */}
                 {/* ========================================================================= */}
                 {wzPhase === 2 && (
-                  <View>
-                    <View style={[styles.phaseHeaderBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
-                      <Text style={[styles.wizardSectionLabel, { color: '#38bdf8' }]}>⚙️ MATCH SETTINGS & FORMAT</Text>
-                      <Text style={[styles.phaseSubDesc, { color: '#94a3b8' }]}>
-                        Select format, total overs, match title, ground venue, and date/time
-                      </Text>
-                    </View>
-
-                    <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Select Match Format:</Text>
-                    <View style={styles.formatPillsRow}>
-                      {[
-                        { label: 'T20 (20 Overs)', overs: 20, format: 'T20' },
-                        { label: 'ODI (50 Overs)', overs: 50, format: 'ODI' },
-                        { label: 'T10 (10 Overs)', overs: 10, format: 'T10' },
-                        { label: '6 Overs (Super Six)', overs: 6, format: 'T6' },
-                        { label: 'Custom Overs', overs: matchDraft.totalOvers || 15, format: 'Custom' },
-                      ].map(f => (
-                        <TouchableOpacity
-                          key={f.label}
-                          style={[
-                            styles.formatPillBtn,
-                            { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
-                            matchDraft.format === f.format && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
-                          ]}
-                          onPress={() => updateDraft({ format: f.format, totalOvers: f.overs, oversPerBowler: Math.ceil(f.overs / 5) })}
-                        >
-                          <Text style={[
-                            styles.formatPillBtnText,
-                            { color: '#94a3b8' },
-                            matchDraft.format === f.format && { color: '#000000', fontWeight: '900' }
-                          ]}>
-                            {f.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-
-                    <Text style={[styles.inputFieldLabel, { color: '#cbd5e1', marginTop: 8 }]}>Custom Total Overs ({matchDraft.totalOvers} ov):</Text>
-                    <View style={styles.oversGrid}>
-                      {[5, 6, 8, 10, 12, 15, 20, 25, 30, 50].map(ov => (
-                        <TouchableOpacity
-                          key={ov}
-                          style={[
-                            styles.overNumBtn,
-                            { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
-                            matchDraft.totalOvers === ov && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
-                          ]}
-                          onPress={() => updateDraft({ totalOvers: ov, oversPerBowler: Math.ceil(ov / 5) })}
-                        >
-                          <Text style={[
-                            styles.overNumBtnText,
-                            { color: '#94a3b8' },
-                            matchDraft.totalOvers === ov && { color: '#000000', fontWeight: '900' }
-                          ]}>
-                            {ov}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-
-                    <View style={styles.wizardInputBox}>
-                      <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Match Title:</Text>
-                      <TextInput
-                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff' }]}
-                        value={matchDraft.title}
-                        onChangeText={txt => updateDraft({ title: txt })}
-                        placeholder="e.g. Punjab Warriors vs Delhi Strikers Final"
-                        placeholderTextColor="#64748b"
-                      />
-                    </View>
-
-                    <View style={styles.wizardInputBox}>
-                      <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Ground / Stadium:</Text>
-                      <TextInput
-                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff' }]}
-                        value={matchDraft.ground}
-                        onChangeText={txt => updateDraft({ ground: txt })}
-                        placeholder="e.g. PCA Stadium, Mohali"
-                        placeholderTextColor="#64748b"
-                      />
-                    </View>
-
-                    <View style={styles.wizardInputBox}>
-                      <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Match Date & Time:</Text>
-                      <TextInput
-                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff' }]}
-                        value={matchDraft.dateTime}
-                        onChangeText={txt => updateDraft({ dateTime: txt })}
-                        placeholder="e.g. Today, 03:30 PM"
-                        placeholderTextColor="#64748b"
-                      />
-                    </View>
-
-                    <Text style={[styles.inputFieldLabel, { color: '#cbd5e1' }]}>Ball Type:</Text>
-                    <View style={styles.ballTypeRow}>
-                      {[
-                        { id: '⚪ White Leather', label: 'White Leather', isRed: false, emoji: '⚪' },
-                        { id: '🔴 Red Leather', label: 'Red Leather', isRed: true, emoji: null },
-                        { id: '🎾 Tennis / Box', label: 'Tennis / Box', isRed: false, emoji: '🎾' },
-                      ].map(bObj => {
-                        const isSel = matchDraft.ballType === bObj.id || matchDraft.ballType === bObj.label;
-                        return (
+                  <View style={{ paddingTop: 4 }}>
+                    {/* Card 1: Match Name */}
+                    <View style={{
+                      backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(56, 189, 248, 0.35)',
+                      borderRadius: 14,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      marginBottom: 12,
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13 }}>🏆</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Match Name</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            color: '#ffffff',
+                            fontSize: 15.5,
+                            fontWeight: 'bold',
+                            paddingVertical: 2,
+                          }}
+                          value={matchDraft.title}
+                          onChangeText={txt => updateDraft({ title: txt })}
+                          placeholder="Friendly Match"
+                          placeholderTextColor="#64748b"
+                        />
+                        {Boolean(matchDraft.title) && (
                           <TouchableOpacity
-                            key={bObj.id}
-                            style={[
-                              styles.ballTypeBtn,
-                              { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
-                              isSel && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
-                            ]}
-                            onPress={() => updateDraft({ ballType: bObj.id })}
+                            onPress={() => updateDraft({ title: '' })}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                           >
-                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-                              {bObj.isRed ? (
-                                <RealisticCricketLeatherBall size={13} />
-                              ) : (
-                                <Text style={{ fontSize: 12 }}>{bObj.emoji}</Text>
-                              )}
-                              <Text style={[
-                                styles.ballTypeBtnText,
-                                { color: '#94a3b8' },
-                                isSel && { color: '#000000', fontWeight: '900' }
-                              ]}>
-                                {bObj.label}
-                              </Text>
-                            </View>
+                            <Text style={{ color: '#94a3b8', fontSize: 15, fontWeight: 'bold' }}>✕</Text>
                           </TouchableOpacity>
-                        );
-                      })}
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Card 2: Match Type */}
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                        borderWidth: 1.5,
+                        borderColor: 'rgba(56, 189, 248, 0.35)',
+                        borderRadius: 14,
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        marginBottom: 12,
+                      }}
+                      onPress={() => setMatchTypePickerVisible(true)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13 }}>⚪</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Match Type</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: 'bold' }}>
+                          {matchDraft.format || 'T20'}
+                        </Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold', marginTop: -2 }}>⌄</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Card 3: Date */}
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                        borderWidth: 1.5,
+                        borderColor: 'rgba(56, 189, 248, 0.35)',
+                        borderRadius: 14,
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        marginBottom: 12,
+                      }}
+                      onPress={() => setDatePickerVisible(true)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13 }}>📅</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Date</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: 'bold' }}>
+                          {matchDraft.matchDate || '01 Oct 2026'}
+                        </Text>
+                        <Text style={{ fontSize: 16 }}>🗓️</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Card 4: Time */}
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                        borderWidth: 1.5,
+                        borderColor: 'rgba(56, 189, 248, 0.35)',
+                        borderRadius: 14,
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        marginBottom: 12,
+                      }}
+                      onPress={() => setTimePickerVisible(true)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13 }}>🕒</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Time</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: 'bold' }}>
+                          {matchDraft.matchTime || '04:00 PM'}
+                        </Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold', marginTop: -2 }}>⌄</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Card 5: Venue */}
+                    <View style={{
+                      backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(56, 189, 248, 0.35)',
+                      borderRadius: 14,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      marginBottom: 12,
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13 }}>📍</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Venue</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            color: '#ffffff',
+                            fontSize: 15.5,
+                            fontWeight: 'bold',
+                            paddingVertical: 2,
+                          }}
+                          value={matchDraft.ground}
+                          onChangeText={txt => updateDraft({ ground: txt })}
+                          placeholder="Joseph's Ground, Ludhiana"
+                          placeholderTextColor="#64748b"
+                        />
+                        {Boolean(matchDraft.ground) && (
+                          <TouchableOpacity
+                            onPress={() => updateDraft({ ground: '' })}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          >
+                            <Text style={{ color: '#94a3b8', fontSize: 15, fontWeight: 'bold' }}>✕</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    </View>
+
+                    {/* Card 6: Overs per Innings */}
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                        borderWidth: 1.5,
+                        borderColor: 'rgba(56, 189, 248, 0.35)',
+                        borderRadius: 14,
+                        paddingHorizontal: 16,
+                        paddingVertical: 12,
+                        marginBottom: 12,
+                      }}
+                      onPress={() => setOversPickerVisible(true)}
+                      activeOpacity={0.8}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                        <Text style={{ fontSize: 13 }}>🏏</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Overs per Innings</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <Text style={{ color: '#ffffff', fontSize: 15.5, fontWeight: 'bold' }}>
+                          {matchDraft.totalOvers || 20} Overs
+                        </Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 18, fontWeight: 'bold', marginTop: -2 }}>⌄</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    {/* Ball Type Selection */}
+                    <View style={{
+                      backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(56, 189, 248, 0.35)',
+                      borderRadius: 14,
+                      paddingHorizontal: 16,
+                      paddingVertical: 12,
+                      marginBottom: 12,
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+                        <Text style={{ fontSize: 13 }}>⚾</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Ball Type</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        {[
+                          { id: '⚪ White Leather', label: 'White Leather', isRed: false, emoji: '⚪' },
+                          { id: '🔴 Red Leather', label: 'Red Leather', isRed: true, emoji: null },
+                          { id: '🎾 Tennis / Box', label: 'Tennis / Box', isRed: false, emoji: '🎾' },
+                        ].map(bObj => {
+                          const isSel = matchDraft.ballType === bObj.id || matchDraft.ballType === bObj.label;
+                          return (
+                            <TouchableOpacity
+                              key={bObj.id}
+                              style={{
+                                flex: 1,
+                                paddingVertical: 8,
+                                paddingHorizontal: 6,
+                                borderRadius: 8,
+                                backgroundColor: isSel ? '#22c55e' : 'rgba(8, 28, 48, 0.80)',
+                                borderWidth: 1,
+                                borderColor: isSel ? '#22c55e' : 'rgba(56, 189, 248, 0.25)',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}
+                              onPress={() => updateDraft({ ballType: bObj.id })}
+                            >
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                {bObj.isRed ? (
+                                  <RealisticCricketLeatherBall size={13} />
+                                ) : (
+                                  <Text style={{ fontSize: 12 }}>{bObj.emoji}</Text>
+                                )}
+                                <Text style={{
+                                  color: isSel ? '#000000' : '#cbd5e1',
+                                  fontWeight: isSel ? '900' : '600',
+                                  fontSize: 11.5,
+                                }}>
+                                  {bObj.label}
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
                     </View>
                   </View>
                 )}
@@ -31260,292 +31482,295 @@ function CricketAddaMain() {
                 )}
 
                 {/* ========================================================================= */}
-                {/* PHASE 4: PLAYING XI & CAPTAIN / WK */}
+                {/* PHASE 4: PLAYING XI SELECTION (STEP 1: YOUR TEAM, STEP 2: OPPONENT TEAM) */}
                 {/* ========================================================================= */}
-                {wzPhase === 4 && (
-                  <View>
-                    <View style={[styles.phaseHeaderBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
-                      <Text style={[styles.wizardSectionLabel, { color: '#38bdf8' }]}>👥 PLAYING XI & CAPTAIN / WK</Text>
-                      <Text style={[styles.phaseSubDesc, { color: '#94a3b8' }]}>
-                        Select exactly 11 players for both teams, plus Captain (C) & Wicketkeeper (WK)
-                      </Text>
-                    </View>
+                {wzPhase === 4 && (() => {
+                  const isTeam1 = xiTeamStep === 1;
+                  const currentTeam = isTeam1 ? matchDraft.myTeam : matchDraft.opponentTeam;
+                  const currentXIKey = isTeam1 ? 'myPlayingXI' : 'opponentPlayingXI';
+                  const currentXI = matchDraft[currentXIKey] || [];
+                  const activeCap = isTeam1 ? matchDraft.myCaptain : matchDraft.oppCaptain;
+                  const activeVc = isTeam1 ? matchDraft.myViceCaptain : matchDraft.oppViceCaptain;
+                  const searchQuery = isTeam1 ? mySquadSearch : oppSquadSearch;
+                  const setSearchQuery = isTeam1 ? setMySquadSearch : setOppSquadSearch;
 
-                    {/* TEAM A PLAYING XI */}
-                    <View style={[styles.teamSetupCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1, paddingRight: 6 }}>
+                  // Full player list: registered squad + any added guests
+                  const fullList = (currentTeam?.squad || [])
+                    .concat(currentXI.filter(p => p.isGuest && !(currentTeam?.squad || []).some(s => s.name === p.name)))
+                    .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+                  const getRoleBadge = (player) => {
+                    const r = (player.role || '').toUpperCase();
+                    if (player.isWk || r.includes('WK')) return '🧤 WK';
+                    if (r.includes('AR') || r.includes('ALL')) return '⚔️ ALL';
+                    if (r.includes('BOWL')) return '🔴 RAF';
+                    return '🏏 RHB';
+                  };
+
+                  return (
+                    <View style={{ paddingTop: 4 }}>
+                      {/* Team Header Card */}
+                      <View style={{
+                        backgroundColor: 'rgba(5, 22, 40, 0.90)',
+                        borderWidth: 1.5,
+                        borderColor: isTeam1 ? 'rgba(56, 189, 248, 0.40)' : 'rgba(239, 68, 68, 0.40)',
+                        borderRadius: 14,
+                        paddingVertical: 12,
+                        paddingHorizontal: 14,
+                        marginBottom: 10,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                      }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 6 }}>
                           <View style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 12,
-                            overflow: 'hidden',
+                            width: 38,
+                            height: 38,
+                            borderRadius: 19,
+                            backgroundColor: isTeam1 ? '#0284c7' : '#dc2626',
                             justifyContent: 'center',
                             alignItems: 'center',
-                            backgroundColor: '#1e293b',
-                            borderWidth: 1,
-                            borderColor: '#38bdf8',
+                            shadowColor: isTeam1 ? '#38bdf8' : '#ef4444',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.5,
+                            shadowRadius: 4,
+                            elevation: 4,
                           }}>
-                            <SmartTeamLogo
-                              team={matchDraft.myTeam}
-                              allTeams={allAvailableMatchTeams}
-                              allUsers={usersDb}
-                              style={{ width: '100%', height: '100%' }}
-                              flagStyle={{ fontSize: 13 }}
-                              fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
-                            />
+                            <Text style={{ fontSize: 18 }}>👕</Text>
                           </View>
-                          <Text style={[styles.teamSetupHeader, { color: '#ffffff', flex: 1 }]} numberOfLines={1}>
-                            {matchDraft.myTeam?.name} (XI: {matchDraft.myPlayingXI?.length || 0}/11)
-                          </Text>
-                        </View>
-                        <TouchableOpacity
-                          style={[styles.addGuestMiniBtn, { backgroundColor: '#38bdf8' }]}
-                          onPress={() => {
-                            setGuestTargetTeam('myTeam');
-                            setGuestModalVisible(true);
-                          }}
-                        >
-                          <Text style={[styles.addGuestMiniBtnText, { color: '#000000', fontWeight: '800' }]}>+ Guest</Text>
-                        </TouchableOpacity>
-                      </View>
-
-                      <TextInput
-                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff', marginVertical: 6 }]}
-                        value={mySquadSearch}
-                        onChangeText={setMySquadSearch}
-                        placeholder="Search player in squad..."
-                        placeholderTextColor="#64748b"
-                      />
-
-                      <View style={styles.squadSelectGrid}>
-                        {(matchDraft.myTeam?.squad || [])
-                          .concat((matchDraft.myPlayingXI || []).filter(p => p.isGuest && !(matchDraft.myTeam?.squad || []).some(s => s.name === p.name)))
-                          .filter(p => p.name.toLowerCase().includes(mySquadSearch.toLowerCase()))
-                          .map(p => {
-                            const isSelected = (matchDraft.myPlayingXI || []).some(xi => xi.name === p.name);
-                            return (
-                              <TouchableOpacity
-                                key={p.name}
-                                style={[
-                                  styles.playerSelectChip,
-                                  { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
-                                  isSelected && styles.playerSelectChipActive
-                                ]}
-                                onPress={() => togglePlayerInPlayingXI('myPlayingXI', p)}
-                              >
-                                <View style={styles.playerChipRoleTag}>
-                                  <Text style={styles.playerChipRoleText}>{p.role}</Text>
-                                </View>
-                                <Text style={[styles.playerChipName, { color: '#cbd5e1' }, isSelected && styles.playerChipNameActive]}>
-                                  {p.name}
-                                </Text>
-                                <Text style={{ color: isSelected ? '#10b981' : '#64748b', fontSize: 13, fontWeight: 'bold' }}>
-                                  {isSelected ? '✓' : '+'}
-                                </Text>
-                              </TouchableOpacity>
-                            );
-                          })}
-                      </View>
-
-                      {/* Separate Captain & WK Rows for Team A */}
-                      <View style={{ marginTop: 8 }}>
-                        {/* Captain Row */}
-                        <View style={[styles.rolePickerSectionRow, { backgroundColor: 'rgba(4, 16, 28, 0.75)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
-                          <View style={styles.rolePickerHeaderRow}>
-                            <Text style={[styles.roleSectionTitle, { color: '#ffffff' }]}>👑 Select Captain (C):</Text>
-                            <Text style={styles.roleActiveValueTag}>{matchDraft.myCaptain || 'Select Captain'}</Text>
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: '#ffffff', fontSize: 16.5, fontWeight: '900' }} numberOfLines={1}>
+                              {currentTeam?.name || (isTeam1 ? 'Your Team' : 'Opponent Team')}
+                            </Text>
+                            <Text style={{ color: isTeam1 ? '#38bdf8' : '#f87171', fontSize: 11, fontWeight: '700' }}>
+                              {isTeam1 ? 'Team 1 (Your Team)' : 'Team 2 (Opponent Team)'}
+                            </Text>
                           </View>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
-                            {(matchDraft.myPlayingXI || []).map(p => {
-                              const isCap = matchDraft.myCaptain === p.name;
-                              return (
-                                <TouchableOpacity
-                                  key={`cap_a_${p.name}`}
-                                  style={[
-                                    styles.rolePickPillFull,
-                                    { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.2)' },
-                                    isCap && styles.rolePickPillFullActive
-                                  ]}
-                                  onPress={() => updateDraft({ myCaptain: p.name })}
-                                >
-                                  <Text style={[styles.rolePickPillFullText, { color: '#cbd5e1' }, isCap && styles.rolePickPillFullTextActive]}>
-                                    {isCap ? '👑 ' : ''}{p.name} ({p.role})
-                                  </Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </ScrollView>
                         </View>
 
-                        {/* Wicketkeeper Row */}
-                        <View style={[styles.rolePickerSectionRow, { backgroundColor: 'rgba(4, 16, 28, 0.75)', borderColor: 'rgba(56, 189, 248, 0.18)', marginTop: 8 }]}>
-                          <View style={styles.rolePickerHeaderRow}>
-                            <Text style={[styles.roleSectionTitle, { color: '#ffffff' }]}>🧤 Select Wicketkeeper (WK):</Text>
-                            <Text style={[styles.roleActiveValueTag, { color: '#c084fc' }]}>{matchDraft.myWicketkeeper || 'Select Keeper'}</Text>
-                          </View>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
-                            {(matchDraft.myPlayingXI || []).map(p => {
-                              const isWk = matchDraft.myWicketkeeper === p.name;
-                              return (
-                                <TouchableOpacity
-                                  key={`wk_a_${p.name}`}
-                                  style={[
-                                    styles.rolePickPillFull,
-                                    { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.2)' },
-                                    isWk && styles.rolePickPillFullWkActive
-                                  ]}
-                                  onPress={() => updateDraft({ myWicketkeeper: p.name })}
-                                >
-                                  <Text style={[styles.rolePickPillFullText, { color: '#cbd5e1' }, isWk && styles.rolePickPillFullTextActive]}>
-                                    {isWk ? '🧤 ' : ''}{p.name} ({p.role})
-                                  </Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </ScrollView>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* TEAM B PLAYING XI */}
-                    <View style={[styles.teamSetupCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)', marginTop: 12 }]}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1, paddingRight: 6 }}>
+                        <View style={{ alignItems: 'flex-end', gap: 4 }}>
                           <View style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 12,
-                            overflow: 'hidden',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            backgroundColor: '#1e293b',
-                            borderWidth: 1,
-                            borderColor: '#38bdf8',
+                            backgroundColor: isTeam1 ? '#0284c7' : '#dc2626',
+                            borderRadius: 14,
+                            paddingHorizontal: 10,
+                            paddingVertical: 4.5,
                           }}>
-                            <SmartTeamLogo
-                              team={matchDraft.opponentTeam}
-                              allTeams={allAvailableMatchTeams}
-                              allUsers={usersDb}
-                              style={{ width: '100%', height: '100%' }}
-                              flagStyle={{ fontSize: 13 }}
-                              fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
-                            />
+                            <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }}>
+                              {currentXI.length} / 11 Players Selected
+                            </Text>
                           </View>
-                          <Text style={[styles.teamSetupHeader, { color: '#ffffff', flex: 1 }]} numberOfLines={1}>
-                            {matchDraft.opponentTeam?.name} (XI: {matchDraft.opponentPlayingXI?.length || 0}/11)
-                          </Text>
+                          <TouchableOpacity
+                            style={{
+                              paddingHorizontal: 8,
+                              paddingVertical: 2,
+                              backgroundColor: 'rgba(56, 189, 248, 0.15)',
+                              borderRadius: 8,
+                              borderWidth: 1,
+                              borderColor: 'rgba(56, 189, 248, 0.3)',
+                            }}
+                            onPress={() => {
+                              setGuestTargetTeam(isTeam1 ? 'myTeam' : 'opponentTeam');
+                              setGuestModalVisible(true);
+                            }}
+                          >
+                            <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '800' }}>+ Add Guest</Text>
+                          </TouchableOpacity>
                         </View>
-                        <TouchableOpacity
-                          style={[styles.addGuestMiniBtn, { backgroundColor: '#38bdf8' }]}
-                          onPress={() => {
-                            setGuestTargetTeam('opponentTeam');
-                            setGuestModalVisible(true);
+                      </View>
+
+                      {/* Squad Search Bar */}
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(4, 16, 28, 0.85)',
+                        borderWidth: 1,
+                        borderColor: 'rgba(56, 189, 248, 0.25)',
+                        borderRadius: 10,
+                        paddingHorizontal: 10,
+                        marginBottom: 10,
+                      }}>
+                        <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
+                        <TextInput
+                          style={{
+                            flex: 1,
+                            color: '#ffffff',
+                            fontSize: 13,
+                            paddingVertical: 7,
                           }}
-                        >
-                          <Text style={[styles.addGuestMiniBtnText, { color: '#000000', fontWeight: '800' }]}>+ Guest</Text>
-                        </TouchableOpacity>
+                          value={searchQuery}
+                          onChangeText={setSearchQuery}
+                          placeholder={`Search players in ${currentTeam?.name || 'squad'}...`}
+                          placeholderTextColor="#64748b"
+                        />
+                        {Boolean(searchQuery) && (
+                          <TouchableOpacity onPress={() => setSearchQuery('')}>
+                            <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: 'bold' }}>✕</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
 
-                      <TextInput
-                        style={[styles.wizardTextInput, { backgroundColor: 'rgba(4, 16, 28, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', color: '#ffffff', marginVertical: 6 }]}
-                        value={oppSquadSearch}
-                        onChangeText={setOppSquadSearch}
-                        placeholder="Search player in squad..."
-                        placeholderTextColor="#64748b"
-                      />
+                      {/* Playing XI Table */}
+                      <View style={{
+                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                        borderRadius: 14,
+                        borderWidth: 1.5,
+                        borderColor: 'rgba(56, 189, 248, 0.35)',
+                        overflow: 'hidden',
+                        marginBottom: 12,
+                      }}>
+                        {/* Table Header */}
+                        <View style={{
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          backgroundColor: 'rgba(2, 11, 20, 0.95)',
+                          paddingVertical: 9,
+                          paddingHorizontal: 10,
+                          borderBottomWidth: 1,
+                          borderBottomColor: 'rgba(56, 189, 248, 0.25)',
+                        }}>
+                          <Text style={{ width: 28, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>#</Text>
+                          <Text style={{ flex: 1, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', paddingLeft: 8 }}>Player Name</Text>
+                          <Text style={{ width: 78, color: '#94a3b8', fontSize: 11.5, fontWeight: '800' }}>Role</Text>
+                          <Text style={{ width: 56, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>C / VC</Text>
+                          <Text style={{ width: 44, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>Select</Text>
+                        </View>
 
-                      <View style={styles.squadSelectGrid}>
-                        {(matchDraft.opponentTeam?.squad || [])
-                          .concat((matchDraft.opponentPlayingXI || []).filter(p => p.isGuest && !(matchDraft.opponentTeam?.squad || []).some(s => s.name === p.name)))
-                          .filter(p => p.name.toLowerCase().includes(oppSquadSearch.toLowerCase()))
-                          .map(p => {
-                            const isSelected = (matchDraft.opponentPlayingXI || []).some(xi => xi.name === p.name);
+                        {/* Table Rows */}
+                        {fullList.length === 0 ? (
+                          <View style={{ padding: 24, alignItems: 'center' }}>
+                            <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center' }}>
+                              No players found. Tap "+ Add Guest" above to add players.
+                            </Text>
+                          </View>
+                        ) : (
+                          fullList.map((player, idx) => {
+                            const isSelected = currentXI.some(p => p.name === player.name);
+                            const isCap = activeCap === player.name;
+                            const isVc = activeVc === player.name;
+                            const jerseyNum = player.jersey ? String(player.jersey).replace('#', '') : String(idx + 1);
+
                             return (
-                              <TouchableOpacity
-                                key={p.name}
-                                style={[
-                                  styles.playerSelectChip,
-                                  { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)' },
-                                  isSelected && styles.playerSelectChipActive
-                                ]}
-                                onPress={() => togglePlayerInPlayingXI('opponentPlayingXI', p)}
+                              <View
+                                key={player.name || idx}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  paddingVertical: 9,
+                                  paddingHorizontal: 10,
+                                  borderBottomWidth: idx < fullList.length - 1 ? 1 : 0,
+                                  borderBottomColor: 'rgba(56, 189, 248, 0.12)',
+                                  backgroundColor: isSelected ? 'rgba(8, 28, 48, 0.55)' : 'transparent',
+                                }}
                               >
-                                <View style={styles.playerChipRoleTag}>
-                                  <Text style={styles.playerChipRoleText}>{p.role}</Text>
+                                {/* Column 1: # */}
+                                <Text style={{ width: 28, color: '#ffffff', fontSize: 12.5, fontWeight: '700', textAlign: 'center' }}>
+                                  {jerseyNum}
+                                </Text>
+
+                                {/* Column 2: Player Name & Avatar */}
+                                <TouchableOpacity
+                                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8 }}
+                                  onPress={() => togglePlayerInPlayingXI(currentXIKey, player)}
+                                  activeOpacity={0.8}
+                                >
+                                  <View style={{
+                                    width: 28,
+                                    height: 28,
+                                    borderRadius: 14,
+                                    backgroundColor: '#1e293b',
+                                    borderWidth: 1,
+                                    borderColor: isSelected ? '#38bdf8' : '#475569',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    overflow: 'hidden',
+                                  }}>
+                                    {player.avatarUri || player.photoUri ? (
+                                      <Image
+                                        source={{ uri: player.avatarUri || player.photoUri }}
+                                        style={{ width: 28, height: 28 }}
+                                        resizeMode="cover"
+                                      />
+                                    ) : (
+                                      <Text style={{ color: '#cbd5e1', fontSize: 11, fontWeight: 'bold' }}>
+                                        {(player.name || 'P').charAt(0)}
+                                      </Text>
+                                    )}
+                                  </View>
+                                  <Text
+                                    style={{
+                                      color: isSelected ? '#ffffff' : '#94a3b8',
+                                      fontSize: 13,
+                                      fontWeight: isSelected ? 'bold' : '600',
+                                      flex: 1,
+                                    }}
+                                    numberOfLines={1}
+                                  >
+                                    {player.name}
+                                  </Text>
+                                </TouchableOpacity>
+
+                                {/* Column 3: Role */}
+                                <View style={{ width: 78 }}>
+                                  <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '600' }}>
+                                    {getRoleBadge(player)}
+                                  </Text>
                                 </View>
-                                <Text style={[styles.playerChipName, { color: '#cbd5e1' }, isSelected && styles.playerChipNameActive]}>
-                                  {p.name}
-                                </Text>
-                                <Text style={{ color: isSelected ? '#10b981' : '#64748b', fontSize: 13, fontWeight: 'bold' }}>
-                                  {isSelected ? '✓' : '+'}
-                                </Text>
-                              </TouchableOpacity>
+
+                                {/* Column 4: C / VC Cycle Button */}
+                                <View style={{ width: 56, alignItems: 'center', justifyContent: 'center' }}>
+                                  <TouchableOpacity
+                                    style={{
+                                      width: 26,
+                                      height: 26,
+                                      borderRadius: 13,
+                                      backgroundColor: isCap ? '#facc15' : isVc ? '#e2e8f0' : 'transparent',
+                                      borderWidth: isCap || isVc ? 0 : 1.5,
+                                      borderColor: '#475569',
+                                      justifyContent: 'center',
+                                      alignItems: 'center',
+                                    }}
+                                    onPress={() => cycleCaptaincy(isTeam1, player)}
+                                    activeOpacity={0.7}
+                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                                  >
+                                    {isCap ? (
+                                      <Text style={{ color: '#000000', fontSize: 12.5, fontWeight: '900' }}>C</Text>
+                                    ) : isVc ? (
+                                      <Text style={{ color: '#000000', fontSize: 9.5, fontWeight: '900' }}>VC</Text>
+                                    ) : null}
+                                  </TouchableOpacity>
+                                </View>
+
+                                {/* Column 5: Checkbox */}
+                                <View style={{ width: 44, alignItems: 'center', justifyContent: 'center' }}>
+                                  <TouchableOpacity
+                                    style={{
+                                      width: 22,
+                                      height: 22,
+                                      borderRadius: 5,
+                                      backgroundColor: isSelected ? '#0284c7' : 'rgba(15, 23, 42, 0.7)',
+                                      borderWidth: isSelected ? 0 : 1.5,
+                                      borderColor: isSelected ? '#0284c7' : '#475569',
+                                      justifyContent: 'center',
+                                      alignItems: 'center',
+                                    }}
+                                    onPress={() => togglePlayerInPlayingXI(currentXIKey, player)}
+                                    activeOpacity={0.7}
+                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                                  >
+                                    {isSelected && (
+                                      <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>✓</Text>
+                                    )}
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
                             );
-                          })}
-                      </View>
-
-                      {/* Separate Captain & WK Rows for Team B */}
-                      <View style={{ marginTop: 8 }}>
-                        {/* Captain Row */}
-                        <View style={[styles.rolePickerSectionRow, { backgroundColor: 'rgba(4, 16, 28, 0.75)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
-                          <View style={styles.rolePickerHeaderRow}>
-                            <Text style={[styles.roleSectionTitle, { color: '#ffffff' }]}>👑 Select Captain (C):</Text>
-                            <Text style={styles.roleActiveValueTag}>{matchDraft.oppCaptain || 'Select Captain'}</Text>
-                          </View>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
-                            {(matchDraft.opponentPlayingXI || []).map(p => {
-                              const isCap = matchDraft.oppCaptain === p.name;
-                              return (
-                                <TouchableOpacity
-                                  key={`cap_b_${p.name}`}
-                                  style={[
-                                    styles.rolePickPillFull,
-                                    { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.2)' },
-                                    isCap && styles.rolePickPillFullActive
-                                  ]}
-                                  onPress={() => updateDraft({ oppCaptain: p.name })}
-                                >
-                                  <Text style={[styles.rolePickPillFullText, { color: '#cbd5e1' }, isCap && styles.rolePickPillFullTextActive]}>
-                                    {isCap ? '👑 ' : ''}{p.name} ({p.role})
-                                  </Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </ScrollView>
-                        </View>
-
-                        {/* Wicketkeeper Row */}
-                        <View style={[styles.rolePickerSectionRow, { backgroundColor: 'rgba(4, 16, 28, 0.75)', borderColor: 'rgba(56, 189, 248, 0.18)', marginTop: 8 }]}>
-                          <View style={styles.rolePickerHeaderRow}>
-                            <Text style={[styles.roleSectionTitle, { color: '#ffffff' }]}>🧤 Select Wicketkeeper (WK):</Text>
-                            <Text style={[styles.roleActiveValueTag, { color: '#c084fc' }]}>{matchDraft.oppWicketkeeper || 'Select Keeper'}</Text>
-                          </View>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false} keyboardShouldPersistTaps="always" style={styles.rolePickerScrollView}>
-                            {(matchDraft.opponentPlayingXI || []).map(p => {
-                              const isWk = matchDraft.oppWicketkeeper === p.name;
-                              return (
-                                <TouchableOpacity
-                                  key={`wk_b_${p.name}`}
-                                  style={[
-                                    styles.rolePickPillFull,
-                                    { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.2)' },
-                                    isWk && styles.rolePickPillFullWkActive
-                                  ]}
-                                  onPress={() => updateDraft({ oppWicketkeeper: p.name })}
-                                >
-                                  <Text style={[styles.rolePickPillFullText, { color: '#cbd5e1' }, isWk && styles.rolePickPillFullTextActive]}>
-                                    {isWk ? '🧤 ' : ''}{p.name} ({p.role})
-                                  </Text>
-                                </TouchableOpacity>
-                              );
-                            })}
-                          </ScrollView>
-                        </View>
+                          })
+                        )}
                       </View>
                     </View>
-                  </View>
-                )}
+                  );
+                })()}
 
                 {/* ========================================================================= */}
                 {/* PHASE 5: FINAL CONFIRMATION CARD & START MATCH */}
@@ -31791,50 +32016,407 @@ function CricketAddaMain() {
               </ScrollView>
 
               {/* DOCKED FIXED FOOTER ACTION BAR AT THE VERY BOTTOM FOR PHASES > 1 */}
-              <View style={[styles.wizardDockedBottomBar, { backgroundColor: 'rgba(2, 11, 20, 0.94)', borderTopColor: '#0a1d30', paddingBottom: Math.max(12, bottomInset) }]}>
-                <TouchableOpacity
-                  style={[styles.wizardCancelBtn, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)', borderWidth: 1 }]}
-                  onPress={confirmCancelMatchSetup}
-                >
-                  <Text style={[styles.wizardCancelBtnText, { color: '#f87171' }]}>✕ Cancel</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.wizardBackBtn, { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.3)' }]}
-                  onPress={handleWizardBack}
-                >
-                  <Text style={[styles.wizardBackBtnText, { color: '#ffffff' }]}>← Back</Text>
-                </TouchableOpacity>
-
-                {wzPhase < 5 ? (
+              {wzPhase === 2 ? (
+                <View style={{
+                  backgroundColor: 'rgba(2, 11, 20, 0.94)',
+                  borderTopWidth: 1,
+                  borderTopColor: 'rgba(56, 189, 248, 0.2)',
+                  paddingHorizontal: 16,
+                  paddingTop: 10,
+                  paddingBottom: Math.max(14, bottomInset),
+                }}>
                   <TouchableOpacity
-                    style={[styles.wizardNextBtn, { backgroundColor: '#38bdf8', flex: 2 }]}
+                    style={{
+                      backgroundColor: '#22c55e',
+                      borderRadius: 28,
+                      paddingVertical: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      shadowColor: '#22c55e',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.45,
+                      shadowRadius: 8,
+                      elevation: 6,
+                    }}
                     onPress={handleWizardNext}
+                    activeOpacity={0.85}
                   >
-                    <Text style={[styles.wizardNextBtnText, { color: '#000000', fontWeight: '900' }]}>
-                      {wzPhase === 2
-                        ? 'Next: Playing XI 👥 →'
-                        : wzPhase === 4
-                        ? 'Next: Toss 🪙 →'
-                        : wzPhase === 3
-                        ? 'Next: Confirm 🚀 →'
-                        : 'Next ❯'}
+                    <Text style={{ color: '#000000', fontSize: 16, fontWeight: '900', letterSpacing: 0.8 }}>
+                      NEXT
                     </Text>
+                    <Text style={{ color: '#000000', fontSize: 17, fontWeight: '900' }}>❯</Text>
                   </TouchableOpacity>
-                ) : (
+                </View>
+              ) : wzPhase === 4 ? (() => {
+                const currentXI = xiTeamStep === 1 ? (matchDraft.myPlayingXI || []) : (matchDraft.opponentPlayingXI || []);
+                const batCount = currentXI.filter(p => {
+                  const r = (p.role || '').toUpperCase();
+                  return r.includes('BAT') || (!r.includes('BOWL') && !r.includes('WK') && !r.includes('AR') && !r.includes('ALL'));
+                }).length;
+                const bowlCount = currentXI.filter(p => (p.role || '').toUpperCase().includes('BOWL')).length;
+                const wkCount = currentXI.filter(p => (p.role || '').toUpperCase().includes('WK') || p.isWk).length;
+                const arCount = currentXI.filter(p => {
+                  const r = (p.role || '').toUpperCase();
+                  return r.includes('AR') || r.includes('ALL');
+                }).length;
+
+                return (
+                  <View style={{
+                    backgroundColor: 'rgba(2, 11, 20, 0.94)',
+                    borderTopWidth: 1,
+                    borderTopColor: 'rgba(56, 189, 248, 0.2)',
+                    paddingHorizontal: 16,
+                    paddingTop: 8,
+                    paddingBottom: Math.max(14, bottomInset),
+                  }}>
+                    {/* Role Summary Row */}
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-around',
+                      backgroundColor: 'rgba(5, 20, 36, 0.95)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(56, 189, 248, 0.25)',
+                      borderRadius: 12,
+                      paddingVertical: 9,
+                      paddingHorizontal: 6,
+                      marginBottom: 10,
+                    }}>
+                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
+                        🏏 {batCount} Batsman
+                      </Text>
+                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
+                        🔴 {bowlCount} Bowler
+                      </Text>
+                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
+                        🧤 {wkCount} Wicket Keeper
+                      </Text>
+                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
+                        ⚔️ {arCount} All Rounder
+                      </Text>
+                    </View>
+
+                    {/* Action Button */}
+                    <TouchableOpacity
+                      style={{
+                        backgroundColor: xiTeamStep === 1 ? '#0284c7' : '#22c55e',
+                        borderRadius: 28,
+                        paddingVertical: 14,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                        shadowColor: xiTeamStep === 1 ? '#0284c7' : '#22c55e',
+                        shadowOffset: { width: 0, height: 4 },
+                        shadowOpacity: 0.45,
+                        shadowRadius: 8,
+                        elevation: 6,
+                      }}
+                      onPress={handleWizardNext}
+                      activeOpacity={0.85}
+                    >
+                      <Text style={{
+                        color: xiTeamStep === 1 ? '#ffffff' : '#000000',
+                        fontSize: 15.5,
+                        fontWeight: '900',
+                        letterSpacing: 0.5,
+                      }}>
+                        {xiTeamStep === 1 ? 'Next: Opponent Team Players' : 'Next: Toss'}
+                      </Text>
+                      <Text style={{
+                        color: xiTeamStep === 1 ? '#ffffff' : '#000000',
+                        fontSize: 16,
+                        fontWeight: '900',
+                      }}>
+                        ❯
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              })() : (
+                <View style={[styles.wizardDockedBottomBar, { backgroundColor: 'rgba(2, 11, 20, 0.94)', borderTopColor: '#0a1d30', paddingBottom: Math.max(12, bottomInset) }]}>
                   <TouchableOpacity
-                    style={[styles.wizardNextBtn, { backgroundColor: '#22c55e', flex: 2 }]}
-                    onPress={startNewMatchFromWizard}
+                    style={[styles.wizardCancelBtn, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)', borderWidth: 1 }]}
+                    onPress={confirmCancelMatchSetup}
                   >
-                    <Text style={[styles.wizardNextBtnText, { color: '#000000', fontWeight: '900', fontSize: 13.5 }]}>
-                      🟢 START MATCH 🚀
-                    </Text>
+                    <Text style={[styles.wizardCancelBtnText, { color: '#f87171' }]}>✕ Cancel</Text>
                   </TouchableOpacity>
-                )}
-              </View>
+
+                  <TouchableOpacity
+                    style={[styles.wizardBackBtn, { backgroundColor: 'rgba(8, 28, 48, 0.85)', borderColor: 'rgba(56, 189, 248, 0.3)' }]}
+                    onPress={handleWizardBack}
+                  >
+                    <Text style={[styles.wizardBackBtnText, { color: '#ffffff' }]}>← Back</Text>
+                  </TouchableOpacity>
+
+                  {wzPhase < 5 ? (
+                    <TouchableOpacity
+                      style={[styles.wizardNextBtn, { backgroundColor: '#38bdf8', flex: 2 }]}
+                      onPress={handleWizardNext}
+                    >
+                      <Text style={[styles.wizardNextBtnText, { color: '#000000', fontWeight: '900' }]}>
+                        {wzPhase === 3 ? 'Next: Confirm 🚀 →' : 'Next ❯'}
+                      </Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[styles.wizardNextBtn, { backgroundColor: '#22c55e', flex: 2 }]}
+                      onPress={startNewMatchFromWizard}
+                    >
+                      <Text style={[styles.wizardNextBtnText, { color: '#000000', fontWeight: '900', fontSize: 13.5 }]}>
+                        🟢 START MATCH 🚀
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
+              )}
             </View>
           )}
         </ImageBackground>
+      </Modal>
+
+      {/* MATCH TYPE PICKER MODAL */}
+      <Modal visible={matchTypePickerVisible} transparent animationType="fade" statusBarTranslucent={true}>
+        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+          <View style={{
+            width: '100%',
+            maxWidth: 360,
+            backgroundColor: '#071828',
+            borderRadius: 16,
+            borderWidth: 1.5,
+            borderColor: '#38bdf8',
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.6,
+            shadowRadius: 10,
+            elevation: 8,
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.2)', paddingBottom: 8 }}>
+              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>Select Match Type</Text>
+              <TouchableOpacity onPress={() => setMatchTypePickerVisible(false)}>
+                <Text style={{ color: '#f87171', fontSize: 16, fontWeight: '900' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {[
+              { format: 'T20', label: 'T20 (20 Overs)', overs: 20 },
+              { format: 'ODI', label: 'ODI (50 Overs)', overs: 50 },
+              { format: 'T10', label: 'T10 (10 Overs)', overs: 10 },
+              { format: 'T6', label: '6 Overs (Super Six)', overs: 6 },
+              { format: 'Custom', label: 'Custom Format', overs: matchDraft.totalOvers || 20 },
+            ].map(item => (
+              <TouchableOpacity
+                key={item.format}
+                style={{
+                  paddingVertical: 12,
+                  paddingHorizontal: 14,
+                  borderRadius: 10,
+                  backgroundColor: matchDraft.format === item.format ? 'rgba(56, 189, 248, 0.2)' : 'rgba(8, 28, 48, 0.6)',
+                  borderWidth: 1,
+                  borderColor: matchDraft.format === item.format ? '#38bdf8' : 'rgba(56, 189, 248, 0.15)',
+                  marginBottom: 8,
+                  flexDirection: 'row',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+                onPress={() => {
+                  updateDraft({ format: item.format, totalOvers: item.overs, oversPerBowler: Math.ceil(item.overs / 5) });
+                  setMatchTypePickerVisible(false);
+                }}
+              >
+                <Text style={{ color: matchDraft.format === item.format ? '#38bdf8' : '#ffffff', fontSize: 14, fontWeight: 'bold' }}>
+                  {item.label}
+                </Text>
+                {matchDraft.format === item.format && (
+                  <Text style={{ color: '#38bdf8', fontSize: 16, fontWeight: '900' }}>✓</Text>
+                )}
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+      </Modal>
+
+      {/* OVERS PER INNINGS PICKER MODAL */}
+      <Modal visible={oversPickerVisible} transparent animationType="fade" statusBarTranslucent={true}>
+        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+          <View style={{
+            width: '100%',
+            maxWidth: 360,
+            backgroundColor: '#071828',
+            borderRadius: 16,
+            borderWidth: 1.5,
+            borderColor: '#38bdf8',
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.6,
+            shadowRadius: 10,
+            elevation: 8,
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.2)', paddingBottom: 8 }}>
+              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>Select Overs per Innings</Text>
+              <TouchableOpacity onPress={() => setOversPickerVisible(false)}>
+                <Text style={{ color: '#f87171', fontSize: 16, fontWeight: '900' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
+              {[5, 6, 8, 10, 12, 15, 20, 25, 30, 50].map(ov => (
+                <TouchableOpacity
+                  key={ov}
+                  style={{
+                    width: '31%',
+                    paddingVertical: 12,
+                    borderRadius: 10,
+                    backgroundColor: matchDraft.totalOvers === ov ? '#22c55e' : 'rgba(8, 28, 48, 0.8)',
+                    borderWidth: 1,
+                    borderColor: matchDraft.totalOvers === ov ? '#22c55e' : 'rgba(56, 189, 248, 0.25)',
+                    alignItems: 'center',
+                    marginBottom: 4,
+                  }}
+                  onPress={() => {
+                    updateDraft({ totalOvers: ov, oversPerBowler: Math.ceil(ov / 5) });
+                    setOversPickerVisible(false);
+                  }}
+                >
+                  <Text style={{ color: matchDraft.totalOvers === ov ? '#000000' : '#ffffff', fontSize: 14, fontWeight: '900' }}>
+                    {ov} Overs
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* DATE PICKER MODAL */}
+      <Modal visible={datePickerVisible} transparent animationType="fade" statusBarTranslucent={true}>
+        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+          <View style={{
+            width: '100%',
+            maxWidth: 360,
+            backgroundColor: '#071828',
+            borderRadius: 16,
+            borderWidth: 1.5,
+            borderColor: '#38bdf8',
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.6,
+            shadowRadius: 10,
+            elevation: 8,
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.2)', paddingBottom: 8 }}>
+              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>Select Match Date</Text>
+              <TouchableOpacity onPress={() => setDatePickerVisible(false)}>
+                <Text style={{ color: '#f87171', fontSize: 16, fontWeight: '900' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            {[
+              'Today (06 Oct 2026)',
+              'Tomorrow (07 Oct 2026)',
+              '08 Oct 2026',
+              '09 Oct 2026',
+              '10 Oct 2026',
+              '11 Oct 2026',
+              '01 Oct 2026',
+            ].map(d => {
+              const cleanD = d.includes('(') ? d.split('(')[1].replace(')', '') : d;
+              const isSelected = matchDraft.matchDate === cleanD || matchDraft.matchDate === d;
+              return (
+                <TouchableOpacity
+                  key={d}
+                  style={{
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(8, 28, 48, 0.6)',
+                    borderWidth: 1,
+                    borderColor: isSelected ? '#38bdf8' : 'rgba(56, 189, 248, 0.15)',
+                    marginBottom: 6,
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                  onPress={() => {
+                    updateDraft({ matchDate: cleanD, dateTime: `${cleanD}, ${matchDraft.matchTime || '04:00 PM'}` });
+                    setDatePickerVisible(false);
+                  }}
+                >
+                  <Text style={{ color: isSelected ? '#38bdf8' : '#ffffff', fontSize: 13.5, fontWeight: 'bold' }}>
+                    {d}
+                  </Text>
+                  {isSelected && <Text style={{ color: '#38bdf8', fontSize: 15, fontWeight: '900' }}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </View>
+      </Modal>
+
+      {/* TIME PICKER MODAL */}
+      <Modal visible={timePickerVisible} transparent animationType="fade" statusBarTranslucent={true}>
+        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
+          <View style={{
+            width: '100%',
+            maxWidth: 360,
+            backgroundColor: '#071828',
+            borderRadius: 16,
+            borderWidth: 1.5,
+            borderColor: '#38bdf8',
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.6,
+            shadowRadius: 10,
+            elevation: 8,
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.2)', paddingBottom: 8 }}>
+              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>Select Match Time</Text>
+              <TouchableOpacity onPress={() => setTimePickerVisible(false)}>
+                <Text style={{ color: '#f87171', fontSize: 16, fontWeight: '900' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
+              {[
+                '09:00 AM',
+                '10:30 AM',
+                '01:00 PM',
+                '02:30 PM',
+                '04:00 PM',
+                '05:30 PM',
+                '07:00 PM',
+                '08:00 PM',
+              ].map(t => {
+                const isSelected = matchDraft.matchTime === t;
+                return (
+                  <TouchableOpacity
+                    key={t}
+                    style={{
+                      width: '48%',
+                      paddingVertical: 10,
+                      borderRadius: 10,
+                      backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.25)' : 'rgba(8, 28, 48, 0.8)',
+                      borderWidth: 1,
+                      borderColor: isSelected ? '#38bdf8' : 'rgba(56, 189, 248, 0.25)',
+                      alignItems: 'center',
+                      marginBottom: 6,
+                    }}
+                    onPress={() => {
+                      updateDraft({ matchTime: t, dateTime: `${matchDraft.matchDate || '01 Oct 2026'}, ${t}` });
+                      setTimePickerVisible(false);
+                    }}
+                  >
+                    <Text style={{ color: isSelected ? '#38bdf8' : '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
+                      {t}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </View>
       </Modal>
 
       {/* TEAM PICKER MODAL (REGISTERED APP TEAMS ONLY) */}
