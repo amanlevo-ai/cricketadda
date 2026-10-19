@@ -8721,6 +8721,105 @@ const RealisticCricketLeatherBall = ({ size = 14, style = {} }) => {
 };
 
 // ============================================================================
+// REALISTIC 3D CRICKET BALL (WHITE LEATHER, RED LEATHER, TENNIS) COMPONENT
+// ============================================================================
+const RealisticCricketBallIcon = ({ type = 'white', size = 16, style = {} }) => {
+  const isRed = type === 'red' || String(type).toLowerCase().includes('red');
+  const isTennis = type === 'tennis' || String(type).toLowerCase().includes('tennis');
+
+  const ballBg = isRed ? '#dc2626' : isTennis ? '#bef264' : '#f8fafc';
+  const ballBorder = isRed ? '#7f1d1d' : isTennis ? '#4d7c0f' : '#94a3b8';
+  const seamColor = isRed ? '#fef08a' : isTennis ? '#ffffff' : '#b91c1c';
+  const shadowCol = isRed ? '#ef4444' : isTennis ? '#a3e635' : '#e2e8f0';
+
+  const radius = size / 2;
+  const shineSize = Math.max(3, size * 0.35);
+
+  return (
+    <View
+      style={[
+        {
+          width: size,
+          height: size,
+          borderRadius: radius,
+          backgroundColor: ballBg,
+          borderWidth: 0.8,
+          borderColor: ballBorder,
+          position: 'relative',
+          overflow: 'hidden',
+          justifyContent: 'center',
+          alignItems: 'center',
+          shadowColor: shadowCol,
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.5,
+          shadowRadius: 2,
+          elevation: 2,
+        },
+        style,
+      ]}
+    >
+      {/* 3D Depth Shadow (Bottom-Right) */}
+      <View
+        style={{
+          position: 'absolute',
+          bottom: -1,
+          right: -1,
+          width: size * 0.85,
+          height: size * 0.85,
+          borderRadius: (size * 0.85) / 2,
+          backgroundColor: isRed ? '#450a0a' : isTennis ? '#3f6212' : '#64748b',
+          opacity: 0.45,
+        }}
+      />
+
+      {/* Cricket Stitched Seam */}
+      {isTennis ? (
+        <View
+          style={{
+            position: 'absolute',
+            width: size * 0.9,
+            height: size * 0.9,
+            borderRadius: (size * 0.9) / 2,
+            borderWidth: 1.2,
+            borderColor: '#ffffff',
+            top: -size * 0.3,
+            opacity: 0.85,
+          }}
+        />
+      ) : (
+        <View
+          style={{
+            position: 'absolute',
+            width: size * 1.35,
+            height: 1.4,
+            backgroundColor: seamColor,
+            borderWidth: 0.3,
+            borderColor: isRed ? '#ffffff' : '#7f1d1d',
+            borderStyle: 'dashed',
+            transform: [{ rotate: '-35deg' }],
+            opacity: 0.95,
+          }}
+        />
+      )}
+
+      {/* 3D Specular Highlight / Shine Reflection */}
+      <View
+        style={{
+          position: 'absolute',
+          top: 1.2,
+          left: 1.5,
+          width: shineSize,
+          height: shineSize,
+          borderRadius: shineSize / 2,
+          backgroundColor: '#ffffff',
+          opacity: isTennis ? 0.65 : 0.8,
+        }}
+      />
+    </View>
+  );
+};
+
+// ============================================================================
 // REALISTIC BOWLED (BALL SMASHING STUMPS & FLYING BAILS) ICON COMPONENT
 // ============================================================================
 const RealisticBowledIcon = ({ size = 26, style = {} }) => {
@@ -9864,6 +9963,16 @@ function CricketSvgQrCode({ value, size = 220, logoEmoji = '🏏', color = '#000
 }
 
 // ============================================================================
+// HELPER: GET CURRENT MATCH DATE (e.g. "19 Oct 2026")
+// ============================================================================
+const getCurrentFormattedDate = (customDate = new Date()) => {
+  const d = customDate instanceof Date ? customDate : new Date(customDate);
+  const day = String(d.getDate()).padStart(2, '0');
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+};
+
+// ============================================================================
 // MATCH SETUP WIZARD & AUTO-SAVED DRAFT INITIAL STATE
 // ============================================================================
 const INITIAL_MATCH_DRAFT = {
@@ -9875,9 +9984,9 @@ const INITIAL_MATCH_DRAFT = {
   title: 'Friendly Match',
   tournament: 'Cricket Adda',
   ground: "Joseph's Ground, Ludhiana",
-  matchDate: '01 Oct 2026',
-  matchTime: '04:00 PM',
-  dateTime: '01 Oct 2026, 04:00 PM',
+  matchDate: getCurrentFormattedDate(),
+  matchTime: '', // Predefined na ho, user will select time
+  dateTime: getCurrentFormattedDate(),
   format: 'T20',
   totalOvers: 20,
   oversPerBowler: 4,
@@ -10965,6 +11074,8 @@ function CricketAddaMain() {
       ...prev,
       myTeam: null,
       opponentTeam: null,
+      matchDate: getCurrentFormattedDate(),
+      matchTime: '',
     }));
     setWzPhase(1);
     setWzTeamStep(1);
@@ -18712,6 +18823,11 @@ function CricketAddaMain() {
     if (wzPhase === 2) {
       if (!matchDraft.totalOvers || matchDraft.totalOvers < 1) {
         showAppToast('Please set valid match overs ⏱️', '⏱️', 'warning');
+        return;
+      }
+      if (!matchDraft.matchTime) {
+        showAppToast('Please select match start time 🕒', '🕒', 'warning');
+        setTimePickerVisible(true);
         return;
       }
       setWzPhase(4);
@@ -31072,7 +31188,7 @@ function CricketAddaMain() {
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                           <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: 'bold' }} numberOfLines={1}>
-                            {matchDraft.matchDate || '01 Oct 2026'}
+                            {matchDraft.matchDate || getCurrentFormattedDate()}
                           </Text>
                           <Text style={{ fontSize: 15 }}>🗓️</Text>
                         </View>
@@ -31085,7 +31201,7 @@ function CricketAddaMain() {
                           height: 58,
                           backgroundColor: 'rgba(5, 22, 40, 0.88)',
                           borderWidth: 1.5,
-                          borderColor: 'rgba(56, 189, 248, 0.35)',
+                          borderColor: matchDraft.matchTime ? 'rgba(56, 189, 248, 0.35)' : 'rgba(250, 204, 21, 0.45)',
                           borderRadius: 12,
                           paddingHorizontal: 12,
                           paddingVertical: 6,
@@ -31099,10 +31215,14 @@ function CricketAddaMain() {
                           <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Time</Text>
                         </View>
                         <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                          <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: 'bold' }}>
-                            {matchDraft.matchTime || '04:00 PM'}
+                          <Text style={{
+                            color: matchDraft.matchTime ? '#ffffff' : '#facc15',
+                            fontSize: matchDraft.matchTime ? 14 : 12.5,
+                            fontWeight: matchDraft.matchTime ? 'bold' : '700',
+                          }}>
+                            {matchDraft.matchTime || 'Select Time'}
                           </Text>
-                          <Text style={{ color: '#94a3b8', fontSize: 16, fontWeight: 'bold' }}>⌄</Text>
+                          <Text style={{ color: matchDraft.matchTime ? '#94a3b8' : '#facc15', fontSize: 16, fontWeight: 'bold' }}>⌄</Text>
                         </View>
                       </TouchableOpacity>
                     </View>
@@ -31156,50 +31276,71 @@ function CricketAddaMain() {
                       borderColor: 'rgba(56, 189, 248, 0.35)',
                       borderRadius: 12,
                       paddingHorizontal: 12,
-                      paddingVertical: 6,
+                      paddingVertical: 5,
                       justifyContent: 'center',
                       marginBottom: 4,
                     }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 11 }}>⚾</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Ball Type</Text>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                          <Text style={{ fontSize: 11 }}>🏏</Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Ball Type</Text>
+                        </View>
+                        <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '800' }}>
+                          {matchDraft.ballType ? matchDraft.ballType.replace(/^[^\w\s]+\s*/, '') : 'White Leather'}
+                        </Text>
                       </View>
                       <View style={{ flexDirection: 'row', gap: 8 }}>
                         {[
-                          { id: '⚪ White Leather', label: 'White', isRed: false, emoji: '⚪' },
-                          { id: '🔴 Red Leather', label: 'Red', isRed: true, emoji: null },
-                          { id: '🎾 Tennis / Box', label: 'Tennis', isRed: false, emoji: '🎾' },
+                          { id: '⚪ White Leather', label: 'White', type: 'white', badgeColor: '#38bdf8' },
+                          { id: '🔴 Red Leather', label: 'Red', type: 'red', badgeColor: '#ef4444' },
+                          { id: '🎾 Tennis / Box', label: 'Tennis', type: 'tennis', badgeColor: '#a3e635' },
                         ].map(bObj => {
-                          const isSel = matchDraft.ballType === bObj.id || matchDraft.ballType === bObj.label;
+                          const isSel = matchDraft.ballType === bObj.id || matchDraft.ballType === bObj.label || (matchDraft.ballType && matchDraft.ballType.includes(bObj.label));
                           return (
                             <TouchableOpacity
                               key={bObj.id}
+                              activeOpacity={0.8}
                               style={{
                                 flex: 1,
-                                height: 26,
-                                borderRadius: 6,
-                                backgroundColor: isSel ? '#22c55e' : 'rgba(8, 28, 48, 0.80)',
-                                borderWidth: 1,
-                                borderColor: isSel ? '#22c55e' : 'rgba(56, 189, 248, 0.25)',
+                                height: 28,
+                                borderRadius: 7,
+                                backgroundColor: isSel ? 'rgba(34, 197, 94, 0.24)' : 'rgba(8, 28, 48, 0.85)',
+                                borderWidth: 1.5,
+                                borderColor: isSel ? '#22c55e' : 'rgba(56, 189, 248, 0.22)',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexDirection: 'row',
-                                gap: 4,
+                                gap: 5,
+                                shadowColor: isSel ? '#22c55e' : '#000',
+                                shadowOffset: { width: 0, height: 1 },
+                                shadowOpacity: isSel ? 0.4 : 0.15,
+                                shadowRadius: 3,
+                                elevation: isSel ? 3 : 1,
                               }}
                               onPress={() => updateDraft({ ballType: bObj.id })}
                             >
-                              {bObj.isRed ? (
-                                <RealisticCricketLeatherBall size={11} />
-                              ) : (
-                                <Text style={{ fontSize: 11 }}>{bObj.emoji}</Text>
-                              )}
+                              <RealisticCricketBallIcon type={bObj.type} size={15} />
                               <Text style={{
-                                color: isSel ? '#000000' : '#cbd5e1',
+                                color: isSel ? '#ffffff' : '#cbd5e1',
                                 fontWeight: isSel ? '900' : '700',
                                 fontSize: 11,
+                                letterSpacing: 0.2,
                               }}>
                                 {bObj.label}
                               </Text>
+                              {isSel && (
+                                <View style={{
+                                  width: 13,
+                                  height: 13,
+                                  borderRadius: 6.5,
+                                  backgroundColor: '#22c55e',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  marginLeft: -1,
+                                }}>
+                                  <Text style={{ color: '#000000', fontSize: 8.5, fontWeight: '900', lineHeight: 10 }}>✓</Text>
+                                </View>
+                              )}
                             </TouchableOpacity>
                           );
                         })}
@@ -32257,20 +32398,22 @@ function CricketAddaMain() {
                 <Text style={{ color: '#f87171', fontSize: 16, fontWeight: '900' }}>✕</Text>
               </TouchableOpacity>
             </View>
-            {[
-              'Today (06 Oct 2026)',
-              'Tomorrow (07 Oct 2026)',
-              '08 Oct 2026',
-              '09 Oct 2026',
-              '10 Oct 2026',
-              '11 Oct 2026',
-              '01 Oct 2026',
-            ].map(d => {
-              const cleanD = d.includes('(') ? d.split('(')[1].replace(')', '') : d;
-              const isSelected = matchDraft.matchDate === cleanD || matchDraft.matchDate === d;
+            {(() => {
+              const options = [];
+              const today = new Date();
+              for (let i = 0; i < 7; i++) {
+                const target = new Date(today);
+                target.setDate(today.getDate() + i);
+                const formatted = getCurrentFormattedDate(target);
+                const label = i === 0 ? `Today (${formatted})` : i === 1 ? `Tomorrow (${formatted})` : formatted;
+                options.push({ label, cleanD: formatted });
+              }
+              return options;
+            })().map(({ label, cleanD }) => {
+              const isSelected = (matchDraft.matchDate || getCurrentFormattedDate()) === cleanD;
               return (
                 <TouchableOpacity
-                  key={d}
+                  key={cleanD}
                   style={{
                     paddingVertical: 10,
                     paddingHorizontal: 12,
@@ -32284,12 +32427,15 @@ function CricketAddaMain() {
                     alignItems: 'center',
                   }}
                   onPress={() => {
-                    updateDraft({ matchDate: cleanD, dateTime: `${cleanD}, ${matchDraft.matchTime || '04:00 PM'}` });
+                    updateDraft({
+                      matchDate: cleanD,
+                      dateTime: `${cleanD}${matchDraft.matchTime ? `, ${matchDraft.matchTime}` : ''}`,
+                    });
                     setDatePickerVisible(false);
                   }}
                 >
                   <Text style={{ color: isSelected ? '#38bdf8' : '#ffffff', fontSize: 13.5, fontWeight: 'bold' }}>
-                    {d}
+                    {label}
                   </Text>
                   {isSelected && <Text style={{ color: '#38bdf8', fontSize: 15, fontWeight: '900' }}>✓</Text>}
                 </TouchableOpacity>
@@ -32324,6 +32470,7 @@ function CricketAddaMain() {
             </View>
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
               {[
+                '07:00 AM',
                 '09:00 AM',
                 '10:30 AM',
                 '01:00 PM',
@@ -32332,6 +32479,7 @@ function CricketAddaMain() {
                 '05:30 PM',
                 '07:00 PM',
                 '08:00 PM',
+                '09:30 PM',
               ].map(t => {
                 const isSelected = matchDraft.matchTime === t;
                 return (
@@ -32348,7 +32496,10 @@ function CricketAddaMain() {
                       marginBottom: 6,
                     }}
                     onPress={() => {
-                      updateDraft({ matchTime: t, dateTime: `${matchDraft.matchDate || '01 Oct 2026'}, ${t}` });
+                      updateDraft({
+                        matchTime: t,
+                        dateTime: `${matchDraft.matchDate || getCurrentFormattedDate()}, ${t}`,
+                      });
                       setTimePickerVisible(false);
                     }}
                   >
