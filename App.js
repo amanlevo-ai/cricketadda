@@ -32103,35 +32103,40 @@ function CricketAddaMain() {
               {/* DOCKED FIXED FOOTER ACTION BAR AT THE VERY BOTTOM FOR PHASES > 1 */}
               {wzPhase === 2 ? (
                 <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
                   backgroundColor: 'rgba(2, 11, 20, 0.94)',
                   borderTopWidth: 1,
                   borderTopColor: 'rgba(56, 189, 248, 0.2)',
-                  paddingHorizontal: 16,
-                  paddingTop: 10,
-                  paddingBottom: Math.max(14, bottomInset),
+                  paddingHorizontal: 14,
+                  paddingTop: 8,
+                  paddingBottom: Math.max(10, bottomInset),
                 }}>
                   <TouchableOpacity
                     style={{
+                      height: 44,
+                      minWidth: 135,
+                      paddingHorizontal: 28,
+                      borderRadius: 11,
                       backgroundColor: '#22c55e',
-                      borderRadius: 28,
-                      paddingVertical: 14,
                       flexDirection: 'row',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      gap: 8,
+                      gap: 6,
                       shadowColor: '#22c55e',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.45,
-                      shadowRadius: 8,
-                      elevation: 6,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.35,
+                      shadowRadius: 5,
+                      elevation: 5,
                     }}
                     onPress={handleWizardNext}
                     activeOpacity={0.85}
                   >
-                    <Text style={{ color: '#000000', fontSize: 16, fontWeight: '900', letterSpacing: 0.8 }}>
+                    <Text style={{ color: '#000000', fontSize: 15.5, fontWeight: '900', letterSpacing: 0.8 }}>
                       NEXT
                     </Text>
-                    <Text style={{ color: '#000000', fontSize: 17, fontWeight: '900' }}>❯</Text>
+                    <Text style={{ color: '#000000', fontSize: 16, fontWeight: '900' }}>❯</Text>
                   </TouchableOpacity>
                 </View>
               ) : wzPhase === 4 ? (() => {
