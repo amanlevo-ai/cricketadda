@@ -31146,13 +31146,266 @@ function CricketAddaMain() {
           {/* ========================================================================= */}
           {wzPhase > 1 && (
             <View style={{ flex: 1 }}>
-              <ScrollView
-                style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: 16 }}
-                contentContainerStyle={{ paddingBottom: wzPhase === 2 ? 6 : 24, paddingTop: wzPhase === 2 ? 6 : 10 }}
-                showsVerticalScrollIndicator={false}
-                scrollEnabled={wzPhase !== 2}
-                bounces={wzPhase !== 2}
-              >
+              {wzPhase === 4 ? (() => {
+                const isTeam1 = xiTeamStep === 1;
+                const currentTeam = isTeam1 ? matchDraft.myTeam : matchDraft.opponentTeam;
+                const currentXIKey = isTeam1 ? 'myPlayingXI' : 'opponentPlayingXI';
+                const currentXI = matchDraft[currentXIKey] || [];
+                const activeCap = isTeam1 ? matchDraft.myCaptain : matchDraft.oppCaptain;
+                const activeVc = isTeam1 ? matchDraft.myViceCaptain : matchDraft.oppViceCaptain;
+                const searchQuery = isTeam1 ? mySquadSearch : oppSquadSearch;
+                const setSearchQuery = isTeam1 ? setMySquadSearch : setOppSquadSearch;
+
+                // Full player list: registered squad + any added guests or scanned players
+                const fullList = (currentTeam?.squad || [])
+                  .concat(currentXI.filter(p => !(currentTeam?.squad || []).some(s => s.name === p.name)))
+                  .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+                return (
+                  <View style={{ flex: 1, paddingHorizontal: 16, paddingTop: 4 }}>
+                    {/* Team Header Card - FIXED */}
+                    <View style={{
+                      backgroundColor: 'rgba(5, 22, 40, 0.90)',
+                      borderWidth: 1.5,
+                      borderColor: isTeam1 ? 'rgba(56, 189, 248, 0.40)' : 'rgba(239, 68, 68, 0.40)',
+                      borderRadius: 14,
+                      paddingVertical: 12,
+                      paddingHorizontal: 14,
+                      marginBottom: 10,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                    }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 6 }}>
+                        <View style={{
+                          width: 38,
+                          height: 38,
+                          borderRadius: 19,
+                          backgroundColor: isTeam1 ? '#0284c7' : '#dc2626',
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          shadowColor: isTeam1 ? '#38bdf8' : '#ef4444',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.5,
+                          shadowRadius: 4,
+                          elevation: 4,
+                        }}>
+                          <Text style={{ fontSize: 18 }}>👕</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 16.5, fontWeight: '900' }} numberOfLines={1}>
+                            {currentTeam?.name || (isTeam1 ? 'Your Team' : 'Opponent Team')}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={{
+                        backgroundColor: isTeam1 ? '#0284c7' : '#dc2626',
+                        borderRadius: 14,
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
+                      }}>
+                        <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }}>
+                          {currentXI.length} / 11 Players Selected
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Squad Search Bar - FIXED */}
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: 'rgba(4, 16, 28, 0.85)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(56, 189, 248, 0.25)',
+                      borderRadius: 10,
+                      paddingHorizontal: 10,
+                      marginBottom: 10,
+                    }}>
+                      <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
+                      <TextInput
+                        style={{
+                          flex: 1,
+                          color: '#ffffff',
+                          fontSize: 13,
+                          paddingVertical: 7,
+                        }}
+                        value={searchQuery}
+                        onChangeText={setSearchQuery}
+                        placeholder={`Search players in ${currentTeam?.name || 'squad'}...`}
+                        placeholderTextColor="#64748b"
+                      />
+                      {Boolean(searchQuery) && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')}>
+                          <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: 'bold' }}>✕</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
+
+                    {/* Playing XI Table - FIXED HEADER, SCROLLABLE PLAYER ROWS */}
+                    <View style={{
+                      flex: 1,
+                      backgroundColor: 'rgba(5, 22, 40, 0.88)',
+                      borderRadius: 14,
+                      borderWidth: 1.5,
+                      borderColor: 'rgba(56, 189, 248, 0.35)',
+                      overflow: 'hidden',
+                      marginBottom: 10,
+                    }}>
+                      {/* Table Header - FIXED at top of table */}
+                      <View style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: 'rgba(2, 11, 20, 0.95)',
+                        paddingVertical: 9,
+                        paddingHorizontal: 12,
+                        borderBottomWidth: 1,
+                        borderBottomColor: 'rgba(56, 189, 248, 0.25)',
+                      }}>
+                        <Text style={{ flex: 1, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', paddingLeft: 4 }}>Player Name</Text>
+                        <Text style={{ width: 56, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>C / VC</Text>
+                        <Text style={{ width: 44, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>Select</Text>
+                      </View>
+
+                      {/* Table Rows - ONLY THIS SECTION SCROLLS! */}
+                      <ScrollView
+                        style={{ flex: 1 }}
+                        contentContainerStyle={{ flexGrow: 1 }}
+                        showsVerticalScrollIndicator={true}
+                        nestedScrollEnabled={true}
+                        keyboardShouldPersistTaps="handled"
+                      >
+                        {fullList.length === 0 ? (
+                          <View style={{ padding: 24, alignItems: 'center' }}>
+                            <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center' }}>
+                              No players found. Tap "+ Add Guest" or "Scan QR" below to add players.
+                            </Text>
+                          </View>
+                        ) : (
+                          fullList.map((player, idx) => {
+                            const isSelected = currentXI.some(p => p.name === player.name);
+                            const isCap = activeCap === player.name;
+                            const isVc = activeVc === player.name;
+
+                            return (
+                              <View
+                                key={player.name || idx}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  paddingVertical: 9,
+                                  paddingHorizontal: 12,
+                                  borderBottomWidth: idx < fullList.length - 1 ? 1 : 0,
+                                  borderBottomColor: 'rgba(56, 189, 248, 0.12)',
+                                  backgroundColor: isSelected ? 'rgba(8, 28, 48, 0.55)' : 'transparent',
+                                }}
+                              >
+                                {/* Column 1: Player Name & Avatar (Reclaims full width) */}
+                                <TouchableOpacity
+                                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9, paddingLeft: 2, paddingRight: 6 }}
+                                  onPress={() => togglePlayerInPlayingXI(currentXIKey, player)}
+                                  activeOpacity={0.8}
+                                >
+                                  <View style={{
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: 15,
+                                    backgroundColor: '#1e293b',
+                                    borderWidth: 1,
+                                    borderColor: isSelected ? '#38bdf8' : '#475569',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    overflow: 'hidden',
+                                  }}>
+                                    {player.avatarUri || player.photoUri ? (
+                                      <Image
+                                        source={{ uri: player.avatarUri || player.photoUri }}
+                                        style={{ width: 30, height: 30 }}
+                                        resizeMode="cover"
+                                      />
+                                    ) : (
+                                      <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: 'bold' }}>
+                                        {(player.name || 'P').charAt(0)}
+                                      </Text>
+                                    )}
+                                  </View>
+                                  <Text
+                                    style={{
+                                      color: isSelected ? '#ffffff' : '#e2e8f0',
+                                      fontSize: 13.5,
+                                      fontWeight: isSelected ? '900' : '700',
+                                      flex: 1,
+                                    }}
+                                    numberOfLines={1}
+                                    ellipsizeMode="tail"
+                                  >
+                                    {player.name}
+                                  </Text>
+                                </TouchableOpacity>
+
+                                {/* Column 2: C / VC Cycle Button */}
+                                <View style={{ width: 56, alignItems: 'center', justifyContent: 'center' }}>
+                                  <TouchableOpacity
+                                    style={{
+                                      width: 26,
+                                      height: 26,
+                                      borderRadius: 13,
+                                      backgroundColor: isCap ? '#facc15' : isVc ? '#e2e8f0' : 'transparent',
+                                      borderWidth: isCap || isVc ? 0 : 1.5,
+                                      borderColor: '#475569',
+                                      justifyContent: 'center',
+                                      alignItems: 'center',
+                                    }}
+                                    onPress={() => cycleCaptaincy(isTeam1, player)}
+                                    activeOpacity={0.7}
+                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                                  >
+                                    {isCap ? (
+                                      <Text style={{ color: '#000000', fontSize: 12.5, fontWeight: '900' }}>C</Text>
+                                    ) : isVc ? (
+                                      <Text style={{ color: '#000000', fontSize: 9.5, fontWeight: '900' }}>VC</Text>
+                                    ) : null}
+                                  </TouchableOpacity>
+                                </View>
+
+                                {/* Column 3: Checkbox */}
+                                <View style={{ width: 44, alignItems: 'center', justifyContent: 'center' }}>
+                                  <TouchableOpacity
+                                    style={{
+                                      width: 22,
+                                      height: 22,
+                                      borderRadius: 5,
+                                      backgroundColor: isSelected ? '#0284c7' : 'rgba(15, 23, 42, 0.7)',
+                                      borderWidth: isSelected ? 0 : 1.5,
+                                      borderColor: isSelected ? '#0284c7' : '#475569',
+                                      justifyContent: 'center',
+                                      alignItems: 'center',
+                                    }}
+                                    onPress={() => togglePlayerInPlayingXI(currentXIKey, player)}
+                                    activeOpacity={0.7}
+                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                                  >
+                                    {isSelected && (
+                                      <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>✓</Text>
+                                    )}
+                                  </TouchableOpacity>
+                                </View>
+                              </View>
+                            );
+                          })
+                        )}
+                      </ScrollView>
+                    </View>
+                  </View>
+                );
+              })() : (
+                <ScrollView
+                  style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: 16 }}
+                  contentContainerStyle={{ paddingBottom: wzPhase === 2 ? 6 : 24, paddingTop: wzPhase === 2 ? 6 : 10 }}
+                  showsVerticalScrollIndicator={false}
+                  scrollEnabled={wzPhase !== 2}
+                  bounces={wzPhase !== 2}
+                >
                 {/* ========================================================================= */}
                 {/* PHASE 2: MATCH DETAILS (NO SCROLLING - 2 SMALL FIELDS PER ROW) */}
                 {/* ========================================================================= */}
@@ -31671,261 +31924,7 @@ function CricketAddaMain() {
                   </View>
                 )}
 
-                {/* ========================================================================= */}
-                {/* PHASE 4: PLAYING XI SELECTION (STEP 1: YOUR TEAM, STEP 2: OPPONENT TEAM) */}
-                {/* ========================================================================= */}
-                {wzPhase === 4 && (() => {
-                  const isTeam1 = xiTeamStep === 1;
-                  const currentTeam = isTeam1 ? matchDraft.myTeam : matchDraft.opponentTeam;
-                  const currentXIKey = isTeam1 ? 'myPlayingXI' : 'opponentPlayingXI';
-                  const currentXI = matchDraft[currentXIKey] || [];
-                  const activeCap = isTeam1 ? matchDraft.myCaptain : matchDraft.oppCaptain;
-                  const activeVc = isTeam1 ? matchDraft.myViceCaptain : matchDraft.oppViceCaptain;
-                  const searchQuery = isTeam1 ? mySquadSearch : oppSquadSearch;
-                  const setSearchQuery = isTeam1 ? setMySquadSearch : setOppSquadSearch;
 
-                  // Full player list: registered squad + any added guests or scanned players
-                  const fullList = (currentTeam?.squad || [])
-                    .concat(currentXI.filter(p => !(currentTeam?.squad || []).some(s => s.name === p.name)))
-                    .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()));
-
-                  const getRoleBadge = (player) => {
-                    const r = (player.role || '').toUpperCase();
-                    if (player.isWk || r.includes('WK')) return '🧤 WK';
-                    if (r.includes('AR') || r.includes('ALL')) return '⚔️ ALL';
-                    if (r.includes('BOWL')) return '🔴 RAF';
-                    return '🏏 RHB';
-                  };
-
-                  return (
-                    <View style={{ paddingTop: 4 }}>
-                      {/* Team Header Card */}
-                      <View style={{
-                        backgroundColor: 'rgba(5, 22, 40, 0.90)',
-                        borderWidth: 1.5,
-                        borderColor: isTeam1 ? 'rgba(56, 189, 248, 0.40)' : 'rgba(239, 68, 68, 0.40)',
-                        borderRadius: 14,
-                        paddingVertical: 12,
-                        paddingHorizontal: 14,
-                        marginBottom: 10,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, paddingRight: 6 }}>
-                          <View style={{
-                            width: 38,
-                            height: 38,
-                            borderRadius: 19,
-                            backgroundColor: isTeam1 ? '#0284c7' : '#dc2626',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            shadowColor: isTeam1 ? '#38bdf8' : '#ef4444',
-                            shadowOffset: { width: 0, height: 2 },
-                            shadowOpacity: 0.5,
-                            shadowRadius: 4,
-                            elevation: 4,
-                          }}>
-                            <Text style={{ fontSize: 18 }}>👕</Text>
-                          </View>
-                          <View style={{ flex: 1 }}>
-                            <Text style={{ color: '#ffffff', fontSize: 16.5, fontWeight: '900' }} numberOfLines={1}>
-                              {currentTeam?.name || (isTeam1 ? 'Your Team' : 'Opponent Team')}
-                            </Text>
-                          </View>
-                        </View>
-
-                        <View style={{
-                          backgroundColor: isTeam1 ? '#0284c7' : '#dc2626',
-                          borderRadius: 14,
-                          paddingHorizontal: 10,
-                          paddingVertical: 5,
-                        }}>
-                          <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }}>
-                            {currentXI.length} / 11 Players Selected
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Squad Search Bar */}
-                      <View style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        backgroundColor: 'rgba(4, 16, 28, 0.85)',
-                        borderWidth: 1,
-                        borderColor: 'rgba(56, 189, 248, 0.25)',
-                        borderRadius: 10,
-                        paddingHorizontal: 10,
-                        marginBottom: 10,
-                      }}>
-                        <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
-                        <TextInput
-                          style={{
-                            flex: 1,
-                            color: '#ffffff',
-                            fontSize: 13,
-                            paddingVertical: 7,
-                          }}
-                          value={searchQuery}
-                          onChangeText={setSearchQuery}
-                          placeholder={`Search players in ${currentTeam?.name || 'squad'}...`}
-                          placeholderTextColor="#64748b"
-                        />
-                        {Boolean(searchQuery) && (
-                          <TouchableOpacity onPress={() => setSearchQuery('')}>
-                            <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: 'bold' }}>✕</Text>
-                          </TouchableOpacity>
-                        )}
-                      </View>
-
-                      {/* Playing XI Table */}
-                      <View style={{
-                        backgroundColor: 'rgba(5, 22, 40, 0.88)',
-                        borderRadius: 14,
-                        borderWidth: 1.5,
-                        borderColor: 'rgba(56, 189, 248, 0.35)',
-                        overflow: 'hidden',
-                        marginBottom: 12,
-                      }}>
-                        {/* Table Header */}
-                        <View style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          backgroundColor: 'rgba(2, 11, 20, 0.95)',
-                          paddingVertical: 9,
-                          paddingHorizontal: 12,
-                          borderBottomWidth: 1,
-                          borderBottomColor: 'rgba(56, 189, 248, 0.25)',
-                        }}>
-                          <Text style={{ flex: 1, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', paddingLeft: 4 }}>Player Name</Text>
-                          <Text style={{ width: 56, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>C / VC</Text>
-                          <Text style={{ width: 44, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>Select</Text>
-                        </View>
-
-                        {/* Table Rows */}
-                        {fullList.length === 0 ? (
-                          <View style={{ padding: 24, alignItems: 'center' }}>
-                            <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center' }}>
-                              No players found. Tap "+ Add Guest" or "Scan QR" below to add players.
-                            </Text>
-                          </View>
-                        ) : (
-                          fullList.map((player, idx) => {
-                            const isSelected = currentXI.some(p => p.name === player.name);
-                            const isCap = activeCap === player.name;
-                            const isVc = activeVc === player.name;
-
-                            return (
-                              <View
-                                key={player.name || idx}
-                                style={{
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  paddingVertical: 9,
-                                  paddingHorizontal: 12,
-                                  borderBottomWidth: idx < fullList.length - 1 ? 1 : 0,
-                                  borderBottomColor: 'rgba(56, 189, 248, 0.12)',
-                                  backgroundColor: isSelected ? 'rgba(8, 28, 48, 0.55)' : 'transparent',
-                                }}
-                              >
-                                {/* Column 1: Player Name & Avatar (Reclaims full width) */}
-                                <TouchableOpacity
-                                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9, paddingLeft: 2, paddingRight: 6 }}
-                                  onPress={() => togglePlayerInPlayingXI(currentXIKey, player)}
-                                  activeOpacity={0.8}
-                                >
-                                  <View style={{
-                                    width: 30,
-                                    height: 30,
-                                    borderRadius: 15,
-                                    backgroundColor: '#1e293b',
-                                    borderWidth: 1,
-                                    borderColor: isSelected ? '#38bdf8' : '#475569',
-                                    justifyContent: 'center',
-                                    alignItems: 'center',
-                                    overflow: 'hidden',
-                                  }}>
-                                    {player.avatarUri || player.photoUri ? (
-                                      <Image
-                                        source={{ uri: player.avatarUri || player.photoUri }}
-                                        style={{ width: 30, height: 30 }}
-                                        resizeMode="cover"
-                                      />
-                                    ) : (
-                                      <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: 'bold' }}>
-                                        {(player.name || 'P').charAt(0)}
-                                      </Text>
-                                    )}
-                                  </View>
-                                  <Text
-                                    style={{
-                                      color: isSelected ? '#ffffff' : '#e2e8f0',
-                                      fontSize: 13.5,
-                                      fontWeight: isSelected ? '900' : '700',
-                                      flex: 1,
-                                    }}
-                                    numberOfLines={1}
-                                    ellipsizeMode="tail"
-                                  >
-                                    {player.name}
-                                  </Text>
-                                </TouchableOpacity>
-
-                                {/* Column 2: C / VC Cycle Button */}
-                                <View style={{ width: 56, alignItems: 'center', justifyContent: 'center' }}>
-                                  <TouchableOpacity
-                                    style={{
-                                      width: 26,
-                                      height: 26,
-                                      borderRadius: 13,
-                                      backgroundColor: isCap ? '#facc15' : isVc ? '#e2e8f0' : 'transparent',
-                                      borderWidth: isCap || isVc ? 0 : 1.5,
-                                      borderColor: '#475569',
-                                      justifyContent: 'center',
-                                      alignItems: 'center',
-                                    }}
-                                    onPress={() => cycleCaptaincy(isTeam1, player)}
-                                    activeOpacity={0.7}
-                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                                  >
-                                    {isCap ? (
-                                      <Text style={{ color: '#000000', fontSize: 12.5, fontWeight: '900' }}>C</Text>
-                                    ) : isVc ? (
-                                      <Text style={{ color: '#000000', fontSize: 9.5, fontWeight: '900' }}>VC</Text>
-                                    ) : null}
-                                  </TouchableOpacity>
-                                </View>
-
-                                {/* Column 3: Checkbox */}
-                                <View style={{ width: 44, alignItems: 'center', justifyContent: 'center' }}>
-                                  <TouchableOpacity
-                                    style={{
-                                      width: 22,
-                                      height: 22,
-                                      borderRadius: 5,
-                                      backgroundColor: isSelected ? '#0284c7' : 'rgba(15, 23, 42, 0.7)',
-                                      borderWidth: isSelected ? 0 : 1.5,
-                                      borderColor: isSelected ? '#0284c7' : '#475569',
-                                      justifyContent: 'center',
-                                      alignItems: 'center',
-                                    }}
-                                    onPress={() => togglePlayerInPlayingXI(currentXIKey, player)}
-                                    activeOpacity={0.7}
-                                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                                  >
-                                    {isSelected && (
-                                      <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>✓</Text>
-                                    )}
-                                  </TouchableOpacity>
-                                </View>
-                              </View>
-                            );
-                          })
-                        )}
-                      </View>
-                    </View>
-                  );
-                })()}
 
                 {/* ========================================================================= */}
                 {/* PHASE 5: FINAL CONFIRMATION CARD & START MATCH */}
@@ -32169,6 +32168,7 @@ function CricketAddaMain() {
                 )}
 
               </ScrollView>
+            )}
 
               {/* DOCKED FIXED FOOTER ACTION BAR AT THE VERY BOTTOM FOR PHASES > 1 */}
               {wzPhase === 2 ? (
