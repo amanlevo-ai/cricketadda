@@ -32455,23 +32455,6 @@ function CricketAddaMain() {
         </View>
       </Modal>
 
-      {/* DATE PICKER MODAL */}
-      <Modal visible={datePickerVisible} transparent animationType="fade" statusBarTranslucent={true}>
-        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
-          <View style={{
-            width: '100%',
-            maxWidth: 360,
-            backgroundColor: '#071828',
-            borderRadius: 16,
-            borderWidth: 1.5,
-            borderColor: '#38bdf8',
-            padding: 16,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.6,
-            shadowRadius: 10,
-            elevation: 8,
-          }}>
       {/* DATE PICKER CALENDAR MODAL */}
       <Modal visible={datePickerVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 18 }]}>
