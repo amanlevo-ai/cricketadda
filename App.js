@@ -16359,7 +16359,7 @@ function CricketAddaMain() {
       }
 
       const activePurpose = explicitPurpose || qrScanPurpose;
-      const isPlayerType = data.type === 'player_pass' || data.type === 'player' || data.type === 'profile' || activePurpose === 'add_squad_player';
+      const isPlayerType = data.type === 'player_pass' || data.type === 'player' || data.type === 'profile' || activePurpose === 'add_squad_player' || activePurpose === 'scan_player_xi_1' || activePurpose === 'scan_player_xi_2';
 
       if (isPlayerType) {
         const pName = data.name || data.playerName || (typeof payloadStr === 'string' && !payloadStr.startsWith('{') ? payloadStr : 'Player');
@@ -16414,6 +16414,36 @@ function CricketAddaMain() {
         };
 
         setScannedPlayerProfile(scannedProfile);
+
+        if (activePurpose === 'scan_player_xi_1' || activePurpose === 'scan_player_xi_2') {
+          const targetKey = activePurpose === 'scan_player_xi_1' ? 'myPlayingXI' : 'opponentPlayingXI';
+          const currentXI = matchDraft[targetKey] || [];
+          if (currentXI.length >= 11) {
+            setUniversalQrScannerVisible(false);
+            showAppToast('Playing XI is full (11/11). Deselect a player first ⚠️', '⚠️', 'warning');
+            return;
+          }
+          if (currentXI.some(p => p.name?.toLowerCase() === pName.toLowerCase() || (pPhone && (p.phone || '').replace(/[^0-9]/g, '') === pPhone))) {
+            setUniversalQrScannerVisible(false);
+            showAppToast(`${pName} is already selected in Playing XI! ℹ️`, 'ℹ️', 'info');
+            return;
+          }
+          const newPlayer = {
+            id: scannedProfile.id,
+            name: scannedProfile.name,
+            phone: scannedProfile.phone,
+            role: scannedProfile.role,
+            battingStyle: scannedProfile.battingStyle,
+            bowlingStyle: scannedProfile.bowlingStyle,
+            jersey: scannedProfile.jersey,
+            avatarUri: scannedProfile.avatarUri,
+            isWk: scannedProfile.role === 'WK',
+          };
+          updateDraft({ [targetKey]: [...currentXI, newPlayer] });
+          setUniversalQrScannerVisible(false);
+          showAppToast(`Added ${pName} to Playing XI via QR! 🏏`, '✅', 'success');
+          return;
+        }
 
         if (targetTeamForAddPlayer) {
           setNewTeamPlayerName(pName);
@@ -31654,9 +31684,9 @@ function CricketAddaMain() {
                   const searchQuery = isTeam1 ? mySquadSearch : oppSquadSearch;
                   const setSearchQuery = isTeam1 ? setMySquadSearch : setOppSquadSearch;
 
-                  // Full player list: registered squad + any added guests
+                  // Full player list: registered squad + any added guests or scanned players
                   const fullList = (currentTeam?.squad || [])
-                    .concat(currentXI.filter(p => p.isGuest && !(currentTeam?.squad || []).some(s => s.name === p.name)))
+                    .concat(currentXI.filter(p => !(currentTeam?.squad || []).some(s => s.name === p.name)))
                     .filter(p => !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
                   const getRoleBadge = (player) => {
@@ -31702,39 +31732,18 @@ function CricketAddaMain() {
                             <Text style={{ color: '#ffffff', fontSize: 16.5, fontWeight: '900' }} numberOfLines={1}>
                               {currentTeam?.name || (isTeam1 ? 'Your Team' : 'Opponent Team')}
                             </Text>
-                            <Text style={{ color: isTeam1 ? '#38bdf8' : '#f87171', fontSize: 11, fontWeight: '700' }}>
-                              {isTeam1 ? 'Team 1 (Your Team)' : 'Team 2 (Opponent Team)'}
-                            </Text>
                           </View>
                         </View>
 
-                        <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                          <View style={{
-                            backgroundColor: isTeam1 ? '#0284c7' : '#dc2626',
-                            borderRadius: 14,
-                            paddingHorizontal: 10,
-                            paddingVertical: 4.5,
-                          }}>
-                            <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }}>
-                              {currentXI.length} / 11 Players Selected
-                            </Text>
-                          </View>
-                          <TouchableOpacity
-                            style={{
-                              paddingHorizontal: 8,
-                              paddingVertical: 2,
-                              backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                              borderRadius: 8,
-                              borderWidth: 1,
-                              borderColor: 'rgba(56, 189, 248, 0.3)',
-                            }}
-                            onPress={() => {
-                              setGuestTargetTeam(isTeam1 ? 'myTeam' : 'opponentTeam');
-                              setGuestModalVisible(true);
-                            }}
-                          >
-                            <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '800' }}>+ Add Guest</Text>
-                          </TouchableOpacity>
+                        <View style={{
+                          backgroundColor: isTeam1 ? '#0284c7' : '#dc2626',
+                          borderRadius: 14,
+                          paddingHorizontal: 10,
+                          paddingVertical: 5,
+                        }}>
+                          <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }}>
+                            {currentXI.length} / 11 Players Selected
+                          </Text>
                         </View>
                       </View>
 
@@ -31784,13 +31793,11 @@ function CricketAddaMain() {
                           alignItems: 'center',
                           backgroundColor: 'rgba(2, 11, 20, 0.95)',
                           paddingVertical: 9,
-                          paddingHorizontal: 10,
+                          paddingHorizontal: 12,
                           borderBottomWidth: 1,
                           borderBottomColor: 'rgba(56, 189, 248, 0.25)',
                         }}>
-                          <Text style={{ width: 28, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>#</Text>
-                          <Text style={{ flex: 1, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', paddingLeft: 8 }}>Player Name</Text>
-                          <Text style={{ width: 78, color: '#94a3b8', fontSize: 11.5, fontWeight: '800' }}>Role</Text>
+                          <Text style={{ flex: 1, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', paddingLeft: 4 }}>Player Name</Text>
                           <Text style={{ width: 56, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>C / VC</Text>
                           <Text style={{ width: 44, color: '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>Select</Text>
                         </View>
@@ -31799,7 +31806,7 @@ function CricketAddaMain() {
                         {fullList.length === 0 ? (
                           <View style={{ padding: 24, alignItems: 'center' }}>
                             <Text style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center' }}>
-                              No players found. Tap "+ Add Guest" above to add players.
+                              No players found. Tap "+ Add Guest" or "Scan QR" below to add players.
                             </Text>
                           </View>
                         ) : (
@@ -31807,7 +31814,6 @@ function CricketAddaMain() {
                             const isSelected = currentXI.some(p => p.name === player.name);
                             const isCap = activeCap === player.name;
                             const isVc = activeVc === player.name;
-                            const jerseyNum = player.jersey ? String(player.jersey).replace('#', '') : String(idx + 1);
 
                             return (
                               <View
@@ -31816,27 +31822,22 @@ function CricketAddaMain() {
                                   flexDirection: 'row',
                                   alignItems: 'center',
                                   paddingVertical: 9,
-                                  paddingHorizontal: 10,
+                                  paddingHorizontal: 12,
                                   borderBottomWidth: idx < fullList.length - 1 ? 1 : 0,
                                   borderBottomColor: 'rgba(56, 189, 248, 0.12)',
                                   backgroundColor: isSelected ? 'rgba(8, 28, 48, 0.55)' : 'transparent',
                                 }}
                               >
-                                {/* Column 1: # */}
-                                <Text style={{ width: 28, color: '#ffffff', fontSize: 12.5, fontWeight: '700', textAlign: 'center' }}>
-                                  {jerseyNum}
-                                </Text>
-
-                                {/* Column 2: Player Name & Avatar */}
+                                {/* Column 1: Player Name & Avatar (Reclaims full width) */}
                                 <TouchableOpacity
-                                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 8, paddingLeft: 8 }}
+                                  style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 9, paddingLeft: 2, paddingRight: 6 }}
                                   onPress={() => togglePlayerInPlayingXI(currentXIKey, player)}
                                   activeOpacity={0.8}
                                 >
                                   <View style={{
-                                    width: 28,
-                                    height: 28,
-                                    borderRadius: 14,
+                                    width: 30,
+                                    height: 30,
+                                    borderRadius: 15,
                                     backgroundColor: '#1e293b',
                                     borderWidth: 1,
                                     borderColor: isSelected ? '#38bdf8' : '#475569',
@@ -31847,36 +31848,30 @@ function CricketAddaMain() {
                                     {player.avatarUri || player.photoUri ? (
                                       <Image
                                         source={{ uri: player.avatarUri || player.photoUri }}
-                                        style={{ width: 28, height: 28 }}
+                                        style={{ width: 30, height: 30 }}
                                         resizeMode="cover"
                                       />
                                     ) : (
-                                      <Text style={{ color: '#cbd5e1', fontSize: 11, fontWeight: 'bold' }}>
+                                      <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: 'bold' }}>
                                         {(player.name || 'P').charAt(0)}
                                       </Text>
                                     )}
                                   </View>
                                   <Text
                                     style={{
-                                      color: isSelected ? '#ffffff' : '#94a3b8',
-                                      fontSize: 13,
-                                      fontWeight: isSelected ? 'bold' : '600',
+                                      color: isSelected ? '#ffffff' : '#e2e8f0',
+                                      fontSize: 13.5,
+                                      fontWeight: isSelected ? '900' : '700',
                                       flex: 1,
                                     }}
                                     numberOfLines={1}
+                                    ellipsizeMode="tail"
                                   >
                                     {player.name}
                                   </Text>
                                 </TouchableOpacity>
 
-                                {/* Column 3: Role */}
-                                <View style={{ width: 78 }}>
-                                  <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '600' }}>
-                                    {getRoleBadge(player)}
-                                  </Text>
-                                </View>
-
-                                {/* Column 4: C / VC Cycle Button */}
+                                {/* Column 2: C / VC Cycle Button */}
                                 <View style={{ width: 56, alignItems: 'center', justifyContent: 'center' }}>
                                   <TouchableOpacity
                                     style={{
@@ -31901,7 +31896,7 @@ function CricketAddaMain() {
                                   </TouchableOpacity>
                                 </View>
 
-                                {/* Column 5: Checkbox */}
+                                {/* Column 3: Checkbox */}
                                 <View style={{ width: 44, alignItems: 'center', justifyContent: 'center' }}>
                                   <TouchableOpacity
                                     style={{
@@ -32215,89 +32210,93 @@ function CricketAddaMain() {
                   </TouchableOpacity>
                 </View>
               ) : wzPhase === 4 ? (() => {
-                const currentXI = xiTeamStep === 1 ? (matchDraft.myPlayingXI || []) : (matchDraft.opponentPlayingXI || []);
-                const batCount = currentXI.filter(p => {
-                  const r = (p.role || '').toUpperCase();
-                  return r.includes('BAT') || (!r.includes('BOWL') && !r.includes('WK') && !r.includes('AR') && !r.includes('ALL'));
-                }).length;
-                const bowlCount = currentXI.filter(p => (p.role || '').toUpperCase().includes('BOWL')).length;
-                const wkCount = currentXI.filter(p => (p.role || '').toUpperCase().includes('WK') || p.isWk).length;
-                const arCount = currentXI.filter(p => {
-                  const r = (p.role || '').toUpperCase();
-                  return r.includes('AR') || r.includes('ALL');
-                }).length;
-
                 return (
                   <View style={{
                     backgroundColor: 'rgba(2, 11, 20, 0.94)',
                     borderTopWidth: 1,
                     borderTopColor: 'rgba(56, 189, 248, 0.2)',
-                    paddingHorizontal: 16,
+                    paddingHorizontal: 14,
                     paddingTop: 8,
                     paddingBottom: Math.max(28, bottomInset + 14),
                   }}>
-                    {/* Role Summary Row */}
                     <View style={{
                       flexDirection: 'row',
                       alignItems: 'center',
-                      justifyContent: 'space-around',
-                      backgroundColor: 'rgba(5, 20, 36, 0.95)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(56, 189, 248, 0.25)',
-                      borderRadius: 12,
-                      paddingVertical: 9,
-                      paddingHorizontal: 6,
-                      marginBottom: 10,
+                      gap: 8,
                     }}>
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
-                        🏏 {batCount} Batsman
-                      </Text>
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
-                        🔴 {bowlCount} Bowler
-                      </Text>
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
-                        🧤 {wkCount} Wicket Keeper
-                      </Text>
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '700' }}>
-                        ⚔️ {arCount} All Rounder
-                      </Text>
-                    </View>
+                      {/* + Add Guest Button */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          height: 44,
+                          borderRadius: 11,
+                          backgroundColor: '#05182a',
+                          borderWidth: 1.5,
+                          borderColor: 'rgba(56, 189, 248, 0.45)',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 5,
+                        }}
+                        onPress={() => {
+                          setGuestTargetTeam(xiTeamStep === 1 ? 'myTeam' : 'opponentTeam');
+                          setGuestModalVisible(true);
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={{ color: '#38bdf8', fontSize: 16, fontWeight: '900' }}>+</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Add Guest</Text>
+                      </TouchableOpacity>
 
-                    {/* Action Button */}
-                    <TouchableOpacity
-                      style={{
-                        backgroundColor: xiTeamStep === 1 ? '#0284c7' : '#22c55e',
-                        borderRadius: 28,
-                        paddingVertical: 14,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        shadowColor: xiTeamStep === 1 ? '#0284c7' : '#22c55e',
-                        shadowOffset: { width: 0, height: 4 },
-                        shadowOpacity: 0.45,
-                        shadowRadius: 8,
-                        elevation: 6,
-                      }}
-                      onPress={handleWizardNext}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={{
-                        color: xiTeamStep === 1 ? '#ffffff' : '#000000',
-                        fontSize: 15.5,
-                        fontWeight: '900',
-                        letterSpacing: 0.5,
-                      }}>
-                        {xiTeamStep === 1 ? 'Next: Opponent Team Players' : 'Next: Toss'}
-                      </Text>
-                      <Text style={{
-                        color: xiTeamStep === 1 ? '#ffffff' : '#000000',
-                        fontSize: 16,
-                        fontWeight: '900',
-                      }}>
-                        ❯
-                      </Text>
-                    </TouchableOpacity>
+                      {/* Scan Player QR Button */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1,
+                          height: 44,
+                          borderRadius: 11,
+                          backgroundColor: '#05182a',
+                          borderWidth: 1.5,
+                          borderColor: '#10b981',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 5,
+                        }}
+                        onPress={() => {
+                          openUniversalQrScanner(xiTeamStep === 1 ? 'scan_player_xi_1' : 'scan_player_xi_2');
+                        }}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={{ fontSize: 14 }}>📷</Text>
+                        <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '800' }}>Scan QR</Text>
+                      </TouchableOpacity>
+
+                      {/* NEXT Button */}
+                      <TouchableOpacity
+                        style={{
+                          flex: 1.25,
+                          height: 44,
+                          borderRadius: 11,
+                          backgroundColor: '#22c55e',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
+                          shadowColor: '#22c55e',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.35,
+                          shadowRadius: 5,
+                          elevation: 5,
+                        }}
+                        onPress={handleWizardNext}
+                        activeOpacity={0.85}
+                      >
+                        <Text style={{ color: '#000000', fontSize: 15.5, fontWeight: '900', letterSpacing: 0.8 }}>
+                          NEXT
+                        </Text>
+                        <Text style={{ color: '#000000', fontSize: 16, fontWeight: '900' }}>❯</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 );
               })() : (
