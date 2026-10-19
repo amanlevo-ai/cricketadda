@@ -30448,7 +30448,7 @@ function CricketAddaMain() {
       {/* MODAL 6: CRICHEROES STYLE SELECT PLAYING TEAMS & MATCH SETUP ENGINE */}
       <Modal visible={wizardVisible} animationType="slide" statusBarTranslucent={true}>
         <ImageBackground
-          source={require('./assets/select-team-bg-full.jpg')}
+          source={require('./assets/wizard-bg.png')}
           style={[styles.cricModalFullscreen, { backgroundColor: '#020b14' }]}
           resizeMode="cover"
         >
