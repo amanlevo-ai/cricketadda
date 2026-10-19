@@ -9973,6 +9973,63 @@ const getCurrentFormattedDate = (customDate = new Date()) => {
 };
 
 // ============================================================================
+// HELPER: GET CURRENT MATCH TIME (e.g. "01:05 PM")
+// ============================================================================
+const getCurrentFormattedTime = (customDate = new Date()) => {
+  const d = customDate instanceof Date ? customDate : new Date(customDate);
+  let hours = d.getHours();
+  const minutes = String(d.getMinutes()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+};
+
+// ============================================================================
+// HELPER: PARSE TIME STR INTO COMPONENTS ({ hour, minute, ampm })
+// ============================================================================
+const parseTimeComponents = (timeStr) => {
+  if (!timeStr) {
+    const now = new Date();
+    let h = now.getHours();
+    const m = String(now.getMinutes()).padStart(2, '0');
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    return { hour: String(h).padStart(2, '0'), minute: m, ampm };
+  }
+  const match = String(timeStr).trim().match(/^(\d{1,2}):(\d{2})\s*(AM|PM)?$/i);
+  if (match) {
+    const h = String(parseInt(match[1], 10)).padStart(2, '0');
+    const m = match[2];
+    const ampm = (match[3] || 'PM').toUpperCase();
+    return { hour: h, minute: m, ampm };
+  }
+  return { hour: '12', minute: '00', ampm: 'PM' };
+};
+
+// ============================================================================
+// HELPER: PARSE MATCH DATE STR ("19 Oct 2026") TO DATE OBJECT
+// ============================================================================
+const parseMatchDateToDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  try {
+    const parts = dateStr.trim().split(' ');
+    if (parts.length === 3) {
+      const day = parseInt(parts[0], 10);
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const monthIdx = months.findIndex(m => m.toLowerCase() === parts[1].toLowerCase());
+      const year = parseInt(parts[2], 10);
+      if (!isNaN(day) && monthIdx !== -1 && !isNaN(year)) {
+        return new Date(year, monthIdx, day);
+      }
+    }
+    const d = new Date(dateStr);
+    if (!isNaN(d.getTime())) return d;
+  } catch (e) {}
+  return new Date();
+};
+
+// ============================================================================
 // MATCH SETUP WIZARD & AUTO-SAVED DRAFT INITIAL STATE
 // ============================================================================
 const INITIAL_MATCH_DRAFT = {
@@ -9985,8 +10042,8 @@ const INITIAL_MATCH_DRAFT = {
   tournament: 'Cricket Adda',
   ground: "Joseph's Ground, Ludhiana",
   matchDate: getCurrentFormattedDate(),
-  matchTime: '', // Predefined na ho, user will select time
-  dateTime: getCurrentFormattedDate(),
+  matchTime: getCurrentFormattedTime(),
+  dateTime: `${getCurrentFormattedDate()}, ${getCurrentFormattedTime()}`,
   format: 'T20',
   totalOvers: 20,
   oversPerBowler: 4,
@@ -10842,6 +10899,10 @@ function CricketAddaMain() {
   const [oversPickerVisible, setOversPickerVisible] = useState(false);
   const [timePickerVisible, setTimePickerVisible] = useState(false);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
+  const [calendarViewDate, setCalendarViewDate] = useState(() => new Date());
+  const [customTimeHour, setCustomTimeHour] = useState('');
+  const [customTimeMin, setCustomTimeMin] = useState('');
+  const [customTimeAmPm, setCustomTimeAmPm] = useState('PM');
   const [matchDraftScorerPhone, setMatchDraftScorerPhone] = useState('');
 
   // Inning Start Openers Selection Modal State
@@ -11069,13 +11130,16 @@ function CricketAddaMain() {
   }, [registeredTeams, userProfile?.createdTeams, usersDb]);
 
   const handleOpenMatchWizard = useCallback(() => {
+    const defaultDate = getCurrentFormattedDate();
+    const defaultTime = getCurrentFormattedTime();
     setMatchDraft(prev => ({
       ...INITIAL_MATCH_DRAFT,
       ...prev,
       myTeam: null,
       opponentTeam: null,
-      matchDate: getCurrentFormattedDate(),
-      matchTime: '',
+      matchDate: defaultDate,
+      matchTime: defaultTime,
+      dateTime: `${defaultDate}, ${defaultTime}`,
     }));
     setWzPhase(1);
     setWzTeamStep(1);
@@ -30951,7 +31015,7 @@ function CricketAddaMain() {
               <View style={{
                 paddingHorizontal: 14,
                 paddingTop: 8,
-                paddingBottom: Math.max(16, bottomInset + 10),
+                paddingBottom: Math.max(28, bottomInset + 14),
                 backgroundColor: 'rgba(2, 11, 20, 0.94)',
                 borderTopWidth: 1,
                 borderTopColor: '#0a1d30',
@@ -31179,7 +31243,11 @@ function CricketAddaMain() {
                           paddingVertical: 6,
                           justifyContent: 'center',
                         }}
-                        onPress={() => setDatePickerVisible(true)}
+                        onPress={() => {
+                          const initialDate = parseMatchDateToDate(matchDraft.matchDate);
+                          setCalendarViewDate(initialDate);
+                          setDatePickerVisible(true);
+                        }}
                         activeOpacity={0.8}
                       >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
@@ -31207,7 +31275,14 @@ function CricketAddaMain() {
                           paddingVertical: 6,
                           justifyContent: 'center',
                         }}
-                        onPress={() => setTimePickerVisible(true)}
+                        onPress={() => {
+                          const curTime = matchDraft.matchTime || getCurrentFormattedTime();
+                          const parsed = parseTimeComponents(curTime);
+                          setCustomTimeHour(parsed.hour);
+                          setCustomTimeMin(parsed.minute);
+                          setCustomTimeAmPm(parsed.ampm);
+                          setTimePickerVisible(true);
+                        }}
                         activeOpacity={0.8}
                       >
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 2 }}>
@@ -31220,7 +31295,7 @@ function CricketAddaMain() {
                             fontSize: matchDraft.matchTime ? 14 : 12.5,
                             fontWeight: matchDraft.matchTime ? 'bold' : '700',
                           }}>
-                            {matchDraft.matchTime || 'Select Time'}
+                            {matchDraft.matchTime || getCurrentFormattedTime()}
                           </Text>
                           <Text style={{ color: matchDraft.matchTime ? '#94a3b8' : '#facc15', fontSize: 16, fontWeight: 'bold' }}>⌄</Text>
                         </View>
@@ -31268,19 +31343,19 @@ function CricketAddaMain() {
                       </View>
                     </View>
 
-                    {/* Row 5: Ball Type (Same Height: 58) */}
+                    {/* Row 5: Ball Type (Height: 74, Bigger Buttons: 40) */}
                     <View style={{
-                      height: 58,
+                      height: 74,
                       backgroundColor: 'rgba(5, 22, 40, 0.88)',
                       borderWidth: 1.5,
                       borderColor: 'rgba(56, 189, 248, 0.35)',
                       borderRadius: 12,
                       paddingHorizontal: 12,
-                      paddingVertical: 5,
+                      paddingVertical: 6,
                       justifyContent: 'center',
                       marginBottom: 4,
                     }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                           <Text style={{ fontSize: 11 }}>🏏</Text>
                           <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase' }}>Ball Type</Text>
@@ -31302,43 +31377,43 @@ function CricketAddaMain() {
                               activeOpacity={0.8}
                               style={{
                                 flex: 1,
-                                height: 28,
-                                borderRadius: 7,
+                                height: 40,
+                                borderRadius: 9,
                                 backgroundColor: isSel ? 'rgba(34, 197, 94, 0.24)' : 'rgba(8, 28, 48, 0.85)',
                                 borderWidth: 1.5,
                                 borderColor: isSel ? '#22c55e' : 'rgba(56, 189, 248, 0.22)',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexDirection: 'row',
-                                gap: 5,
+                                gap: 6,
                                 shadowColor: isSel ? '#22c55e' : '#000',
-                                shadowOffset: { width: 0, height: 1 },
-                                shadowOpacity: isSel ? 0.4 : 0.15,
-                                shadowRadius: 3,
-                                elevation: isSel ? 3 : 1,
+                                shadowOffset: { width: 0, height: 1.5 },
+                                shadowOpacity: isSel ? 0.45 : 0.15,
+                                shadowRadius: 3.5,
+                                elevation: isSel ? 3.5 : 1,
                               }}
                               onPress={() => updateDraft({ ballType: bObj.id })}
                             >
-                              <RealisticCricketBallIcon type={bObj.type} size={15} />
+                              <RealisticCricketBallIcon type={bObj.type} size={18} />
                               <Text style={{
                                 color: isSel ? '#ffffff' : '#cbd5e1',
                                 fontWeight: isSel ? '900' : '700',
-                                fontSize: 11,
+                                fontSize: 12,
                                 letterSpacing: 0.2,
                               }}>
                                 {bObj.label}
                               </Text>
                               {isSel && (
                                 <View style={{
-                                  width: 13,
-                                  height: 13,
-                                  borderRadius: 6.5,
+                                  width: 14,
+                                  height: 14,
+                                  borderRadius: 7,
                                   backgroundColor: '#22c55e',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   marginLeft: -1,
                                 }}>
-                                  <Text style={{ color: '#000000', fontSize: 8.5, fontWeight: '900', lineHeight: 10 }}>✓</Text>
+                                  <Text style={{ color: '#000000', fontSize: 9, fontWeight: '900', lineHeight: 11 }}>✓</Text>
                                 </View>
                               )}
                             </TouchableOpacity>
@@ -32111,7 +32186,7 @@ function CricketAddaMain() {
                   borderTopColor: 'rgba(56, 189, 248, 0.2)',
                   paddingHorizontal: 14,
                   paddingTop: 8,
-                  paddingBottom: Math.max(10, bottomInset),
+                  paddingBottom: Math.max(28, bottomInset + 14),
                 }}>
                   <TouchableOpacity
                     style={{
@@ -32159,7 +32234,7 @@ function CricketAddaMain() {
                     borderTopColor: 'rgba(56, 189, 248, 0.2)',
                     paddingHorizontal: 16,
                     paddingTop: 8,
-                    paddingBottom: Math.max(14, bottomInset),
+                    paddingBottom: Math.max(28, bottomInset + 14),
                   }}>
                     {/* Role Summary Row */}
                     <View style={{
@@ -32226,7 +32301,7 @@ function CricketAddaMain() {
                   </View>
                 );
               })() : (
-                <View style={[styles.wizardDockedBottomBar, { backgroundColor: 'rgba(2, 11, 20, 0.94)', borderTopColor: '#0a1d30', paddingBottom: Math.max(12, bottomInset) }]}>
+                <View style={[styles.wizardDockedBottomBar, { backgroundColor: 'rgba(2, 11, 20, 0.94)', borderTopColor: '#0a1d30', paddingBottom: Math.max(28, bottomInset + 14) }]}>
                   <TouchableOpacity
                     style={[styles.wizardCancelBtn, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)', borderWidth: 1 }]}
                     onPress={confirmCancelMatchSetup}
@@ -32397,124 +32472,483 @@ function CricketAddaMain() {
             shadowRadius: 10,
             elevation: 8,
           }}>
+      {/* DATE PICKER CALENDAR MODAL */}
+      <Modal visible={datePickerVisible} transparent animationType="fade" statusBarTranslucent={true}>
+        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 18 }]}>
+          <View style={{
+            width: '100%',
+            maxWidth: 360,
+            backgroundColor: '#071828',
+            borderRadius: 18,
+            borderWidth: 1.5,
+            borderColor: '#38bdf8',
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.65,
+            shadowRadius: 14,
+            elevation: 10,
+          }}>
+            {/* Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.2)', paddingBottom: 8 }}>
-              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>Select Match Date</Text>
-              <TouchableOpacity onPress={() => setDatePickerVisible(false)}>
-                <Text style={{ color: '#f87171', fontSize: 16, fontWeight: '900' }}>✕</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 16 }}>📅</Text>
+                <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>Select Match Date</Text>
+              </View>
+              <TouchableOpacity onPress={() => setDatePickerVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={{ color: '#f87171', fontSize: 18, fontWeight: '900' }}>✕</Text>
               </TouchableOpacity>
             </View>
-            {(() => {
-              const options = [];
-              const today = new Date();
-              for (let i = 0; i < 7; i++) {
-                const target = new Date(today);
-                target.setDate(today.getDate() + i);
-                const formatted = getCurrentFormattedDate(target);
-                const label = i === 0 ? `Today (${formatted})` : i === 1 ? `Tomorrow (${formatted})` : formatted;
-                options.push({ label, cleanD: formatted });
-              }
-              return options;
-            })().map(({ label, cleanD }) => {
-              const isSelected = (matchDraft.matchDate || getCurrentFormattedDate()) === cleanD;
-              return (
-                <TouchableOpacity
-                  key={cleanD}
-                  style={{
-                    paddingVertical: 10,
-                    paddingHorizontal: 12,
-                    borderRadius: 10,
-                    backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.2)' : 'rgba(8, 28, 48, 0.6)',
-                    borderWidth: 1,
-                    borderColor: isSelected ? '#38bdf8' : 'rgba(56, 189, 248, 0.15)',
-                    marginBottom: 6,
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                  }}
-                  onPress={() => {
-                    updateDraft({
-                      matchDate: cleanD,
-                      dateTime: `${cleanD}${matchDraft.matchTime ? `, ${matchDraft.matchTime}` : ''}`,
-                    });
-                    setDatePickerVisible(false);
-                  }}
-                >
-                  <Text style={{ color: isSelected ? '#38bdf8' : '#ffffff', fontSize: 13.5, fontWeight: 'bold' }}>
-                    {label}
+
+            {/* Month Navigation Row */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              backgroundColor: 'rgba(15, 34, 56, 0.7)',
+              borderRadius: 10,
+              paddingHorizontal: 8,
+              paddingVertical: 6,
+              marginBottom: 10,
+              borderWidth: 1,
+              borderColor: 'rgba(56, 189, 248, 0.25)',
+            }}>
+              <TouchableOpacity
+                onPress={() => {
+                  const next = new Date(calendarViewDate);
+                  next.setMonth(next.getMonth() - 1);
+                  setCalendarViewDate(next);
+                }}
+                style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(56, 189, 248, 0.15)' }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: '#38bdf8', fontSize: 14, fontWeight: '900' }}>◀</Text>
+              </TouchableOpacity>
+
+              <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900', letterSpacing: 0.5 }}>
+                {calendarViewDate.toLocaleString('en-US', { month: 'long', year: 'numeric' })}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => {
+                  const next = new Date(calendarViewDate);
+                  next.setMonth(next.getMonth() + 1);
+                  setCalendarViewDate(next);
+                }}
+                style={{ paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6, backgroundColor: 'rgba(56, 189, 248, 0.15)' }}
+                activeOpacity={0.7}
+              >
+                <Text style={{ color: '#38bdf8', fontSize: 14, fontWeight: '900' }}>▶</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Days of Week Header */}
+            <View style={{ flexDirection: 'row', marginBottom: 6 }}>
+              {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map((dLabel, idx) => (
+                <View key={dLabel} style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={{
+                    color: idx >= 5 ? '#38bdf8' : '#94a3b8',
+                    fontSize: 11,
+                    fontWeight: '800',
+                    textTransform: 'uppercase',
+                  }}>
+                    {dLabel}
                   </Text>
-                  {isSelected && <Text style={{ color: '#38bdf8', fontSize: 15, fontWeight: '900' }}>✓</Text>}
-                </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+
+            {/* Calendar Days Grid */}
+            {(() => {
+              const year = calendarViewDate.getFullYear();
+              const month = calendarViewDate.getMonth();
+              const firstDaySundayBased = new Date(year, month, 1).getDay();
+              const startDayIndex = (firstDaySundayBased + 6) % 7;
+              const totalDays = new Date(year, month + 1, 0).getDate();
+              const today = new Date();
+              const selectedFormatted = matchDraft.matchDate || getCurrentFormattedDate();
+
+              const gridCells = [];
+              for (let i = 0; i < startDayIndex; i++) {
+                gridCells.push(null);
+              }
+              for (let d = 1; d <= totalDays; d++) {
+                gridCells.push(d);
+              }
+
+              const rows = [];
+              for (let r = 0; r < gridCells.length; r += 7) {
+                rows.push(gridCells.slice(r, r + 7));
+              }
+
+              return (
+                <View style={{ gap: 4 }}>
+                  {rows.map((row, rowIdx) => (
+                    <View key={`row-${rowIdx}`} style={{ flexDirection: 'row', gap: 4 }}>
+                      {row.map((dayNum, colIdx) => {
+                        if (dayNum === null) {
+                          return <View key={`blank-${colIdx}`} style={{ flex: 1, height: 34 }} />;
+                        }
+                        const cellDate = new Date(year, month, dayNum);
+                        const cellFormatted = getCurrentFormattedDate(cellDate);
+                        const isSelected = selectedFormatted === cellFormatted;
+                        const isToday = cellDate.toDateString() === today.toDateString();
+
+                        return (
+                          <TouchableOpacity
+                            key={`day-${dayNum}`}
+                            onPress={() => {
+                              updateDraft({
+                                matchDate: cellFormatted,
+                                dateTime: `${cellFormatted}${matchDraft.matchTime ? `, ${matchDraft.matchTime}` : ''}`,
+                              });
+                              setDatePickerVisible(false);
+                            }}
+                            activeOpacity={0.7}
+                            style={{
+                              flex: 1,
+                              height: 34,
+                              borderRadius: 8,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: isSelected
+                                ? '#22c55e'
+                                : isToday
+                                ? 'rgba(56, 189, 248, 0.22)'
+                                : 'rgba(8, 28, 48, 0.65)',
+                              borderWidth: 1,
+                              borderColor: isSelected
+                                ? '#22c55e'
+                                : isToday
+                                ? '#38bdf8'
+                                : 'rgba(56, 189, 248, 0.15)',
+                            }}
+                          >
+                            <Text style={{
+                              color: isSelected ? '#000000' : isToday ? '#38bdf8' : '#ffffff',
+                              fontSize: 12,
+                              fontWeight: isSelected || isToday ? '900' : '600',
+                            }}>
+                              {dayNum}
+                            </Text>
+                            {isToday && !isSelected && (
+                              <View style={{ width: 3.5, height: 3.5, borderRadius: 1.75, backgroundColor: '#38bdf8', position: 'absolute', bottom: 2 }} />
+                            )}
+                          </TouchableOpacity>
+                        );
+                      })}
+                      {row.length < 7 && Array.from({ length: 7 - row.length }).map((_, padIdx) => (
+                        <View key={`pad-${padIdx}`} style={{ flex: 1, height: 34 }} />
+                      ))}
+                    </View>
+                  ))}
+                </View>
               );
-            })}
+            })()}
+
+            {/* Quick Select Buttons */}
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+              <TouchableOpacity
+                onPress={() => {
+                  const todayFormatted = getCurrentFormattedDate();
+                  setCalendarViewDate(new Date());
+                  updateDraft({
+                    matchDate: todayFormatted,
+                    dateTime: `${todayFormatted}${matchDraft.matchTime ? `, ${matchDraft.matchTime}` : ''}`,
+                  });
+                  setDatePickerVisible(false);
+                }}
+                style={{
+                  flex: 1,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                  borderWidth: 1,
+                  borderColor: '#22c55e',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: '#22c55e', fontSize: 12.5, fontWeight: '800' }}>✓ Today</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  const tomorrow = new Date();
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  const tomorrowFormatted = getCurrentFormattedDate(tomorrow);
+                  setCalendarViewDate(tomorrow);
+                  updateDraft({
+                    matchDate: tomorrowFormatted,
+                    dateTime: `${tomorrowFormatted}${matchDraft.matchTime ? `, ${matchDraft.matchTime}` : ''}`,
+                  });
+                  setDatePickerVisible(false);
+                }}
+                style={{
+                  flex: 1,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: 'rgba(56, 189, 248, 0.2)',
+                  borderWidth: 1,
+                  borderColor: '#38bdf8',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: '#38bdf8', fontSize: 12.5, fontWeight: '800' }}>Tomorrow</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
 
-      {/* TIME PICKER MODAL */}
+      {/* TIME PICKER MODAL (INTERACTIVE --:-- WITH PREFILLED CURRENT TIME) */}
       <Modal visible={timePickerVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 20 }]}>
           <View style={{
             width: '100%',
             maxWidth: 360,
             backgroundColor: '#071828',
-            borderRadius: 16,
+            borderRadius: 18,
             borderWidth: 1.5,
             borderColor: '#38bdf8',
             padding: 16,
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: 0.6,
-            shadowRadius: 10,
-            elevation: 8,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: 0.65,
+            shadowRadius: 14,
+            elevation: 10,
           }}>
+            {/* Header */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.2)', paddingBottom: 8 }}>
-              <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>Select Match Time</Text>
-              <TouchableOpacity onPress={() => setTimePickerVisible(false)}>
-                <Text style={{ color: '#f87171', fontSize: 16, fontWeight: '900' }}>✕</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 16 }}>🕒</Text>
+                <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>Select Match Time</Text>
+              </View>
+              <TouchableOpacity onPress={() => setTimePickerVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                <Text style={{ color: '#f87171', fontSize: 18, fontWeight: '900' }}>✕</Text>
               </TouchableOpacity>
             </View>
-            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' }}>
+
+            {/* Interactive Digital Clock Input: [HH] : [MM] [AM/PM] */}
+            <View style={{
+              backgroundColor: 'rgba(2, 11, 20, 0.95)',
+              borderWidth: 1.5,
+              borderColor: 'rgba(56, 189, 248, 0.35)',
+              borderRadius: 14,
+              paddingVertical: 12,
+              paddingHorizontal: 12,
+              alignItems: 'center',
+              marginBottom: 12,
+            }}>
+              <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700', textTransform: 'uppercase', marginBottom: 10, letterSpacing: 0.5 }}>
+                Enter Custom Time (--:--)
+              </Text>
+
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                {/* Hours Box */}
+                <View style={{ alignItems: 'center' }}>
+                  <TextInput
+                    style={{
+                      width: 66,
+                      height: 50,
+                      backgroundColor: 'rgba(8, 28, 48, 0.95)',
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#38bdf8',
+                      color: '#ffffff',
+                      fontSize: 24,
+                      fontWeight: '900',
+                      textAlign: 'center',
+                      letterSpacing: 1,
+                    }}
+                    value={customTimeHour}
+                    onChangeText={t => setCustomTimeHour(t.replace(/[^0-9]/g, '').slice(0, 2))}
+                    placeholder="--"
+                    placeholderTextColor="rgba(148, 163, 184, 0.5)"
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    selectTextOnFocus
+                  />
+                  <Text style={{ color: '#64748b', fontSize: 9.5, fontWeight: '800', marginTop: 4 }}>HH (01-12)</Text>
+                </View>
+
+                {/* Colon Separator */}
+                <Text style={{ color: '#38bdf8', fontSize: 26, fontWeight: '900', marginTop: -14 }}>:</Text>
+
+                {/* Minutes Box */}
+                <View style={{ alignItems: 'center' }}>
+                  <TextInput
+                    style={{
+                      width: 66,
+                      height: 50,
+                      backgroundColor: 'rgba(8, 28, 48, 0.95)',
+                      borderRadius: 10,
+                      borderWidth: 1.5,
+                      borderColor: '#38bdf8',
+                      color: '#ffffff',
+                      fontSize: 24,
+                      fontWeight: '900',
+                      textAlign: 'center',
+                      letterSpacing: 1,
+                    }}
+                    value={customTimeMin}
+                    onChangeText={t => setCustomTimeMin(t.replace(/[^0-9]/g, '').slice(0, 2))}
+                    placeholder="--"
+                    placeholderTextColor="rgba(148, 163, 184, 0.5)"
+                    keyboardType="number-pad"
+                    maxLength={2}
+                    selectTextOnFocus
+                  />
+                  <Text style={{ color: '#64748b', fontSize: 9.5, fontWeight: '800', marginTop: 4 }}>MM (00-59)</Text>
+                </View>
+
+                {/* AM / PM Toggle Pill */}
+                <View style={{
+                  flexDirection: 'column',
+                  gap: 4,
+                  marginLeft: 6,
+                  marginTop: -14,
+                }}>
+                  {['AM', 'PM'].map(p => {
+                    const isPActive = (customTimeAmPm || 'PM').toUpperCase() === p;
+                    return (
+                      <TouchableOpacity
+                        key={p}
+                        onPress={() => setCustomTimeAmPm(p)}
+                        activeOpacity={0.8}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 5,
+                          borderRadius: 6,
+                          backgroundColor: isPActive ? '#22c55e' : 'rgba(8, 28, 48, 0.8)',
+                          borderWidth: 1,
+                          borderColor: isPActive ? '#22c55e' : 'rgba(56, 189, 248, 0.25)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={{
+                          color: isPActive ? '#000000' : '#94a3b8',
+                          fontSize: 11,
+                          fontWeight: '900',
+                        }}>
+                          {p}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Set Current Time Quick Helper Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  const nowStr = getCurrentFormattedTime();
+                  const parsed = parseTimeComponents(nowStr);
+                  setCustomTimeHour(parsed.hour);
+                  setCustomTimeMin(parsed.minute);
+                  setCustomTimeAmPm(parsed.ampm);
+                }}
+                activeOpacity={0.8}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 5,
+                  marginTop: 10,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4,
+                  borderRadius: 6,
+                  backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                  borderWidth: 1,
+                  borderColor: 'rgba(56, 189, 248, 0.3)',
+                }}
+              >
+                <Text style={{ fontSize: 12 }}>⚡</Text>
+                <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '800' }}>
+                  Use Current Time ({getCurrentFormattedTime()})
+                </Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Presets */}
+            <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700', textTransform: 'uppercase', marginBottom: 6 }}>
+              Quick Presets
+            </Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
               {[
                 '07:00 AM',
-                '09:00 AM',
-                '10:30 AM',
+                '09:30 AM',
                 '01:00 PM',
-                '02:30 PM',
-                '04:00 PM',
-                '05:30 PM',
-                '07:00 PM',
+                '03:30 PM',
+                '06:00 PM',
                 '08:00 PM',
-                '09:30 PM',
               ].map(t => {
-                const isSelected = matchDraft.matchTime === t;
+                const parsed = parseTimeComponents(t);
+                const isSelected = (customTimeHour === parsed.hour && customTimeMin === parsed.minute && (customTimeAmPm || 'PM').toUpperCase() === parsed.ampm);
                 return (
                   <TouchableOpacity
                     key={t}
                     style={{
-                      width: '48%',
-                      paddingVertical: 10,
-                      borderRadius: 10,
-                      backgroundColor: isSelected ? 'rgba(56, 189, 248, 0.25)' : 'rgba(8, 28, 48, 0.8)',
+                      flex: 1,
+                      minWidth: '30%',
+                      paddingVertical: 7,
+                      borderRadius: 8,
+                      backgroundColor: isSelected ? 'rgba(34, 197, 94, 0.22)' : 'rgba(8, 28, 48, 0.75)',
                       borderWidth: 1,
-                      borderColor: isSelected ? '#38bdf8' : 'rgba(56, 189, 248, 0.25)',
+                      borderColor: isSelected ? '#22c55e' : 'rgba(56, 189, 248, 0.2)',
                       alignItems: 'center',
-                      marginBottom: 6,
                     }}
                     onPress={() => {
-                      updateDraft({
-                        matchTime: t,
-                        dateTime: `${matchDraft.matchDate || getCurrentFormattedDate()}, ${t}`,
-                      });
-                      setTimePickerVisible(false);
+                      setCustomTimeHour(parsed.hour);
+                      setCustomTimeMin(parsed.minute);
+                      setCustomTimeAmPm(parsed.ampm);
                     }}
                   >
-                    <Text style={{ color: isSelected ? '#38bdf8' : '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
+                    <Text style={{ color: isSelected ? '#22c55e' : '#cbd5e1', fontSize: 11.5, fontWeight: isSelected ? '900' : '700' }}>
                       {t}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
+
+            {/* Action Button: Confirm Time */}
+            <TouchableOpacity
+              style={{
+                height: 44,
+                borderRadius: 11,
+                backgroundColor: '#22c55e',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 6,
+                shadowColor: '#22c55e',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.4,
+                shadowRadius: 5,
+                elevation: 4,
+              }}
+              onPress={() => {
+                let h = parseInt(customTimeHour || '12', 10);
+                if (isNaN(h) || h < 1) h = 12;
+                if (h > 12) h = 12;
+                let m = parseInt(customTimeMin || '00', 10);
+                if (isNaN(m) || m < 0) m = 0;
+                if (m > 59) m = 59;
+                const formattedTime = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')} ${customTimeAmPm || 'PM'}`;
+                updateDraft({
+                  matchTime: formattedTime,
+                  dateTime: `${matchDraft.matchDate || getCurrentFormattedDate()}, ${formattedTime}`,
+                });
+                setTimePickerVisible(false);
+              }}
+              activeOpacity={0.85}
+            >
+              <Text style={{ color: '#000000', fontSize: 14.5, fontWeight: '900', letterSpacing: 0.5 }}>
+                CONFIRM TIME ✓
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
