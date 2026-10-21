@@ -31675,9 +31675,9 @@ function CricketAddaMain() {
                 );
               })() : (
                 <ScrollView
-                  style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: 16 }}
+                  style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: wzPhase === 6 ? 10 : 16 }}
                   contentContainerStyle={{
-                    paddingBottom: (wzPhase === 2 || wzPhase === 5) ? 6 : wzPhase === 3 ? Math.max(92, bottomInset + 80) : 24,
+                    paddingBottom: (wzPhase === 2 || wzPhase === 5) ? 6 : wzPhase === 6 ? Math.max(40, bottomInset + 24) : wzPhase === 3 ? Math.max(92, bottomInset + 80) : 24,
                     paddingTop: (wzPhase === 2 || wzPhase === 3 || wzPhase === 5) ? 4 : 10,
                   }}
                   showsVerticalScrollIndicator={false}
@@ -32538,92 +32538,105 @@ function CricketAddaMain() {
                       {/* 1. STRIKER HERO CARD (EMERALD GREEN GLOW) */}
                       <View style={{
                         backgroundColor: '#061322',
-                        borderRadius: 18,
-                        borderWidth: 1.8,
+                        borderRadius: 16,
+                        borderWidth: 1.5,
                         borderColor: '#22c55e',
-                        marginBottom: 16,
-                        paddingVertical: 12,
-                        paddingHorizontal: 12,
+                        marginBottom: 12,
+                        paddingVertical: 10,
+                        paddingHorizontal: 8,
                         flexDirection: 'row',
                         alignItems: 'center',
                         shadowColor: '#22c55e',
                         shadowOffset: { width: 0, height: 0 },
-                        shadowOpacity: 0.65,
-                        shadowRadius: 10,
-                        elevation: 6,
+                        shadowOpacity: 0.5,
+                        shadowRadius: 8,
+                        elevation: 5,
                       }}>
                         {/* Role Icon & Title */}
-                        <View style={{ width: 72, alignItems: 'center', justifyContent: 'center' }}>
-                          <RealisticCricketBatIcon gripColor="#facc15" size={32} />
-                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900', letterSpacing: 0.6, marginTop: 4 }}>
+                        <View style={{ width: 56, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <RealisticCricketBatIcon gripColor="#facc15" size={24} />
+                          <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900', letterSpacing: 0.5, marginTop: 3 }}>
                             STRIKER
                           </Text>
                         </View>
 
                         {/* Divider */}
-                        <View style={{ width: 1, height: 56, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 8 }} />
+                        <View style={{ width: 1, height: 46, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 }} />
 
                         {/* Avatar & Player Details */}
-                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, paddingRight: 4 }}>
                           <View style={{
-                            width: 54,
-                            height: 54,
-                            borderRadius: 27,
-                            borderWidth: 2,
+                            width: 46,
+                            height: 46,
+                            borderRadius: 23,
+                            borderWidth: 1.8,
                             borderColor: '#22c55e',
                             overflow: 'hidden',
                             justifyContent: 'center',
                             alignItems: 'center',
                             backgroundColor: '#1e293b',
+                            flexShrink: 0,
                           }}>
                             <PlayerAvatar
                               name={strikerDetails.name}
                               customUri={strikerDetails.avatarUri}
-                              size={54}
+                              size={46}
                               borderColor="#22c55e"
                             />
                           </View>
 
-                          <View style={{ marginLeft: 10, flex: 1 }}>
-                            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '800' }} numberOfLines={1}>
-                              {strikerDetails.name.replace(/\s*\([^)]*\)/g, '')}
+                          <View style={{ marginLeft: 8, flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                            <Text
+                              style={{
+                                color: '#ffffff',
+                                fontSize: 15.5,
+                                fontWeight: '800',
+                                letterSpacing: 0.2,
+                              }}
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {strikerDetails.name.replace(/\s*\([^)]*\)/g, '').trim()}
                             </Text>
-                            <View style={{
-                              backgroundColor: '#0c2738',
-                              borderRadius: 5,
-                              paddingHorizontal: 8,
-                              paddingVertical: 1.5,
-                              alignSelf: 'flex-start',
-                              marginVertical: 3,
-                            }}>
-                              <Text style={{ color: '#93c5fd', fontSize: 11, fontWeight: '800' }}>
-                                {strikerDetails.jersey}
-                              </Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <RealisticCricketBatIcon gripColor="#facc15" size={14} />
-                              <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '700', marginLeft: 4 }}>
-                                {strikerDetails.battingStyle}
-                              </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                              <View style={{
+                                backgroundColor: '#0c2738',
+                                borderRadius: 4,
+                                paddingHorizontal: 6,
+                                paddingVertical: 1,
+                                borderWidth: 0.5,
+                                borderColor: 'rgba(56, 189, 248, 0.3)',
+                              }}>
+                                <Text style={{ color: '#93c5fd', fontSize: 10.5, fontWeight: '800' }}>
+                                  {strikerDetails.jersey}
+                                </Text>
+                              </View>
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <RealisticCricketBatIcon gripColor="#facc15" size={12} />
+                                <Text style={{ color: '#cbd5e1', fontSize: 11, fontWeight: '700', marginLeft: 3 }}>
+                                  {strikerDetails.battingStyle}
+                                </Text>
+                              </View>
                             </View>
                           </View>
                         </View>
 
                         {/* Divider */}
-                        <View style={{ width: 1, height: 56, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 8 }} />
+                        <View style={{ width: 1, height: 46, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 }} />
 
                         {/* Change Button */}
                         <TouchableOpacity
                           style={{
-                            borderWidth: 1.5,
+                            borderWidth: 1.2,
                             borderColor: '#22c55e',
                             backgroundColor: 'rgba(34, 197, 94, 0.12)',
-                            borderRadius: 10,
-                            paddingVertical: 8,
-                            paddingHorizontal: 10,
+                            borderRadius: 8,
+                            paddingVertical: 7,
+                            paddingHorizontal: 8,
                             flexDirection: 'row',
                             alignItems: 'center',
                             gap: 4,
+                            flexShrink: 0,
                           }}
                           onPress={() => {
                             setPlayerPickerTarget('striker');
@@ -32631,100 +32644,113 @@ function CricketAddaMain() {
                           }}
                           activeOpacity={0.8}
                         >
-                          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>⇄</Text>
-                          <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900', letterSpacing: 0.5 }}>CHANGE</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '900' }}>⇄</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900', letterSpacing: 0.4 }}>CHANGE</Text>
                         </TouchableOpacity>
                       </View>
 
                       {/* 2. NON-STRIKER HERO CARD (ELECTRIC BLUE GLOW) */}
                       <View style={{
                         backgroundColor: '#061322',
-                        borderRadius: 18,
-                        borderWidth: 1.8,
+                        borderRadius: 16,
+                        borderWidth: 1.5,
                         borderColor: '#0284c7',
-                        marginBottom: 16,
-                        paddingVertical: 12,
-                        paddingHorizontal: 12,
+                        marginBottom: 12,
+                        paddingVertical: 10,
+                        paddingHorizontal: 8,
                         flexDirection: 'row',
                         alignItems: 'center',
                         shadowColor: '#0284c7',
                         shadowOffset: { width: 0, height: 0 },
-                        shadowOpacity: 0.65,
-                        shadowRadius: 10,
-                        elevation: 6,
+                        shadowOpacity: 0.5,
+                        shadowRadius: 8,
+                        elevation: 5,
                       }}>
                         {/* Role Icon & Title */}
-                        <View style={{ width: 72, alignItems: 'center', justifyContent: 'center' }}>
-                          <RealisticCricketBatIcon gripColor="#38bdf8" size={32} />
-                          <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900', letterSpacing: 0.4, marginTop: 4 }}>
-                            NON-STRIKER
+                        <View style={{ width: 56, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <RealisticCricketBatIcon gripColor="#38bdf8" size={24} />
+                          <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900', textAlign: 'center', lineHeight: 11.5, marginTop: 3 }}>
+                            NON-{"\n"}STRIKER
                           </Text>
                         </View>
 
                         {/* Divider */}
-                        <View style={{ width: 1, height: 56, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 8 }} />
+                        <View style={{ width: 1, height: 46, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 }} />
 
                         {/* Avatar & Player Details */}
-                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, paddingRight: 4 }}>
                           <View style={{
-                            width: 54,
-                            height: 54,
-                            borderRadius: 27,
-                            borderWidth: 2,
+                            width: 46,
+                            height: 46,
+                            borderRadius: 23,
+                            borderWidth: 1.8,
                             borderColor: '#0284c7',
                             overflow: 'hidden',
                             justifyContent: 'center',
                             alignItems: 'center',
                             backgroundColor: '#1e293b',
+                            flexShrink: 0,
                           }}>
                             <PlayerAvatar
                               name={nonStrikerDetails.name}
                               customUri={nonStrikerDetails.avatarUri}
-                              size={54}
+                              size={46}
                               borderColor="#0284c7"
                             />
                           </View>
 
-                          <View style={{ marginLeft: 10, flex: 1 }}>
-                            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '800' }} numberOfLines={1}>
-                              {nonStrikerDetails.name.replace(/\s*\([^)]*\)/g, '')}
+                          <View style={{ marginLeft: 8, flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                            <Text
+                              style={{
+                                color: '#ffffff',
+                                fontSize: 15.5,
+                                fontWeight: '800',
+                                letterSpacing: 0.2,
+                              }}
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {nonStrikerDetails.name.replace(/\s*\([^)]*\)/g, '').trim()}
                             </Text>
-                            <View style={{
-                              backgroundColor: '#0c2738',
-                              borderRadius: 5,
-                              paddingHorizontal: 8,
-                              paddingVertical: 1.5,
-                              alignSelf: 'flex-start',
-                              marginVertical: 3,
-                            }}>
-                              <Text style={{ color: '#93c5fd', fontSize: 11, fontWeight: '800' }}>
-                                {nonStrikerDetails.jersey}
-                              </Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <RealisticCricketBatIcon gripColor="#38bdf8" size={14} />
-                              <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '700', marginLeft: 4 }}>
-                                {nonStrikerDetails.battingStyle}
-                              </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                              <View style={{
+                                backgroundColor: '#0c2738',
+                                borderRadius: 4,
+                                paddingHorizontal: 6,
+                                paddingVertical: 1,
+                                borderWidth: 0.5,
+                                borderColor: 'rgba(56, 189, 248, 0.3)',
+                              }}>
+                                <Text style={{ color: '#93c5fd', fontSize: 10.5, fontWeight: '800' }}>
+                                  {nonStrikerDetails.jersey}
+                                </Text>
+                              </View>
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <RealisticCricketBatIcon gripColor="#38bdf8" size={12} />
+                                <Text style={{ color: '#cbd5e1', fontSize: 11, fontWeight: '700', marginLeft: 3 }}>
+                                  {nonStrikerDetails.battingStyle}
+                                </Text>
+                              </View>
                             </View>
                           </View>
                         </View>
 
                         {/* Divider */}
-                        <View style={{ width: 1, height: 56, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 8 }} />
+                        <View style={{ width: 1, height: 46, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 }} />
 
                         {/* Change Button */}
                         <TouchableOpacity
                           style={{
-                            borderWidth: 1.5,
+                            borderWidth: 1.2,
                             borderColor: '#0284c7',
                             backgroundColor: 'rgba(2, 132, 199, 0.12)',
-                            borderRadius: 10,
-                            paddingVertical: 8,
-                            paddingHorizontal: 10,
+                            borderRadius: 8,
+                            paddingVertical: 7,
+                            paddingHorizontal: 8,
                             flexDirection: 'row',
                             alignItems: 'center',
                             gap: 4,
+                            flexShrink: 0,
                           }}
                           onPress={() => {
                             setPlayerPickerTarget('nonStriker');
@@ -32732,100 +32758,113 @@ function CricketAddaMain() {
                           }}
                           activeOpacity={0.8}
                         >
-                          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>⇄</Text>
-                          <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900', letterSpacing: 0.5 }}>CHANGE</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '900' }}>⇄</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900', letterSpacing: 0.4 }}>CHANGE</Text>
                         </TouchableOpacity>
                       </View>
 
                       {/* 3. BOWLER HERO CARD (NEON RED GLOW) */}
                       <View style={{
                         backgroundColor: '#061322',
-                        borderRadius: 18,
-                        borderWidth: 1.8,
+                        borderRadius: 16,
+                        borderWidth: 1.5,
                         borderColor: '#ef4444',
-                        marginBottom: 20,
-                        paddingVertical: 12,
-                        paddingHorizontal: 12,
+                        marginBottom: 16,
+                        paddingVertical: 10,
+                        paddingHorizontal: 8,
                         flexDirection: 'row',
                         alignItems: 'center',
                         shadowColor: '#ef4444',
                         shadowOffset: { width: 0, height: 0 },
-                        shadowOpacity: 0.65,
-                        shadowRadius: 10,
-                        elevation: 6,
+                        shadowOpacity: 0.5,
+                        shadowRadius: 8,
+                        elevation: 5,
                       }}>
                         {/* Role Icon & Title */}
-                        <View style={{ width: 72, alignItems: 'center', justifyContent: 'center' }}>
-                          <RealisticCricketBallIcon type="red" size={28} />
-                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900', letterSpacing: 0.6, marginTop: 4 }}>
+                        <View style={{ width: 56, alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <RealisticCricketBallIcon type="red" size={22} />
+                          <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900', letterSpacing: 0.5, marginTop: 3 }}>
                             BOWLER
                           </Text>
                         </View>
 
                         {/* Divider */}
-                        <View style={{ width: 1, height: 56, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 8 }} />
+                        <View style={{ width: 1, height: 46, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 }} />
 
                         {/* Avatar & Player Details */}
-                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                        <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', minWidth: 0, paddingRight: 4 }}>
                           <View style={{
-                            width: 54,
-                            height: 54,
-                            borderRadius: 27,
-                            borderWidth: 2,
+                            width: 46,
+                            height: 46,
+                            borderRadius: 23,
+                            borderWidth: 1.8,
                             borderColor: '#ef4444',
                             overflow: 'hidden',
                             justifyContent: 'center',
                             alignItems: 'center',
                             backgroundColor: '#1e293b',
+                            flexShrink: 0,
                           }}>
                             <PlayerAvatar
                               name={bowlerDetails.name}
                               customUri={bowlerDetails.avatarUri}
-                              size={54}
+                              size={46}
                               borderColor="#ef4444"
                             />
                           </View>
 
-                          <View style={{ marginLeft: 10, flex: 1 }}>
-                            <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '800' }} numberOfLines={1}>
-                              {bowlerDetails.name.replace(/\s*\([^)]*\)/g, '')}
+                          <View style={{ marginLeft: 8, flex: 1, minWidth: 0, justifyContent: 'center' }}>
+                            <Text
+                              style={{
+                                color: '#ffffff',
+                                fontSize: 15.5,
+                                fontWeight: '800',
+                                letterSpacing: 0.2,
+                              }}
+                              numberOfLines={1}
+                              ellipsizeMode="tail"
+                            >
+                              {bowlerDetails.name.replace(/\s*\([^)]*\)/g, '').trim()}
                             </Text>
-                            <View style={{
-                              backgroundColor: '#0c2738',
-                              borderRadius: 5,
-                              paddingHorizontal: 8,
-                              paddingVertical: 1.5,
-                              alignSelf: 'flex-start',
-                              marginVertical: 3,
-                            }}>
-                              <Text style={{ color: '#93c5fd', fontSize: 11, fontWeight: '800' }}>
-                                {bowlerDetails.jersey}
-                              </Text>
-                            </View>
-                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                              <RealisticCricketBallIcon type="red" size={13} />
-                              <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '700', marginLeft: 4 }}>
-                                {bowlerDetails.bowlingStyle}
-                              </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                              <View style={{
+                                backgroundColor: '#0c2738',
+                                borderRadius: 4,
+                                paddingHorizontal: 6,
+                                paddingVertical: 1,
+                                borderWidth: 0.5,
+                                borderColor: 'rgba(56, 189, 248, 0.3)',
+                              }}>
+                                <Text style={{ color: '#93c5fd', fontSize: 10.5, fontWeight: '800' }}>
+                                  {bowlerDetails.jersey}
+                                </Text>
+                              </View>
+                              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <RealisticCricketBallIcon type="red" size={11} />
+                                <Text style={{ color: '#cbd5e1', fontSize: 11, fontWeight: '700', marginLeft: 3 }}>
+                                  {bowlerDetails.bowlingStyle}
+                                </Text>
+                              </View>
                             </View>
                           </View>
                         </View>
 
                         {/* Divider */}
-                        <View style={{ width: 1, height: 56, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 8 }} />
+                        <View style={{ width: 1, height: 46, backgroundColor: 'rgba(255,255,255,0.12)', marginHorizontal: 6 }} />
 
                         {/* Change Button */}
                         <TouchableOpacity
                           style={{
-                            borderWidth: 1.5,
+                            borderWidth: 1.2,
                             borderColor: '#ef4444',
                             backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                            borderRadius: 10,
-                            paddingVertical: 8,
-                            paddingHorizontal: 10,
+                            borderRadius: 8,
+                            paddingVertical: 7,
+                            paddingHorizontal: 8,
                             flexDirection: 'row',
                             alignItems: 'center',
                             gap: 4,
+                            flexShrink: 0,
                           }}
                           onPress={() => {
                             setPlayerPickerTarget('bowler');
@@ -32833,8 +32872,8 @@ function CricketAddaMain() {
                           }}
                           activeOpacity={0.8}
                         >
-                          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>⇄</Text>
-                          <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900', letterSpacing: 0.5 }}>CHANGE</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '900' }}>⇄</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900', letterSpacing: 0.4 }}>CHANGE</Text>
                         </TouchableOpacity>
                       </View>
 
