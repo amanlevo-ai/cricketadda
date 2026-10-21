@@ -31530,10 +31530,13 @@ function CricketAddaMain() {
               })() : (
                 <ScrollView
                   style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: 16 }}
-                  contentContainerStyle={{ paddingBottom: (wzPhase === 2 || wzPhase === 3) ? 6 : 24, paddingTop: (wzPhase === 2 || wzPhase === 3) ? 6 : 10 }}
+                  contentContainerStyle={{
+                    paddingBottom: wzPhase === 2 ? 6 : wzPhase === 3 ? Math.max(92, bottomInset + 80) : 24,
+                    paddingTop: (wzPhase === 2 || wzPhase === 3) ? 4 : 10,
+                  }}
                   showsVerticalScrollIndicator={false}
-                  scrollEnabled={wzPhase !== 2 && wzPhase !== 3}
-                  bounces={wzPhase !== 2 && wzPhase !== 3}
+                  scrollEnabled={wzPhase !== 2}
+                  bounces={wzPhase !== 2}
                 >
                 {/* ========================================================================= */}
                 {/* PHASE 2: MATCH DETAILS (NO SCROLLING - 2 SMALL FIELDS PER ROW) */}
@@ -31837,16 +31840,16 @@ function CricketAddaMain() {
                 )}
 
                 {/* ========================================================================= */}
-                {/* PHASE 3: 3D ANIMATED CRICKET COIN TOSS */}
+                {/* PHASE 3: 3D ANIMATED CRICKET COIN TOSS (COMPACT SINGLE-SCREEN FIT) */}
                 {/* ========================================================================= */}
                 {wzPhase === 3 && (
-                  <View style={{ paddingTop: 2 }}>
+                  <View style={{ paddingTop: 0 }}>
                     {/* Team A vs Team B Toss Lineup Banner (Display Only - Non-Clickable) */}
-                    <View style={[styles.tossMatchupCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)', paddingVertical: 8, marginBottom: 8 }]}>
+                    <View style={[styles.tossMatchupCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)', paddingVertical: 6, marginBottom: 6 }]}>
                       <View
                         style={[
                           styles.tossTeamItem,
-                          { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)', paddingVertical: 6 },
+                          { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)', paddingVertical: 5 },
                           !isCoinFlipping && matchDraft.tossWinner === 'myTeam' && {
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.22)',
@@ -31857,38 +31860,38 @@ function CricketAddaMain() {
                         ]}
                       >
                         <View style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 20,
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
                           backgroundColor: '#1e293b',
                           borderWidth: 1.5,
                           borderColor: '#38bdf8',
                           justifyContent: 'center',
                           alignItems: 'center',
                           overflow: 'hidden',
-                          marginBottom: 4,
+                          marginBottom: 3,
                         }}>
                           <SmartTeamLogo
                             team={matchDraft.myTeam}
                             allTeams={allAvailableMatchTeams}
                             allUsers={usersDb}
                             style={{ width: '100%', height: '100%' }}
-                            flagStyle={{ fontSize: 22 }}
+                            flagStyle={{ fontSize: 20 }}
                             fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
                           />
                         </View>
-                        <Text style={[styles.tossTeamName, { color: '#ffffff', fontSize: 13 }]} numberOfLines={1}>{matchDraft.myTeam?.name}</Text>
+                        <Text style={[styles.tossTeamName, { color: '#ffffff', fontSize: 12, marginTop: 1 }]} numberOfLines={1}>{matchDraft.myTeam?.name}</Text>
                         <Text style={[styles.tossCoinSideTag, !isCoinFlipping && matchDraft.tossWinner === 'myTeam' && { color: '#34d399', fontWeight: 'bold' }]}>
                           {!isCoinFlipping && matchDraft.tossWinner === 'myTeam' ? '🏆 TOSS WINNER' : 'HEAD (SIDE A)'}
                         </Text>
                       </View>
 
-                      <Text style={[styles.tossVsBadge, { color: '#38bdf8', fontSize: 13 }]}>VS</Text>
+                      <Text style={[styles.tossVsBadge, { color: '#38bdf8', fontSize: 12, paddingHorizontal: 6 }]}>VS</Text>
 
                       <View
                         style={[
                           styles.tossTeamItem,
-                          { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)', paddingVertical: 6 },
+                          { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)', paddingVertical: 5 },
                           !isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' && {
                             borderColor: '#10b981',
                             backgroundColor: 'rgba(16, 185, 129, 0.22)',
@@ -31899,27 +31902,27 @@ function CricketAddaMain() {
                         ]}
                       >
                         <View style={{
-                          width: 40,
-                          height: 40,
-                          borderRadius: 20,
+                          width: 36,
+                          height: 36,
+                          borderRadius: 18,
                           backgroundColor: '#1e293b',
                           borderWidth: 1.5,
                           borderColor: '#38bdf8',
                           justifyContent: 'center',
                           alignItems: 'center',
                           overflow: 'hidden',
-                          marginBottom: 4,
+                          marginBottom: 3,
                         }}>
                           <SmartTeamLogo
                             team={matchDraft.opponentTeam}
                             allTeams={allAvailableMatchTeams}
                             allUsers={usersDb}
                             style={{ width: '100%', height: '100%' }}
-                            flagStyle={{ fontSize: 22 }}
+                            flagStyle={{ fontSize: 20 }}
                             fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
                           />
                         </View>
-                        <Text style={[styles.tossTeamName, { color: '#ffffff', fontSize: 13 }]} numberOfLines={1}>{matchDraft.opponentTeam?.name}</Text>
+                        <Text style={[styles.tossTeamName, { color: '#ffffff', fontSize: 12, marginTop: 1 }]} numberOfLines={1}>{matchDraft.opponentTeam?.name}</Text>
                         <Text style={[styles.tossCoinSideTag, !isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' && { color: '#34d399', fontWeight: 'bold' }]}>
                           {!isCoinFlipping && matchDraft.tossWinner === 'opponentTeam' ? '🏆 TOSS WINNER' : 'TAIL (SIDE B)'}
                         </Text>
@@ -31927,7 +31930,7 @@ function CricketAddaMain() {
                     </View>
 
                     {/* 3D Animated Coin Stage */}
-                    <View style={[styles.coinStageBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)', paddingVertical: 12, marginBottom: 8 }]}>
+                    <View style={[styles.coinStageBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)', paddingVertical: 8, marginBottom: 6 }]}>
                       <TouchableOpacity
                         activeOpacity={isCoinFlipping ? 1 : 0.85}
                         disabled={isCoinFlipping}
@@ -31938,6 +31941,9 @@ function CricketAddaMain() {
                           style={[
                             styles.cricketCoin3D,
                             {
+                              width: 78,
+                              height: 78,
+                              borderRadius: 39,
                               transform: [
                                 { translateY: coinFlipAnim },
                                 {
@@ -31957,17 +31963,17 @@ function CricketAddaMain() {
                             },
                           ]}
                         >
-                          <View style={styles.coinInnerFace}>
+                          <View style={[styles.coinInnerFace, { width: 62, height: 62, borderRadius: 31 }]}>
                             {(() => {
                               const targetTeam = coinDisplayedSide === 'opponentTeam' ? matchDraft.opponentTeam : matchDraft.myTeam;
-                              if (!targetTeam) return <Text style={{ fontSize: 34 }}>🪙</Text>;
+                              if (!targetTeam) return <Text style={{ fontSize: 30 }}>🪙</Text>;
                               return (
                                 <SmartTeamLogo
                                   team={targetTeam}
                                   allTeams={allAvailableMatchTeams}
                                   allUsers={usersDb}
                                   style={{ width: '100%', height: '100%' }}
-                                  flagStyle={{ fontSize: 40 }}
+                                  flagStyle={{ fontSize: 34 }}
                                   fallbackFlag={targetTeam.flag || '🪙'}
                                 />
                               );
@@ -31979,12 +31985,12 @@ function CricketAddaMain() {
                       {/* Dynamic Ground Shadow */}
                       <Animated.View
                         style={{
-                          width: 58,
-                          height: 9,
-                          borderRadius: 4.5,
+                          width: 52,
+                          height: 8,
+                          borderRadius: 4,
                           backgroundColor: 'rgba(0, 0, 0, 0.6)',
-                          marginTop: 6,
-                          marginBottom: 3,
+                          marginTop: 5,
+                          marginBottom: 2,
                           transform: [
                             {
                               scale: coinFlipAnim.interpolate({
@@ -32003,63 +32009,94 @@ function CricketAddaMain() {
                       />
 
                       <TouchableOpacity
-                        style={[styles.flipCoinBtn, { backgroundColor: '#38bdf8', height: 40, marginTop: 8 }, isCoinFlipping && { opacity: 0.6 }]}
+                        style={[styles.flipCoinBtn, { backgroundColor: '#38bdf8', height: 38, marginTop: 6, paddingVertical: 0, justifyContent: 'center' }, isCoinFlipping && { opacity: 0.6 }]}
                         disabled={isCoinFlipping}
                         onPress={flipCricketCoin}
                       >
-                        <Text style={[styles.flipCoinBtnText, { color: '#000000', fontWeight: '900', fontSize: 13.5 }]}>
+                        <Text style={[styles.flipCoinBtnText, { color: '#000000', fontWeight: '900', fontSize: 13 }]}>
                           {isCoinFlipping ? '🪙 Coin is in the Air...' : matchDraft.tossCompleted ? '🔄 Flip Again' : '🪙 Flip the Coin'}
                         </Text>
                       </TouchableOpacity>
                     </View>
 
-                    {/* Toss Result & Decision */}
+                    {/* Toss Result & Decision (Compact side-by-side buttons) */}
                     {!isCoinFlipping && matchDraft.tossCompleted && (
-                      <View style={[styles.tossResultCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)', paddingVertical: 8, paddingHorizontal: 8, marginTop: 2 }]}>
-                        <Text style={[styles.tossResultTitle, { fontSize: 11 }]}>🎉 TOSS RESULT:</Text>
-                        <Text style={[styles.tossWinnerBanner, { fontSize: 14, marginVertical: 4 }]}>
-                          🏆 {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} WON THE TOSS!
-                        </Text>
-                        <Text style={[styles.tossDecisionPrompt, { color: '#cbd5e1', fontSize: 11.5, marginBottom: 8 }]}>
-                          Select toss decision for {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name}:
-                        </Text>
+                      <View style={[styles.tossResultCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.25)', paddingVertical: 8, paddingHorizontal: 10, marginTop: 4 }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 }}>
+                            <Text style={{ fontSize: 13 }}>🏆</Text>
+                            <Text style={{ color: '#38bdf8', fontSize: 12.5, fontWeight: '900', letterSpacing: 0.3 }} numberOfLines={1}>
+                              {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} WON TOSS
+                            </Text>
+                          </View>
+                          <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }}>Select Decision:</Text>
+                        </View>
 
-                        <View style={styles.tossDecisionRow}>
+                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 2 }}>
                           <TouchableOpacity
                             style={[
                               styles.tossDecBtn,
-                              { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)', paddingVertical: 8 },
-                              matchDraft.tossDecision === 'bat' && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
+                              {
+                                flex: 1,
+                                height: 40,
+                                borderRadius: 10,
+                                backgroundColor: matchDraft.tossDecision === 'bat' ? '#22c55e' : 'rgba(8, 28, 48, 0.85)',
+                                borderColor: matchDraft.tossDecision === 'bat' ? '#22c55e' : 'rgba(56, 189, 248, 0.25)',
+                                borderWidth: 1.5,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexDirection: 'row',
+                                gap: 6,
+                                paddingVertical: 0,
+                                paddingHorizontal: 4,
+                              },
                             ]}
                             onPress={() => selectTossDecision('bat')}
+                            activeOpacity={0.8}
                           >
+                            <Text style={{ fontSize: 14 }}>🏏</Text>
                             <Text style={[
                               styles.tossDecBtnText,
-                              { color: '#94a3b8', fontSize: 11.5 },
-                              matchDraft.tossDecision === 'bat' && { color: '#000000', fontWeight: '900' }
+                              { color: matchDraft.tossDecision === 'bat' ? '#000000' : '#ffffff', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }
                             ]}>
-                              🏏 ELECTED TO BAT FIRST
+                              BAT FIRST
                             </Text>
+                            {matchDraft.tossDecision === 'bat' && (
+                              <Text style={{ color: '#000000', fontSize: 11, fontWeight: '900' }}>✓</Text>
+                            )}
                           </TouchableOpacity>
 
                           <TouchableOpacity
                             style={[
                               styles.tossDecBtn,
-                              { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.2)', paddingVertical: 8 },
-                              matchDraft.tossDecision === 'bowl' && { backgroundColor: '#38bdf8', borderColor: '#38bdf8' }
+                              {
+                                flex: 1,
+                                height: 40,
+                                borderRadius: 10,
+                                backgroundColor: matchDraft.tossDecision === 'bowl' ? '#22c55e' : 'rgba(8, 28, 48, 0.85)',
+                                borderColor: matchDraft.tossDecision === 'bowl' ? '#22c55e' : 'rgba(56, 189, 248, 0.25)',
+                                borderWidth: 1.5,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexDirection: 'row',
+                                gap: 6,
+                                paddingVertical: 0,
+                                paddingHorizontal: 4,
+                              },
                             ]}
                             onPress={() => selectTossDecision('bowl')}
+                            activeOpacity={0.8}
                           >
-                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                              <RealisticCricketLeatherBall size={13} />
-                              <Text style={[
-                                styles.tossDecBtnText,
-                                { color: '#94a3b8', fontSize: 11.5 },
-                                matchDraft.tossDecision === 'bowl' && { color: '#000000', fontWeight: '900' }
-                              ]}>
-                                ELECTED TO BOWL FIRST
-                              </Text>
-                            </View>
+                            <RealisticCricketLeatherBall size={13} />
+                            <Text style={[
+                              styles.tossDecBtnText,
+                              { color: matchDraft.tossDecision === 'bowl' ? '#000000' : '#ffffff', fontSize: 12, fontWeight: '900', letterSpacing: 0.3 }
+                            ]}>
+                              BOWL FIRST
+                            </Text>
+                            {matchDraft.tossDecision === 'bowl' && (
+                              <Text style={{ color: '#000000', fontSize: 11, fontWeight: '900' }}>✓</Text>
+                            )}
                           </TouchableOpacity>
                         </View>
                       </View>
@@ -39392,24 +39429,24 @@ const styles = StyleSheet.create({
     marginBottom: 14,
   },
   cricketCoin3D: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+    width: 78,
+    height: 78,
+    borderRadius: 39,
     backgroundColor: '#f59e0b',
-    borderWidth: 4,
+    borderWidth: 3.5,
     borderColor: '#b45309',
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#f59e0b',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.6,
-    shadowRadius: 10,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    elevation: 8,
   },
   coinInnerFace: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+    width: 62,
+    height: 62,
+    borderRadius: 31,
     backgroundColor: '#d97706',
     borderWidth: 2,
     borderColor: '#fde68a',
