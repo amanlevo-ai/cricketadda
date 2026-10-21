@@ -11008,6 +11008,7 @@ function CricketAddaMain() {
   const [isCoinFlipping, setIsCoinFlipping] = useState(false);
   const [coinDisplayedSide, setCoinDisplayedSide] = useState('myTeam'); // 'myTeam' (Side A) | 'opponentTeam' (Side B)
   const coinFlipIntervalRef = useRef(null);
+  const coinLockTimerRef = useRef(null);
 
   // Official Match Scorer Ownership, Rights Delegation & Transfer State
   const [activeScorer, setActiveScorer] = useState({
@@ -20495,9 +20496,19 @@ function CricketAddaMain() {
     if (isCoinFlipping) return;
     if (coinFlipIntervalRef.current) {
       clearInterval(coinFlipIntervalRef.current);
+      coinFlipIntervalRef.current = null;
+    }
+    if (coinLockTimerRef.current) {
+      clearTimeout(coinLockTimerRef.current);
+      coinLockTimerRef.current = null;
     }
 
     setIsCoinFlipping(true);
+
+    // Tactile launch vibration
+    if (Vibration && typeof Vibration.vibrate === 'function') {
+      try { Vibration.vibrate(35); } catch (_) {}
+    }
 
     // 1. Pick winner randomly
     const winner = Math.random() < 0.5 ? 'myTeam' : 'opponentTeam';
@@ -20514,38 +20525,75 @@ function CricketAddaMain() {
     coinFlipAnim.setValue(0);
     coinRotateAnim.setValue(0);
 
-    // 4. Rapidly alternate between Team A logo and Team B logo during flip
+    // 4. Smooth, measured alternation between Team A and Team B during flight (260ms cycle)
     coinFlipIntervalRef.current = setInterval(() => {
       setCoinDisplayedSide(prev => (prev === 'myTeam' ? 'opponentTeam' : 'myTeam'));
-    }, 110);
+    }, 260);
 
-    // 5. Run 3D arc trajectory & multi-revolution spin
+    // Lock to winning side before the final landing rotation so it settles smoothly
+    coinLockTimerRef.current = setTimeout(() => {
+      if (coinFlipIntervalRef.current) {
+        clearInterval(coinFlipIntervalRef.current);
+        coinFlipIntervalRef.current = null;
+      }
+      setCoinDisplayedSide(winner);
+    }, 1650);
+
+    // 5. Run realistic smooth gravity arc & decelerating rotation
     Animated.parallel([
       Animated.sequence([
+        // Arc up smoothly to the apex (slows near top with cubic easing)
         Animated.timing(coinFlipAnim, {
-          toValue: -140,
-          duration: 650,
+          toValue: -110,
+          duration: 1050,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        // Arc down smoothly accelerating with gravity
+        Animated.timing(coinFlipAnim, {
+          toValue: 0,
+          duration: 950,
+          easing: Easing.in(Easing.quad),
+          useNativeDriver: USE_NATIVE_DRIVER,
+        }),
+        // Subtle cushion settle bounce upon landing
+        Animated.timing(coinFlipAnim, {
+          toValue: -8,
+          duration: 100,
+          easing: Easing.out(Easing.quad),
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
         Animated.timing(coinFlipAnim, {
           toValue: 0,
-          duration: 650,
+          duration: 100,
+          easing: Easing.in(Easing.quad),
           useNativeDriver: USE_NATIVE_DRIVER,
         }),
       ]),
+      // Smooth continuous rotation that gently eases to a halt
       Animated.timing(coinRotateAnim, {
         toValue: 1440,
-        duration: 1300,
+        duration: 2200,
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: USE_NATIVE_DRIVER,
       }),
     ]).start(() => {
-      // 6. Stop face switcher & lock to winning team's logo!
+      if (coinLockTimerRef.current) {
+        clearTimeout(coinLockTimerRef.current);
+        coinLockTimerRef.current = null;
+      }
       if (coinFlipIntervalRef.current) {
         clearInterval(coinFlipIntervalRef.current);
         coinFlipIntervalRef.current = null;
       }
       setCoinDisplayedSide(winner);
       setIsCoinFlipping(false);
+
+      // Tactile landing vibration
+      if (Vibration && typeof Vibration.vibrate === 'function') {
+        try { Vibration.vibrate([0, 45, 30, 60]); } catch (_) {}
+      }
+
       setMatchDraft(prev => ({
         ...prev,
         tossWinner: winner,
@@ -31893,6 +31941,13 @@ function CricketAddaMain() {
                               transform: [
                                 { translateY: coinFlipAnim },
                                 {
+                                  scale: coinFlipAnim.interpolate({
+                                    inputRange: [-110, 0],
+                                    outputRange: [1.14, 1],
+                                    extrapolate: 'clamp',
+                                  }),
+                                },
+                                {
                                   rotateY: coinRotateAnim.interpolate({
                                     inputRange: [0, 1440],
                                     outputRange: ['0deg', '1440deg'],
@@ -31920,6 +31975,32 @@ function CricketAddaMain() {
                           </View>
                         </Animated.View>
                       </TouchableOpacity>
+
+                      {/* Dynamic Ground Shadow */}
+                      <Animated.View
+                        style={{
+                          width: 58,
+                          height: 9,
+                          borderRadius: 4.5,
+                          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+                          marginTop: 6,
+                          marginBottom: 3,
+                          transform: [
+                            {
+                              scale: coinFlipAnim.interpolate({
+                                inputRange: [-110, 0],
+                                outputRange: [0.55, 1],
+                                extrapolate: 'clamp',
+                              }),
+                            },
+                          ],
+                          opacity: coinFlipAnim.interpolate({
+                            inputRange: [-110, 0],
+                            outputRange: [0.15, 0.65],
+                            extrapolate: 'clamp',
+                          }),
+                        }}
+                      />
 
                       <TouchableOpacity
                         style={[styles.flipCoinBtn, { backgroundColor: '#38bdf8', height: 40, marginTop: 8 }, isCoinFlipping && { opacity: 0.6 }]}
