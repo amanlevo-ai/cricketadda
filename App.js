@@ -10960,9 +10960,12 @@ function CricketAddaMain() {
 
   // Universal In-App Toast Notification State (Non-intrusive alert replacement)
   const [appToast, setAppToast] = useState(null);
-  const showAppToast = (message, icon = '✅', type = 'success') => {
+  const showAppToast = (message, icon = '', type = 'success') => {
+    const cleanMessage = typeof message === 'string'
+      ? message.replace(/^[\s\u{1F300}-\u{1F9FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1FA00}-\u{1FAFF}\u{FE00}-\u{FE0F}✅❌⚠️ℹ️🟢🚀🏆🪙👑🧤📍🏏⚡✨]+/u, '').trim() || message
+      : message;
     const toastId = Date.now();
-    setAppToast({ message, icon, type, id: toastId });
+    setAppToast({ message: cleanMessage, icon: '', type, id: toastId });
     setTimeout(() => {
       setAppToast(curr => (curr && curr.id === toastId ? null : curr));
     }, 2800);
@@ -30434,21 +30437,6 @@ function CricketAddaMain() {
             shadowRadius: 16,
             elevation: 20,
           }}>
-            {/* Header Icon Badge */}
-            <View style={{
-              width: 58,
-              height: 58,
-              borderRadius: 29,
-              backgroundColor: 'rgba(34, 197, 94, 0.15)',
-              borderWidth: 2,
-              borderColor: '#22c55e',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: 14,
-            }}>
-              <Text style={{ fontSize: 28 }}>{customAlertModal.icon || '🏏'}</Text>
-            </View>
-
             {/* Title */}
             <Text style={{
               color: '#ffffff',
@@ -30791,16 +30779,18 @@ function CricketAddaMain() {
           style={[styles.cricModalFullscreen, { backgroundColor: '#020b14' }]}
           resizeMode="cover"
         >
-          {/* In-Modal Floating Toast Notification (Guarantees toasts are visible above modal window) */}
+          {/* In-Modal Floating Toast Notification (Centered vertically and horizontally, clean without icon) */}
           {appToast && (
             <View
               pointerEvents="none"
               style={{
                 position: 'absolute',
-                top: topInset + 12,
-                left: 16,
-                right: 16,
+                top: 0,
+                bottom: 0,
+                left: 20,
+                right: 20,
                 zIndex: 999999,
+                justifyContent: 'center',
                 alignItems: 'center',
               }}
             >
@@ -30812,8 +30802,7 @@ function CricketAddaMain() {
                   ? { backgroundColor: '#78350f', borderColor: '#f59e0b' }
                   : styles.appToastCardSuccess
               ]}>
-                <Text style={styles.appToastIconText}>{appToast.icon || '⚠️'}</Text>
-                <Text style={styles.appToastMessageText} numberOfLines={2}>
+                <Text style={styles.appToastMessageText} numberOfLines={3}>
                   {appToast.message}
                 </Text>
               </View>
@@ -32110,14 +32099,7 @@ function CricketAddaMain() {
                 {/* PHASE 5: FINAL CONFIRMATION CARD & START MATCH */}
                 {/* ========================================================================= */}
                 {wzPhase === 5 && (
-                  <View style={{ paddingBottom: 16 }}>
-                    <View style={[styles.phaseHeaderBox, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
-                      <Text style={[styles.wizardSectionLabel, { color: '#38bdf8' }]}>📋 MATCH CONFIRMATION</Text>
-                      <Text style={[styles.phaseSubDesc, { color: '#94a3b8' }]}>
-                        Review complete match parameters before beginning official live scoring
-                      </Text>
-                    </View>
-
+                  <View style={{ paddingTop: 2, paddingBottom: 16 }}>
                     {/* Pre-Match Summary Card */}
                     <View style={[styles.confirmMasterCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
                       <View style={styles.confirmBrandRow}>
@@ -32228,14 +32210,14 @@ function CricketAddaMain() {
                         </View>
                       </View>
 
-                      {/* Format & Venue Pill */}
+                      {/* Format & Venue Pill (No 📍 icon) */}
                       <View style={[styles.confirmFormatPill, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
                         <Text style={[styles.confirmFormatPillText, { color: '#cbd5e1' }]}>
-                          {matchDraft.format} • {matchDraft.totalOvers} Overs • 📍 {matchDraft.ground}
+                          {matchDraft.format} • {matchDraft.totalOvers} Overs • {matchDraft.ground || 'Standard Ground'}
                         </Text>
                       </View>
 
-                      {/* 2-Column Dedicated Team Captain & Keeper Cards */}
+                      {/* 2-Column Dedicated Team Captain & Keeper Cards (No 👑 or 🧤 icons) */}
                       <View style={styles.confirmTeamsBlock}>
                         {/* Team A Box */}
                         <View style={[styles.confirmTeamColCard, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
@@ -32265,11 +32247,11 @@ function CricketAddaMain() {
                             </Text>
                           </View>
                           <View style={styles.confirmRoleItem}>
-                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>👑 Captain (C):</Text>
+                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>Captain (C):</Text>
                             <Text style={[styles.confirmRoleVal, { color: '#ffffff' }]} numberOfLines={1}>{matchDraft.myCaptain || 'Not set'}</Text>
                           </View>
                           <View style={styles.confirmRoleItem}>
-                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>🧤 Keeper (WK):</Text>
+                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>Keeper (WK):</Text>
                             <Text style={[styles.confirmRoleVal, { color: '#ffffff' }]} numberOfLines={1}>{matchDraft.myWicketkeeper || 'Not set'}</Text>
                           </View>
                         </View>
@@ -32302,20 +32284,21 @@ function CricketAddaMain() {
                             </Text>
                           </View>
                           <View style={styles.confirmRoleItem}>
-                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>👑 Captain (C):</Text>
+                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>Captain (C):</Text>
                             <Text style={[styles.confirmRoleVal, { color: '#ffffff' }]} numberOfLines={1}>{matchDraft.oppCaptain || 'Not set'}</Text>
                           </View>
                           <View style={styles.confirmRoleItem}>
-                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>🧤 Keeper (WK):</Text>
+                            <Text style={[styles.confirmRoleKey, { color: '#94a3b8' }]}>Keeper (WK):</Text>
                             <Text style={[styles.confirmRoleVal, { color: '#ffffff' }]} numberOfLines={1}>{matchDraft.oppWicketkeeper || 'Not set'}</Text>
                           </View>
                         </View>
                       </View>
 
-                      {/* Match Parameters List */}
-                      <View style={[styles.confirmParamSection, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
+                      {/* Match Parameters List - Filled out to utilize empty space after Toss Result */}
+                      <View style={[styles.confirmParamSection, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)', gap: 8, paddingVertical: 10 }]}>
+                        {/* Row 1: Toss Result */}
                         <View style={styles.confirmParamRow}>
-                          <Text style={[styles.confirmParamLabel, { color: '#94a3b8' }]}>🪙 Toss Result:</Text>
+                          <Text style={[styles.confirmParamLabel, { color: '#94a3b8' }]}>Toss Result:</Text>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
                             <View style={{
                               width: 18,
@@ -32341,6 +32324,30 @@ function CricketAddaMain() {
                               {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} ({matchDraft.tossDecision?.toUpperCase()} FIRST)
                             </Text>
                           </View>
+                        </View>
+
+                        {/* Row 2: Match Schedule (Date & Time) */}
+                        <View style={styles.confirmParamRow}>
+                          <Text style={[styles.confirmParamLabel, { color: '#94a3b8' }]}>Match Time:</Text>
+                          <Text style={[styles.confirmParamValue, { color: '#ffffff' }]} numberOfLines={1}>
+                            {matchDraft.date || 'Today'}, {matchDraft.time || '10:00 AM'}
+                          </Text>
+                        </View>
+
+                        {/* Row 3: Ball & Rules */}
+                        <View style={styles.confirmParamRow}>
+                          <Text style={[styles.confirmParamLabel, { color: '#94a3b8' }]}>Ball & Rules:</Text>
+                          <Text style={[styles.confirmParamValue, { color: '#ffffff' }]} numberOfLines={1}>
+                            {(matchDraft.ballType || 'LEATHER').toUpperCase()} BALL • Max {matchDraft.oversPerBowler || 4} Overs/Bowler
+                          </Text>
+                        </View>
+
+                        {/* Row 4: Playing Squads Count */}
+                        <View style={styles.confirmParamRow}>
+                          <Text style={[styles.confirmParamLabel, { color: '#94a3b8' }]}>Playing XI:</Text>
+                          <Text style={[styles.confirmParamValue, { color: '#38bdf8' }]} numberOfLines={1}>
+                            {matchDraft.myTeam?.name}: {matchDraft.myTeamXI?.length || 11} vs {matchDraft.opponentTeam?.name}: {matchDraft.opponentTeamXI?.length || 11}
+                          </Text>
                         </View>
                       </View>
                     </View>
@@ -32460,7 +32467,45 @@ function CricketAddaMain() {
                     </View>
                   </View>
                 );
-              })() : (
+              })() : wzPhase === 5 ? (
+                <View style={{
+                  flexDirection: 'row',
+                  justifyContent: 'flex-end',
+                  alignItems: 'center',
+                  backgroundColor: 'rgba(2, 11, 20, 0.94)',
+                  borderTopWidth: 1,
+                  borderTopColor: 'rgba(56, 189, 248, 0.2)',
+                  paddingHorizontal: 14,
+                  paddingTop: 8,
+                  paddingBottom: Math.max(28, bottomInset + 14),
+                }}>
+                  <TouchableOpacity
+                    style={{
+                      height: 44,
+                      minWidth: 150,
+                      paddingHorizontal: 28,
+                      borderRadius: 11,
+                      backgroundColor: '#22c55e',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      shadowColor: '#22c55e',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.35,
+                      shadowRadius: 5,
+                      elevation: 5,
+                    }}
+                    onPress={startNewMatchFromWizard}
+                    activeOpacity={0.85}
+                  >
+                    <Text style={{ color: '#000000', fontSize: 15.5, fontWeight: '900', letterSpacing: 0.8 }}>
+                      START MATCH
+                    </Text>
+                    <Text style={{ color: '#000000', fontSize: 16, fontWeight: '900' }}>❯</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
                 <View style={[styles.wizardDockedBottomBar, { backgroundColor: 'rgba(2, 11, 20, 0.94)', borderTopColor: '#0a1d30', paddingBottom: Math.max(28, bottomInset + 14) }]}>
                   <TouchableOpacity
                     style={[styles.wizardCancelBtn, { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.4)', borderWidth: 1 }]}
@@ -32476,25 +32521,14 @@ function CricketAddaMain() {
                     <Text style={[styles.wizardBackBtnText, { color: '#ffffff' }]}>← Back</Text>
                   </TouchableOpacity>
 
-                  {wzPhase < 5 ? (
-                    <TouchableOpacity
-                      style={[styles.wizardNextBtn, { backgroundColor: '#38bdf8', flex: 2 }]}
-                      onPress={handleWizardNext}
-                    >
-                      <Text style={[styles.wizardNextBtnText, { color: '#000000', fontWeight: '900' }]}>
-                        {wzPhase === 3 ? 'Next: Confirm 🚀 →' : 'Next ❯'}
-                      </Text>
-                    </TouchableOpacity>
-                  ) : (
-                    <TouchableOpacity
-                      style={[styles.wizardNextBtn, { backgroundColor: '#22c55e', flex: 2 }]}
-                      onPress={startNewMatchFromWizard}
-                    >
-                      <Text style={[styles.wizardNextBtnText, { color: '#000000', fontWeight: '900', fontSize: 13.5 }]}>
-                        🟢 START MATCH 🚀
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  <TouchableOpacity
+                    style={[styles.wizardNextBtn, { backgroundColor: '#38bdf8', flex: 2 }]}
+                    onPress={handleWizardNext}
+                  >
+                    <Text style={[styles.wizardNextBtnText, { color: '#000000', fontWeight: '900' }]}>
+                      Next ❯
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               )}
             </View>
@@ -36061,18 +36095,14 @@ function CricketAddaMain() {
         </View>
       </Modal>
 
-      {/* Universal Floating Toast Notification (Replaces intrusive alert popups) */}
+      {/* Universal Floating Toast Notification (Centered vertically and horizontally, clean without icon) */}
       {appToast && (
         <View
           pointerEvents="none"
-          style={[
-            styles.appToastContainer,
-            { top: topInset + 12 },
-          ]}
+          style={styles.appToastContainer}
         >
           <View style={[styles.appToastCard, appToast.type === 'error' ? styles.appToastCardError : styles.appToastCardSuccess]}>
-            <Text style={styles.appToastIconText}>{appToast.icon || '✅'}</Text>
-            <Text style={styles.appToastMessageText} numberOfLines={2}>
+            <Text style={styles.appToastMessageText} numberOfLines={3}>
               {appToast.message}
             </Text>
           </View>
@@ -42126,42 +42156,48 @@ const styles = StyleSheet.create({
   /* UNIVERSAL FLOATING TOAST STYLES */
   appToastContainer: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    zIndex: 99999,
+    top: 0,
+    bottom: 0,
+    left: 20,
+    right: 20,
+    zIndex: 999999,
+    justifyContent: 'center',
     alignItems: 'center',
+    pointerEvents: 'none',
   },
   appToastCard: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderRadius: 24,
+    justifyContent: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 22,
+    borderRadius: 16,
     borderWidth: 1.5,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
-    elevation: 8,
-    maxWidth: width - 32,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 16,
+    maxWidth: width - 40,
+    backgroundColor: '#05182a',
   },
   appToastCardSuccess: {
-    backgroundColor: '#064e3b',
+    backgroundColor: 'rgba(6, 78, 59, 0.96)',
     borderColor: '#10b981',
   },
   appToastCardError: {
-    backgroundColor: '#7f1d1d',
+    backgroundColor: 'rgba(127, 29, 29, 0.96)',
     borderColor: '#ef4444',
   },
   appToastIconText: {
-    fontSize: 18,
-    marginRight: 8,
+    display: 'none',
   },
   appToastMessageText: {
     color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '700',
-    flexShrink: 1,
+    fontSize: 14.5,
+    fontWeight: '800',
+    textAlign: 'center',
+    lineHeight: 21,
+    letterSpacing: 0.3,
   },
 
   /* ========================================================================= */
