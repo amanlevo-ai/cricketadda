@@ -20718,32 +20718,81 @@ function CricketAddaMain() {
   const handleSearchAndAddPlayerByPhone = async () => {
     const cleanDigits = (guestPhoneSearchInput || '').replace(/[^0-9]/g, '');
     if (cleanDigits.length < 10) {
-      showAppToast('Please enter a 10-digit mobile number', '⚠️', 'error');
+      showAppToast('Please enter a 10-digit mobile number', '', 'error');
       return;
     }
+    const last10 = cleanDigits.slice(-10);
     setGuestPhoneSearching(true);
     setGuestPhoneSearched(true);
     setGuestPhoneFoundPlayer(null);
 
+    const matchesPhone = (rawPhone) => {
+      if (!rawPhone) return false;
+      const digits = String(rawPhone).replace(/[^0-9]/g, '');
+      if (!digits) return false;
+      return digits === cleanDigits || (digits.length >= 10 && digits.slice(-10) === last10);
+    };
+
     try {
       let found = null;
+
       // 1. Local registered players
-      const localMatch = registeredPlayers.find(p => p && (p.phone || '').replace(/[^0-9]/g, '') === cleanDigits);
-      if (localMatch) {
-        found = { ...localMatch };
-      }
-      // 2. Local usersDb
-      if (!found && Array.isArray(usersDb)) {
-        const userMatch = usersDb.find(u => {
-          if (!u) return false;
-          const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
-          return uPhone === cleanDigits;
-        });
-        if (userMatch) {
-          found = userMatch.profile || userMatch;
+      if (Array.isArray(registeredPlayers)) {
+        const localMatch = registeredPlayers.find(p => p && matchesPhone(p.phone || p.mobile || p.phoneNumber || p.contact));
+        if (localMatch) {
+          found = {
+            id: localMatch.id || `reg_${cleanDigits}`,
+            name: localMatch.name,
+            phone: localMatch.phone || cleanDigits,
+            role: localMatch.role || 'BAT',
+            avatarUri: localMatch.avatarUri || localMatch.photoUri || null,
+          };
         }
       }
-      // 3. Cloud search
+
+      // 2. Local usersDb (handles both Array and Object formats)
+      if (!found && usersDb) {
+        const userList = Array.isArray(usersDb)
+          ? usersDb
+          : (typeof usersDb === 'object' ? Object.values(usersDb) : []);
+        const userMatch = userList.find(u => {
+          if (!u) return false;
+          const prof = u.profile || {};
+          return matchesPhone(prof.phone || prof.mobile || prof.phoneNumber || prof.contact || u.phone || u.mobile || u.phoneNumber || u.contact);
+        });
+        if (userMatch) {
+          const prof = userMatch.profile || userMatch;
+          found = {
+            id: userMatch.id || userMatch.uid || prof.id || `usr_${cleanDigits}`,
+            name: prof.name || userMatch.name || 'Player',
+            phone: prof.phone || userMatch.phone || cleanDigits,
+            role: (prof.role && prof.role.includes('Bowler')) ? 'BOWL' : (prof.role && prof.role.includes('Keeper')) ? 'WK' : (prof.role && prof.role.includes('All')) ? 'ALL' : 'BAT',
+            avatarUri: prof.avatarUri || prof.photoUri || userMatch.avatarUri || null,
+          };
+        }
+      }
+
+      // 3. Search inside all team squads (registeredTeams & userProfile.createdTeams)
+      if (!found) {
+        const allTeamsToScan = [...(registeredTeams || []), ...((userProfile && userProfile.createdTeams) || [])];
+        for (const t of allTeamsToScan) {
+          if (t && Array.isArray(t.squad)) {
+            const squadMatch = t.squad.find(p => p && matchesPhone(p.phone || p.mobile || p.phoneNumber || p.contact));
+            if (squadMatch) {
+              found = {
+                id: squadMatch.id || `sq_${cleanDigits}`,
+                name: squadMatch.name,
+                phone: squadMatch.phone || cleanDigits,
+                role: squadMatch.role || 'BAT',
+                avatarUri: squadMatch.avatarUri || squadMatch.photoUri || null,
+              };
+              break;
+            }
+          }
+        }
+      }
+
+      // 4. Cloud search via Firebase
       if (!found && isFirebaseConfigured()) {
         try {
           const cloudProfile = await searchCloudPlayerByPhone(cleanDigits);
@@ -20751,9 +20800,9 @@ function CricketAddaMain() {
             found = {
               id: cloudProfile.id || `usr_${cleanDigits}`,
               name: cloudProfile.name,
-              phone: cleanDigits,
+              phone: cloudProfile.phone || cleanDigits,
               role: (cloudProfile.role && cloudProfile.role.includes('Bowler')) ? 'BOWL' : (cloudProfile.role && cloudProfile.role.includes('Keeper')) ? 'WK' : (cloudProfile.role && cloudProfile.role.includes('All')) ? 'ALL' : 'BAT',
-              avatarUri: cloudProfile.avatarUri || null,
+              avatarUri: cloudProfile.avatarUri || cloudProfile.photoUri || null,
             };
           }
         } catch (e) {}
@@ -31212,12 +31261,11 @@ function CricketAddaMain() {
                   onPress={() => {
                     if (wzTeamStep === 1) {
                       if (!matchDraft.myTeam) {
-                        showAppToast('⚠️ Please select Team 1 to proceed', '⚠️', 'error');
                         showThemedAlert(
-                          'Select Team 1 🏏',
-                          'Please select your team (Team 1) from the list before proceeding.',
-                          '🏏',
-                          'Select Team'
+                          'Select Your Team',
+                          'Please select your team from the list.',
+                          '',
+                          'OK'
                         );
                         return;
                       }
@@ -31225,22 +31273,20 @@ function CricketAddaMain() {
                       setTeamSearchQuery('');
                     } else {
                       if (!matchDraft.opponentTeam) {
-                        showAppToast('⚠️ Please select Opponent Team (Team 2) to proceed', '⚠️', 'error');
                         showThemedAlert(
-                          'Select Opponent Team 🏏',
-                          'Please select the opponent team (Team 2) from the list before proceeding.',
-                          '🏏',
-                          'Select Opponent'
+                          'Select Opponent Team',
+                          'Please select opponent team from the list.',
+                          '',
+                          'OK'
                         );
                         return;
                       }
                       if (matchDraft.myTeam?.id === matchDraft.opponentTeam?.id) {
-                        showAppToast('Team 1 and Team 2 cannot be the same team 🚫', '🚫', 'warning');
                         showThemedAlert(
-                          'Invalid Selection 🚫',
+                          'Invalid Selection',
                           'Both teams cannot be the same. Please choose a different opponent team.',
-                          '🚫',
-                          'Choose Different'
+                          '',
+                          'OK'
                         );
                         return;
                       }
@@ -31520,12 +31566,12 @@ function CricketAddaMain() {
                 <ScrollView
                   style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: 16 }}
                   contentContainerStyle={{
-                    paddingBottom: wzPhase === 2 ? 6 : wzPhase === 3 ? Math.max(92, bottomInset + 80) : 24,
-                    paddingTop: (wzPhase === 2 || wzPhase === 3) ? 4 : 10,
+                    paddingBottom: (wzPhase === 2 || wzPhase === 5) ? 6 : wzPhase === 3 ? Math.max(92, bottomInset + 80) : 24,
+                    paddingTop: (wzPhase === 2 || wzPhase === 3 || wzPhase === 5) ? 4 : 10,
                   }}
                   showsVerticalScrollIndicator={false}
-                  scrollEnabled={wzPhase !== 2}
-                  bounces={wzPhase !== 2}
+                  scrollEnabled={wzPhase !== 2 && wzPhase !== 5}
+                  bounces={wzPhase !== 2 && wzPhase !== 5}
                 >
                 {/* ========================================================================= */}
                 {/* PHASE 2: MATCH DETAILS (NO SCROLLING - 2 SMALL FIELDS PER ROW) */}
@@ -32099,9 +32145,9 @@ function CricketAddaMain() {
                 {/* PHASE 5: FINAL CONFIRMATION CARD & START MATCH */}
                 {/* ========================================================================= */}
                 {wzPhase === 5 && (
-                  <View style={{ paddingTop: 2, paddingBottom: 16 }}>
+                  <View style={{ paddingTop: 2, paddingBottom: 6 }}>
                     {/* Pre-Match Summary Card */}
-                    <View style={[styles.confirmMasterCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)' }]}>
+                    <View style={[styles.confirmMasterCard, { backgroundColor: 'rgba(5, 20, 36, 0.85)', borderColor: 'rgba(56, 189, 248, 0.22)', padding: 12 }]}>
                       <View style={styles.confirmBrandRow}>
                         <Text style={[styles.confirmBrandTitle, { color: '#38bdf8' }]}>CRICKETADDA PRO</Text>
                         <View style={[styles.confirmReadyBadge, { backgroundColor: '#38bdf8' }]}>
@@ -32114,22 +32160,22 @@ function CricketAddaMain() {
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'space-around',
-                        marginVertical: 12,
+                        marginVertical: 6,
                         paddingHorizontal: 8,
                       }}>
                         {/* Team A Badge & Name */}
                         <View style={{ alignItems: 'center', flex: 1, maxWidth: 130 }}>
                           <View style={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: 28,
+                            width: 50,
+                            height: 50,
+                            borderRadius: 25,
                             backgroundColor: '#1e293b',
                             borderWidth: 2,
                             borderColor: '#38bdf8',
                             justifyContent: 'center',
                             alignItems: 'center',
                             overflow: 'hidden',
-                            marginBottom: 6,
+                            marginBottom: 4,
                             shadowColor: '#38bdf8',
                             shadowOffset: { width: 0, height: 2 },
                             shadowOpacity: 0.35,
@@ -32141,12 +32187,12 @@ function CricketAddaMain() {
                               allTeams={allAvailableMatchTeams}
                               allUsers={usersDb}
                               style={{ width: '100%', height: '100%' }}
-                              flagStyle={{ fontSize: 28 }}
+                              flagStyle={{ fontSize: 26 }}
                               fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
                             />
                           </View>
                           <Text
-                            style={[styles.confirmTeamBig, { color: '#ffffff', textAlign: 'center' }]}
+                            style={[styles.confirmTeamBig, { color: '#ffffff', textAlign: 'center', fontSize: 13.5 }]}
                             numberOfLines={2}
                           >
                             {matchDraft.myTeam?.name}
@@ -32155,9 +32201,9 @@ function CricketAddaMain() {
 
                         {/* VS Center Badge */}
                         <View style={{
-                          width: 34,
-                          height: 34,
-                          borderRadius: 17,
+                          width: 32,
+                          height: 32,
+                          borderRadius: 16,
                           backgroundColor: 'rgba(8, 28, 48, 0.90)',
                           borderWidth: 1.5,
                           borderColor: '#38bdf8',
@@ -32170,22 +32216,22 @@ function CricketAddaMain() {
                           shadowRadius: 3,
                           elevation: 3,
                         }}>
-                          <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '900' }}>VS</Text>
+                          <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '900' }}>VS</Text>
                         </View>
 
                         {/* Team B Badge & Name */}
                         <View style={{ alignItems: 'center', flex: 1, maxWidth: 130 }}>
                           <View style={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: 28,
+                            width: 50,
+                            height: 50,
+                            borderRadius: 25,
                             backgroundColor: '#1e293b',
                             borderWidth: 2,
                             borderColor: '#38bdf8',
                             justifyContent: 'center',
                             alignItems: 'center',
                             overflow: 'hidden',
-                            marginBottom: 6,
+                            marginBottom: 4,
                             shadowColor: '#38bdf8',
                             shadowOffset: { width: 0, height: 2 },
                             shadowOpacity: 0.35,
@@ -32197,12 +32243,12 @@ function CricketAddaMain() {
                               allTeams={allAvailableMatchTeams}
                               allUsers={usersDb}
                               style={{ width: '100%', height: '100%' }}
-                              flagStyle={{ fontSize: 28 }}
+                              flagStyle={{ fontSize: 26 }}
                               fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
                             />
                           </View>
                           <Text
-                            style={[styles.confirmTeamBig, { color: '#ffffff', textAlign: 'center' }]}
+                            style={[styles.confirmTeamBig, { color: '#ffffff', textAlign: 'center', fontSize: 13.5 }]}
                             numberOfLines={2}
                           >
                             {matchDraft.opponentTeam?.name}
@@ -32211,21 +32257,21 @@ function CricketAddaMain() {
                       </View>
 
                       {/* Format & Venue Pill (No 📍 icon) */}
-                      <View style={[styles.confirmFormatPill, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
-                        <Text style={[styles.confirmFormatPillText, { color: '#cbd5e1' }]}>
+                      <View style={[styles.confirmFormatPill, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)', marginVertical: 6, paddingVertical: 3 }]}>
+                        <Text style={[styles.confirmFormatPillText, { color: '#cbd5e1', fontSize: 11 }]}>
                           {matchDraft.format} • {matchDraft.totalOvers} Overs • {matchDraft.ground || 'Standard Ground'}
                         </Text>
                       </View>
 
                       {/* 2-Column Dedicated Team Captain & Keeper Cards (No 👑 or 🧤 icons) */}
-                      <View style={styles.confirmTeamsBlock}>
+                      <View style={[styles.confirmTeamsBlock, { marginVertical: 6, gap: 6 }]}>
                         {/* Team A Box */}
-                        <View style={[styles.confirmTeamColCard, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.15)', paddingBottom: 6 }}>
+                        <View style={[styles.confirmTeamColCard, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)', padding: 8 }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.15)', paddingBottom: 4 }}>
                             <View style={{
-                              width: 24,
-                              height: 24,
-                              borderRadius: 12,
+                              width: 22,
+                              height: 22,
+                              borderRadius: 11,
                               backgroundColor: '#1e293b',
                               borderWidth: 1.2,
                               borderColor: '#38bdf8',
@@ -32238,11 +32284,11 @@ function CricketAddaMain() {
                                 allTeams={allAvailableMatchTeams}
                                 allUsers={usersDb}
                                 style={{ width: '100%', height: '100%' }}
-                                flagStyle={{ fontSize: 13 }}
+                                flagStyle={{ fontSize: 12 }}
                                 fallbackFlag={matchDraft.myTeam?.flag || '🦁'}
                               />
                             </View>
-                            <Text style={[styles.confirmColTeamName, { color: '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]} numberOfLines={1}>
+                            <Text style={[styles.confirmColTeamName, { color: '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0, fontSize: 12 }]} numberOfLines={1}>
                               {matchDraft.myTeam?.name}
                             </Text>
                           </View>
@@ -32257,12 +32303,12 @@ function CricketAddaMain() {
                         </View>
 
                         {/* Team B Box */}
-                        <View style={[styles.confirmTeamColCard, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)' }]}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.15)', paddingBottom: 6 }}>
+                        <View style={[styles.confirmTeamColCard, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)', padding: 8 }]}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(56, 189, 248, 0.15)', paddingBottom: 4 }}>
                             <View style={{
-                              width: 24,
-                              height: 24,
-                              borderRadius: 12,
+                              width: 22,
+                              height: 22,
+                              borderRadius: 11,
                               backgroundColor: '#1e293b',
                               borderWidth: 1.2,
                               borderColor: '#38bdf8',
@@ -32275,11 +32321,11 @@ function CricketAddaMain() {
                                 allTeams={allAvailableMatchTeams}
                                 allUsers={usersDb}
                                 style={{ width: '100%', height: '100%' }}
-                                flagStyle={{ fontSize: 13 }}
+                                flagStyle={{ fontSize: 12 }}
                                 fallbackFlag={matchDraft.opponentTeam?.flag || '⚡'}
                               />
                             </View>
-                            <Text style={[styles.confirmColTeamName, { color: '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0 }]} numberOfLines={1}>
+                            <Text style={[styles.confirmColTeamName, { color: '#ffffff', flex: 1, marginBottom: 0, borderBottomWidth: 0, paddingBottom: 0, fontSize: 12 }]} numberOfLines={1}>
                               {matchDraft.opponentTeam?.name}
                             </Text>
                           </View>
@@ -32294,16 +32340,16 @@ function CricketAddaMain() {
                         </View>
                       </View>
 
-                      {/* Match Parameters List - Filled out to utilize empty space after Toss Result */}
-                      <View style={[styles.confirmParamSection, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)', gap: 8, paddingVertical: 10 }]}>
+                      {/* Match Parameters List - Compact and Tight */}
+                      <View style={[styles.confirmParamSection, { backgroundColor: 'rgba(8, 28, 48, 0.80)', borderColor: 'rgba(56, 189, 248, 0.18)', gap: 5, paddingVertical: 8, paddingHorizontal: 10, marginTop: 6 }]}>
                         {/* Row 1: Toss Result */}
                         <View style={styles.confirmParamRow}>
                           <Text style={[styles.confirmParamLabel, { color: '#94a3b8' }]}>Toss Result:</Text>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end' }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, justifyContent: 'flex-end', marginLeft: 8 }}>
                             <View style={{
-                              width: 18,
-                              height: 18,
-                              borderRadius: 9,
+                              width: 16,
+                              height: 16,
+                              borderRadius: 8,
                               backgroundColor: '#1e293b',
                               borderWidth: 1,
                               borderColor: '#34d399',
@@ -32316,11 +32362,11 @@ function CricketAddaMain() {
                                 allTeams={allAvailableMatchTeams}
                                 allUsers={usersDb}
                                 style={{ width: '100%', height: '100%' }}
-                                flagStyle={{ fontSize: 10 }}
+                                flagStyle={{ fontSize: 9 }}
                                 fallbackFlag={matchDraft.tossWinner === 'myTeam' ? (matchDraft.myTeam?.flag || '🦁') : (matchDraft.opponentTeam?.flag || '⚡')}
                               />
                             </View>
-                            <Text style={[styles.confirmParamValue, { color: '#34d399' }]} numberOfLines={1}>
+                            <Text style={[styles.confirmParamValue, { color: '#34d399', flex: 0 }]} numberOfLines={1}>
                               {matchDraft.tossWinner === 'myTeam' ? matchDraft.myTeam?.name : matchDraft.opponentTeam?.name} ({matchDraft.tossDecision?.toUpperCase()} FIRST)
                             </Text>
                           </View>
@@ -32335,18 +32381,10 @@ function CricketAddaMain() {
                         </View>
 
                         {/* Row 3: Ball & Rules */}
-                        <View style={styles.confirmParamRow}>
+                        <View style={[styles.confirmParamRow, { borderBottomWidth: 0, paddingBottom: 0 }]}>
                           <Text style={[styles.confirmParamLabel, { color: '#94a3b8' }]}>Ball & Rules:</Text>
                           <Text style={[styles.confirmParamValue, { color: '#ffffff' }]} numberOfLines={1}>
                             {(matchDraft.ballType || 'LEATHER').toUpperCase()} BALL • Max {matchDraft.oversPerBowler || 4} Overs/Bowler
-                          </Text>
-                        </View>
-
-                        {/* Row 4: Playing Squads Count */}
-                        <View style={styles.confirmParamRow}>
-                          <Text style={[styles.confirmParamLabel, { color: '#94a3b8' }]}>Playing XI:</Text>
-                          <Text style={[styles.confirmParamValue, { color: '#38bdf8' }]} numberOfLines={1}>
-                            {matchDraft.myTeam?.name}: {matchDraft.myTeamXI?.length || 11} vs {matchDraft.opponentTeam?.name}: {matchDraft.opponentTeamXI?.length || 11}
                           </Text>
                         </View>
                       </View>
@@ -33170,8 +33208,21 @@ function CricketAddaMain() {
 
       {/* UNIFIED ADD NEW PLAYER MODAL (GUEST / SCAN QR / PHONE SEARCH) */}
       <Modal visible={guestModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
-        <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder, width: Math.min(width - 32, 400), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }]}>
+          <View style={{
+            width: '100%',
+            maxWidth: 380,
+            backgroundColor: '#05182a',
+            borderRadius: 20,
+            borderWidth: 1.5,
+            borderColor: '#22c55e',
+            padding: 20,
+            shadowColor: '#22c55e',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.35,
+            shadowRadius: 16,
+            elevation: 20,
+          }}>
             
             {/* Header */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
@@ -33433,20 +33484,25 @@ function CricketAddaMain() {
 
                     <TouchableOpacity
                       style={{
-                        marginTop: 10,
-                        height: 38,
-                        borderRadius: 9,
-                        backgroundColor: '#10b981',
+                        marginTop: 12,
+                        height: 44,
+                        borderRadius: 12,
+                        backgroundColor: '#22c55e',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexDirection: 'row',
                         gap: 6,
+                        shadowColor: '#22c55e',
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.35,
+                        shadowRadius: 5,
+                        elevation: 5,
                       }}
                       onPress={() => addSearchedPhonePlayerToXI(guestPhoneFoundPlayer)}
                       activeOpacity={0.85}
                     >
-                      <Text style={{ color: '#000000', fontSize: 13, fontWeight: '900' }}>
-                        ➕ Add {guestPhoneFoundPlayer.name} to Playing XI
+                      <Text style={{ color: '#000000', fontSize: 14.5, fontWeight: '900' }}>
+                        Add {guestPhoneFoundPlayer.name} to Playing XI ❯
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -38648,15 +38704,15 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
 
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 8, paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 40) + 12 : 48, paddingBottom: Platform.OS === 'android' ? 36 : 24 },
-  modalCard: { backgroundColor: '#0f172a', borderRadius: 16, borderWidth: 1, borderColor: '#1e293b' },
-  modalTitle: { color: '#10b981', fontSize: 16, fontWeight: '900', textAlign: 'center' },
-  modalSub: { color: '#94a3b8', fontSize: 11, textAlign: 'center', marginTop: 2 },
-  modalBtnRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
-  skipBtn: { flex: 1, backgroundColor: '#1e293b', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
-  skipBtnText: { color: '#94a3b8', fontWeight: 'bold', fontSize: 11 },
-  confirmBtn: { flex: 2, backgroundColor: '#10b981', paddingVertical: 10, borderRadius: 8, alignItems: 'center' },
-  confirmBtnText: { color: '#020617', fontWeight: '900', fontSize: 12 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0, 5, 12, 0.85)', justifyContent: 'center', alignItems: 'center', paddingHorizontal: 16 },
+  modalCard: { backgroundColor: '#05182a', borderRadius: 20, borderWidth: 1.5, borderColor: '#22c55e', shadowColor: '#22c55e', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.35, shadowRadius: 16, elevation: 20 },
+  modalTitle: { color: '#ffffff', fontSize: 17, fontWeight: '900', textAlign: 'center' },
+  modalSub: { color: '#94a3b8', fontSize: 12.5, textAlign: 'center', marginTop: 3 },
+  modalBtnRow: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  skipBtn: { flex: 1, height: 44, backgroundColor: 'rgba(8, 28, 48, 0.85)', borderRadius: 12, borderWidth: 1.5, borderColor: 'rgba(56, 189, 248, 0.3)', alignItems: 'center', justifyContent: 'center' },
+  skipBtnText: { color: '#ffffff', fontWeight: '800', fontSize: 13.5, letterSpacing: 0.3 },
+  confirmBtn: { flex: 2, height: 44, backgroundColor: '#22c55e', borderRadius: 12, alignItems: 'center', justifyContent: 'center', shadowColor: '#22c55e', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.35, shadowRadius: 5, elevation: 5 },
+  confirmBtnText: { color: '#000000', fontWeight: '900', fontSize: 14.5, letterSpacing: 0.5 },
 
   // Auto-Saved Match Draft Banner
   draftCardBanner: {
@@ -39713,24 +39769,25 @@ const styles = StyleSheet.create({
   confirmParamSection: {
     backgroundColor: '#020617',
     borderRadius: 8,
-    padding: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
     borderWidth: 1,
     borderColor: '#1e293b',
-    gap: 6,
+    gap: 4,
     marginTop: 4,
   },
   confirmParamRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 3,
+    paddingVertical: 2.5,
     borderBottomWidth: 1,
-    borderBottomColor: '#0f172a',
+    borderBottomColor: 'rgba(56, 189, 248, 0.12)',
   },
   confirmParamLabel: {
     color: '#94a3b8',
     fontSize: 11,
-    flex: 1,
+    fontWeight: '600',
   },
   confirmParamValue: {
     color: '#ffffff',
@@ -39738,6 +39795,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'right',
     flex: 1,
+    marginLeft: 8,
   },
 
   // Practical Team Selection & Radio Styles

@@ -1096,13 +1096,19 @@ export async function searchCloudPlayerByPhone(phoneDigits) {
   if (!isFirebaseConfigured() || !phoneDigits) return null;
   const cleanPhone = String(phoneDigits).replace(/[^0-9]/g, '');
   if (!cleanPhone) return null;
+  const last10 = cleanPhone.slice(-10);
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    // 1. Check direct phone index
-    const res = await fetch(`${baseUrl}/registered_players/${cleanPhone}.json`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && typeof data === 'object' && data.name) return data;
+    // 1. Check direct phone index with cleanPhone, last10, and 91+last10
+    const keysToCheck = [cleanPhone, last10, `91${last10}`].filter((v, i, a) => a.indexOf(v) === i);
+    for (const key of keysToCheck) {
+      try {
+        const res = await fetch(`${baseUrl}/registered_players/${key}.json`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data && typeof data === 'object' && data.name) return data;
+        }
+      } catch (_) {}
     }
     // 2. Fallback check in /users.json
     const usersRes = await fetch(`${baseUrl}/users.json`);
@@ -1112,11 +1118,33 @@ export async function searchCloudPlayerByPhone(phoneDigits) {
       const list = rawList.filter(Boolean);
       const match = list.find(u => {
         if (!u) return false;
-        const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
-        return uPhone === cleanPhone;
+        const candidatePhone = String(
+          (u.profile && (u.profile.phone || u.profile.mobile || u.profile.phoneNumber || u.profile.contact)) ||
+          u.phone || u.mobile || u.phoneNumber || u.contact || ''
+        ).replace(/[^0-9]/g, '');
+        if (!candidatePhone) return false;
+        return candidatePhone === cleanPhone || (candidatePhone.length >= 10 && last10.length >= 10 && candidatePhone.slice(-10) === last10);
       });
       if (match) return match.profile || match;
     }
+    // 3. Fallback check in /teams.json (players in team squads)
+    try {
+      const teamsRes = await fetch(`${baseUrl}/teams.json`);
+      if (teamsRes.ok) {
+        const teamsData = await teamsRes.json();
+        const teamsList = Array.isArray(teamsData) ? teamsData : (teamsData && typeof teamsData === 'object' ? Object.values(teamsData) : []);
+        for (const t of teamsList) {
+          if (t && Array.isArray(t.squad)) {
+            const sqMatch = t.squad.find(p => {
+              if (!p) return false;
+              const pPhone = String(p.phone || p.mobile || p.phoneNumber || '').replace(/[^0-9]/g, '');
+              return pPhone && (pPhone === cleanPhone || (pPhone.length >= 10 && last10.length >= 10 && pPhone.slice(-10) === last10));
+            });
+            if (sqMatch && sqMatch.name) return sqMatch;
+          }
+        }
+      }
+    } catch (_) {}
     return null;
   } catch (e) {
     return null;
