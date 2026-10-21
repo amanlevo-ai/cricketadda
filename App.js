@@ -31675,14 +31675,14 @@ function CricketAddaMain() {
                 );
               })() : (
                 <ScrollView
-                  style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: wzPhase === 6 ? 10 : 16 }}
+                  style={{ flex: 1, backgroundColor: 'transparent', paddingHorizontal: wzPhase === 6 ? 12 : 16 }}
                   contentContainerStyle={{
-                    paddingBottom: (wzPhase === 2 || wzPhase === 5) ? 6 : wzPhase === 6 ? Math.max(40, bottomInset + 24) : wzPhase === 3 ? Math.max(92, bottomInset + 80) : 24,
-                    paddingTop: (wzPhase === 2 || wzPhase === 3 || wzPhase === 5) ? 4 : 10,
+                    paddingBottom: (wzPhase === 2 || wzPhase === 5 || wzPhase === 6) ? 6 : wzPhase === 3 ? Math.max(92, bottomInset + 80) : 24,
+                    paddingTop: (wzPhase === 2 || wzPhase === 3 || wzPhase === 5 || wzPhase === 6) ? 4 : 10,
                   }}
                   showsVerticalScrollIndicator={false}
-                  scrollEnabled={wzPhase !== 2 && wzPhase !== 5}
-                  bounces={wzPhase !== 2 && wzPhase !== 5}
+                  scrollEnabled={wzPhase !== 2 && wzPhase !== 5 && wzPhase !== 6}
+                  bounces={wzPhase !== 2 && wzPhase !== 5 && wzPhase !== 6}
                 >
                 {/* ========================================================================= */}
                 {/* PHASE 2: MATCH DETAILS (NO SCROLLING - 2 SMALL FIELDS PER ROW) */}
@@ -32523,11 +32523,11 @@ function CricketAddaMain() {
                   const bowlerDetails = getPlayerDetails(bowlerPlayerObj, 45);
 
                   return (
-                    <View style={{ paddingTop: 6, paddingBottom: 16 }}>
+                    <View style={{ paddingTop: 2, paddingBottom: 2 }}>
                       {/* Title & Subtitle Matching Rest of Wizard Pages */}
-                      <View style={{ alignItems: 'center', marginBottom: 16, marginTop: 4 }}>
+                      <View style={{ alignItems: 'center', marginBottom: 10, marginTop: 2 }}>
                         <Text style={{
-                          fontSize: 17,
+                          fontSize: 16.5,
                           fontWeight: '900',
                           letterSpacing: 0.6,
                           textTransform: 'uppercase',
@@ -32536,7 +32536,7 @@ function CricketAddaMain() {
                         }}>
                           SELECT PLAYERS
                         </Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '500', marginTop: 4, textAlign: 'center' }}>
+                        <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '500', marginTop: 2, textAlign: 'center' }}>
                           Choose Striker, Non-Striker and Bowler to start the match
                         </Text>
                       </View>
@@ -32591,16 +32591,17 @@ function CricketAddaMain() {
                             }}
                             style={{
                               backgroundColor: 'rgba(6, 20, 36, 0.90)',
-                              borderRadius: 16,
-                              borderWidth: 1.6,
+                              borderRadius: 14,
+                              borderWidth: 1.5,
                               borderColor: hero.color,
-                              marginBottom: 16,
-                              padding: 14,
+                              marginBottom: 10,
+                              paddingVertical: 10,
+                              paddingHorizontal: 12,
                               shadowColor: hero.color,
                               shadowOffset: { width: 0, height: 2 },
-                              shadowOpacity: 0.4,
-                              shadowRadius: 8,
-                              elevation: 6,
+                              shadowOpacity: 0.35,
+                              shadowRadius: 6,
+                              elevation: 5,
                             }}
                           >
                             {/* Top Header of Card: Role Tag + Team & Change Button */}
@@ -32608,7 +32609,7 @@ function CricketAddaMain() {
                               flexDirection: 'row',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              marginBottom: 11,
+                              marginBottom: 8,
                             }}>
                               {/* Left: Role Pill + Team Label */}
                               <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, paddingRight: 8 }}>
@@ -32618,19 +32619,19 @@ function CricketAddaMain() {
                                   backgroundColor: hero.bgBadge,
                                   borderWidth: 1,
                                   borderColor: hero.borderBadge,
-                                  borderRadius: 7,
-                                  paddingHorizontal: 9,
-                                  paddingVertical: 3.5,
-                                  gap: 5,
+                                  borderRadius: 6,
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 2.5,
+                                  gap: 4.5,
                                 }}>
                                   {hero.isBat ? (
-                                    <RealisticCricketBatIcon gripColor={hero.accentText} size={14} />
+                                    <RealisticCricketBatIcon gripColor={hero.accentText} size={13} />
                                   ) : (
-                                    <RealisticCricketBallIcon type="red" size={13} />
+                                    <RealisticCricketBallIcon type="red" size={12} />
                                   )}
                                   <Text style={{
                                     color: hero.accentText,
-                                    fontSize: 11.5,
+                                    fontSize: 11,
                                     fontWeight: '900',
                                     letterSpacing: 0.6,
                                   }}>
@@ -32641,7 +32642,7 @@ function CricketAddaMain() {
                                 <Text
                                   style={{
                                     color: '#94a3b8',
-                                    fontSize: 12,
+                                    fontSize: 11.5,
                                     fontWeight: '600',
                                     marginLeft: 8,
                                     flex: 1,
@@ -32657,10 +32658,10 @@ function CricketAddaMain() {
                                 style={{
                                   flexDirection: 'row',
                                   alignItems: 'center',
-                                  gap: 5,
-                                  paddingVertical: 5,
-                                  paddingHorizontal: 11,
-                                  borderRadius: 8,
+                                  gap: 4.5,
+                                  paddingVertical: 3.5,
+                                  paddingHorizontal: 9,
+                                  borderRadius: 7,
                                   borderWidth: 1.2,
                                   borderColor: hero.color,
                                   backgroundColor: hero.bgBadge,
@@ -32671,50 +32672,50 @@ function CricketAddaMain() {
                                 }}
                                 activeOpacity={0.8}
                               >
-                                <Text style={{ color: hero.accentText, fontSize: 13, fontWeight: '900' }}>⇄</Text>
-                                <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900', letterSpacing: 0.5 }}>CHANGE</Text>
+                                <Text style={{ color: hero.accentText, fontSize: 12, fontWeight: '900' }}>⇄</Text>
+                                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900', letterSpacing: 0.4 }}>CHANGE</Text>
                               </TouchableOpacity>
                             </View>
 
                             {/* Subtle Separator */}
-                            <View style={{ height: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)', marginBottom: 12 }} />
+                            <View style={{ height: 1, backgroundColor: 'rgba(255, 255, 255, 0.08)', marginBottom: 9 }} />
 
                             {/* Card Body: Big Avatar + Full Player Name + Details */}
                             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                               {/* Circular Player Avatar */}
                               <View style={{
-                                width: 58,
-                                height: 58,
-                                borderRadius: 29,
-                                borderWidth: 2,
+                                width: 50,
+                                height: 50,
+                                borderRadius: 25,
+                                borderWidth: 1.8,
                                 borderColor: hero.color,
                                 overflow: 'hidden',
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 backgroundColor: '#1e293b',
                                 shadowColor: hero.color,
-                                shadowOffset: { width: 0, height: 2 },
-                                shadowOpacity: 0.45,
-                                shadowRadius: 5,
-                                elevation: 4,
+                                shadowOffset: { width: 0, height: 1.5 },
+                                shadowOpacity: 0.4,
+                                shadowRadius: 4,
+                                elevation: 3,
                                 flexShrink: 0,
                               }}>
                                 <PlayerAvatar
                                   name={hero.details?.name}
                                   customUri={hero.details?.avatarUri}
-                                  size={58}
+                                  size={50}
                                   borderColor={hero.color}
                                 />
                               </View>
 
                               {/* Player Name & Badges - FULL WIDTH AVAILABLE */}
-                              <View style={{ marginLeft: 13, flex: 1, justifyContent: 'center' }}>
+                              <View style={{ marginLeft: 12, flex: 1, justifyContent: 'center' }}>
                                 <Text
                                   style={{
                                     color: '#ffffff',
-                                    fontSize: 18,
+                                    fontSize: 17,
                                     fontWeight: '900',
-                                    letterSpacing: 0.3,
+                                    letterSpacing: 0.2,
                                   }}
                                   numberOfLines={1}
                                   ellipsizeMode="tail"
@@ -32723,27 +32724,27 @@ function CricketAddaMain() {
                                 </Text>
 
                                 {/* Sub Row: Jersey Number + Batting/Bowling Style */}
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 5 }}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
                                   <View style={{
                                     backgroundColor: 'rgba(56, 189, 248, 0.14)',
-                                    borderRadius: 5,
-                                    paddingHorizontal: 8,
-                                    paddingVertical: 2,
+                                    borderRadius: 4.5,
+                                    paddingHorizontal: 7,
+                                    paddingVertical: 1.5,
                                     borderWidth: 0.6,
                                     borderColor: 'rgba(56, 189, 248, 0.4)',
                                   }}>
-                                    <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '900' }}>
+                                    <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '900' }}>
                                       {hero.details?.jersey}
                                     </Text>
                                   </View>
 
                                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                                     {hero.isBat ? (
-                                      <RealisticCricketBatIcon gripColor="#facc15" size={13} />
+                                      <RealisticCricketBatIcon gripColor="#facc15" size={12} />
                                     ) : (
-                                      <RealisticCricketBallIcon type="red" size={12} />
+                                      <RealisticCricketBallIcon type="red" size={11} />
                                     )}
-                                    <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '700' }}>
+                                    <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '700' }}>
                                       {hero.styleText}
                                     </Text>
                                   </View>
