@@ -13427,7 +13427,11 @@ function CricketAddaMain() {
   const [overthrowModalVisible, setOverthrowModalVisible] = useState(false);
   const [overthrowPhysicalRuns, setOverthrowPhysicalRuns] = useState(1);
   const [overthrowExtraRuns, setOverthrowExtraRuns] = useState(4);
-  const [overthrowType, setOverthrowType] = useState('bat'); // 'bat' | 'bye' | 'legBye' | 'wide' | 'noBall'
+  const [overthrowType, setOverthrowType] = useState('bat');
+  const [extraModalType, setExtraModalType] = useState(null);
+  const [extraNbSource, setExtraNbSource] = useState('bat');
+  const [extraCustomInput, setExtraCustomInput] = useState('');
+  const [otCustomInput, setOtCustomInput] = useState(''); // 'bat' | 'bye' | 'legBye' | 'wide' | 'noBall'
   const [scoringHistory, setScoringHistory] = useState([]);
   const [lastShotSector, setLastShotSector] = useState(null); // Shot area selected on wagon wheel
 
@@ -17954,6 +17958,65 @@ function CricketAddaMain() {
     }
 
     setPendingExtraType(null);
+  };
+
+    const handleRecordExtraModal = (runs) => {
+    if (!isOfficialScorer) {
+      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
+      setExtraModalType(null);
+      return;
+    }
+    const currentExtra = extraModalType;
+    setExtraModalType(null);
+    setExtraCustomInput('');
+
+    if (currentExtra === 'wide') {
+      recordBall(runs, 'wide', 1);
+      showAppToast(`🟡 Wide Ball recorded (${1 + runs} runs total)!`, '🟡');
+    } else if (currentExtra === 'noBall') {
+      recordBall(runs, 'noBall', 1, false, null, null, null, null, extraNbSource || 'bat');
+      showAppToast(`🔴 No Ball recorded (${1 + runs} runs total)! Free Hit follows!`, '🔴');
+    } else if (currentExtra === 'bye') {
+      recordBall(runs, 'bye', 0, false, null, null, null, null, 'bye');
+      showAppToast(`🔵 Byes recorded: ${runs} run${runs === 1 ? '' : 's'}!`, '🔵');
+    } else if (currentExtra === 'legBye') {
+      recordBall(runs, 'legBye', 0, false, null, null, null, null, 'legBye');
+      showAppToast(`🟣 Leg Byes recorded: ${runs} run${runs === 1 ? '' : 's'}!`, '🟣');
+    }
+  };
+
+  const handleRecordExtraCustom = () => {
+    const val = parseInt(extraCustomInput, 10);
+    if (isNaN(val) || val < 0) {
+      Alert.alert('Invalid', 'Please enter a valid number of runs.');
+      return;
+    }
+    handleRecordExtraModal(val);
+  };
+
+  const handleRecordOverthrowModal = () => {
+    if (!isOfficialScorer) {
+      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
+      setOverthrowModalVisible(false);
+      return;
+    }
+    setOverthrowModalVisible(false);
+    const pRuns = Number(overthrowPhysicalRuns) || 0;
+    const otRuns = Number(overthrowExtraRuns) || 0;
+    const otType = overthrowType || 'bat';
+
+    if (otType === 'wide') {
+      recordBall(pRuns, 'wide', 1, false, null, null, null, null, 'bat', otRuns);
+    } else if (otType === 'noBall') {
+      recordBall(pRuns, 'noBall', 1, false, null, null, null, null, 'bat', otRuns);
+    } else if (otType === 'bye') {
+      recordBall(pRuns, 'bye', 0, false, null, null, null, null, 'bye', otRuns);
+    } else if (otType === 'legBye') {
+      recordBall(pRuns, 'legBye', 0, false, null, null, null, null, 'legBye', otRuns);
+    } else {
+      recordBall(pRuns, 'none', 0, false, null, null, null, null, 'bat', otRuns);
+    }
+    showAppToast(`⚡ Overthrow recorded: ${pRuns + otRuns} runs total!`, '🏃');
   };
 
   const handleOverthrowSubmit = () => {
@@ -24335,7 +24398,18 @@ function CricketAddaMain() {
                       return (
                         <TouchableOpacity
                           key={`extra_${extra.key}`}
-                          onPress={() => toggleExtraType(extra.key)}
+                          onPress={() => {
+                          if (needsNewBowler) {
+                            const eligible = activeOppBowlers.filter(b => b !== bowler);
+                            if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                            setChangeBowlerModalVisible(true);
+                            showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                            return;
+                          }
+                          setExtraModalType(extra.key);
+                          setExtraNbSource('bat');
+                          setExtraCustomInput('');
+                        }}
                           activeOpacity={0.75}
                           style={{
                             flex: 1,
@@ -24396,6 +24470,10 @@ function CricketAddaMain() {
                           showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
                           return;
                         }
+                        setOverthrowType('bat');
+                        setOverthrowPhysicalRuns(1);
+                        setOverthrowExtraRuns(4);
+                        setOtCustomInput('');
                         setOverthrowModalVisible(true);
                       }}
                       activeOpacity={0.75}
@@ -27606,148 +27684,472 @@ function CricketAddaMain() {
         </View>
       </Modal>
 
-      {/* MODAL 5.54: OVERTHROW SCORING MODAL */}
-      <Modal visible={overthrowModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
-        <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.photoPickerHeader}>
+      {/* ========================================================================= */}
+      {/* MODAL 5.53: BROADCAST EXTRAS WINDOW (WIDE | NO BALL | BYE | LEG BYE)       */}
+      {/* ========================================================================= */}
+      <Modal visible={extraModalType !== null} transparent animationType="fade" statusBarTranslucent={true}>
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(2, 11, 20, 0.85)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+        }}>
+          {/* Backdrop dismiss */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => {
+              setExtraModalType(null);
+              setExtraCustomInput('');
+            }}
+          />
+
+          <View style={{
+            width: '100%',
+            maxWidth: 380,
+            backgroundColor: '#071526',
+            borderRadius: 18,
+            borderWidth: 1.5,
+            borderColor: '#1e3a5f',
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.6,
+            shadowRadius: 12,
+            elevation: 12,
+          }}>
+            {/* Top Header: Dot + Title + Subtitle + Close Button */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <View style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 5,
+                  backgroundColor: extraModalType === 'wide' ? '#f59e0b' : extraModalType === 'noBall' ? '#ef4444' : extraModalType === 'bye' ? '#38bdf8' : '#8b5cf6',
+                }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={[styles.photoPickerTitle, { color: '#a855f7' }]}>🔄 Record Overthrow</Text>
-                  <Text style={styles.photoPickerSub}>Log physical runs + overthrow extra runs</Text>
-                </View>
-                <TouchableOpacity style={styles.closeRoundBtn} onPress={() => setOverthrowModalVisible(false)}>
-                  <Text style={styles.closeRoundBtnText}>✕</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Overthrow Live Summary Banner */}
-              <View style={{
-                backgroundColor: currentTheme.isLight ? '#f5f3ff' : '#2e1065',
-                borderColor: '#a855f7',
-                borderWidth: 1.5,
-                borderRadius: 12,
-                padding: 12,
-                marginVertical: 8,
-                alignItems: 'center',
-              }}>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: '#c084fc', letterSpacing: 0.5 }}>
-                  TOTAL RUNS ON THIS BALL:
-                </Text>
-                <Text style={{ fontSize: 28, fontWeight: '900', color: '#f3e8ff', marginVertical: 2 }}>
-                  {Number(overthrowPhysicalRuns) + Number(overthrowExtraRuns) + (overthrowType === 'wide' || overthrowType === 'noBall' ? 1 : 0)} Runs
-                </Text>
-                <Text style={{ fontSize: 11, color: '#e9d5ff', fontWeight: '600' }}>
-                  {overthrowPhysicalRuns} completed by running + {overthrowExtraRuns} overthrow{overthrowType === 'wide' ? ' (+1 Wide)' : overthrowType === 'noBall' ? ' (+1 No Ball)' : ''}
-                </Text>
-              </View>
-
-              {/* 1. Physical Runs Completed */}
-              <Text style={styles.pickerSectionHeading}>🏃 1. PHYSICAL RUNS COMPLETED BY BATTERS:</Text>
-              <View style={styles.dropChipsContainer}>
-                {[0, 1, 2, 3].map(r => {
-                  const isSel = overthrowPhysicalRuns === r;
-                  return (
-                    <TouchableOpacity
-                      key={`ot_phys_${r}`}
-                      style={[
-                        styles.dropRunPill,
-                        isSel && { borderColor: '#a855f7', backgroundColor: '#7c3aed' }
-                      ]}
-                      onPress={() => setOverthrowPhysicalRuns(r)}
-                    >
-                      <Text style={[styles.dropRunPillNumber, isSel && { color: '#ffffff' }]}>{r}</Text>
-                      <Text style={[styles.dropRunPillLabel, isSel && { color: '#f3e8ff' }]}>
-                        {r === 0 ? '0 Runs' : `${r} Run${r > 1 ? 's' : ''}`}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* 2. Overthrow Bonus Runs */}
-              <Text style={[styles.pickerSectionHeading, { marginTop: 12 }]}>🎯 2. OVERTHROW RUNS AWARDED (MISSED THROW):</Text>
-              <View style={styles.dropChipsContainer}>
-                {[1, 2, 3, 4].map(r => {
-                  const isSel = overthrowExtraRuns === r;
-                  return (
-                    <TouchableOpacity
-                      key={`ot_extra_${r}`}
-                      style={[
-                        styles.dropRunPill,
-                        isSel && { borderColor: '#a855f7', backgroundColor: '#7c3aed' }
-                      ]}
-                      onPress={() => setOverthrowExtraRuns(r)}
-                    >
-                      <Text style={[styles.dropRunPillNumber, isSel && { color: '#ffffff' }]}>+{r}</Text>
-                      <Text style={[styles.dropRunPillLabel, isSel && { color: '#f3e8ff' }]}>
-                        {r === 4 ? 'Boundary 💥' : `+${r} Overthrow`}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* 3. Delivery / Extra Source Type */}
-              <Text style={[styles.pickerSectionHeading, { marginTop: 12 }]}>🏏 3. RUNS ATTRIBUTION SOURCE:</Text>
-              <View style={styles.dropChipsContainer}>
-                {[
-                  { key: 'bat', label: '🏏 Off Bat (To Striker)', desc: 'Striker gets runs' },
-                  { key: 'bye', label: '🧤 Byes', desc: 'Extras (0 to Striker)' },
-                  { key: 'legBye', label: '🦵 Leg Byes', desc: 'Extras (0 to Striker)' },
-                  { key: 'wide', label: '🟡 Wide + Overthrow', desc: '+1 Wd + Overthrows' },
-                  { key: 'noBall', label: '🟠 No-Ball + Overthrow', desc: '+1 NB + Overthrows' },
-                ].map(item => {
-                  const isSel = overthrowType === item.key;
-                  return (
-                    <TouchableOpacity
-                      key={`ot_type_${item.key}`}
-                      style={[
-                        styles.dropOptionChip,
-                        isSel && { borderColor: '#a855f7', backgroundColor: 'rgba(168, 85, 247, 0.25)' }
-                      ]}
-                      onPress={() => setOverthrowType(item.key)}
-                    >
-                      <Text style={[
-                        styles.dropOptionChipText,
-                        isSel && { color: '#c084fc', fontWeight: 'bold' }
-                      ]}>
-                        {isSel ? '✓ ' : ''}{item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              {/* 4. Strike Rotation Guidance */}
-              <View style={{
-                backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f172a',
-                padding: 10,
-                borderRadius: 8,
-                marginTop: 12,
-                borderWidth: 1,
-                borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e293b',
-              }}>
-                <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#475569' : '#94a3b8' }}>
-                  ℹ️ Strike Rotation: Total {(Number(overthrowPhysicalRuns) + Number(overthrowExtraRuns))} runs is {(Number(overthrowPhysicalRuns) + Number(overthrowExtraRuns)) % 2 === 1 ? 'ODD (Strike will rotate to ' + nonStriker + ')' : 'EVEN (' + striker + ' stays on strike)'}.
-                </Text>
-              </View>
-
-              {/* Action Buttons */}
-              <View style={[styles.modalBtnRow, { marginTop: 16, marginBottom: 8 }]}>
-                <TouchableOpacity style={styles.skipBtn} onPress={() => setOverthrowModalVisible(false)}>
-                  <Text style={styles.skipBtnText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.confirmBtn, { backgroundColor: '#7c3aed' }]}
-                  onPress={handleOverthrowSubmit}
-                >
-                  <Text style={[styles.confirmBtnText, { color: '#ffffff' }]}>
-                    🟢 Record Overthrow ({Number(overthrowPhysicalRuns) + Number(overthrowExtraRuns)} Runs) 🚀
+                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>
+                    {extraModalType === 'wide' && 'Wide Ball'}
+                    {extraModalType === 'noBall' && 'No Ball'}
+                    {extraModalType === 'bye' && 'Byes'}
+                    {extraModalType === 'legBye' && 'Leg Byes'}
                   </Text>
-                </TouchableOpacity>
+                  <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700', marginTop: 1 }} numberOfLines={1}>
+                    {bowler || 'Bowler'} to {striker || 'Striker'}
+                  </Text>
+                </View>
               </View>
-            </ScrollView>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setExtraModalType(null);
+                  setExtraCustomInput('');
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  backgroundColor: 'rgba(30, 58, 95, 0.6)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* No Ball Source Selector (Bat | Bye | Leg Bye) */}
+            {extraModalType === 'noBall' && (
+              <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+                {[
+                  { key: 'bat', label: 'Bat' },
+                  { key: 'bye', label: 'Bye' },
+                  { key: 'legBye', label: 'Leg Bye' },
+                ].map(item => {
+                  const isSel = extraNbSource === item.key;
+                  return (
+                    <TouchableOpacity
+                      key={`nb_src_${item.key}`}
+                      onPress={() => setExtraNbSource(item.key)}
+                      activeOpacity={0.8}
+                      style={{
+                        flex: 1,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 6,
+                        paddingVertical: 8,
+                        borderRadius: 10,
+                        backgroundColor: isSel ? 'rgba(245, 158, 11, 0.2)' : '#0a192f',
+                        borderWidth: 1.5,
+                        borderColor: isSel ? '#f59e0b' : '#1e3a5f',
+                      }}
+                    >
+                      <View style={{
+                        width: 14,
+                        height: 14,
+                        borderRadius: 3,
+                        backgroundColor: isSel ? '#f59e0b' : 'transparent',
+                        borderWidth: 1.5,
+                        borderColor: isSel ? '#f59e0b' : '#64748b',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {isSel && <Text style={{ color: '#000000', fontSize: 9, fontWeight: '900' }}>✓</Text>}
+                      </View>
+                      <Text style={{ color: isSel ? '#f59e0b' : '#94a3b8', fontSize: 12, fontWeight: '800' }}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+
+            {/* Question Text */}
+            <Text style={{ color: '#cbd5e1', fontSize: 13, fontWeight: '700', marginBottom: 10 }}>
+              {extraModalType === 'wide' && 'How many runs on Wide ball?'}
+              {extraModalType === 'noBall' && 'How many runs on No Ball?'}
+              {extraModalType === 'bye' && 'How many runs on Bye?'}
+              {extraModalType === 'legBye' && 'How many runs on Leg Bye?'}
+            </Text>
+
+            {/* Quick Runs Row */}
+            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+              {(extraModalType === 'wide'
+                ? [0, 1, 2, 3, 4]
+                : extraModalType === 'noBall'
+                ? [0, 1, 2, 3, 4, 6]
+                : [1, 2, 3, 4]
+              ).map(r => (
+                <TouchableOpacity
+                  key={`ext_btn_${r}`}
+                  onPress={() => handleRecordExtraModal(r)}
+                  activeOpacity={0.75}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#0a192f',
+                    borderRadius: 10,
+                    borderWidth: 1.2,
+                    borderColor: '#1e3a5f',
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900' }}>{r}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Custom Runs Row */}
+            <Text style={{ color: '#f59e0b', fontSize: 11.5, fontWeight: '800', marginBottom: 6 }}>
+              Custom
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8 }}>
+              <TextInput
+                value={extraCustomInput}
+                onChangeText={setExtraCustomInput}
+                placeholder="Enter runs..."
+                placeholderTextColor="#64748b"
+                keyboardType="numeric"
+                style={{
+                  flex: 1,
+                  backgroundColor: '#050c18',
+                  borderRadius: 10,
+                  borderWidth: 1.2,
+                  borderColor: '#1e3a5f',
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  color: '#ffffff',
+                  fontSize: 13,
+                  fontWeight: '700',
+                }}
+              />
+              <TouchableOpacity
+                onPress={handleRecordExtraCustom}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: '#f59e0b',
+                  borderRadius: 10,
+                  paddingHorizontal: 18,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: '#000000', fontSize: 13, fontWeight: '900' }}>OK</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* MODAL 5.54: OVERTHROW SCORING MODAL (BROADCAST REFERENCE DESIGN)          */}
+      {/* ========================================================================= */}
+      <Modal visible={overthrowModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(2, 11, 20, 0.85)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+        }}>
+          {/* Backdrop dismiss */}
+          <TouchableOpacity
+            style={StyleSheet.absoluteFillObject}
+            activeOpacity={1}
+            onPress={() => setOverthrowModalVisible(false)}
+          />
+
+          <View style={{
+            width: '100%',
+            maxWidth: 380,
+            backgroundColor: '#071526',
+            borderRadius: 18,
+            borderWidth: 1.5,
+            borderColor: '#1e3a5f',
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.6,
+            shadowRadius: 12,
+            elevation: 12,
+          }}>
+            {/* Top Header: OT Badge + Title + Close Button */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                <View style={{
+                  backgroundColor: '#064e3b',
+                  borderColor: '#059669',
+                  borderWidth: 1.5,
+                  borderRadius: 6,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                }}>
+                  <Text style={{ color: '#34d399', fontSize: 11, fontWeight: '900' }}>OT</Text>
+                </View>
+                <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>
+                  Overthrow
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => setOverthrowModalVisible(false)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                style={{
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
+                  backgroundColor: 'rgba(30, 58, 95, 0.6)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Source Selector (Bat | Bye | Leg Bye) */}
+            <View style={{ flexDirection: 'row', gap: 6, marginBottom: 14 }}>
+              {[
+                { key: 'bat', label: 'Bat' },
+                { key: 'bye', label: 'Bye' },
+                { key: 'legBye', label: 'Leg Bye' },
+              ].map(item => {
+                const isSel = overthrowType === item.key;
+                return (
+                  <TouchableOpacity
+                    key={`ot_src_${item.key}`}
+                    onPress={() => setOverthrowType(item.key)}
+                    activeOpacity={0.8}
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      paddingVertical: 8,
+                      borderRadius: 10,
+                      backgroundColor: isSel ? 'rgba(245, 158, 11, 0.2)' : '#0a192f',
+                      borderWidth: 1.5,
+                      borderColor: isSel ? '#f59e0b' : '#1e3a5f',
+                    }}
+                  >
+                    <View style={{
+                      width: 14,
+                      height: 14,
+                      borderRadius: 3,
+                      backgroundColor: isSel ? '#f59e0b' : 'transparent',
+                      borderWidth: 1.5,
+                      borderColor: isSel ? '#f59e0b' : '#64748b',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      {isSel && <Text style={{ color: '#000000', fontSize: 9, fontWeight: '900' }}>✓</Text>}
+                    </View>
+                    <Text style={{ color: isSel ? '#f59e0b' : '#94a3b8', fontSize: 12, fontWeight: '800' }}>
+                      {item.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Dual Pickers: Runs completed & Overthrow */}
+            <View style={{ flexDirection: 'row', gap: 10, marginBottom: 14 }}>
+              {/* Left Column: Runs completed */}
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '700', marginBottom: 6 }}>
+                  Runs completed:
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 4 }}>
+                  {[0, 1, 2, 3].map(r => {
+                    const isSel = overthrowPhysicalRuns === r;
+                    return (
+                      <TouchableOpacity
+                        key={`ot_phys_${r}`}
+                        onPress={() => setOverthrowPhysicalRuns(r)}
+                        activeOpacity={0.75}
+                        style={{
+                          flex: 1,
+                          backgroundColor: isSel ? '#0284c7' : '#0a192f',
+                          borderRadius: 8,
+                          borderWidth: 1.2,
+                          borderColor: isSel ? '#38bdf8' : '#1e3a5f',
+                          paddingVertical: 10,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900' }}>{r}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Right Column: Overthrow */}
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '700', marginBottom: 6 }}>
+                  Overthrow:
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 4 }}>
+                  {[1, 2, 3, 4].map(r => {
+                    const isSel = overthrowExtraRuns === r;
+                    return (
+                      <TouchableOpacity
+                        key={`ot_extra_${r}`}
+                        onPress={() => setOverthrowExtraRuns(r)}
+                        activeOpacity={0.75}
+                        style={{
+                          flex: 1,
+                          backgroundColor: isSel ? '#059669' : '#0a192f',
+                          borderRadius: 8,
+                          borderWidth: 1.2,
+                          borderColor: isSel ? '#34d399' : '#1e3a5f',
+                          paddingVertical: 10,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900' }}>{r}</Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            </View>
+
+            {/* Custom Overthrow Runs */}
+            <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '800', marginBottom: 6 }}>
+              Custom Overthrow Runs:
+            </Text>
+            <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+              <TextInput
+                value={otCustomInput}
+                onChangeText={setOtCustomInput}
+                placeholder="e.g. 5..."
+                placeholderTextColor="#64748b"
+                keyboardType="numeric"
+                style={{
+                  flex: 1,
+                  backgroundColor: '#050c18',
+                  borderRadius: 10,
+                  borderWidth: 1.2,
+                  borderColor: '#1e3a5f',
+                  paddingHorizontal: 12,
+                  paddingVertical: 8,
+                  color: '#ffffff',
+                  fontSize: 13,
+                  fontWeight: '700',
+                }}
+              />
+              <TouchableOpacity
+                onPress={() => {
+                  const p = parseInt(otCustomInput.trim(), 10);
+                  if (!isNaN(p) && p >= 0) {
+                    setOverthrowExtraRuns(p);
+                    setOtCustomInput('');
+                  } else {
+                    Alert.alert('Invalid', 'Please enter a valid number of overthrow runs.');
+                  }
+                }}
+                activeOpacity={0.8}
+                style={{
+                  backgroundColor: '#059669',
+                  borderRadius: 10,
+                  paddingHorizontal: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>Set</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Big Action Button (Record Overthrow) */}
+            <TouchableOpacity
+              onPress={handleRecordOverthrowModal}
+              activeOpacity={0.85}
+              style={{
+                backgroundColor: '#047857',
+                borderRadius: 12,
+                paddingVertical: 12,
+                paddingHorizontal: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                borderWidth: 1.5,
+                borderColor: '#10b981',
+                shadowColor: '#10b981',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.35,
+                shadowRadius: 6,
+                elevation: 4,
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ color: '#a7f3d0', fontSize: 16 }}>↳</Text>
+                <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>
+                  Record Overthrow
+                </Text>
+              </View>
+              <View style={{
+                backgroundColor: 'rgba(2, 44, 34, 0.65)',
+                paddingHorizontal: 8,
+                paddingVertical: 4,
+                borderRadius: 6,
+                borderWidth: 1,
+                borderColor: 'rgba(52, 211, 153, 0.4)',
+              }}>
+                <Text style={{ color: '#6ee7b7', fontSize: 11, fontWeight: '900' }}>
+                  {overthrowPhysicalRuns} + {overthrowExtraRuns} = {Number(overthrowPhysicalRuns) + Number(overthrowExtraRuns)} ({overthrowType === 'bat' ? (striker ? striker.slice(0, 8) : 'Striker') : overthrowType === 'bye' ? 'Byes' : 'Leg Byes'})
+                </Text>
+              </View>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
