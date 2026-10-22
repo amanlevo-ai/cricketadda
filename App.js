@@ -24808,7 +24808,6 @@ function CricketAddaMain() {
                   })}
                 </View>
               )}
-          </View>
             </>
           )}
           </ScrollView>
