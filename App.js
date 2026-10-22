@@ -12685,6 +12685,7 @@ function CricketAddaMain() {
   const [nextBowler, setNextBowler] = useState('');
   const [customNextBowler, setCustomNextBowler] = useState('');
   const [swapBattersOnOverEnd, setSwapBattersOnOverEnd] = useState(true);
+  const [scorerActionsModalVisible, setScorerActionsModalVisible] = useState(false);
 
   // Load persistent user preferences across app restarts
   useEffect(() => {
@@ -23099,225 +23100,71 @@ function CricketAddaMain() {
 
           <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
             {/* ========================================================================= */}
-            {/* TOP ACTION BAR: VIEWER NAVIGATION ON WEB / SCORER CONTROLS ON MOBILE      */}
+            {/* WIZARD-STYLE TOP HEADER: BACK | 3D CRICKETADDA LOGO | MATCH OPTIONS        */}
             {/* ========================================================================= */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'space-between',
-              gap: 6,
-              marginBottom: 10,
+              marginBottom: 12,
               width: '100%',
+              paddingHorizontal: 2,
             }}>
               {/* 1. Back Button */}
               <TouchableOpacity
+                onPress={goBack}
                 style={{
-                  flex: 0.8,
-                  height: 36,
-                  backgroundColor: 'rgba(15, 23, 42, 0.85)',
-                  borderColor: 'rgba(255, 255, 255, 0.25)',
-                  borderWidth: 1,
-                  borderRadius: 8,
-                  alignItems: 'center',
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  backgroundColor: 'rgba(2, 11, 20, 0.75)',
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(56, 189, 248, 0.45)',
                   justifyContent: 'center',
-                  paddingHorizontal: 4,
+                  alignItems: 'center',
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                onPress={goBack}
+                accessibilityLabel="Go back"
               >
-                <Text style={{
-                  color: '#ffffff',
-                  fontSize: 12,
-                  fontWeight: '900',
-                }} numberOfLines={1}>
-                  ← Back
-                </Text>
+                <Text style={{ color: '#ffffff', fontSize: 22, fontWeight: '900', marginTop: -2, marginLeft: -1 }}>‹</Text>
               </TouchableOpacity>
 
-            {!isOfficialScorer ? (
-              /* Viewer Options for Spectators / Delegated match creator */
-              <>
-                <TouchableOpacity
-                  style={{
-                    flex: 1.2,
-                    height: 36,
-                    backgroundColor: '#0284c7',
-                    borderColor: '#38bdf8',
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row',
-                    gap: 4,
-                    paddingHorizontal: 6,
-                  }}
-                  onPress={() => openMatchScorecard(activeMatchId)}
-                >
-                  <Text style={{ fontSize: 13 }}>📊</Text>
-                  <Text style={{
-                    color: '#ffffff',
-                    fontSize: 11.5,
-                    fontWeight: '900',
-                  }} numberOfLines={1}>
-                    Scorecard
-                  </Text>
-                </TouchableOpacity>
+              {/* 2. Centered Clean 3D CricketAdda Logo */}
+              <View style={{
+                alignItems: 'center',
+                justifyContent: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.55,
+                shadowRadius: 6,
+                elevation: 6,
+              }}>
+                <Image
+                  source={require('./assets/cricketadda-wizard-logo.png')}
+                  style={{ width: 92, height: 42 }}
+                  resizeMode="contain"
+                />
+              </View>
 
-                <TouchableOpacity
-                  style={{
-                    flex: 1.2,
-                    height: 36,
-                    backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                    borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row',
-                    gap: 4,
-                    paddingHorizontal: 6,
-                  }}
-                  onPress={() => openMatchWagonWheel(activeMatchId)}
-                >
-                  <Text style={{ fontSize: 13 }}>🎯</Text>
-                  <Text style={{
-                    color: currentTheme.isLight ? '#0f172a' : '#f8fafc',
-                    fontSize: 11.5,
-                    fontWeight: 'bold',
-                  }} numberOfLines={1}>
-                    Wagon Wheel
-                  </Text>
-                </TouchableOpacity>
-
-                {viewerSimulated && (
-                  <TouchableOpacity
-                    style={{
-                      flex: 1.15,
-                      height: 36,
-                      backgroundColor: '#10b981',
-                      borderColor: '#34d399',
-                      borderWidth: 1.2,
-                      borderRadius: 8,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'row',
-                      gap: 4,
-                      paddingHorizontal: 6,
-                    }}
-                    onPress={() => {
-                      setViewerSimulated(false);
-                      showAppToast('🏏 Switched back to Scorer Mode', '🏏');
-                    }}
-                  >
-                    <Text style={{ fontSize: 12 }}>🏏</Text>
-                    <Text style={{
-                      color: '#022c22',
-                      fontSize: 11.5,
-                      fontWeight: '900',
-                    }} numberOfLines={1}>
-                      Exit Viewer
-                    </Text>
-                  </TouchableOpacity>
-                )}
-              </>
-            ) : (
-              /* Scorer Controls for Official Match Scorer */
-              <>
-                {/* 1. End Inning / Revise Overs (DLS or Standard Target) */}
-                <TouchableOpacity
-                  style={{
-                    flex: 1.25,
-                    height: 36,
-                    backgroundColor: '#6d28d9',
-                    borderColor: '#a78bfa',
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row',
-                    gap: 3,
-                    paddingHorizontal: 4,
-                  }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  onPress={() => {
-                    const currOv = Math.floor(liveBalls / 6) + (liveBalls % 6 > 0 ? 1 : 0);
-                    if (currOv > 0) {
-                      setDlsRevisedOversInput(String(currOv));
-                    }
-                    if (currentInnings === 1) {
-                      setDlsInterruptionMode('terminate_inn1');
-                    }
-                    setDlsModalVisible(true);
-                  }}
-                >
-                  <Text style={{ fontSize: 12 }}>{currentInnings === 1 ? '🏁' : '🌧️'}</Text>
-                  <Text style={{
-                    color: '#ffffff',
-                    fontSize: 11,
-                    fontWeight: '900',
-                  }} numberOfLines={1}>
-                    {currentInnings === 1 ? 'End 1st Inn' : 'Revise Overs'}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* 2. Transfer Scoring Button */}
-                <TouchableOpacity
-                  style={{
-                    flex: 1.25,
-                    height: 36,
-                    backgroundColor: '#0284c7',
-                    borderColor: '#38bdf8',
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row',
-                    gap: 3,
-                    paddingHorizontal: 4,
-                  }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  onPress={() => setScorerTransferModalVisible(true)}
-                >
-                  <Text style={{ fontSize: 12 }}>🔄</Text>
-                  <Text style={{
-                    color: '#ffffff',
-                    fontSize: 11,
-                    fontWeight: '900',
-                  }} numberOfLines={1}>
-                    Transfer
-                  </Text>
-                </TouchableOpacity>
-
-                {/* 3. Cancel Match Button */}
-                <TouchableOpacity
-                  style={{
-                    flex: 1.05,
-                    height: 36,
-                    backgroundColor: '#450a0a',
-                    borderColor: '#ef4444',
-                    borderWidth: 1,
-                    borderRadius: 8,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row',
-                    gap: 3,
-                    paddingHorizontal: 4,
-                  }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  onPress={() => setCancelMatchModalVisible(true)}
-                >
-                  <Text style={{ fontSize: 11 }}>⛔</Text>
-                  <Text style={{
-                    color: '#fca5a5',
-                    fontSize: 11,
-                    fontWeight: 'bold',
-                  }} numberOfLines={1}>
-                    Cancel
-                  </Text>
-                </TouchableOpacity>
-              </>
-            )}
-          </View>
+              {/* 3. Match Options Menu Button */}
+              <TouchableOpacity
+                onPress={() => setScorerActionsModalVisible(true)}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  backgroundColor: 'rgba(2, 11, 20, 0.75)',
+                  borderWidth: 1.5,
+                  borderColor: 'rgba(56, 189, 248, 0.45)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Match options"
+              >
+                <Text style={{ color: '#38bdf8', fontSize: 18, fontWeight: '900' }}>⋮</Text>
+              </TouchableOpacity>
+            </View>
 
           {/* SPECTATOR PREVIEW MODE BANNER (When scorer tests app as a viewer) */}
           {viewerSimulated && (
@@ -23757,36 +23604,32 @@ function CricketAddaMain() {
                   </View>
                 </TouchableOpacity>
 
-                {/* Center Stats: CRR, RRR, Target */}
+                {/* Center Stats: CRR, RRR, Target in separate readable lines */}
                 <View style={{
-                  flex: 1.1,
-                  flexDirection: 'row',
-                  justifyContent: 'space-around',
-                  alignItems: 'center',
-                  paddingHorizontal: 4,
+                  flex: 1.15,
+                  backgroundColor: 'rgba(10, 37, 64, 0.45)',
+                  borderRadius: 8,
+                  paddingVertical: 5,
+                  paddingHorizontal: 8,
+                  borderWidth: 1,
+                  borderColor: 'rgba(30, 58, 95, 0.6)',
+                  gap: 3,
                 }}>
-                  <View style={{ alignItems: 'center' }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '800' }}>CRR</Text>
-                    <Text style={{ color: '#00e676', fontSize: 13.5, fontWeight: '900', marginTop: 2 }}>{crr}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>CRR:</Text>
+                    <Text style={{ color: '#00e676', fontSize: 12.5, fontWeight: '900' }}>{crr}</Text>
                   </View>
-
-                  <View style={{ width: 1, height: 26, backgroundColor: '#1e3a5f' }} />
-
-                  <View style={{ alignItems: 'center' }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '800' }}>RRR</Text>
-                    <Text style={{ color: '#38bdf8', fontSize: 13.5, fontWeight: '900', marginTop: 2 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>RRR:</Text>
+                    <Text style={{ color: currentInnings === 2 ? '#38bdf8' : '#64748b', fontSize: 12, fontWeight: '900' }}>
                       {currentInnings === 2 ? ((((Math.max(0, targetRuns - liveRuns)) / Math.max(1, maxLegalBalls - liveBalls)) * 6).toFixed(2)) : '-'}
                     </Text>
                   </View>
-
-                  <View style={{ width: 1, height: 26, backgroundColor: '#1e3a5f' }} />
-
-                  <View style={{ alignItems: 'center' }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '800' }}>Target</Text>
-                    <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900', marginTop: 2 }}>
-                      {currentInnings === 2 ? targetRuns : (Math.max(liveRuns, Math.round(parseFloat(crr || '0') * maxOvers)))}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>Target:</Text>
+                    <Text style={{ color: currentInnings === 2 ? '#ffffff' : '#64748b', fontSize: 12, fontWeight: '900' }}>
+                      {currentInnings === 2 ? targetRuns : '-'}
                     </Text>
-                    <Text style={{ color: '#64748b', fontSize: 8.5, fontWeight: '700' }}>({maxOvers}.0 ov)</Text>
                   </View>
                 </View>
 
@@ -23829,7 +23672,7 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
 
-              {/* 3. THIS OVER & LAST OVER STRIP */}
+              {/* 3. THIS OVER STRIP */}
               <View style={{
                 backgroundColor: '#071526',
                 borderRadius: 10,
@@ -23840,99 +23683,56 @@ function CricketAddaMain() {
                 marginBottom: 10,
                 flexDirection: 'row',
                 alignItems: 'center',
-                justifyContent: 'space-between',
+                justifyContent: 'flex-start',
+                gap: 8,
               }}>
-                {/* This Over Part */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1.15 }}>
-                  <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800' }}>This Over:</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
-                    {sanitizedThisOver.map((b, i) => {
-                      const rawStr = String(b || '').trim();
-                      const str = rawStr.toUpperCase();
-                      const isWkt = str.includes('W') && !str.includes('WD');
-                      const isFour = str === '4';
-                      const isSix = str === '6';
-                      const isWd = str.includes('WD');
-                      const isNb = str.includes('NB');
-                      const isDot = str === '0' || str === '.';
+                <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }}>This Over:</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap', flex: 1 }}>
+                  {sanitizedThisOver.map((b, i) => {
+                    const rawStr = String(b || '').trim();
+                    const str = rawStr.toUpperCase();
+                    const isWkt = str.includes('W') && !str.includes('WD');
+                    const isFour = str === '4';
+                    const isSix = str === '6';
+                    const isWd = str.includes('WD');
+                    const isNb = str.includes('NB');
+                    const isDot = str === '0' || str === '.';
 
-                      const bg = isWkt ? '#ef4444' : isFour ? '#00e676' : isSix ? '#00b0ff' : isWd ? '#f59e0b' : isNb ? '#8b5cf6' : isDot ? '#0f2238' : '#0284c7';
-                      const textColor = isFour ? '#000000' : isDot ? '#94a3b8' : '#ffffff';
+                    const bg = isWkt ? '#ef4444' : isFour ? '#00e676' : isSix ? '#00b0ff' : isWd ? '#f59e0b' : isNb ? '#8b5cf6' : isDot ? '#0f2238' : '#0284c7';
+                    const textColor = isFour ? '#000000' : isDot ? '#94a3b8' : '#ffffff';
 
-                      return (
-                        <View
-                          key={`this_over_${i}_${rawStr}`}
-                          style={{
-                            width: 24,
-                            height: 24,
-                            borderRadius: 5,
-                            backgroundColor: bg,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderWidth: isDot ? 1 : 0,
-                            borderColor: '#1e3a5f',
-                          }}
-                        >
-                          <Text style={{ color: textColor, fontSize: 10.5, fontWeight: '900' }}>{rawStr}</Text>
-                        </View>
-                      );
-                    })}
-                    {/* Placeholder boxes for remaining balls in over */}
-                    {Array.from({ length: Math.max(0, 6 - (liveBalls % 6)) }).map((_, pIdx) => (
+                    return (
                       <View
-                        key={`pending_ball_${pIdx}`}
+                        key={`this_over_${i}_${rawStr}`}
                         style={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: 5,
-                          borderWidth: 1.2,
+                          width: 26,
+                          height: 26,
+                          borderRadius: 6,
+                          backgroundColor: bg,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          borderWidth: isDot ? 1 : 0,
                           borderColor: '#1e3a5f',
-                          backgroundColor: 'rgba(15, 34, 56, 0.4)',
                         }}
-                      />
-                    ))}
-                  </View>
-                </View>
-
-                {/* Vertical Divider */}
-                <View style={{ width: 1, height: 20, backgroundColor: '#1e3a5f', marginHorizontal: 6 }} />
-
-                {/* Last Over Part */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                  <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>Last Over:</Text>
-                  {lastOverBalls.length === 0 ? (
-                    <Text style={{ color: '#64748b', fontSize: 11 }}>-</Text>
-                  ) : (
-                    lastOverBalls.map((b, i) => {
-                      const rawStr = String(b || '').trim();
-                      const str = rawStr.toUpperCase();
-                      const isWkt = str.includes('W') && !str.includes('WD');
-                      const isFour = str === '4';
-                      const isSix = str === '6';
-                      const isDot = str === '0' || str === '.';
-
-                      const bg = isWkt ? '#ef4444' : isFour ? '#00e676' : isSix ? '#00b0ff' : '#0f2238';
-                      const textColor = isFour ? '#000000' : '#ffffff';
-
-                      return (
-                        <View
-                          key={`last_over_${i}`}
-                          style={{
-                            width: 20,
-                            height: 20,
-                            borderRadius: 4,
-                            backgroundColor: bg,
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            borderWidth: 1,
-                            borderColor: '#1e3a5f',
-                          }}
-                        >
-                          <Text style={{ color: textColor, fontSize: 9.5, fontWeight: '900' }}>{rawStr}</Text>
-                        </View>
-                      );
-                    })
-                  )}
+                      >
+                        <Text style={{ color: textColor, fontSize: 11, fontWeight: '900' }}>{rawStr}</Text>
+                      </View>
+                    );
+                  })}
+                  {/* Placeholder boxes for remaining balls in over */}
+                  {Array.from({ length: Math.max(0, 6 - (liveBalls % 6)) }).map((_, pIdx) => (
+                    <View
+                      key={`pending_ball_${pIdx}`}
+                      style={{
+                        width: 26,
+                        height: 26,
+                        borderRadius: 6,
+                        borderWidth: 1.2,
+                        borderColor: '#1e3a5f',
+                        backgroundColor: 'rgba(15, 34, 56, 0.4)',
+                      }}
+                    />
+                  ))}
                 </View>
               </View>
 
@@ -29758,6 +29558,230 @@ function CricketAddaMain() {
             </ScrollView>
           </View>
         </View>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* MODAL: SCORER ACTIONS & MATCH OPTIONS (Triggered by ⋮ top-right button)   */}
+      {/* ========================================================================= */}
+      <Modal
+        visible={scorerActionsModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => setScorerActionsModalVisible(false)}
+      >
+        <TouchableOpacity
+          activeOpacity={1}
+          onPress={() => setScorerActionsModalVisible(false)}
+          style={[styles.modalOverlay, { paddingTop: topInset + 10, paddingBottom: bottomInset + 10, justifyContent: 'flex-start', paddingTop: topInset + 55 }]}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={{
+              width: Math.min(width - 32, 340),
+              backgroundColor: '#0a192f',
+              borderRadius: 16,
+              borderWidth: 1.5,
+              borderColor: '#38bdf8',
+              padding: 16,
+              alignSelf: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.6,
+              shadowRadius: 10,
+              elevation: 10,
+            }}
+          >
+            {/* Header */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <Text style={{ fontSize: 16 }}>⚙️</Text>
+                <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900' }}>Match Options</Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setScorerActionsModalVisible(false)}
+                style={{ width: 28, height: 28, borderRadius: 14, backgroundColor: 'rgba(255,255,255,0.1)', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Option 1: Scorecard */}
+            <TouchableOpacity
+              onPress={() => {
+                setScorerActionsModalVisible(false);
+                openMatchScorecard(activeMatchId);
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                paddingVertical: 11,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                marginBottom: 8,
+                borderWidth: 1,
+                borderColor: 'rgba(56, 189, 248, 0.3)',
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>📊</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Full Scorecard</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11 }}>View detailed innings scorecard & stats</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Option 2: Wagon Wheel */}
+            <TouchableOpacity
+              onPress={() => {
+                setScorerActionsModalVisible(false);
+                openMatchWagonWheel(activeMatchId);
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 12,
+                paddingVertical: 11,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                backgroundColor: 'rgba(30, 58, 95, 0.3)',
+                marginBottom: 8,
+                borderWidth: 1,
+                borderColor: '#1e3a5f',
+              }}
+            >
+              <Text style={{ fontSize: 18 }}>🎯</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Wagon Wheel</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11 }}>Shot directions and boundary zones</Text>
+              </View>
+            </TouchableOpacity>
+
+            {/* Scorer-Specific Options */}
+            {isOfficialScorer && (
+              <>
+                {/* Option 3: End Inning / Revise Overs */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setScorerActionsModalVisible(false);
+                    const currOv = Math.floor(liveBalls / 6) + (liveBalls % 6 > 0 ? 1 : 0);
+                    if (currOv > 0) {
+                      setDlsRevisedOversInput(String(currOv));
+                    }
+                    if (currentInnings === 1) {
+                      setDlsInterruptionMode('terminate_inn1');
+                    }
+                    setDlsModalVisible(true);
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingVertical: 11,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(109, 40, 217, 0.18)',
+                    marginBottom: 8,
+                    borderWidth: 1,
+                    borderColor: 'rgba(167, 139, 250, 0.35)',
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>{currentInnings === 1 ? '🏁' : '🌧️'}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>
+                      {currentInnings === 1 ? 'End 1st Innings' : 'Revise Overs / DLS'}
+                    </Text>
+                    <Text style={{ color: '#a78bfa', fontSize: 11 }}>
+                      {currentInnings === 1 ? 'Declare or conclude first innings' : 'Shorten match due to rain or time'}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Option 4: Transfer Scoring */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setScorerActionsModalVisible(false);
+                    setScorerTransferModalVisible(true);
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingVertical: 11,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(14, 165, 233, 0.15)',
+                    marginBottom: 8,
+                    borderWidth: 1,
+                    borderColor: 'rgba(14, 165, 233, 0.3)',
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>🔄</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Transfer Scoring</Text>
+                    <Text style={{ color: '#38bdf8', fontSize: 11 }}>Hand over match scoring to another official</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Option 5: Cancel Match */}
+                <TouchableOpacity
+                  onPress={() => {
+                    setScorerActionsModalVisible(false);
+                    setCancelMatchModalVisible(true);
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingVertical: 11,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    marginBottom: 4,
+                    borderWidth: 1,
+                    borderColor: 'rgba(239, 68, 68, 0.35)',
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>⛔</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fca5a5', fontSize: 13, fontWeight: '800' }}>Cancel Match</Text>
+                    <Text style={{ color: '#f87171', fontSize: 11 }}>Abandon or void current match</Text>
+                  </View>
+                </TouchableOpacity>
+              </>
+            )}
+
+            {/* Exit Viewer Simulation if active */}
+            {viewerSimulated && (
+              <TouchableOpacity
+                onPress={() => {
+                  setScorerActionsModalVisible(false);
+                  setViewerSimulated(false);
+                  showAppToast('🏏 Switched back to Scorer Mode', '🏏');
+                }}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 12,
+                  paddingVertical: 11,
+                  paddingHorizontal: 12,
+                  borderRadius: 10,
+                  backgroundColor: 'rgba(16, 185, 129, 0.18)',
+                  marginTop: 6,
+                  borderWidth: 1,
+                  borderColor: '#34d399',
+                }}
+              >
+                <Text style={{ fontSize: 18 }}>🏏</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#34d399', fontSize: 13, fontWeight: '900' }}>Exit Viewer Mode</Text>
+                  <Text style={{ color: '#a7f3d0', fontSize: 11 }}>Resume active match scoring</Text>
+                </View>
+              </TouchableOpacity>
+            )}
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* ========================================================================= */}
