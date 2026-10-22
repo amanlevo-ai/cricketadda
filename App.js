@@ -23089,42 +23089,50 @@ function CricketAddaMain() {
       {/* 2.2 SCORER TAB */}
       {/* ========================================================================= */}
       {activeTab === 'scorer' && (
-        <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
-          {/* ========================================================================= */}
-          {/* TOP ACTION BAR: VIEWER NAVIGATION ON WEB / SCORER CONTROLS ON MOBILE      */}
-          {/* ========================================================================= */}
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 6,
-            marginBottom: 10,
-            width: '100%',
-          }}>
-            {/* 1. Back Button */}
-            <TouchableOpacity
-              style={{
-                flex: 0.8,
-                height: 36,
-                backgroundColor: currentTheme.isLight ? '#ffffff' : '#1e293b',
-                borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                borderWidth: 1,
-                borderRadius: 8,
-                alignItems: 'center',
-                justifyContent: 'center',
-                paddingHorizontal: 4,
-              }}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              onPress={goBack}
-            >
-              <Text style={{
-                color: currentTheme.isLight ? '#0f172a' : '#f8fafc',
-                fontSize: 12,
-                fontWeight: 'bold',
-              }} numberOfLines={1}>
-                ← Back
-              </Text>
-            </TouchableOpacity>
+        <ImageBackground
+          source={require('./assets/wizard-bg.png')}
+          style={{ flex: 1, width: '100%', backgroundColor: '#020b14' }}
+          resizeMode="cover"
+        >
+          {/* Professional stadium dark overlay for crisp text contrast and broadcast depth */}
+          <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2, 11, 20, 0.65)' }} />
+
+          <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
+            {/* ========================================================================= */}
+            {/* TOP ACTION BAR: VIEWER NAVIGATION ON WEB / SCORER CONTROLS ON MOBILE      */}
+            {/* ========================================================================= */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 6,
+              marginBottom: 10,
+              width: '100%',
+            }}>
+              {/* 1. Back Button */}
+              <TouchableOpacity
+                style={{
+                  flex: 0.8,
+                  height: 36,
+                  backgroundColor: 'rgba(15, 23, 42, 0.85)',
+                  borderColor: 'rgba(255, 255, 255, 0.25)',
+                  borderWidth: 1,
+                  borderRadius: 8,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  paddingHorizontal: 4,
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                onPress={goBack}
+              >
+                <Text style={{
+                  color: '#ffffff',
+                  fontSize: 12,
+                  fontWeight: '900',
+                }} numberOfLines={1}>
+                  ← Back
+                </Text>
+              </TouchableOpacity>
 
             {!isOfficialScorer ? (
               /* Viewer Options for Spectators / Delegated match creator */
@@ -23605,7 +23613,61 @@ function CricketAddaMain() {
                 </View>
               </View>
 
-              <View            /* ========================================================================= */
+              <View style={{ gap: 8, marginTop: 8 }}>
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#38bdf8',
+                    paddingVertical: 14,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => openMatchScorecard(activeMatchId)}
+                >
+                  <Text style={{ color: '#082f49', fontSize: 14.5, fontWeight: '900' }}>
+                    📊 View Full Match Scorecard & Wagon Wheel →
+                  </Text>
+                </TouchableOpacity>
+
+                {isOfficialScorer && (
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#7f1d1d',
+                      borderColor: '#ef4444',
+                      borderWidth: 1.5,
+                      paddingVertical: 12,
+                      borderRadius: 10,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onPress={handleUndoLastBall}
+                  >
+                    <Text style={{ color: '#fca5a5', fontSize: 13.5, fontWeight: '900' }}>
+                      ↩️ Undo / Correct Final Delivery
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  style={{
+                    backgroundColor: '#075985',
+                    borderWidth: 1,
+                    borderColor: '#0284c7',
+                    paddingVertical: 12,
+                    borderRadius: 10,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => navigateTo('matches')}
+                >
+                  <Text style={{ color: '#bae6fd', fontSize: 13, fontWeight: 'bold' }}>
+                    🏠 Back to Match Center
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ) : (
+            /* ========================================================================= */
             /* BROADCAST LIVE MATCH SCORER INTERFACE (MATCHING REFERENCE DESIGN)        */
             /* ========================================================================= */
             <>
@@ -24813,7 +24875,8 @@ function CricketAddaMain() {
           </View>
             </>
           )}
-        </ScrollView>
+          </ScrollView>
+        </ImageBackground>
       )}
 
       {/* ========================================================================= */}
