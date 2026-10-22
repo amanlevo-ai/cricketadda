@@ -24836,7 +24836,89 @@ function CricketAddaMain() {
                   })}
                 </View>
               )}
-            </>4' },
+
+              {/* ========================================================================= */}
+              {/* LIVE BALL-BY-BALL TEXT COMMENTARY (BELOW THE SCOREPAD) */}
+              {/* ========================================================================= */}
+              <View style={[styles.commentaryCardContainer, { backgroundColor: 'rgba(7, 21, 38, 0.9)', borderColor: '#1e3a5f' }]}>
+                <View style={styles.commentaryHeaderRow}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={[styles.commentaryTitle, { color: '#ffffff' }]}>🎙️ LIVE COMMENTARY</Text>
+                    <View style={styles.livePulseBadge}>
+                      <View style={styles.livePulseDot} />
+                      <Text style={styles.livePulseText}>LIVE</Text>
+                    </View>
+                  </View>
+                </View>
+
+                {(liveCommentaryList || []).length === 0 ? (
+                  <View style={[styles.commentaryEmptyBox, { backgroundColor: '#071526', borderColor: '#1e3a5f' }]}>
+                    <Text style={{ fontSize: 24, marginBottom: 4 }}>🏏</Text>
+                    <Text style={[styles.commentaryEmptyText, { color: '#94a3b8' }]}>Ready for first ball! Start scoring to see live commentary.</Text>
+                  </View>
+                ) : (
+                  <View style={styles.commentaryListWrap}>
+                    {liveCommentaryList.map((item, idx) => {
+                      if (item.isOverEnd) {
+                        return (
+                          <View key={`comm_feed_over_${item.id || 'ov'}_${idx}`} style={[styles.commentaryOverEndCard, { backgroundColor: '#1e1b4b', borderColor: '#6366f1' }]}>
+                            <View style={styles.commentaryOverEndHeader}>
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                {item.overNum > 0 && !item.isMatchStart && <RealisticCricketLeatherBall size={13} />}
+                                <Text style={[styles.commentaryOverEndTitle, { color: '#c7d2fe' }]}>
+                                  {item.headerTitle || (item.overNum === 0 ? '1ST INNINGS COMMENCES' : `OVER ${item.overNum} COMPLETED`)}
+                                </Text>
+                              </View>
+                            </View>
+                            {item.battersText && item.bowlerText ? (
+                              <View style={{ marginTop: 2 }}>
+                                <Text style={[styles.commentaryOverEndText, { color: '#a5b4fc', marginBottom: 3 }]}>
+                                  🏏 {item.battersText}
+                                </Text>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2 }}>
+                                  <RealisticCricketLeatherBall size={11} />
+                                  <Text style={[styles.commentaryOverEndText, { color: '#a5b4fc', marginTop: 0 }]}>
+                                    {item.bowlerText}
+                                  </Text>
+                                </View>
+                              </View>
+                            ) : (
+                              <Text style={[styles.commentaryOverEndText, { color: '#a5b4fc' }]}>{item.overSummary}</Text>
+                            )}
+                          </View>
+                        );
+                      }
+
+                      const isSix = item.badgeType === 'six';
+                      const isFour = item.badgeType === 'four';
+                      const isWkt = item.badgeType === 'wkt';
+                      const isOverthrow = item.badgeType === 'overthrow';
+                      const isExtra = item.badgeType === 'wide' || item.badgeType === 'noBall';
+
+                      return (
+                        <View
+                          key={`comm_feed_ball_${item.id || 'bl'}_${idx}`}
+                          style={[
+                            styles.commentaryItemRow,
+                            {
+                              backgroundColor: '#0f172a',
+                              borderColor: '#1e293b',
+                            },
+                            idx === 0 && styles.commentaryItemRowLatest,
+                            isSix && styles.commentaryRowSix,
+                            isFour && styles.commentaryRowFour,
+                            isWkt && styles.commentaryRowWkt,
+                            isOverthrow && { borderLeftWidth: 3, borderLeftColor: '#a855f7' },
+                          ]}
+                        >
+                          {/* Left: Over & Badge */}
+                          <View style={styles.commentaryLeftCol}>
+                            <Text style={[styles.commentaryOverNum, { color: '#94a3b8' }]}>{formatCommentaryOver(item.overs)}</Text>
+                            <View style={[
+                              styles.commBadgePill,
+                              isSix && { backgroundColor: '#581c87', borderColor: '#c084fc' },
+                              isFour && { backgroundColor: '#78350f', borderColor: '#f59e0b' },
+                              isWkt && { backgroundColor: '#7f1d1d', borderColor: '#ef4444' },
                           isOverthrow && { backgroundColor: '#4c1d95', borderColor: '#a855f7' },
                           isExtra && { backgroundColor: '#1e293b', borderColor: '#f97316' },
                         ]}>
