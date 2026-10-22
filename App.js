@@ -10881,6 +10881,10 @@ const STORAGE_KEYS = {
   OFFLINE_SYNC_QUEUE: '@cricketadda_offline_sync_queue',
   RESET_VERSION: '@cricketadda_reset_test_data_v4',
   MY_SCORING_MATCHES: '@cricketadda_my_scoring_matches',
+  MATCH_DRAFT: '@cricketadda_match_draft',
+  WIZARD_STATE: '@cricketadda_wizard_state',
+  ACTIVE_TAB: '@cricketadda_active_tab',
+  SPLASH_SEEN: '@cricketadda_splash_seen',
 };
 
 const DB_CLEAN_EPOCH = 1790319500000; // Sept 25, 2026 DB full wipe epoch
@@ -10931,12 +10935,14 @@ const EMPTY_MATCH_TEMPLATE = {
 const isMatchLive = (m) => Boolean(m && (m.status === 'live' || m.status === 'in_progress'));
 const isMatchCompleted = (m) => Boolean(m && (m.status === 'completed' || m.status === 'abandoned' || m.status === 'finished'));
 
+let isSplashDismissedInSession = false;
+
 function CricketAddaMain() {
   const insets = useSafeAreaInsets();
   const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 40) : 44);
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 16);
   const safeModalCardMaxHeight = Math.max(300, height - topInset - bottomInset - 32);
-  const [showSplash, setShowSplash] = useState(true);
+  const [showSplash, setShowSplash] = useState(!isSplashDismissedInSession);
   const [countdown, setCountdown] = useState(8);
   const [activeTab, setActiveTab] = useState('matches');
   const [navHistory, setNavHistory] = useState(['matches']);
@@ -12618,20 +12624,79 @@ function CricketAddaMain() {
     player.play();
   });
 
-  useEventListener(splashPlayer, 'playToEnd', () => {
+  const dismissSplash = useCallback(async () => {
+    isSplashDismissedInSession = true;
+    try {
+      if (splashPlayer) splashPlayer.pause();
+    } catch (_) {}
     Animated.timing(splashFade, {
       toValue: 0,
-      duration: 500,
+      duration: 350,
       useNativeDriver: USE_NATIVE_DRIVER,
-    }).start(() => {
-      try {
-        if (splashPlayer) splashPlayer.pause();
-      } catch (_) {}
+    }).start(async () => {
       setShowSplash(false);
-      setActiveTab('matches');
-      setNavHistory(['matches']);
+      try {
+        const storedTab = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
+        const storedWiz = await AsyncStorage.getItem(STORAGE_KEYS.WIZARD_STATE);
+        if (storedWiz) {
+          const pWiz = JSON.parse(storedWiz);
+          if (pWiz && pWiz.visible) {
+            setWzPhase(pWiz.phase || 1);
+            if (pWiz.teamStep) setWzTeamStep(pWiz.teamStep);
+            if (pWiz.xiTeamStep) setXiTeamStep(pWiz.xiTeamStep);
+            setWizardVisible(true);
+          }
+        }
+        if (storedTab && storedTab !== 'matches') {
+          setActiveTab(storedTab);
+          setNavHistory(['matches', storedTab]);
+        } else {
+          setActiveTab('matches');
+          setNavHistory(['matches']);
+        }
+      } catch (_) {
+        setActiveTab('matches');
+        setNavHistory(['matches']);
+      }
     });
+  }, [splashPlayer, splashFade]);
+
+  useEventListener(splashPlayer, 'playToEnd', () => {
+    dismissSplash();
   });
+
+  // Smart Session Continuity Guard:
+  // If user returns after background inactivity or has an ongoing scoring/wizard session,
+  // skip the 8.5s splash video immediately so their active match or setup isn't hidden.
+  useEffect(() => {
+    let isCancelled = false;
+    const checkSessionContinuity = async () => {
+      try {
+        const storedLastActive = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
+        const storedTab = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
+        const storedWiz = await AsyncStorage.getItem(STORAGE_KEYS.WIZARD_STATE);
+
+        const now = Date.now();
+        const lastActive = storedLastActive ? parseInt(storedLastActive, 10) : 0;
+        const wasRecentlyActive = !isNaN(lastActive) && (now - lastActive < 12 * 60 * 60 * 1000); // within 12 hours
+        const hasOngoingWork = storedTab === 'scorer' || (storedWiz && JSON.parse(storedWiz)?.visible);
+
+        if (wasRecentlyActive || hasOngoingWork) {
+          if (!isCancelled) {
+            isSplashDismissedInSession = true;
+            setShowSplash(false);
+            try {
+              if (splashPlayer) splashPlayer.pause();
+            } catch (_) {}
+          }
+        }
+      } catch (_) {}
+    };
+    checkSessionContinuity();
+    return () => {
+      isCancelled = true;
+    };
+  }, [splashPlayer]);
 
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -12652,25 +12717,14 @@ function CricketAddaMain() {
     }, 1000);
 
     const timer = setTimeout(() => {
-      Animated.timing(splashFade, {
-        toValue: 0,
-        duration: 500,
-        useNativeDriver: USE_NATIVE_DRIVER,
-      }).start(() => {
-        try {
-          if (splashPlayer) splashPlayer.pause();
-        } catch (_) {}
-        setShowSplash(false);
-        setActiveTab('matches');
-        setNavHistory(['matches']);
-      });
+      dismissSplash();
     }, 8500);
 
     return () => {
       clearTimeout(timer);
       clearInterval(interval);
     };
-  }, []);
+  }, [dismissSplash]);
 
   // Wagon Wheel Scorer State
   const [autoWheel, setAutoWheel] = useState(false);
@@ -12794,6 +12848,35 @@ function CricketAddaMain() {
           } else {
             setActiveMatchId('match_live_spl_1');
           }
+          const storedActiveTab = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
+          if (storedActiveTab && storedActiveTab !== 'matches') {
+            setActiveTab(storedActiveTab);
+            setNavHistory(['matches', storedActiveTab]);
+          }
+
+          const storedDraft = await AsyncStorage.getItem(STORAGE_KEYS.MATCH_DRAFT);
+          if (storedDraft) {
+            try {
+              const parsedDraft = JSON.parse(storedDraft);
+              if (parsedDraft && parsedDraft.hasDraft) {
+                setMatchDraft(parsedDraft);
+              }
+            } catch (_) {}
+          }
+
+          const storedWizard = await AsyncStorage.getItem(STORAGE_KEYS.WIZARD_STATE);
+          if (storedWizard) {
+            try {
+              const pWiz = JSON.parse(storedWizard);
+              if (pWiz && pWiz.visible) {
+                setWzPhase(pWiz.phase || 1);
+                if (pWiz.teamStep) setWzTeamStep(pWiz.teamStep);
+                if (pWiz.xiTeamStep) setXiTeamStep(pWiz.xiTeamStep);
+                setWizardVisible(true);
+              }
+            } catch (_) {}
+          }
+
           const storedMyScoring = await AsyncStorage.getItem(STORAGE_KEYS.MY_SCORING_MATCHES);
           if (storedMyScoring) {
             try {
@@ -12857,7 +12940,10 @@ function CricketAddaMain() {
                 if (parsedProfile.bowlingStyle) setAuthBowlingStyle(parsedProfile.bowlingStyle);
                 setIsAuthenticated(true);
                 setAuthStep(1);
-                setActiveTab('matches');
+                const currentSavedTab = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
+                if (!currentSavedTab || currentSavedTab === 'matches') {
+                  setActiveTab('matches');
+                }
                 // Refresh heartbeat timestamp to now
                 await AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(nowMs));
               }
@@ -12999,6 +13085,53 @@ function CricketAddaMain() {
       sub.remove();
     };
   }, [isAuthenticated]);
+
+  // Persistent Navigation & Session Restoration: Remember active tab and active match
+  useEffect(() => {
+    if (activeTab) {
+      AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_TAB, activeTab).catch(() => {});
+    }
+  }, [activeTab]);
+
+  useEffect(() => {
+    if (activeMatchId) {
+      AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_MATCH_ID, activeMatchId).catch(() => {});
+    }
+  }, [activeMatchId]);
+
+  // Match Wizard State Persistence:
+  // If user minimizes app or leaves it idle, keep setup phase and inputs preserved
+  useEffect(() => {
+    if (wizardVisible) {
+      AsyncStorage.setItem(STORAGE_KEYS.WIZARD_STATE, JSON.stringify({
+        visible: true,
+        phase: wzPhase,
+        teamStep: wzTeamStep,
+        xiTeamStep: xiTeamStep,
+      })).catch(() => {});
+    } else {
+      AsyncStorage.removeItem(STORAGE_KEYS.WIZARD_STATE).catch(() => {});
+    }
+  }, [wizardVisible, wzPhase, wzTeamStep, xiTeamStep]);
+
+  // Match Draft State Persistence:
+  useEffect(() => {
+    if (matchDraft && (matchDraft.hasDraft || matchDraft.myTeam || matchDraft.opponentTeam)) {
+      AsyncStorage.setItem(STORAGE_KEYS.MATCH_DRAFT, JSON.stringify(matchDraft)).catch(() => {});
+    } else {
+      AsyncStorage.removeItem(STORAGE_KEYS.MATCH_DRAFT).catch(() => {});
+    }
+  }, [matchDraft]);
+
+  // If user opens or returns to scorer tab with an active match, ensure match data is loaded
+  useEffect(() => {
+    if (activeTab === 'scorer' && activeMatchId && match?.id !== activeMatchId) {
+      const targetMatch = matchesDb?.[activeMatchId] || MATCH_DATABASE[activeMatchId];
+      if (targetMatch && typeof handleScoreMatchPress === 'function') {
+        handleScoreMatchPress(activeMatchId);
+      }
+    }
+  }, [activeTab, activeMatchId, match?.id, matchesDb]);
 
   // Live Real-Time Continuous Cloud Subscriptions: Instant Multi-Device Sync for Teams, Users & Matches
   useEffect(() => {
