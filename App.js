@@ -14959,16 +14959,30 @@ function CricketAddaMain() {
   const liveCarouselRef = useRef(null);
 
   const allLiveMatchesList = useMemo(() => {
-    const list = Object.values(matchesDb || {}).filter(isMatchLive);
-    if (list.length >= 10) return list;
+    // 1. All actual live matches created by users
+    const userLiveMatches = Object.values(matchesDb || {}).filter(m => m && isMatchLive(m));
+
+    // Ensure active match is at the very top if live
+    if (activeMatchId && matchesDb?.[activeMatchId]) {
+      const activeM = matchesDb[activeMatchId];
+      if (isMatchLive(activeM) && !userLiveMatches.some(m => m.id === activeMatchId)) {
+        userLiveMatches.unshift(activeM);
+      }
+    }
+
+    // 2. Base mock matches as filler if user has fewer than 10 matches
     const baseKeys = [
       'match_live_1', 'match_live_2', 'match_live_3', 'match_live_4', 'match_live_5',
       'match_live_6', 'match_live_7', 'match_live_8', 'match_live_9', 'match_live_10'
     ];
-    const liveItems = baseKeys.map(k => matchesDb?.[k] || MATCH_DATABASE[k]).filter(Boolean);
-    if (liveItems.length > 0) return liveItems;
-    return list;
-  }, [matchesDb]);
+    const mockLiveItems = baseKeys
+      .map(k => matchesDb?.[k] || MATCH_DATABASE[k])
+      .filter(m => m && !userLiveMatches.some(um => um.id === m.id));
+
+    // User matches ALWAYS come first!
+    const combined = [...userLiveMatches, ...mockLiveItems];
+    return combined.length > 0 ? combined : userLiveMatches;
+  }, [matchesDb, activeMatchId]);
 
   const getLiveMatchCardData = useCallback((lm) => {
     if (!lm) return null;
@@ -17223,7 +17237,7 @@ function CricketAddaMain() {
 
     const cleanSquad = (rawSquadNames || []).map((p, idx) => {
       if (typeof p === 'string') {
-        const cleanName = p.replace(/s*([^)]*)/g, '').trim();
+        const cleanName = typeof p === 'string' ? p.replace(/\s*\([^)]*\)/g, '').trim() : '';
         return {
           id: `p_squad_${idx}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
           name: cleanName,
@@ -21358,12 +21372,15 @@ function CricketAddaMain() {
       },
     };
 
-    // 1. Add new match to matches database (keeping all previous matches separate)
-    setMatchesDb(prev => ({
+    // 1. Add new match to matches database (keeping all previous matches separate & immediate persistence)
+    const nextSavedDb = {
       [newMatchId]: newMatchObj,
-      ...prev,
-    }));
+      ...(matchesDb || {}),
+    };
+    setMatchesDb(nextSavedDb);
+    AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(nextSavedDb)).catch(() => {});
     setActiveMatchId(newMatchId);
+    AsyncStorage.setItem(STORAGE_KEYS.ACTIVE_MATCH_ID, newMatchId).catch(() => {});
     setMyScoringMatchIds(prev => {
       const updated = Array.from(new Set([...(prev || []), newMatchId]));
       AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
@@ -23691,7 +23708,7 @@ function CricketAddaMain() {
                 </View>
               </View>
 
-              {/* 2. MAIN MATCH SUMMARY SCORECARD (SYMMETRICAL EQUAL BOXES) */}
+              {/* 2. MAIN MATCH SUMMARY SCORECARD (PERFECTLY EQUAL BOXES) */}
               <View style={{
                 backgroundColor: '#071526',
                 borderRadius: 14,
@@ -23700,7 +23717,7 @@ function CricketAddaMain() {
                 padding: 10,
                 marginBottom: 10,
                 flexDirection: 'row',
-                alignItems: 'center',
+                alignItems: 'stretch',
                 justifyContent: 'space-between',
                 gap: 6,
               }}>
@@ -23719,7 +23736,8 @@ function CricketAddaMain() {
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 6,
-                    minHeight: 66,
+                    alignSelf: 'stretch',
+                    justifyContent: 'center',
                   }}
                 >
                   <TeamFlagBadge
@@ -23731,14 +23749,14 @@ function CricketAddaMain() {
                     theme={currentTheme}
                     size="sm"
                   />
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, justifyContent: 'center' }}>
                     <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }} numberOfLines={1}>
                       {battingTeamName}
                     </Text>
-                    <Text style={{ color: '#ffffff', fontSize: 17, fontWeight: '900', marginTop: 1 }}>
+                    <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
                       {liveRuns}/{liveWickets}
                     </Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }} numberOfLines={1}>
                       ({oversStr} ov)
                     </Text>
                   </View>
@@ -23746,35 +23764,36 @@ function CricketAddaMain() {
 
                 {/* Center Stats: CRR, RRR, Target */}
                 <View style={{
-                  paddingVertical: 5,
+                  paddingVertical: 6,
                   paddingHorizontal: 6,
                   borderRadius: 8,
                   backgroundColor: 'rgba(10, 37, 64, 0.45)',
                   borderWidth: 1,
                   borderColor: 'rgba(30, 58, 95, 0.6)',
                   gap: 3,
-                  minWidth: 72,
+                  minWidth: 70,
+                  alignSelf: 'stretch',
                   justifyContent: 'center',
                 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
                     <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '800' }}>CRR:</Text>
-                    <Text style={{ color: '#00e676', fontSize: 11.5, fontWeight: '900' }}>{crr}</Text>
+                    <Text style={{ color: '#00e676', fontSize: 11, fontWeight: '900' }}>{crr}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
                     <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '800' }}>RRR:</Text>
-                    <Text style={{ color: currentInnings === 2 ? '#38bdf8' : '#64748b', fontSize: 11, fontWeight: '900' }}>
+                    <Text style={{ color: currentInnings === 2 ? '#38bdf8' : '#64748b', fontSize: 10.5, fontWeight: '900' }}>
                       {currentInnings === 2 ? ((((Math.max(0, targetRuns - liveRuns)) / Math.max(1, maxLegalBalls - liveBalls)) * 6).toFixed(2)) : '-'}
                     </Text>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
                     <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '800' }}>Target:</Text>
-                    <Text style={{ color: currentInnings === 2 ? '#ffffff' : '#64748b', fontSize: 11, fontWeight: '900' }}>
+                    <Text style={{ color: currentInnings === 2 ? '#ffffff' : '#64748b', fontSize: 10.5, fontWeight: '900' }}>
                       {currentInnings === 2 ? targetRuns : '-'}
                     </Text>
                   </View>
                 </View>
 
-                {/* Bowling Team Box (Exact Equal Size to Batting Team Box) */}
+                {/* Bowling Team Box (Exact Equal Size, Height & Line Counts to Batting Team Box) */}
                 <TouchableOpacity
                   activeOpacity={isOfficialScorer ? 0.75 : 1}
                   onPress={isOfficialScorer ? () => handleEditTeamAndSquadFromScorer('bowling') : undefined}
@@ -23789,20 +23808,21 @@ function CricketAddaMain() {
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 6,
-                    minHeight: 66,
+                    alignSelf: 'stretch',
+                    justifyContent: 'center',
                   }}
                 >
-                  <View style={{ flex: 1 }}>
+                  <View style={{ flex: 1, justifyContent: 'center' }}>
                     <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }} numberOfLines={1}>
                       {bowlingTeamName}
                     </Text>
-                    <Text style={{ color: '#fca5a5', fontSize: 15, fontWeight: '900', marginTop: 1 }}>
+                    <Text style={{ color: '#fca5a5', fontSize: 14, fontWeight: '900', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
                       {currentInnings === 2
                         ? `${firstInningsSummary?.runs ?? 0}/${firstInningsSummary?.wickets ?? 0}`
                         : 'Yet to bat'}
                     </Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }}>
-                      {currentInnings === 2 && firstInningsSummary?.overs ? `(${firstInningsSummary.overs} ov)` : ' '}
+                    <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }} numberOfLines={1}>
+                      {currentInnings === 2 && firstInningsSummary?.overs ? `(${firstInningsSummary.overs} ov)` : `(${maxOvers || 20}.0 ov)`}
                     </Text>
                   </View>
                   <TeamFlagBadge
@@ -23915,16 +23935,11 @@ function CricketAddaMain() {
                               <Text style={{ color: '#000000', fontSize: 8.5, fontWeight: '900' }}>S</Text>
                             </View>
                           </View>
-                          <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => handleEditTeamAndSquadFromScorer('batting')}
-                            style={{ flexDirection: 'row', alignItems: 'center', gap: 2.5, flex: 1 }}
-                          >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2.5, flex: 1 }}>
                             <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800' }} numberOfLines={1}>
                               {striker}
                             </Text>
-                            <Text style={{ color: '#64748b', fontSize: 10.5 }}>✎</Text>
-                          </TouchableOpacity>
+                          </View>
                         </View>
 
                         {isOfficialScorer && (
@@ -24008,16 +24023,11 @@ function CricketAddaMain() {
                               <Text style={{ color: '#000000', fontSize: 8, fontWeight: '900' }}>NS</Text>
                             </View>
                           </View>
-                          <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => handleEditTeamAndSquadFromScorer('batting')}
-                            style={{ flexDirection: 'row', alignItems: 'center', gap: 2.5, flex: 1 }}
-                          >
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2.5, flex: 1 }}>
                             <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800' }} numberOfLines={1}>
                               {nonStriker}
                             </Text>
-                            <Text style={{ color: '#64748b', fontSize: 10.5 }}>✎</Text>
-                          </TouchableOpacity>
+                          </View>
                         </View>
 
                       </View>
