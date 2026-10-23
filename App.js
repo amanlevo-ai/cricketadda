@@ -23,6 +23,7 @@ import {
   Vibration,
   AppState,
   Share,
+  Switch,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -12727,7 +12728,7 @@ function CricketAddaMain() {
   }, [dismissSplash]);
 
   // Wagon Wheel Scorer State
-  const [autoWheel, setAutoWheel] = useState(false);
+  const [autoWheel, setAutoWheel] = useState(true);
   const [wheelModalVisible, setWheelModalVisible] = useState(false);
   const [pendingRuns, setPendingRuns] = useState(0);
   const [pendingExtraType, setPendingExtraType] = useState(null);
@@ -12763,7 +12764,7 @@ function CricketAddaMain() {
         if (storedWheel !== null) {
           setAutoWheel(storedWheel === 'true');
         } else {
-          setAutoWheel(false);
+          setAutoWheel(true);
         }
         const storedSwap = await AsyncStorage.getItem(STORAGE_KEYS.SWAP_BATTERS);
         if (storedSwap !== null) {
@@ -13349,6 +13350,7 @@ function CricketAddaMain() {
     setAutoWheel(prev => {
       const next = !prev;
       AsyncStorage.setItem(STORAGE_KEYS.AUTO_WHEEL, String(next)).catch(() => {});
+      showAppToast(next ? '🎯 Auto Wagon Wheel ON' : '🎯 Auto Wagon Wheel OFF', '🎯');
       return next;
     });
   };
@@ -15123,6 +15125,8 @@ function CricketAddaMain() {
     setLiveBalls(0);
     setLiveThisOver([]);
     setScoringHistory([]);
+    setAutoWheel(true);
+    AsyncStorage.setItem(STORAGE_KEYS.AUTO_WHEEL, 'true').catch(() => {});
     setSelectedExtraType(null);
     setNeedsNewBowler(false);
 
@@ -29884,9 +29888,55 @@ function CricketAddaMain() {
             >
               <Text style={{ fontSize: 18 }}>🎯</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Wagon Wheel</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11 }}>Shot directions and boundary zones</Text>
+                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Full Wagon Wheel Ground</Text>
+                <Text style={{ color: '#94a3b8', fontSize: 11 }}>View 8-sector shot directions & zones</Text>
               </View>
+            </TouchableOpacity>
+
+            {/* Auto Wagon Wheel Prompt Toggle Switch */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={toggleAutoWheel}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                paddingVertical: 10,
+                paddingHorizontal: 12,
+                borderRadius: 10,
+                backgroundColor: autoWheel ? 'rgba(16, 185, 129, 0.16)' : 'rgba(30, 58, 95, 0.3)',
+                marginBottom: 8,
+                borderWidth: 1.5,
+                borderColor: autoWheel ? '#10b981' : '#1e3a5f',
+              }}
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, marginRight: 8 }}>
+                <Text style={{ fontSize: 18 }}>⚙️</Text>
+                <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Auto Wagon Wheel</Text>
+                    <View style={{
+                      backgroundColor: autoWheel ? '#10b981' : '#475569',
+                      paddingHorizontal: 5,
+                      paddingVertical: 1.5,
+                      borderRadius: 4,
+                    }}>
+                      <Text style={{ color: autoWheel ? '#022c22' : '#cbd5e1', fontSize: 9.5, fontWeight: '900' }}>
+                        {autoWheel ? 'ON' : 'OFF'}
+                      </Text>
+                    </View>
+                  </View>
+                  <Text style={{ color: autoWheel ? '#6ee7b7' : '#94a3b8', fontSize: 11, marginTop: 1 }}>
+                    {autoWheel ? 'Opens shot direction window on every run' : 'Direct scoring without shot direction popup'}
+                  </Text>
+                </View>
+              </View>
+              <Switch
+                value={autoWheel}
+                onValueChange={toggleAutoWheel}
+                trackColor={{ false: '#334155', true: '#059669' }}
+                thumbColor={autoWheel ? '#10b981' : '#94a3b8'}
+              />
             </TouchableOpacity>
 
             {/* Scorer-Specific Options */}
