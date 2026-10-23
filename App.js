@@ -23325,7 +23325,7 @@ function CricketAddaMain() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              marginBottom: 4,
+              marginBottom: 3,
               width: '100%',
             }}>
               {/* 1. Back Button */}
@@ -23770,7 +23770,7 @@ function CricketAddaMain() {
                 borderWidth: 1,
                 borderColor: '#1e3a5f',
                 padding: 6,
-                marginBottom: 3,
+                marginBottom: 2,
                 flexDirection: 'row',
                 alignItems: 'stretch',
                 justifyContent: 'space-between',
@@ -23900,7 +23900,7 @@ function CricketAddaMain() {
                 borderColor: '#1e3a5f',
                 paddingVertical: 5,
                 paddingHorizontal: 8,
-                marginBottom: 3,
+                marginBottom: 2,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'flex-start',
@@ -24227,14 +24227,15 @@ function CricketAddaMain() {
                     </TouchableOpacity>
                   )}
 
-                  {/* 6.1 RUNS (Square Compact Buttons) */}
-                  <View style={{ flexDirection: 'row', gap: 5, marginBottom: 3 }}>
+                  {/* 6.1 RUNS (0, 1, 2, 3, 4, 5, 6 - Sleek Compact Buttons) */}
+                  <View style={{ flexDirection: 'row', gap: 4, marginBottom: 3 }}>
                     {[
                       { run: 0, title: '0', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
                       { run: 1, title: '1', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
                       { run: 2, title: '2', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
                       { run: 3, title: '3', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
                       { run: 4, title: '4', bg: '#00e676', text: '#000000', border: '#00e676' },
+                      { run: 5, title: '5', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
                       { run: 6, title: '6', bg: '#00b0ff', text: '#000000', border: '#00b0ff' },
                     ].map(item => (
                       <TouchableOpacity
@@ -24243,23 +24244,23 @@ function CricketAddaMain() {
                         activeOpacity={0.75}
                         style={{
                           flex: 1,
-                          aspectRatio: 1.15,
+                          height: 35,
                           backgroundColor: item.bg,
-                          borderRadius: 8,
-                          borderWidth: 1.2,
+                          borderRadius: 7,
+                          borderWidth: 1,
                           borderColor: item.border,
                           alignItems: 'center',
                           justifyContent: 'center',
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: item.text, fontSize: 18, fontWeight: '900' }}>{item.title}</Text>
+                        <Text style={{ color: item.text, fontSize: 16, fontWeight: '900' }}>{item.title}</Text>
                       </TouchableOpacity>
                     ))}
                   </View>
 
                   {/* 6.2 EXTRAS (Tap to add - Opens Custom Popups) */}
-                  <View style={{ flexDirection: 'row', gap: 5, marginBottom: 3 }}>
+                  <View style={{ flexDirection: 'row', gap: 4, marginTop: 1.5, marginBottom: 3 }}>
                     {[
                       { key: 'wide', label: 'Wide', bg: '#f59e0b', text: '#ffffff' },
                       { key: 'noBall', label: 'No Ball', bg: '#ef4444', text: '#ffffff' },
@@ -24303,8 +24304,39 @@ function CricketAddaMain() {
                     })}
                   </View>
 
-                  {/* 6.3 MORE EVENTS */}
+                  {/* 6.3 MORE EVENTS (Wicket Out is 1st Button) */}
                   <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
+                    {/* Wicket Out (FIRST) */}
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (needsNewBowler) {
+                          const eligible = activeOppBowlers.filter(b => b !== bowler);
+                          if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                          setChangeBowlerModalVisible(true);
+                          showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                          return;
+                        }
+                        const eligibleBatters = activeBenchBatters.filter(b => b !== striker && b !== nonStriker);
+                        if (Array.isArray(eligibleBatters) && (eligibleBatters || []).length > 0) {
+                          setIncomingBatter(eligibleBatters[0]);
+                        }
+                        setCustomIncomingBatter('');
+                        setOutBatter('striker');
+                        setWicketModalVisible(true);
+                      }}
+                      activeOpacity={0.75}
+                      style={{
+                        flex: 1,
+                        backgroundColor: '#dc2626',
+                        borderRadius: 8,
+                        paddingVertical: 7,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }} numberOfLines={1}>Wicket Out</Text>
+                    </TouchableOpacity>
+
                     {/* Drop Catch */}
                     <TouchableOpacity
                       onPress={() => {
@@ -24357,37 +24389,6 @@ function CricketAddaMain() {
                       }}
                     >
                       <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }} numberOfLines={1}>Overthrow</Text>
-                    </TouchableOpacity>
-
-                    {/* Wicket Out */}
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (needsNewBowler) {
-                          const eligible = activeOppBowlers.filter(b => b !== bowler);
-                          if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
-                          setChangeBowlerModalVisible(true);
-                          showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
-                          return;
-                        }
-                        const eligibleBatters = activeBenchBatters.filter(b => b !== striker && b !== nonStriker);
-                        if (Array.isArray(eligibleBatters) && (eligibleBatters || []).length > 0) {
-                          setIncomingBatter(eligibleBatters[0]);
-                        }
-                        setCustomIncomingBatter('');
-                        setOutBatter('striker');
-                        setWicketModalVisible(true);
-                      }}
-                      activeOpacity={0.75}
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#dc2626',
-                        borderRadius: 8,
-                        paddingVertical: 7,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }} numberOfLines={1}>Wicket Out</Text>
                     </TouchableOpacity>
 
                     {/* Undo */}
