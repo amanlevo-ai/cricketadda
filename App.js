@@ -12729,6 +12729,7 @@ function CricketAddaMain() {
 
   // Wagon Wheel Scorer State
   const [autoWheel, setAutoWheel] = useState(true);
+  const [wheelTriggerMode, setWheelTriggerMode] = useState('all'); // 'all' | 'boundaries' | 'off'
   const [wheelModalVisible, setWheelModalVisible] = useState(false);
   const [pendingRuns, setPendingRuns] = useState(0);
   const [pendingExtraType, setPendingExtraType] = useState(null);
@@ -12765,6 +12766,12 @@ function CricketAddaMain() {
           setAutoWheel(storedWheel === 'true');
         } else {
           setAutoWheel(true);
+        }
+        const storedTriggerMode = await AsyncStorage.getItem('wheel_trigger_mode');
+        if (storedTriggerMode) {
+          setWheelTriggerMode(storedTriggerMode);
+        } else {
+          setWheelTriggerMode('all');
         }
         const storedSwap = await AsyncStorage.getItem(STORAGE_KEYS.SWAP_BATTERS);
         if (storedSwap !== null) {
@@ -13346,11 +13353,29 @@ function CricketAddaMain() {
     }
   }, [activeMatchId]);
 
+  const updateWheelTriggerMode = (mode) => {
+    setWheelTriggerMode(mode);
+    if (mode === 'off') {
+      setAutoWheel(false);
+      AsyncStorage.setItem(STORAGE_KEYS.AUTO_WHEEL, 'false').catch(() => {});
+      AsyncStorage.setItem('wheel_trigger_mode', 'off').catch(() => {});
+      showAppToast('🎯 Wagon Wheel Turned OFF', '🎯');
+    } else {
+      setAutoWheel(true);
+      AsyncStorage.setItem(STORAGE_KEYS.AUTO_WHEEL, 'true').catch(() => {});
+      AsyncStorage.setItem('wheel_trigger_mode', mode).catch(() => {});
+      showAppToast(mode === 'boundaries' ? '🎯 Wagon Wheel: 4s & 6s Boundaries Only (Off for 0,1,2,3)' : '🎯 Wagon Wheel: All Shots ON', '🎯');
+    }
+  };
+
   const toggleAutoWheel = () => {
     setAutoWheel(prev => {
       const next = !prev;
       AsyncStorage.setItem(STORAGE_KEYS.AUTO_WHEEL, String(next)).catch(() => {});
-      showAppToast(next ? '🎯 Auto Wagon Wheel ON' : '🎯 Auto Wagon Wheel OFF', '🎯');
+      const nextMode = next ? (wheelTriggerMode === 'off' ? 'all' : wheelTriggerMode) : 'off';
+      setWheelTriggerMode(nextMode);
+      AsyncStorage.setItem('wheel_trigger_mode', nextMode).catch(() => {});
+      showAppToast(next ? `🎯 Auto Wagon Wheel ON (${nextMode === 'boundaries' ? '4s & 6s Only' : 'All Shots'})` : '🎯 Auto Wagon Wheel OFF', '🎯');
       return next;
     });
   };
@@ -15126,7 +15151,9 @@ function CricketAddaMain() {
     setLiveThisOver([]);
     setScoringHistory([]);
     setAutoWheel(true);
+    setWheelTriggerMode('all');
     AsyncStorage.setItem(STORAGE_KEYS.AUTO_WHEEL, 'true').catch(() => {});
+    AsyncStorage.setItem('wheel_trigger_mode', 'all').catch(() => {});
     setSelectedExtraType(null);
     setNeedsNewBowler(false);
 
@@ -17916,11 +17943,18 @@ function CricketAddaMain() {
     const extraMode = selectedExtraType;
     setSelectedExtraType(null);
 
-    // Cricket Rule: Extras not off the bat (Wide, Bye, Leg Bye) NEVER ask for Wagon Wheel area!
-    const isOffBat = extraMode !== 'wide' && extraMode !== 'bye' && extraMode !== 'legBye';
+    // Cricket Rule: Extras not off the bat (Wide, Bye, Leg Bye, Penalty) NEVER ask for Wagon Wheel area!
+    const isOffBat = extraMode !== 'wide' && extraMode !== 'bye' && extraMode !== 'legBye' && extraMode !== 'penalty';
+    const isBoundary = runs === 4 || runs === 6;
 
-    // If Wagon Wheel prompt is OFF or delivery is an extra not off bat, record immediately
-    if (!autoWheel || !isOffBat) {
+    // Check if Wagon Wheel should be prompted based on trigger mode
+    const shouldPromptWheel =
+      autoWheel &&
+      isOffBat &&
+      (wheelTriggerMode === 'all' || (wheelTriggerMode === 'boundaries' && isBoundary));
+
+    // If Wagon Wheel prompt is OFF or delivery is not eligible for wheel, record immediately
+    if (!shouldPromptWheel) {
       if (extraMode === 'wide') {
         recordBall(runs, 'wide', 1);
       } else if (extraMode === 'noBall') {
@@ -17929,6 +17963,8 @@ function CricketAddaMain() {
         recordBall(runs, 'bye', 0);
       } else if (extraMode === 'legBye') {
         recordBall(runs, 'legBye', 0);
+      } else if (extraMode === 'penalty') {
+        recordBall(runs, 'penalty', 0);
       } else {
         recordBall(runs);
       }
@@ -23321,7 +23357,7 @@ function CricketAddaMain() {
           {/* Professional stadium dark overlay for crisp text contrast and broadcast depth */}
           <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2, 11, 20, 0.65)' }} />
 
-          <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 4, paddingBottom: bottomInset + 4 }}>
+          <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 4, paddingBottom: Math.max(12, bottomInset + 8) }}>
             {/* ========================================================================= */}
             {/* SINGLE COMPACT TOP HEADER: BACK | [ TEAM VS TEAM ● LIVE ] | MATCH OPTIONS   */}
             {/* ========================================================================= */}
@@ -23904,7 +23940,7 @@ function CricketAddaMain() {
                 borderColor: '#1e3a5f',
                 paddingVertical: 5,
                 paddingHorizontal: 8,
-                marginBottom: 2,
+                marginBottom: 3,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'flex-start',
@@ -24442,10 +24478,10 @@ function CricketAddaMain() {
                 flex: 1,
                 backgroundColor: '#071526',
                 borderRadius: 10,
-                borderWidth: 1,
+                borderWidth: 1.2,
                 borderColor: '#1e3a5f',
                 overflow: 'hidden',
-                marginBottom: 4,
+                marginBottom: 6,
               }}>
                 {/* Dual Tab Switcher at the top of the box */}
                 <View style={{
@@ -27081,8 +27117,92 @@ function CricketAddaMain() {
                 </View>
               </View>
 
+              {/* QUICK PROMPT PREFERENCE SELECTOR (All Shots | 4s & 6s Only | Turn OFF) */}
+              <View style={{
+                backgroundColor: '#0a1d33',
+                borderRadius: 10,
+                borderWidth: 1,
+                borderColor: '#1e3a5f',
+                padding: 7,
+                marginTop: 6,
+                marginBottom: 4,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                    🎯 WHEEL PROMPT FREQUENCY:
+                  </Text>
+                  <Text style={{ color: wheelTriggerMode === 'boundaries' ? '#34d399' : wheelTriggerMode === 'all' ? '#38bdf8' : '#f87171', fontSize: 9.5, fontWeight: '900' }}>
+                    {wheelTriggerMode === 'boundaries' ? '4s & 6s ONLY (0-3 OFF)' : wheelTriggerMode === 'all' ? 'ALL RUNS (0-6)' : 'OFF'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 5 }}>
+                  {/* Option 1: All Shots */}
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => updateWheelTriggerMode('all')}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 6,
+                      borderRadius: 6,
+                      backgroundColor: wheelTriggerMode === 'all' ? '#0284c7' : '#071526',
+                      borderWidth: 1,
+                      borderColor: wheelTriggerMode === 'all' ? '#38bdf8' : '#1e3a5f',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ color: wheelTriggerMode === 'all' ? '#ffffff' : '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                      All Shots
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Option 2: 4s & 6s Only (Off for 0, 1, 2, 3) */}
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => updateWheelTriggerMode('boundaries')}
+                    style={{
+                      flex: 1.25,
+                      paddingVertical: 6,
+                      borderRadius: 6,
+                      backgroundColor: wheelTriggerMode === 'boundaries' ? '#059669' : '#071526',
+                      borderWidth: 1,
+                      borderColor: wheelTriggerMode === 'boundaries' ? '#34d399' : '#1e3a5f',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ color: wheelTriggerMode === 'boundaries' ? '#ffffff' : '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                      4s & 6s Only
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Option 3: Complete OFF */}
+                  <TouchableOpacity
+                    activeOpacity={0.75}
+                    onPress={() => {
+                      updateWheelTriggerMode('off');
+                      confirmWheelShot(true);
+                    }}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 6,
+                      borderRadius: 6,
+                      backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                      borderWidth: 1,
+                      borderColor: 'rgba(239, 68, 68, 0.4)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ color: '#fca5a5', fontSize: 10, fontWeight: '800' }}>
+                      Turn OFF ✕
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
               {/* ACTION BUTTONS */}
-              <View style={[styles.modalBtnRow, { marginTop: 8, marginBottom: 2 }]}>
+              <View style={[styles.modalBtnRow, { marginTop: 6, marginBottom: 2 }]}>
                 <TouchableOpacity style={[styles.skipBtn, { paddingVertical: 9 }]} onPress={() => confirmWheelShot(true)}>
                   <Text style={styles.skipBtnText}>Skip Area</Text>
                 </TouchableOpacity>
@@ -29927,7 +30047,7 @@ function CricketAddaMain() {
                     </View>
                   </View>
                   <Text style={{ color: autoWheel ? '#6ee7b7' : '#94a3b8', fontSize: 11, marginTop: 1 }}>
-                    {autoWheel ? 'Opens shot direction window on every run' : 'Direct scoring without shot direction popup'}
+                    {autoWheel ? (wheelTriggerMode === 'boundaries' ? 'Active for 4s & 6s Boundaries only' : 'Active for all runs (0-6)') : 'Direct scoring without shot direction popup'}
                   </Text>
                 </View>
               </View>
