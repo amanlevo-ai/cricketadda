@@ -13023,16 +13023,23 @@ function CricketAddaMain() {
             }).catch(() => {});
 
             fetchFirebaseMatchesDb().then(cloudDb => {
-              const cleanMatches = {};
               if (cloudDb && typeof cloudDb === 'object') {
-                Object.entries(cloudDb).forEach(([mId, m]) => {
-                  if (m && !delMatches.has(mId)) {
-                    cleanMatches[mId] = m;
-                  }
+                setMatchesDb(prev => {
+                  const merged = { ...prev };
+                  Object.entries(cloudDb).forEach(([mId, m]) => {
+                    if (m && !delMatches.has(mId)) {
+                      if (!merged[mId] || (m.lastUpdatedAt && m.lastUpdatedAt >= (merged[mId].lastUpdatedAt || 0))) {
+                        merged[mId] = m;
+                      }
+                    }
+                  });
+                  delMatches.forEach(delId => {
+                    delete merged[delId];
+                  });
+                  AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(merged)).catch(() => {});
+                  return merged;
                 });
               }
-              setMatchesDb(cleanMatches);
-              AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(cleanMatches)).catch(() => {});
             }).catch(() => {});
           }).catch(() => {});
         }
@@ -14654,8 +14661,8 @@ function CricketAddaMain() {
     });
   };
 
-  let striker = match.currentStriker || currentMatchData?.currentStriker || '';
-  let nonStriker = match.currentNonStriker || currentMatchData?.currentNonStriker || '';
+  let striker = match.currentStriker || currentMatchData?.liveState?.currentStriker || currentMatchData?.currentStriker || '';
+  let nonStriker = match.currentNonStriker || currentMatchData?.liveState?.currentNonStriker || currentMatchData?.currentNonStriker || '';
   let bowler = match.currentBowler || currentMatchData?.currentBowler || (currentMatchData?.innings1?.bowling?.[0]?.name) || (activeOppBowlers[0] || 'Bowler');
 
   // Hard Guarantee: an OUT batter can NEVER be striker or non-striker at the crease
@@ -14918,6 +14925,8 @@ function CricketAddaMain() {
       const cur = prev[activeMatchId] || {};
       const updated = {
         ...cur,
+        currentStriker: nextSt,
+        currentNonStriker: nextNst,
         liveState: {
           ...(cur.liveState || {}),
           currentStriker: nextSt,
@@ -15711,6 +15720,10 @@ function CricketAddaMain() {
       text = shotAreaName
         ? `LEG BYE! Delivery strikes the pad and deflects towards ${shotAreaName} for ${runs} leg bye${runs > 1 ? 's' : ''}.`
         : `LEG BYE! Delivery strikes the pad and deflects into the gap for ${runs} leg bye${runs > 1 ? 's' : ''}.`;
+    } else if (extraType === 'penalty') {
+      badge = `${runs} Pen`;
+      badgeType = 'penalty';
+      text = `PENALTY RUNS! Umpire awards +${runs} penalty runs to ${battingTeamName}.`;
     } else if (runs === 6) {
       badge = '6';
       badgeType = 'six';
@@ -15922,6 +15935,13 @@ function CricketAddaMain() {
       batterBallsAdded = 1;
       batterDotsAdded = 1;
       bowlerRunsConceded = 0;
+    } else if (extraType === 'penalty') {
+      addedRuns = runs;
+      isLegalDelivery = false;
+      ballSymbol = `${runs}Pen`;
+      bowlerRunsConceded = 0;
+      batterBallsAdded = 0;
+      batterRunsAdded = 0;
     } else {
       batterRunsAdded = runs + otRuns;
       batterBallsAdded = 1;
@@ -15975,7 +15995,7 @@ function CricketAddaMain() {
     }
 
     // 2. Update Live Batters stats
-    const isOddRuns = (runs + otRuns) % 2 === 1;
+    const isOddRuns = extraType === 'penalty' ? false : ((runs + otRuns) % 2 === 1);
     const isDismissedOnStrike = outBatterTarget === striker;
     const strikerBallsAdded = isWkt ? (isDismissedOnStrike ? 1 : 0) : batterBallsAdded;
     const strikerDotsAdded = isWkt ? (isDismissedOnStrike ? 1 : 0) : batterDotsAdded;
@@ -16233,6 +16253,9 @@ function CricketAddaMain() {
       const cur = prev[activeMatchId] || {};
       const updatedMatch = {
         ...cur,
+        currentStriker: nextStriker,
+        currentNonStriker: nextNonStriker,
+        currentBowler: bowler,
         innings1: {
           ...(cur.innings1 || {}),
           runs: currentInnings === 1 ? nextRunsForDb : (cur.innings1?.runs || 0),
@@ -17963,6 +17986,9 @@ function CricketAddaMain() {
     } else if (currentExtra === 'legBye') {
       recordBall(runs, 'legBye', 0, false, null, null, null, null, 'legBye');
       showAppToast(`🟣 Leg Byes recorded: ${runs} run${runs === 1 ? '' : 's'}!`, '🟣');
+    } else if (currentExtra === 'penalty') {
+      recordBall(runs, 'penalty', 0, false, null, null, null, null, 'penalty');
+      showAppToast(`⚖️ Penalty recorded: ${runs} run${runs === 1 ? '' : 's'} to batting team!`, '⚖️');
     }
   };
 
@@ -21578,7 +21604,7 @@ function CricketAddaMain() {
     const ov = parseInt(parts[0], 10) || 0;
     const bl = parseInt(parts[1], 10) || 0;
     setLiveBalls(ov * 6 + bl);
-    setLiveThisOver(targetMatch.liveThisOver || targetMatch.liveState?.liveThisOver || ['1', '0', '4']);
+    setLiveThisOver(targetMatch.liveThisOver || targetMatch.liveState?.liveThisOver || []);
     setScoringHistory(targetMatch.scoringHistory || targetMatch.liveState?.scoringHistory || []);
 
     // 3. Batters map: correctly map not-out batters & stats
@@ -21623,9 +21649,9 @@ function CricketAddaMain() {
 
     // 5. Active batters on crease: pick not-out batters
     const notOutBatters = activeBatting.filter(b => b.notOut);
-    const initialStriker = targetMatch.currentStriker || notOutBatters[0]?.name || activeBatting[0]?.name || 'Striker';
-    const initialNonStriker = targetMatch.currentNonStriker || notOutBatters[1]?.name || (activeBatting[1] ? activeBatting[1].name : activeBatting[0]?.name) || 'Non-Striker';
-    const initialBowler = targetMatch.currentBowler || (activeBowling.find(bw => bw.overs && !String(bw.overs).endsWith('.0'))?.name) || activeBowling[0]?.name || 'Opening Bowler';
+    const initialStriker = targetMatch.liveState?.currentStriker || targetMatch.currentStriker || notOutBatters[0]?.name || activeBatting[0]?.name || 'Striker';
+    const initialNonStriker = targetMatch.liveState?.currentNonStriker || targetMatch.currentNonStriker || notOutBatters[1]?.name || (activeBatting[1] ? activeBatting[1].name : activeBatting[0]?.name) || 'Non-Striker';
+    const initialBowler = targetMatch.liveState?.currentBowler || targetMatch.currentBowler || (activeBowling.find(bw => bw.overs && !String(bw.overs).endsWith('.0'))?.name) || activeBowling[0]?.name || 'Opening Bowler';
 
     setMatch(prev => ({
       ...prev,
@@ -23291,27 +23317,26 @@ function CricketAddaMain() {
           {/* Professional stadium dark overlay for crisp text contrast and broadcast depth */}
           <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2, 11, 20, 0.65)' }} />
 
-          <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingHorizontal: 10, paddingTop: 4, paddingBottom: bottomInset + 24 }} nestedScrollEnabled={true} showsVerticalScrollIndicator={false}>
+          <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 4, paddingBottom: bottomInset + 4 }}>
             {/* ========================================================================= */}
-            {/* WIZARD-STYLE TOP HEADER: BACK | 3D CRICKETADDA LOGO | MATCH OPTIONS        */}
+            {/* SINGLE COMPACT TOP HEADER: BACK | [ TEAM VS TEAM ● LIVE ] | MATCH OPTIONS   */}
             {/* ========================================================================= */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
-              justifyContent: 'space-between',
-              marginBottom: 12,
+              gap: 6,
+              marginBottom: 4,
               width: '100%',
-              paddingHorizontal: 2,
             }}>
               {/* 1. Back Button */}
               <TouchableOpacity
                 onPress={goBack}
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
                   backgroundColor: 'rgba(2, 11, 20, 0.75)',
-                  borderWidth: 1.5,
+                  borderWidth: 1,
                   borderColor: 'rgba(56, 189, 248, 0.45)',
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -23319,35 +23344,59 @@ function CricketAddaMain() {
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityLabel="Go back"
               >
-                <Text style={{ color: '#ffffff', fontSize: 22, fontWeight: '900', marginTop: -2, marginLeft: -1 }}>‹</Text>
+                <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: -2 }}>‹</Text>
               </TouchableOpacity>
 
-              {/* 2. Centered Clean 3D CricketAdda Logo */}
+              {/* 2. Live Match Box with Team vs Team and LIVE Indicator */}
               <View style={{
+                flex: 1,
+                backgroundColor: '#071526',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#1e3a5f',
+                paddingVertical: 5.5,
+                paddingHorizontal: 8,
+                flexDirection: 'row',
                 alignItems: 'center',
-                justifyContent: 'center',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 3 },
-                shadowOpacity: 0.55,
-                shadowRadius: 6,
-                elevation: 6,
+                justifyContent: 'space-between',
               }}>
-                <Image
-                  source={require('./assets/cricketadda-wizard-logo.png')}
-                  style={{ width: 92, height: 42 }}
-                  resizeMode="contain"
-                />
+                <Text style={{
+                  color: '#ffffff',
+                  fontSize: 12.5,
+                  fontWeight: '900',
+                  letterSpacing: 0.3,
+                  textTransform: 'uppercase',
+                  flex: 1,
+                  marginRight: 6,
+                }} numberOfLines={1}>
+                  {battingTeamName || 'Team 1'} vs {bowlingTeamName || 'Team 2'}
+                </Text>
+                
+                <View style={{
+                  backgroundColor: '#dc2626',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 4,
+                }}>
+                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ffffff' }} />
+                  <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900', letterSpacing: 0.5 }}>
+                    LIVE
+                  </Text>
+                </View>
               </View>
 
               {/* 3. Match Options Menu Button */}
               <TouchableOpacity
                 onPress={() => setScorerActionsModalVisible(true)}
                 style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
                   backgroundColor: 'rgba(2, 11, 20, 0.75)',
-                  borderWidth: 1.5,
+                  borderWidth: 1,
                   borderColor: 'rgba(56, 189, 248, 0.45)',
                   justifyContent: 'center',
                   alignItems: 'center',
@@ -23713,46 +23762,6 @@ function CricketAddaMain() {
             /* BROADCAST LIVE MATCH SCORER INTERFACE (MATCHING REFERENCE DESIGN)        */
             /* ========================================================================= */
             <>
-              {/* 1. TOP HEADER: RISING STARS vs ROYAL XI | ● LIVE (PADDING VERTICAL 5.5px ONLY) */}
-              <View style={{
-                backgroundColor: '#071526',
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: '#1e3a5f',
-                paddingVertical: 5.5,
-                paddingHorizontal: 10,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                marginBottom: 3,
-              }}>
-                <Text style={{
-                  color: '#ffffff',
-                  fontSize: 13,
-                  fontWeight: '900',
-                  letterSpacing: 0.5,
-                  textTransform: 'uppercase',
-                  flex: 1,
-                  marginRight: 8,
-                }} numberOfLines={1}>
-                  {battingTeamName || 'Team 1'} vs {bowlingTeamName || 'Team 2'}
-                </Text>
-                
-                <View style={{
-                  backgroundColor: '#dc2626',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4,
-                  paddingHorizontal: 7,
-                  paddingVertical: 2,
-                  borderRadius: 5,
-                }}>
-                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ffffff' }} />
-                  <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>
-                    LIVE
-                  </Text>
-                </View>
-              </View>
 
               {/* 2. MAIN MATCH SUMMARY SCORECARD (+1px FONT INCREASE ON TEAM NAMES & SCORES) */}
               <View style={{
@@ -24256,6 +24265,7 @@ function CricketAddaMain() {
                       { key: 'noBall', label: 'No Ball', bg: '#ef4444', text: '#ffffff' },
                       { key: 'bye', label: 'Bye', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
                       { key: 'legBye', label: 'Leg Bye', bg: '#8b5cf6', text: '#ffffff' },
+                      { key: 'penalty', label: 'Penalty', bg: '#0284c7', text: '#ffffff' },
                     ].map(extra => {
                       const isActive = selectedExtraType === extra.key;
                       return (
@@ -24424,14 +24434,13 @@ function CricketAddaMain() {
 
               {/* 7. INTEGRATED BOTTOM DUAL TABS BOX (SCROLLABLE COMMENTARY & SCORECARD) */}
               <View style={{
-                minHeight: 180,
-                maxHeight: 340,
+                flex: 1,
                 backgroundColor: '#071526',
                 borderRadius: 10,
                 borderWidth: 1,
                 borderColor: '#1e3a5f',
                 overflow: 'hidden',
-                marginBottom: 6,
+                marginBottom: 4,
               }}>
                 {/* Dual Tab Switcher at the top of the box */}
                 <View style={{
@@ -24537,16 +24546,18 @@ function CricketAddaMain() {
                         const isFour = item.badgeType === 'four' || item.runs === 4;
                         const isSix = item.badgeType === 'six' || item.runs === 6;
                         const isOverthrow = item.badgeType === 'overthrow';
+                        const isPenalty = item.badgeType === 'penalty' || item.extraType === 'penalty';
                         const isExtra = item.badgeType === 'wide' || item.badgeType === 'noBall' || Boolean(item.extraType);
                         const isDot = item.runs === 0 && !isWkt && !isExtra;
 
-                        const badgeBg = isWkt ? '#ef4444' : isSix ? '#581c87' : isFour ? '#00e676' : isOverthrow ? '#4c1d95' : isExtra ? '#f59e0b' : isDot ? '#0f2238' : '#0284c7';
+                        const badgeBg = isWkt ? '#ef4444' : isSix ? '#581c87' : isFour ? '#00e676' : isOverthrow ? '#4c1d95' : isPenalty ? '#0284c7' : isExtra ? '#f59e0b' : isDot ? '#0f2238' : '#0284c7';
                         const badgeColor = isFour ? '#000000' : isDot ? '#94a3b8' : '#ffffff';
 
                         let ballBadgeText = String(item.ballSymbol || item.runs || '0');
                         if (isWkt) ballBadgeText = 'W';
                         else if (item.extraType === 'wide') ballBadgeText = item.runs > 0 ? `${item.runs + 1}Wd` : 'Wd';
                         else if (item.extraType === 'noBall') ballBadgeText = item.runs > 0 ? `Nb+${item.runs}` : 'Nb';
+                        else if (item.extraType === 'penalty') ballBadgeText = `${item.runs || 5}Pen`;
                         else if (item.extraType === 'bye') ballBadgeText = `${item.runs}B`;
                         else if (item.extraType === 'legBye') ballBadgeText = `${item.runs}Lb`;
 
@@ -24648,7 +24659,7 @@ function CricketAddaMain() {
               </View>
             </>
           )}
-          </ScrollView>
+          </View>
         </ImageBackground>
       )}
 
@@ -27576,7 +27587,7 @@ function CricketAddaMain() {
                   width: 10,
                   height: 10,
                   borderRadius: 5,
-                  backgroundColor: extraModalType === 'wide' ? '#f59e0b' : extraModalType === 'noBall' ? '#ef4444' : extraModalType === 'bye' ? '#38bdf8' : '#8b5cf6',
+                  backgroundColor: extraModalType === 'wide' ? '#f59e0b' : extraModalType === 'noBall' ? '#ef4444' : extraModalType === 'bye' ? '#38bdf8' : extraModalType === 'legBye' ? '#8b5cf6' : '#0284c7',
                 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>
@@ -27584,6 +27595,7 @@ function CricketAddaMain() {
                     {extraModalType === 'noBall' && 'No Ball'}
                     {extraModalType === 'bye' && 'Byes'}
                     {extraModalType === 'legBye' && 'Leg Byes'}
+                    {extraModalType === 'penalty' && 'Penalty Runs'}
                   </Text>
                   <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700', marginTop: 1 }} numberOfLines={1}>
                     {bowler || 'Bowler'} to {striker || 'Striker'}
@@ -27664,6 +27676,7 @@ function CricketAddaMain() {
               {extraModalType === 'noBall' && 'How many runs on No Ball?'}
               {extraModalType === 'bye' && 'How many runs on Bye?'}
               {extraModalType === 'legBye' && 'How many runs on Leg Bye?'}
+              {extraModalType === 'penalty' && 'How many Penalty runs to award?'}
             </Text>
 
             {/* Quick Runs Row */}
@@ -27672,6 +27685,8 @@ function CricketAddaMain() {
                 ? [0, 1, 2, 3, 4]
                 : extraModalType === 'noBall'
                 ? [0, 1, 2, 3, 4, 6]
+                : extraModalType === 'penalty'
+                ? [1, 2, 3, 5]
                 : [1, 2, 3, 4]
               ).map(r => (
                 <TouchableOpacity
