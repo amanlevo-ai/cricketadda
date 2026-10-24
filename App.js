@@ -21368,7 +21368,13 @@ function CricketAddaMain() {
       triples: 0,
     }));
 
-    const bowlingList = bowlingXI.map(p => ({
+    // Reorder bowling list so selected Opening Bowler is always #1 in bowling list
+    const sortedBowlingXI = [
+      ...bowlingXI.filter(p => (typeof p === 'object' ? p.name : p) === finalBowler),
+      ...bowlingXI.filter(p => (typeof p === 'object' ? p.name : p) !== finalBowler),
+    ];
+
+    const bowlingList = sortedBowlingXI.map(p => ({
       name: p.name,
       overs: '0.0',
       maidens: 0,
@@ -21451,6 +21457,19 @@ function CricketAddaMain() {
         authorizedMatchId: newMatchId,
       },
       selectedInning: 1,
+      currentStriker: finalStriker,
+      currentNonStriker: finalNonStriker,
+      currentBowler: finalBowler,
+      liveState: {
+        currentStriker: finalStriker,
+        currentNonStriker: finalNonStriker,
+        currentBowler: finalBowler,
+        liveRuns: 0,
+        liveWickets: 0,
+        liveBalls: 0,
+        liveThisOver: [],
+        scoringHistory: [],
+      },
       innings1: {
         team: battingTeamObj.name,
         flag: battingTeamObj.flag,
@@ -21527,6 +21546,7 @@ function CricketAddaMain() {
     setLiveThisOver([]);
     setScoringHistory([]);
     setMatch({
+      id: newMatchId,
       title: newMatchObj.title,
       status: 'live',
       overs: d.totalOvers,
@@ -23362,11 +23382,11 @@ function CricketAddaMain() {
             {/* ========================================================================= */}
             {/* TOP LOGO + COMPACT BROADCAST HEADER                                       */}
             {/* ========================================================================= */}
-            {/* Top Logo (40px Height) */}
-            <View style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 4 }}>
+            {/* Top Logo (45px Height - 5px Bigger) */}
+            <View style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
               <Image
                 source={require('./assets/cricketadda-wizard-logo.png')}
-                style={{ width: 104, height: 40 }}
+                style={{ width: 116, height: 45 }}
                 resizeMode="contain"
               />
             </View>
@@ -23376,7 +23396,7 @@ function CricketAddaMain() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              marginBottom: 4,
+              marginBottom: 2.5,
               width: '100%',
             }}>
               {/* 1. Back Button (Solid Black Background, White Icon) */}
