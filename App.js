@@ -12827,35 +12827,54 @@ function CricketAddaMain() {
               if (parsedCareer && typeof parsedCareer === 'object') setUserCareerData(parsedCareer);
             } catch (e) {}
           }
-          const storedDbVersion = await AsyncStorage.getItem('CA_DB_VERSION_KEY');
-          if (storedDbVersion !== 'ca_v10_tournament_match_sync') {
-            await AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(MATCH_DATABASE));
-            await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(REGISTERED_APP_TEAMS));
-            await AsyncStorage.setItem('CA_DB_VERSION_KEY', 'ca_v10_tournament_match_sync');
-            setMatchesDb(MATCH_DATABASE);
-            setRegisteredTeams(REGISTERED_APP_TEAMS);
-          } else {
-            const storedMatches = await AsyncStorage.getItem(STORAGE_KEYS.MATCHES_DB);
-            if (storedMatches) {
-              try {
-                const parsed = JSON.parse(storedMatches);
-                if (parsed && typeof parsed === 'object' && Object.keys(parsed).length > 0) {
-                  setMatchesDb({ ...MATCH_DATABASE, ...parsed });
-                } else {
-                  setMatchesDb(MATCH_DATABASE);
-                }
-              } catch (e) {
-                setMatchesDb(MATCH_DATABASE);
+          // SAFE INITIALIZATION: Always read existing matches & teams from AsyncStorage first.
+          // NEVER wipe or overwrite user-created matches with MATCH_DATABASE on updates or version checks!
+          let existingMatches = {};
+          try {
+            const rawStored = await AsyncStorage.getItem(STORAGE_KEYS.MATCHES_DB);
+            if (rawStored) {
+              const parsed = JSON.parse(rawStored);
+              if (parsed && typeof parsed === 'object') {
+                existingMatches = parsed;
               }
-            } else {
-              setMatchesDb(MATCH_DATABASE);
             }
-          }
+          } catch (e) {}
+
+          let existingTeams = [];
+          try {
+            const rawTeams = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_TEAMS);
+            if (rawTeams) {
+              const parsedT = JSON.parse(rawTeams);
+              if (Array.isArray(parsedT) && parsedT.length > 0) {
+                existingTeams = parsedT;
+              }
+            }
+          } catch (e) {}
+
+          // Safely merge: keep default fixtures + ALL existing user matches (user matches take precedence)
+          const mergedMatches = { ...MATCH_DATABASE, ...existingMatches };
+          setMatchesDb(mergedMatches);
+          await AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(mergedMatches)).catch(() => {});
+
+          // Merge custom teams with REGISTERED_APP_TEAMS
+          const defaultTeamNames = new Set(REGISTERED_APP_TEAMS.map(t => (t.name || '').toLowerCase()));
+          const customTeams = existingTeams.filter(t => t && t.name && !defaultTeamNames.has(t.name.toLowerCase()));
+          const mergedTeams = [...REGISTERED_APP_TEAMS, ...customTeams];
+          setRegisteredTeams(mergedTeams.length > 0 ? mergedTeams : REGISTERED_APP_TEAMS);
+          await AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(mergedTeams)).catch(() => {});
+          await AsyncStorage.setItem('CA_DB_VERSION_KEY', 'ca_v10_tournament_match_sync').catch(() => {});
+
           const storedActiveMatch = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_MATCH_ID);
-          if (storedActiveMatch) {
+          if (storedActiveMatch && mergedMatches[storedActiveMatch]) {
             setActiveMatchId(storedActiveMatch);
           } else {
-            setActiveMatchId('match_live_spl_1');
+            // Find most recent live user match if available, else fallback to demo
+            const userMatches = Object.keys(mergedMatches).filter(k => k.startsWith('match_') && !k.startsWith('match_live_spl_') && !k.startsWith('match_spl_') && !k.startsWith('match_upcoming_'));
+            if (userMatches.length > 0) {
+              setActiveMatchId(userMatches[userMatches.length - 1]);
+            } else {
+              setActiveMatchId('match_live_spl_1');
+            }
           }
           const storedActiveTab = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
           if (storedActiveTab && storedActiveTab !== 'matches') {
