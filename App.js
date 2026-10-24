@@ -17752,7 +17752,6 @@ function CricketAddaMain() {
         },
       });
 
-      showAppToast(`Delivery (${lastAction.ballSymbol || 'ball'}) undone & reverted! ↩️`, '↩️', 'info');
       return;
     }
 
@@ -17818,7 +17817,6 @@ function CricketAddaMain() {
         },
       });
 
-      showAppToast(`Delivery (${lastBallSymbol}) undone from this over! ↩️`, '↩️', 'info');
       return;
     }
 
@@ -18017,19 +18015,14 @@ function CricketAddaMain() {
 
     if (currentExtra === 'wide') {
       recordBall(runs, 'wide', 1);
-      showAppToast(`🟡 Wide Ball recorded (${1 + runs} runs total)!`, '🟡');
     } else if (currentExtra === 'noBall') {
       recordBall(runs, 'noBall', 1, false, null, null, null, null, extraNbSource || 'bat');
-      showAppToast(`🔴 No Ball recorded (${1 + runs} runs total)! Free Hit follows!`, '🔴');
     } else if (currentExtra === 'bye') {
       recordBall(runs, 'bye', 0, false, null, null, null, null, 'bye');
-      showAppToast(`🔵 Byes recorded: ${runs} run${runs === 1 ? '' : 's'}!`, '🔵');
     } else if (currentExtra === 'legBye') {
       recordBall(runs, 'legBye', 0, false, null, null, null, null, 'legBye');
-      showAppToast(`🟣 Leg Byes recorded: ${runs} run${runs === 1 ? '' : 's'}!`, '🟣');
     } else if (currentExtra === 'penalty') {
       recordBall(runs, 'penalty', 0, false, null, null, null, null, 'penalty');
-      showAppToast(`⚖️ Penalty recorded: ${runs} run${runs === 1 ? '' : 's'} to batting team!`, '⚖️');
     }
   };
 
@@ -23971,7 +23964,7 @@ function CricketAddaMain() {
                 borderWidth: 1,
                 borderColor: '#1e3a5f',
                 paddingHorizontal: 10,
-                marginBottom: 4,
+                marginBottom: 5,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'flex-start',
@@ -24037,7 +24030,7 @@ function CricketAddaMain() {
 
                 return (
                   <View style={{ flexDirection: 'row', gap: 7, marginBottom: 4 }}>
-                    {/* STRIKER CARD (GREEN BORDER HIGHLIGHT) */}
+                    {/* STRIKER CARD (GREEN BORDER HIGHLIGHT - SWAP BUTTON ON LEFT ONLY) */}
                     <View style={{
                       flex: 1,
                       backgroundColor: '#071526',
@@ -24047,15 +24040,15 @@ function CricketAddaMain() {
                       padding: 8,
                       justifyContent: 'space-between',
                     }}>
-                      {/* Top Row: Square Avatar + Name + Swap Button (No Pencil) */}
+                      {/* Top Row: Bigger Square Avatar (32px) + Name + Swap Button */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                         <TouchableOpacity
                           activeOpacity={isOfficialScorer ? 0.75 : 1}
                           onPress={isOfficialScorer ? () => handleEditTeamAndSquadFromScorer('batting') : undefined}
                           style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 4 }}
                         >
-                          <PlayerAvatar name={striker} size={26} customUri={getPlayerAvatarUri(striker)} style={{ borderRadius: 6 }} />
-                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800', flex: 1 }} numberOfLines={1}>
+                          <PlayerAvatar name={striker} size={32} customUri={getPlayerAvatarUri(striker)} style={{ borderRadius: 7 }} />
+                          <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800', flex: 1 }} numberOfLines={1}>
                             {striker}
                           </Text>
                         </TouchableOpacity>
@@ -24065,8 +24058,8 @@ function CricketAddaMain() {
                             onPress={handleSwapStrike}
                             activeOpacity={0.7}
                             style={{
-                              width: 24,
-                              height: 24,
+                              width: 26,
+                              height: 26,
                               borderRadius: 6,
                               backgroundColor: 'rgba(2, 132, 199, 0.15)',
                               borderWidth: 1,
@@ -24075,7 +24068,7 @@ function CricketAddaMain() {
                               justifyContent: 'center',
                             }}
                           >
-                            <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>⇄</Text>
+                            <Text style={{ color: '#38bdf8', fontSize: 13, fontWeight: 'bold' }}>⇄</Text>
                           </TouchableOpacity>
                         )}
                       </View>
@@ -24113,7 +24106,7 @@ function CricketAddaMain() {
                       </View>
                     </View>
 
-                    {/* NON-STRIKER CARD (BLUE BORDER) */}
+                    {/* NON-STRIKER CARD (BLUE BORDER - NO SWAP BUTTON) */}
                     <View style={{
                       flex: 1,
                       backgroundColor: '#071526',
@@ -24123,37 +24116,18 @@ function CricketAddaMain() {
                       padding: 8,
                       justifyContent: 'space-between',
                     }}>
-                      {/* Top Row: Square Avatar + Name + Swap Button (No Pencil) */}
+                      {/* Top Row: Bigger Square Avatar (32px) + Name (No Swap Button Here) */}
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                         <TouchableOpacity
                           activeOpacity={isOfficialScorer ? 0.75 : 1}
                           onPress={isOfficialScorer ? () => handleEditTeamAndSquadFromScorer('batting') : undefined}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 4 }}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}
                         >
-                          <PlayerAvatar name={nonStriker} size={26} customUri={getPlayerAvatarUri(nonStriker)} borderColor="#38bdf8" style={{ borderRadius: 6 }} />
-                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800', flex: 1 }} numberOfLines={1}>
+                          <PlayerAvatar name={nonStriker} size={32} customUri={getPlayerAvatarUri(nonStriker)} borderColor="#38bdf8" style={{ borderRadius: 7 }} />
+                          <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800', flex: 1 }} numberOfLines={1}>
                             {nonStriker}
                           </Text>
                         </TouchableOpacity>
-
-                        {isOfficialScorer && (
-                          <TouchableOpacity
-                            onPress={handleSwapStrike}
-                            activeOpacity={0.7}
-                            style={{
-                              width: 24,
-                              height: 24,
-                              borderRadius: 6,
-                              backgroundColor: 'rgba(2, 132, 199, 0.15)',
-                              borderWidth: 1,
-                              borderColor: '#0284c7',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}
-                          >
-                            <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>⇄</Text>
-                          </TouchableOpacity>
-                        )}
                       </View>
 
                       {/* Middle: Big Score runs (balls) */}
@@ -24224,13 +24198,13 @@ function CricketAddaMain() {
                     justifyContent: 'space-between',
                     gap: 6,
                   }}>
-                    {/* Left: Square Avatar + Formatted Bowler Name (Shifted 5px Left) */}
+                    {/* Left: Bigger Square Avatar (34px) + Formatted Bowler Name */}
                     <TouchableOpacity
                       activeOpacity={isOfficialScorer ? 0.75 : 1}
                       onPress={isOfficialScorer ? () => setChangeBowlerModalVisible(true) : undefined}
                       style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, maxWidth: 112 }}
                     >
-                      <PlayerAvatar name={bowler} size={28} customUri={getPlayerAvatarUri(bowler)} borderColor="#ef4444" style={{ borderRadius: 6 }} />
+                      <PlayerAvatar name={bowler} size={34} customUri={getPlayerAvatarUri(bowler)} borderColor="#ef4444" style={{ borderRadius: 7 }} />
                       <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800' }} numberOfLines={1}>
                         {formattedBowlerName}
                       </Text>
