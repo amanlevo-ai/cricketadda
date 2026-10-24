@@ -24007,141 +24007,163 @@ function CricketAddaMain() {
                 </View>
               </View>
 
-              {/* 4. BATTERS: 2 SIDE-BY-SIDE CARDS (SPACIOUS, CLEAN AVATAR) */}
+                            {/* 4. BATTERS: 2 SIDE-BY-SIDE CARDS (SCREENSHOT BROADCAST DESIGN) */}
               {(() => {
                 const strikerStats = getBatterDetailed(striker);
                 const nonStrikerStats = getBatterDetailed(nonStriker);
 
                 return (
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 6 }}>
-                    {/* STRIKER CARD */}
+                  <View style={{ flexDirection: 'row', gap: 7, marginBottom: 6 }}>
+                    {/* STRIKER CARD (GREEN BORDER HIGHLIGHT) */}
                     <View style={{
                       flex: 1,
                       backgroundColor: '#071526',
-                      borderRadius: 10,
+                      borderRadius: 12,
                       borderWidth: 1.5,
-                      borderColor: '#00e676',
+                      borderColor: '#10b981',
                       padding: 8,
-                      position: 'relative',
+                      justifyContent: 'space-between',
                     }}>
-                      {/* Top Row: Clean Avatar + Name + Swap Button */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 }}>
-                          <PlayerAvatar name={striker} size={24} customUri={getPlayerAvatarUri(striker)} />
-                          <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800', flex: 1 }} numberOfLines={1}>
+                      {/* Top Row: Avatar + Name + Edit Pencil + Swap Button */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <TouchableOpacity
+                          activeOpacity={isOfficialScorer ? 0.75 : 1}
+                          onPress={isOfficialScorer ? () => handleEditTeamAndSquadFromScorer('batting') : undefined}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1, marginRight: 4 }}
+                        >
+                          <PlayerAvatar name={striker} size={26} customUri={getPlayerAvatarUri(striker)} />
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800', flex: 1 }} numberOfLines={1}>
                             {striker}
                           </Text>
-                        </View>
+                          <Text style={{ color: '#94a3b8', fontSize: 10 }}>✎</Text>
+                        </TouchableOpacity>
 
                         {isOfficialScorer && (
                           <TouchableOpacity
                             onPress={handleSwapStrike}
                             activeOpacity={0.7}
                             style={{
-                              width: 20,
-                              height: 20,
-                              borderRadius: 4,
-                              backgroundColor: '#0a2540',
+                              width: 24,
+                              height: 24,
+                              borderRadius: 6,
+                              backgroundColor: 'rgba(2, 132, 199, 0.15)',
                               borderWidth: 1,
                               borderColor: '#0284c7',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              marginLeft: 2,
                             }}
                           >
-                            <Text style={{ color: '#38bdf8', fontSize: 10, fontWeight: 'bold' }}>⇄</Text>
+                            <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>⇄</Text>
                           </TouchableOpacity>
                         )}
                       </View>
 
-                      {/* Merged Stat Row: Runs(Balls) + 4s + 6s + SR all in one strip */}
+                      {/* Middle: Big Score runs (balls) */}
+                      <View style={{ marginVertical: 3 }}>
+                        <Text style={{ color: '#ffffff', fontSize: 19, fontWeight: '900' }} numberOfLines={1}>
+                          {strikerStats.runs} <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '700' }}>({strikerStats.balls})</Text>
+                        </Text>
+                      </View>
+
+                      {/* Bottom Row: 4s | 6s | SR */}
                       <View style={{
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        backgroundColor: 'rgba(10, 37, 64, 0.45)',
-                        borderRadius: 6,
-                        borderWidth: 1,
-                        borderColor: '#1e3a5f',
-                        paddingVertical: 3,
-                        paddingHorizontal: 4,
+                        paddingTop: 4,
+                        borderTopWidth: 1,
+                        borderTopColor: 'rgba(30, 58, 95, 0.6)',
                       }}>
-                        <View style={{ alignItems: 'flex-start' }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 8, fontWeight: '700' }}>R (B)</Text>
-                          <Text style={{ color: '#00e676', fontSize: 12, fontWeight: '900' }}>
-                            {strikerStats.runs} <Text style={{ color: '#94a3b8', fontSize: 9 }}>({strikerStats.balls})</Text>
-                          </Text>
+                        <View style={{ alignItems: 'center', flex: 1 }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700' }}>4s</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>{strikerStats.fours}</Text>
                         </View>
                         <View style={{ width: 1, height: 16, backgroundColor: '#1e3a5f' }} />
-                        <View style={{ alignItems: 'center' }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 8, fontWeight: '700' }}>4s</Text>
-                          <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900' }}>{strikerStats.fours}</Text>
+                        <View style={{ alignItems: 'center', flex: 1 }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700' }}>6s</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>{strikerStats.sixes}</Text>
                         </View>
                         <View style={{ width: 1, height: 16, backgroundColor: '#1e3a5f' }} />
-                        <View style={{ alignItems: 'center' }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 8, fontWeight: '700' }}>6s</Text>
-                          <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900' }}>{strikerStats.sixes}</Text>
-                        </View>
-                        <View style={{ width: 1, height: 16, backgroundColor: '#1e3a5f' }} />
-                        <View style={{ alignItems: 'center' }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 8, fontWeight: '700' }}>SR</Text>
-                          <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '900' }}>{strikerStats.sr}</Text>
+                        <View style={{ alignItems: 'center', flex: 1 }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700' }}>SR</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>{strikerStats.sr}</Text>
                         </View>
                       </View>
                     </View>
 
-                    {/* NON-STRIKER CARD */}
+                    {/* NON-STRIKER CARD (BLUE BORDER) */}
                     <View style={{
                       flex: 1,
                       backgroundColor: '#071526',
-                      borderRadius: 10,
-                      borderWidth: 1,
-                      borderColor: '#1e3a5f',
-                      padding: 6,
-                      position: 'relative',
+                      borderRadius: 12,
+                      borderWidth: 1.2,
+                      borderColor: '#0284c7',
+                      padding: 8,
+                      justifyContent: 'space-between',
                     }}>
-                      {/* Top Row: Clean Avatar + Name */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1 }}>
-                          <PlayerAvatar name={nonStriker} size={24} customUri={getPlayerAvatarUri(nonStriker)} borderColor="#38bdf8" />
-                          <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800', flex: 1 }} numberOfLines={1}>
+                      {/* Top Row: Avatar + Name + Edit Pencil + Swap Button */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <TouchableOpacity
+                          activeOpacity={isOfficialScorer ? 0.75 : 1}
+                          onPress={isOfficialScorer ? () => handleEditTeamAndSquadFromScorer('batting') : undefined}
+                          style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flex: 1, marginRight: 4 }}
+                        >
+                          <PlayerAvatar name={nonStriker} size={26} customUri={getPlayerAvatarUri(nonStriker)} borderColor="#38bdf8" />
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800', flex: 1 }} numberOfLines={1}>
                             {nonStriker}
                           </Text>
-                        </View>
+                          <Text style={{ color: '#94a3b8', fontSize: 10 }}>✎</Text>
+                        </TouchableOpacity>
+
+                        {isOfficialScorer && (
+                          <TouchableOpacity
+                            onPress={handleSwapStrike}
+                            activeOpacity={0.7}
+                            style={{
+                              width: 24,
+                              height: 24,
+                              borderRadius: 6,
+                              backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                              borderWidth: 1,
+                              borderColor: '#0284c7',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>⇄</Text>
+                          </TouchableOpacity>
+                        )}
                       </View>
 
-                      {/* Merged Stat Row: Runs(Balls) + 4s + 6s + SR all in one strip */}
+                      {/* Middle: Big Score runs (balls) */}
+                      <View style={{ marginVertical: 3 }}>
+                        <Text style={{ color: '#ffffff', fontSize: 19, fontWeight: '900' }} numberOfLines={1}>
+                          {nonStrikerStats.runs} <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '700' }}>({nonStrikerStats.balls})</Text>
+                        </Text>
+                      </View>
+
+                      {/* Bottom Row: 4s | 6s | SR */}
                       <View style={{
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        backgroundColor: 'rgba(10, 37, 64, 0.45)',
-                        borderRadius: 6,
-                        borderWidth: 1,
-                        borderColor: '#1e3a5f',
-                        paddingVertical: 3,
-                        paddingHorizontal: 4,
+                        paddingTop: 4,
+                        borderTopWidth: 1,
+                        borderTopColor: 'rgba(30, 58, 95, 0.6)',
                       }}>
-                        <View style={{ alignItems: 'flex-start' }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 8, fontWeight: '700' }}>R (B)</Text>
-                          <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '900' }}>
-                            {nonStrikerStats.runs} <Text style={{ color: '#94a3b8', fontSize: 9 }}>({nonStrikerStats.balls})</Text>
-                          </Text>
+                        <View style={{ alignItems: 'center', flex: 1 }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700' }}>4s</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>{nonStrikerStats.fours}</Text>
                         </View>
                         <View style={{ width: 1, height: 16, backgroundColor: '#1e3a5f' }} />
-                        <View style={{ alignItems: 'center' }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 8, fontWeight: '700' }}>4s</Text>
-                          <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900' }}>{nonStrikerStats.fours}</Text>
+                        <View style={{ alignItems: 'center', flex: 1 }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700' }}>6s</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>{nonStrikerStats.sixes}</Text>
                         </View>
                         <View style={{ width: 1, height: 16, backgroundColor: '#1e3a5f' }} />
-                        <View style={{ alignItems: 'center' }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 8, fontWeight: '700' }}>6s</Text>
-                          <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900' }}>{nonStrikerStats.sixes}</Text>
-                        </View>
-                        <View style={{ width: 1, height: 16, backgroundColor: '#1e3a5f' }} />
-                        <View style={{ alignItems: 'center' }}>
-                          <Text style={{ color: '#94a3b8', fontSize: 8, fontWeight: '700' }}>SR</Text>
-                          <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '900' }}>{nonStrikerStats.sr}</Text>
+                        <View style={{ alignItems: 'center', flex: 1 }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700' }}>SR</Text>
+                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>{nonStrikerStats.sr}</Text>
                         </View>
                       </View>
                     </View>
@@ -24149,311 +24171,485 @@ function CricketAddaMain() {
                 );
               })()}
 
-              {/* 5. BOWLER CARD (SPACIOUS STRIP) */}
+              {/* 5. BOWLER CARD (FULL WIDTH CARD WITH STATS & SWAP BUTTON) */}
               {(() => {
                 const bowlerStats = getBowlerDetailed(bowler);
 
                 return (
                   <View style={{
                     backgroundColor: '#071526',
-                    borderRadius: 10,
+                    borderRadius: 12,
                     borderWidth: 1,
                     borderColor: '#1e3a5f',
-                    padding: 8,
+                    paddingVertical: 7,
+                    paddingHorizontal: 10,
                     marginBottom: 7,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: 6,
                   }}>
-                    {/* Top Row: Clean Bowler Avatar + Name + Change Button */}
-                    <View style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      marginBottom: 4,
-                    }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                        <PlayerAvatar name={bowler} size={24} customUri={getPlayerAvatarUri(bowler)} borderColor="#ef4444" />
-                        <TouchableOpacity
-                          activeOpacity={isOfficialScorer ? 0.7 : 1}
-                          onPress={isOfficialScorer ? () => setChangeBowlerModalVisible(true) : undefined}
-                          style={{ flexDirection: 'row', alignItems: 'center', gap: 3, flex: 1 }}
-                        >
-                          <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
+                    {/* Left: Avatar + Bowler Name + Edit */}
+                    <TouchableOpacity
+                      activeOpacity={isOfficialScorer ? 0.75 : 1}
+                      onPress={isOfficialScorer ? () => setChangeBowlerModalVisible(true) : undefined}
+                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1.2 }}
+                    >
+                      <PlayerAvatar name={bowler} size={28} customUri={getPlayerAvatarUri(bowler)} borderColor="#ef4444" />
+                      <View style={{ flex: 1 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800' }} numberOfLines={1}>
                             {bowler}
                           </Text>
-                          <Text style={{ color: '#64748b', fontSize: 9 }}>✎</Text>
-                        </TouchableOpacity>
+                          <Text style={{ color: '#94a3b8', fontSize: 10 }}>✎</Text>
+                        </View>
                       </View>
+                    </TouchableOpacity>
 
-                      {isOfficialScorer && (
-                        <TouchableOpacity
-                          onPress={() => setChangeBowlerModalVisible(true)}
-                          activeOpacity={0.8}
-                          style={{
-                            backgroundColor: '#0a2540',
-                            borderWidth: 1,
-                            borderColor: '#0284c7',
-                            borderRadius: 6,
-                            paddingVertical: 3,
-                            paddingHorizontal: 8,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 3,
-                          }}
-                        >
-                          <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '900' }}>⇄ Change</Text>
-                        </TouchableOpacity>
-                      )}
+                    {/* Middle: Ov - M - R - W */}
+                    <View style={{ alignItems: 'center', minWidth: 95 }}>
+                      <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900', letterSpacing: 0.5 }}>
+                        {bowlerStats.ovStr} - {bowlerStats.maidens} - {bowlerStats.runs} - {bowlerStats.wickets}
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700', marginTop: 1, letterSpacing: 1.5 }}>
+                        Ov   M   R   W
+                      </Text>
                     </View>
 
-                    {/* Bottom Row: Bowler Stats Strip (Ov, M, R, W, Econ) */}
-                    <View style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-around',
-                      backgroundColor: 'rgba(10, 37, 64, 0.55)',
-                      borderRadius: 6,
-                      borderWidth: 1,
-                      borderColor: 'rgba(30, 58, 95, 0.7)',
-                      paddingVertical: 3,
-                      paddingHorizontal: 6,
-                    }}>
-                      <View style={{ alignItems: 'center', minWidth: 36 }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 8.5, fontWeight: '700' }}>Ov</Text>
-                        <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900' }}>{bowlerStats.ovStr}</Text>
-                      </View>
-                      <View style={{ width: 1, height: 14, backgroundColor: 'rgba(30, 58, 95, 0.8)' }} />
-                      <View style={{ alignItems: 'center', minWidth: 26 }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 8.5, fontWeight: '700' }}>M</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '900' }}>{bowlerStats.maidens}</Text>
-                      </View>
-                      <View style={{ width: 1, height: 14, backgroundColor: 'rgba(30, 58, 95, 0.8)' }} />
-                      <View style={{ alignItems: 'center', minWidth: 26 }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 8.5, fontWeight: '700' }}>R</Text>
-                        <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900' }}>{bowlerStats.runs}</Text>
-                      </View>
-                      <View style={{ width: 1, height: 14, backgroundColor: 'rgba(30, 58, 95, 0.8)' }} />
-                      <View style={{ alignItems: 'center', minWidth: 26 }}>
-                        <Text style={{ color: '#ef4444', fontSize: 8.5, fontWeight: '800' }}>W</Text>
-                        <Text style={{ color: '#ef4444', fontSize: 11.5, fontWeight: '900' }}>{bowlerStats.wickets}</Text>
-                      </View>
-                      <View style={{ width: 1, height: 14, backgroundColor: 'rgba(30, 58, 95, 0.8)' }} />
-                      <View style={{ alignItems: 'center', minWidth: 38 }}>
-                        <Text style={{ color: '#38bdf8', fontSize: 8.5, fontWeight: '800' }}>Econ</Text>
-                        <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '900' }}>{bowlerStats.econ}</Text>
-                      </View>
+                    {/* Right-Middle: Econ */}
+                    <View style={{ alignItems: 'center', minWidth: 42 }}>
+                      <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
+                        {bowlerStats.econ}
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700', marginTop: 1 }}>
+                        Econ
+                      </Text>
                     </View>
+
+                    {/* Right: Change Bowler Button [ ⇄ ] */}
+                    {isOfficialScorer && (
+                      <TouchableOpacity
+                        onPress={() => setChangeBowlerModalVisible(true)}
+                        activeOpacity={0.75}
+                        style={{
+                          width: 32,
+                          height: 32,
+                          borderRadius: 8,
+                          backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                          borderWidth: 1,
+                          borderColor: '#0284c7',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={{ color: '#38bdf8', fontSize: 14, fontWeight: 'bold' }}>⇄</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 );
               })()}
 
-              {/* 6. SCORING KEYPAD (OR SPECTATOR NOTICE) */}
+              {/* 6. SPLIT CONSOLE KEYPAD (LEFT: RUNS & ACTIONS, RIGHT: EXTRAS & WHEEL) */}
               {isOfficialScorer ? (
-                <>
-                  {/* Mandatory Next Bowler Selection Guidance Banner */}
-                  {needsNewBowler && (
-                    <TouchableOpacity
-                      style={[styles.pendingBowlerBanner, { paddingVertical: 4, paddingHorizontal: 8, marginBottom: 3 }]}
-                      onPress={() => {
-                        const eligible = activeOppBowlers.filter(b => b !== bowler);
-                        if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
-                        setChangeBowlerModalVisible(true);
-                      }}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Text style={[styles.pendingBowlerBannerTitle, { fontSize: 10.5 }]}>⚠️ OVER COMPLETED — SELECT NEW BOWLER</Text>
-                      </View>
-                      <View style={[styles.pendingBowlerMiniBtn, { flexDirection: 'row', alignItems: 'center', gap: 3, paddingVertical: 2, paddingHorizontal: 6 }]}>
-                        <RealisticCricketLeatherBall size={10} />
-                        <Text style={[styles.pendingBowlerMiniBtnText, { fontSize: 10 }]}>Select</Text>
-                      </View>
-                    </TouchableOpacity>
-                  )}
-
-                  {/* 6.1 RUNS (0, 1, 2, 3, 4, 5, 6 - Spacious Buttons) */}
-                  <View style={{ flexDirection: 'row', gap: 5, marginBottom: 6 }}>
-                    {[
-                      { run: 0, title: '0', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
-                      { run: 1, title: '1', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
-                      { run: 2, title: '2', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
-                      { run: 3, title: '3', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
-                      { run: 4, title: '4', bg: '#00e676', text: '#000000', border: '#00e676' },
-                      { run: 5, title: '5', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
-                      { run: 6, title: '6', bg: '#00b0ff', text: '#000000', border: '#00b0ff' },
-                    ].map(item => (
-                      <TouchableOpacity
-                        key={`run_btn_${item.run}`}
-                        onPress={() => handleRunPress(item.run)}
-                        activeOpacity={0.75}
-                        style={{
-                          flex: 1,
-                          height: 42,
-                          backgroundColor: item.bg,
-                          borderRadius: 8,
-                          borderWidth: 1.2,
-                          borderColor: item.border,
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          elevation: 3,
-                        }}
-                      >
-                        <Text style={{ color: item.text, fontSize: 18, fontWeight: '900' }}>{item.title}</Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-
-                  {/* 6.2 EXTRAS (Tap to add - Opens Custom Popups) */}
-                  <View style={{ flexDirection: 'row', gap: 5, marginBottom: 6 }}>
-                    {[
-                      { key: 'wide', label: 'Wide', bg: '#f59e0b', text: '#ffffff' },
-                      { key: 'noBall', label: 'No Ball', bg: '#ef4444', text: '#ffffff' },
-                      { key: 'bye', label: 'Bye', bg: '#0b1a2e', text: '#ffffff', border: '#1e3a5f' },
-                      { key: 'legBye', label: 'Leg Bye', bg: '#8b5cf6', text: '#ffffff' },
-                      { key: 'penalty', label: 'Penalty', bg: '#0284c7', text: '#ffffff' },
-                    ].map(extra => {
-                      const isActive = selectedExtraType === extra.key;
-                      return (
+                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8, alignItems: 'stretch' }}>
+                  {/* ===================== LEFT CONSOLE: 3x3 GRID + BOTTOM BUTTONS ===================== */}
+                  <View style={{ flex: 1.38, gap: 5 }}>
+                    {/* Row 1: [ 0 ] [ 1 ] [ 2 ] */}
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                      {[0, 1, 2].map(r => (
                         <TouchableOpacity
-                          key={`extra_${extra.key}`}
-                          onPress={() => {
-                            if (needsNewBowler) {
-                              const eligible = activeOppBowlers.filter(b => b !== bowler);
-                              if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
-                              setChangeBowlerModalVisible(true);
-                              showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
-                              return;
-                            }
-                            setExtraModalType(extra.key);
-                            setExtraNbSource('bat');
-                            setExtraCustomInput('');
-                          }}
+                          key={`run_${r}`}
+                          onPress={() => handleRunPress(r)}
                           activeOpacity={0.75}
                           style={{
                             flex: 1,
-                            backgroundColor: isActive ? '#ffffff' : extra.bg,
+                            height: 48,
+                            backgroundColor: '#0b1a2e',
                             borderRadius: 8,
-                            borderWidth: extra.border ? 1 : 0,
-                            borderColor: isActive ? '#38bdf8' : (extra.border || extra.bg),
-                            paddingVertical: 8.5,
+                            borderWidth: 1.2,
+                            borderColor: '#1e3a5f',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            elevation: 2,
                           }}
                         >
-                          <Text style={{ color: isActive ? '#000000' : extra.text, fontSize: 11.5, fontWeight: '900' }} numberOfLines={1}>
-                            {extra.label}
-                          </Text>
+                          <Text style={{ color: '#ffffff', fontSize: 21, fontWeight: '900' }}>{r}</Text>
                         </TouchableOpacity>
-                      );
-                    })}
+                      ))}
+                    </View>
+
+                    {/* Row 2: [ 3 ] [ 4 ] [ 6 ] (5 replaced with 6 as requested) */}
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                      {[3, 4, 6].map(r => (
+                        <TouchableOpacity
+                          key={`run_${r}`}
+                          onPress={() => handleRunPress(r)}
+                          activeOpacity={0.75}
+                          style={{
+                            flex: 1,
+                            height: 48,
+                            backgroundColor: '#0b1a2e',
+                            borderRadius: 8,
+                            borderWidth: 1.2,
+                            borderColor: '#1e3a5f',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            elevation: 2,
+                          }}
+                        >
+                          <Text style={{ color: '#ffffff', fontSize: 21, fontWeight: '900' }}>{r}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+
+                    {/* Row 3: [ OUT ] [ UNDO ] [ DROP ] */}
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                      {/* OUT */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (needsNewBowler) {
+                            const eligible = activeOppBowlers.filter(b => b !== bowler);
+                            if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                            setChangeBowlerModalVisible(true);
+                            showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                            return;
+                          }
+                          const eligibleBatters = activeBenchBatters.filter(b => b !== striker && b !== nonStriker);
+                          if (Array.isArray(eligibleBatters) && (eligibleBatters || []).length > 0) {
+                            setIncomingBatter(eligibleBatters[0]);
+                          }
+                          setCustomIncomingBatter('');
+                          setOutBatter('striker');
+                          setWicketModalVisible(true);
+                        }}
+                        activeOpacity={0.75}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          backgroundColor: '#0b1a2e',
+                          borderRadius: 8,
+                          borderWidth: 1.2,
+                          borderColor: '#1e3a5f',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: 2,
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>OUT</Text>
+                      </TouchableOpacity>
+
+                      {/* UNDO */}
+                      <TouchableOpacity
+                        onPress={handleUndoLastBall}
+                        activeOpacity={0.75}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          backgroundColor: '#0b1a2e',
+                          borderRadius: 8,
+                          borderWidth: 1.2,
+                          borderColor: '#1e3a5f',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: 2,
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>UNDO</Text>
+                      </TouchableOpacity>
+
+                      {/* DROP */}
+                      <TouchableOpacity
+                        onPress={() => {
+                          if (needsNewBowler) {
+                            const eligible = activeOppBowlers.filter(b => b !== bowler);
+                            if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                            setChangeBowlerModalVisible(true);
+                            showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                            return;
+                          }
+                          setDropCatchModalVisible(true);
+                        }}
+                        activeOpacity={0.75}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          backgroundColor: '#0b1a2e',
+                          borderRadius: 8,
+                          borderWidth: 1.2,
+                          borderColor: '#1e3a5f',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: 2,
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>DROP</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Row 4 (Bottom Bar under Left): [ Scorecard ] [ Commentary ] */}
+                    <View style={{ flexDirection: 'row', gap: 5, marginTop: 1 }}>
+                      {/* Scorecard */}
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => openMatchScorecard(activeMatchId)}
+                        style={{
+                          flex: 1,
+                          height: 42,
+                          backgroundColor: '#0b1a2e',
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#1e3a5f',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 5,
+                        }}
+                      >
+                        <Text style={{ fontSize: 14 }}>📊</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800' }}>Scorecard</Text>
+                      </TouchableOpacity>
+
+                      {/* Commentary */}
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={() => setLiveCommentaryModalVisible(true)}
+                        style={{
+                          flex: 1,
+                          height: 42,
+                          backgroundColor: '#0b1a2e',
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#1e3a5f',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 5,
+                        }}
+                      >
+                        <Text style={{ fontSize: 14 }}>💬</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800' }}>Commentary</Text>
+                      </TouchableOpacity>
+                    </View>
                   </View>
 
-                  {/* 6.3 MORE EVENTS (Wicket Out is 1st Button) */}
-                  <View style={{ flexDirection: 'row', gap: 5, marginBottom: 8 }}>
-                    {/* Wicket Out (FIRST) */}
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (needsNewBowler) {
-                          const eligible = activeOppBowlers.filter(b => b !== bowler);
-                          if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
-                          setChangeBowlerModalVisible(true);
-                          showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
-                          return;
-                        }
-                        const eligibleBatters = activeBenchBatters.filter(b => b !== striker && b !== nonStriker);
-                        if (Array.isArray(eligibleBatters) && (eligibleBatters || []).length > 0) {
-                          setIncomingBatter(eligibleBatters[0]);
-                        }
-                        setCustomIncomingBatter('');
-                        setOutBatter('striker');
-                        setWicketModalVisible(true);
-                      }}
-                      activeOpacity={0.75}
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#dc2626',
-                        borderRadius: 8,
-                        paddingVertical: 7,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }} numberOfLines={1}>Wicket Out</Text>
-                    </TouchableOpacity>
+                  {/* Vertical Divider Line */}
+                  <View style={{ width: 1, backgroundColor: '#1e3a5f', marginVertical: 2 }} />
 
-                    {/* Drop Catch */}
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (needsNewBowler) {
-                          const eligible = activeOppBowlers.filter(b => b !== bowler);
-                          if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
-                          setChangeBowlerModalVisible(true);
-                          showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
-                          return;
-                        }
-                        setDropCatchModalVisible(true);
-                      }}
-                      activeOpacity={0.75}
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#78350f',
-                        borderRadius: 8,
-                        paddingVertical: 7,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }} numberOfLines={1}>Drop Catch</Text>
-                    </TouchableOpacity>
+                  {/* ===================== RIGHT CONSOLE: EXTRAS + WAGON WHEEL ===================== */}
+                  <View style={{ flex: 1, gap: 5 }}>
+                    {/* Row 1: [ WD ] [ NB ] */}
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                      {/* WD */}
+                      <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          if (needsNewBowler) {
+                            const eligible = activeOppBowlers.filter(b => b !== bowler);
+                            if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                            setChangeBowlerModalVisible(true);
+                            showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                            return;
+                          }
+                          setExtraModalType('wide');
+                          setExtraNbSource('bat');
+                          setExtraCustomInput('');
+                        }}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          backgroundColor: '#78350f',
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#b45309',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: 2,
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>WD</Text>
+                      </TouchableOpacity>
 
-                    {/* Overthrow */}
-                    <TouchableOpacity
-                      onPress={() => {
-                        if (needsNewBowler) {
-                          const eligible = activeOppBowlers.filter(b => b !== bowler);
-                          if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
-                          setChangeBowlerModalVisible(true);
-                          showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
-                          return;
-                        }
-                        setOverthrowType('bat');
-                        setOverthrowPhysicalRuns(1);
-                        setOverthrowExtraRuns(4);
-                        setOtCustomInput('');
-                        setOverthrowModalVisible(true);
-                      }}
-                      activeOpacity={0.75}
-                      style={{
-                        flex: 1,
-                        backgroundColor: '#581c87',
-                        borderRadius: 8,
-                        paddingVertical: 7,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}
-                    >
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }} numberOfLines={1}>Overthrow</Text>
-                    </TouchableOpacity>
+                      {/* NB */}
+                      <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          if (needsNewBowler) {
+                            const eligible = activeOppBowlers.filter(b => b !== bowler);
+                            if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                            setChangeBowlerModalVisible(true);
+                            showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                            return;
+                          }
+                          setExtraModalType('noBall');
+                          setExtraNbSource('bat');
+                          setExtraCustomInput('');
+                        }}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          backgroundColor: '#831843',
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#be123c',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: 2,
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>NB</Text>
+                      </TouchableOpacity>
+                    </View>
 
-                    {/* Undo */}
+                    {/* Row 2: [ BY ] [ LB ] */}
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                      {/* BY */}
+                      <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          if (needsNewBowler) {
+                            const eligible = activeOppBowlers.filter(b => b !== bowler);
+                            if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                            setChangeBowlerModalVisible(true);
+                            showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                            return;
+                          }
+                          setExtraModalType('bye');
+                          setExtraNbSource('bat');
+                          setExtraCustomInput('');
+                        }}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          backgroundColor: '#0e7490',
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#06b6d4',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: 2,
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>BY</Text>
+                      </TouchableOpacity>
+
+                      {/* LB */}
+                      <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          if (needsNewBowler) {
+                            const eligible = activeOppBowlers.filter(b => b !== bowler);
+                            if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                            setChangeBowlerModalVisible(true);
+                            showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                            return;
+                          }
+                          setExtraModalType('legBye');
+                          setExtraNbSource('bat');
+                          setExtraCustomInput('');
+                        }}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          backgroundColor: '#581c87',
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#9333ea',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: 2,
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>LB</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Row 3: [ OT ] [ PL ] */}
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                      {/* OT (Overthrow) */}
+                      <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          if (needsNewBowler) {
+                            const eligible = activeOppBowlers.filter(b => b !== bowler);
+                            if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                            setChangeBowlerModalVisible(true);
+                            showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                            return;
+                          }
+                          setOverthrowType('bat');
+                          setOverthrowPhysicalRuns(1);
+                          setOverthrowExtraRuns(4);
+                          setOtCustomInput('');
+                          setOverthrowModalVisible(true);
+                        }}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          backgroundColor: '#1e293b',
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#334155',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: 2,
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>OT</Text>
+                      </TouchableOpacity>
+
+                      {/* PL (Penalty) */}
+                      <TouchableOpacity
+                        activeOpacity={0.75}
+                        onPress={() => {
+                          if (needsNewBowler) {
+                            const eligible = activeOppBowlers.filter(b => b !== bowler);
+                            if (Array.isArray(eligible) && (eligible || []).length > 0) setNextBowler(eligible[0]);
+                            setChangeBowlerModalVisible(true);
+                            showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+                            return;
+                          }
+                          setExtraModalType('penalty');
+                          setExtraNbSource('bat');
+                          setExtraCustomInput('');
+                        }}
+                        style={{
+                          flex: 1,
+                          height: 48,
+                          backgroundColor: '#1d4ed8',
+                          borderRadius: 8,
+                          borderWidth: 1,
+                          borderColor: '#3b82f6',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          elevation: 2,
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>PL</Text>
+                      </TouchableOpacity>
+                    </View>
+
+                    {/* Row 4 (Bottom Bar under Right): [ 🎯 Wagon Wheel ] */}
                     <TouchableOpacity
-                      onPress={handleUndoLastBall}
-                      activeOpacity={0.75}
+                      activeOpacity={0.8}
+                      onPress={() => openMatchWagonWheel(activeMatchId)}
                       style={{
-                        flex: 1,
+                        height: 42,
                         backgroundColor: '#0b1a2e',
                         borderRadius: 8,
                         borderWidth: 1,
                         borderColor: '#1e3a5f',
-                        paddingVertical: 7,
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 4,
+                        gap: 6,
+                        marginTop: 1,
                       }}
                     >
-                      <Text style={{ fontSize: 12 }}>↩️</Text>
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }}>Undo</Text>
+                      <Text style={{ fontSize: 14 }}>🎯</Text>
+                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800' }}>Wagon Wheel</Text>
                     </TouchableOpacity>
                   </View>
-                </>
+                </View>
               ) : (
                 /* Spectator Read-Only Notice */
                 <View style={{
@@ -24462,7 +24658,7 @@ function CricketAddaMain() {
                   borderWidth: 1,
                   borderColor: '#1e3a5f',
                   padding: 8,
-                  marginBottom: 4,
+                  marginBottom: 8,
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 6,
@@ -24473,59 +24669,6 @@ function CricketAddaMain() {
                   </Text>
                 </View>
               )}
-
-                            {/* 7. DUAL ACTION BUTTONS: LIVE COMMENTARY & FULL SCORECARD (OPENS FULL WINDOWS) */}
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 4, marginBottom: 8 }}>
-                {/* Button 1: Live Commentary */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setLiveCommentaryModalVisible(true)}
-                  style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: 12,
-                    paddingHorizontal: 10,
-                    borderRadius: 12,
-                    backgroundColor: 'rgba(2, 132, 199, 0.22)',
-                    borderWidth: 1.5,
-                    borderColor: '#0284c7',
-                    elevation: 3,
-                  }}
-                >
-                  <Text style={{ fontSize: 17 }}>💬</Text>
-                  <Text style={{ color: '#38bdf8', fontSize: 13.5, fontWeight: '900' }} numberOfLines={1}>
-                    Live Commentary
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Button 2: Full Scorecard */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => openMatchScorecard(activeMatchId)}
-                  style={{
-                    flex: 1,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    paddingVertical: 12,
-                    paddingHorizontal: 10,
-                    borderRadius: 12,
-                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                    borderWidth: 1.5,
-                    borderColor: '#10b981',
-                    elevation: 3,
-                  }}
-                >
-                  <Text style={{ fontSize: 17 }}>📊</Text>
-                  <Text style={{ color: '#34d399', fontSize: 13.5, fontWeight: '900' }} numberOfLines={1}>
-                    Scorecard & Stats
-                  </Text>
-                </TouchableOpacity>
-              </View>
                           </>
           )}
           </View>
