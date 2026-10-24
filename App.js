@@ -14930,8 +14930,8 @@ function CricketAddaMain() {
       const d = currentInningsDeliveries[collectIndex];
       let sym = '0';
       if (d.isWkt) sym = 'W';
-      else if (d.extraType === 'wide') sym = d.addedRuns > 1 ? `Wd+${d.addedRuns - 1}` : 'Wd';
-      else if (d.extraType === 'noBall') sym = d.addedRuns > 1 ? `Nb+${d.addedRuns - 1}` : 'Nb';
+      else if (d.extraType === 'wide') sym = `Wd+${Math.max(0, (d.addedRuns || 1) - 1)}`;
+      else if (d.extraType === 'noBall') sym = `Nb+${Math.max(0, (d.addedRuns || 1) - 1)}`;
       else if (d.extraType === 'bye') sym = `${d.addedRuns}B`;
       else if (d.extraType === 'legBye') sym = `${d.addedRuns}LB`;
       else sym = String(d.runsOffBat !== undefined ? d.runsOffBat : (d.addedRuns || 0));
@@ -15731,7 +15731,7 @@ function CricketAddaMain() {
     } else if (extraType === 'wide') {
       const penalty = extraPenalty !== undefined && extraPenalty !== null ? extraPenalty : 1;
       const wRuns = penalty + (runs || 0);
-      badge = `${wRuns} Wd`;
+      badge = `Wd+${runs || 0}`;
       badgeType = 'wide';
       text = (runs || 0) > 0
         ? `WIDE + ${runs} RUNS! ${currentBowler} sprays it wide down the leg side, beating the keeper and conceding ${runs} extra runs (+${wRuns} runs total).`
@@ -15924,7 +15924,7 @@ function CricketAddaMain() {
       const totalWides = penalty + runs + otRuns;
       addedRuns = totalWides;
       isLegalDelivery = false;
-      ballSymbol = totalWides === 1 ? 'Wd' : `${totalWides}Wd`;
+      ballSymbol = otRuns > 0 ? `Wd+${runs}+${otRuns}ot` : `Wd+${runs}`;
       bowlerRunsConceded = totalWides;
     } else if (extraType === 'noBall') {
       const penalty = extraPenalty || 1;
@@ -23376,7 +23376,7 @@ function CricketAddaMain() {
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              marginBottom: 5,
+              marginBottom: 4,
               width: '100%',
             }}>
               {/* 1. Back Button (Solid Black Background, White Icon) */}
@@ -23821,7 +23821,7 @@ function CricketAddaMain() {
                 borderWidth: 1.2,
                 borderColor: '#1e3a5f',
                 padding: 8,
-                marginBottom: 6,
+                marginBottom: 4,
                 flexDirection: 'row',
                 alignItems: 'stretch',
                 justifyContent: 'space-between',
@@ -23951,7 +23951,7 @@ function CricketAddaMain() {
                 borderWidth: 1,
                 borderColor: '#1e3a5f',
                 paddingHorizontal: 10,
-                marginBottom: 7,
+                marginBottom: 4,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'flex-start',
@@ -23974,7 +23974,9 @@ function CricketAddaMain() {
                     const isNb = str.includes('NB');
                     const isDot = str === '0' || str === '.';
 
-                    const bg = isWkt ? '#ef4444' : isFour ? '#00e676' : isSix ? '#00b0ff' : isWd ? '#f59e0b' : isNb ? '#8b5cf6' : isDot ? '#0f2238' : '#0284c7';
+                    const bg = isWkt ? '#ef4444' : isFour ? '#00e676' : isSix ? '#00b0ff' : isWd ? '#78350f' : isNb ? '#831843' : isDot ? '#0f2238' : '#0284c7';
+                    const borderColor = isWd ? '#b45309' : isNb ? '#be123c' : isDot ? '#1e3a5f' : 'transparent';
+                    const borderWidth = (isWd || isNb || isDot) ? 1 : 0;
                     const textColor = isFour ? '#000000' : isDot ? '#94a3b8' : '#ffffff';
 
                     return (
@@ -23983,13 +23985,13 @@ function CricketAddaMain() {
                         style={{
                           minWidth: 28,
                           height: 28,
-                          paddingHorizontal: rawStr.length > 2 ? 3 : 0,
+                          paddingHorizontal: rawStr.length > 2 ? 4 : 2,
                           borderRadius: 6,
                           backgroundColor: bg,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          borderWidth: isDot ? 1 : 0,
-                          borderColor: '#1e3a5f',
+                          borderWidth: borderWidth,
+                          borderColor: borderColor,
                         }}
                       >
                         <Text style={{
@@ -24014,7 +24016,7 @@ function CricketAddaMain() {
                 const nonStrikerStats = getBatterDetailed(nonStriker);
 
                 return (
-                  <View style={{ flexDirection: 'row', gap: 7, marginBottom: 6 }}>
+                  <View style={{ flexDirection: 'row', gap: 7, marginBottom: 4 }}>
                     {/* STRIKER CARD (GREEN BORDER HIGHLIGHT) */}
                     <View style={{
                       flex: 1,
@@ -24196,7 +24198,7 @@ function CricketAddaMain() {
                     borderColor: '#1e3a5f',
                     paddingVertical: 7,
                     paddingHorizontal: 8,
-                    marginBottom: 7,
+                    marginBottom: 4,
                     flexDirection: 'row',
                     alignItems: 'center',
                     justifyContent: 'space-between',
@@ -24288,7 +24290,7 @@ function CricketAddaMain() {
                   borderWidth: 1,
                   borderColor: '#1e3a5f',
                   padding: 7,
-                  marginBottom: 8,
+                  marginBottom: 4,
                 }}>
                   <View style={{ flexDirection: 'row', gap: 6, alignItems: 'stretch' }}>
                   {/* ===================== LEFT CONSOLE: 3x3 GRID + BOTTOM BUTTONS ===================== */}
