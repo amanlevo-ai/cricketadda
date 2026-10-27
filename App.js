@@ -4763,6 +4763,7 @@ function CricketAddaMain() {
   const [aboutActiveTab, setAboutActiveTab] = useState('developer'); // 'developer' | 'tech' | 'features'
 
   // AUTHENTICATION & SIGNUP / ONBOARDING STATE
+  const [isSessionRestoring, setIsSessionRestoring] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authMethod, setAuthMethod] = useState('otp'); // 'otp' (first preference) | 'password'
   const [authSubTab, setAuthSubTab] = useState('signin'); // 'signin' | 'signup'
@@ -6358,7 +6359,38 @@ function CricketAddaMain() {
   useEffect(() => {
     const loadUserPreferences = async () => {
       try {
-        // 0. Load or initialize persistent unique device identity
+        // 0. FAST-TRACK SESSION RESTORATION (Prevents login screen flash on cold start)
+        try {
+          const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+          const storedLastActive = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
+          if (storedProfile) {
+            const parsedProfile = JSON.parse(storedProfile);
+            if (parsedProfile && (parsedProfile.name || parsedProfile.email || parsedProfile.phone)) {
+              const lastActiveMs = storedLastActive ? parseInt(storedLastActive, 10) : Date.now();
+              const nowMs = Date.now();
+              const isExpired = !isNaN(lastActiveMs) && (nowMs - lastActiveMs > THIRTY_DAYS_MS);
+              if (isExpired) {
+                await AsyncStorage.multiRemove([STORAGE_KEYS.USER_PROFILE, STORAGE_KEYS.LAST_ACTIVE_TIME]);
+                setIsAuthenticated(false);
+              } else {
+                setUserProfile(parsedProfile);
+                if (parsedProfile.email) setAuthEmail(parsedProfile.email);
+                if (parsedProfile.phone) setAuthPhone(parsedProfile.phone);
+                if (parsedProfile.name) setAuthName(parsedProfile.name);
+                if (parsedProfile.jersey) setAuthJersey(parsedProfile.jersey);
+                if (parsedProfile.role) setAuthRole(parsedProfile.role);
+                if (parsedProfile.battingStyle) setAuthBattingStyle(parsedProfile.battingStyle);
+                if (parsedProfile.bowlingStyle) setAuthBowlingStyle(parsedProfile.bowlingStyle);
+                setIsAuthenticated(true);
+                setAuthStep(1);
+                AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(nowMs)).catch(() => {});
+              }
+            }
+          }
+        } catch (authErr) {}
+        setIsSessionRestoring(false);
+
+        // 1. Load or initialize persistent unique device identity
         let devId = await AsyncStorage.getItem(STORAGE_KEYS.DEVICE_ID);
         if (!devId) {
           devId = `dev_${Platform.OS}_${Date.now()}_${Math.floor(Math.random() * 100000)}`;
@@ -15402,7 +15434,16 @@ function CricketAddaMain() {
         <View style={{ height: topInset, backgroundColor: currentTheme.headerBg, width: '100%' }} />
       )}
 
-      {!isAuthenticated ? (
+      {isSessionRestoring ? (
+        <View style={{ flex: 1, backgroundColor: '#020b14', alignItems: 'center', justifyContent: 'center' }}>
+          <Image
+            source={require('./assets/logo.png')}
+            style={{ width: 110, height: 110, marginBottom: 20 }}
+            resizeMode="contain"
+          />
+          <ActivityIndicator size="large" color="#22c55e" />
+        </View>
+      ) : !isAuthenticated ? (
         <ImageBackground
           source={require('./assets/login-bg.jpg')}
           style={styles.authRootContainer}
