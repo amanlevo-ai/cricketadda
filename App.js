@@ -16331,7 +16331,7 @@ function CricketAddaMain() {
               <Text style={{ color: '#64748b', fontSize: 11, marginBottom: 10 }}>Start a match to begin live scoring</Text>
               <TouchableOpacity
                 style={{ backgroundColor: '#22c55e', paddingVertical: 6, paddingHorizontal: 16, borderRadius: 16 }}
-                onPress={handleStartMatchPress}
+                onPress={handleOpenMatchWizard}
                 activeOpacity={0.8}
               >
                 <Text style={{ color: '#000000', fontSize: 12, fontWeight: '900' }}>+ Start Match</Text>
