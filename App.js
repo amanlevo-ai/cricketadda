@@ -25919,15 +25919,9 @@ function CricketAddaMain() {
                               </Text>
                             ) : (
                               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1, gap: 5 }}>
-                                {tTotal > 0 ? (
-                                  <Text style={{ color: '#86efac', fontSize: 11, fontWeight: '700', flexShrink: 0 }} numberOfLines={1}>
-                                    🏆 {tWins}W - {tLosses}L <Text style={{ color: '#eab308', fontWeight: '800' }}>({tWinPct}%)</Text>
-                                  </Text>
-                                ) : (
-                                  <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '700', flexShrink: 0 }} numberOfLines={1}>
-                                    ⭐ New Team
-                                  </Text>
-                                )}
+                                <Text style={{ color: '#86efac', fontSize: 11, fontWeight: '700', flexShrink: 0 }} numberOfLines={1}>
+                                  🏆 {tWins}W - {tLosses}L <Text style={{ color: '#eab308', fontWeight: '800' }}>({tWinPct}%)</Text>
+                                </Text>
                                 {Boolean(t.city || t.homeGround) && (
                                   <>
                                     <Text style={{ color: '#64748b', fontSize: 10 }}>•</Text>
