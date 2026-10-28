@@ -22108,7 +22108,7 @@ function CricketAddaMain() {
                           </View>
                         )}
 
-                        {/* CUSTOM TEAM PICTURE */}
+                        {/* CUSTOM TEAM PICTURE: LEFT BIG AVATAR, RIGHT URL & BUTTONS */}
                         <Text style={[styles.inputFieldLabel, { marginTop: 4, marginBottom: 2 }, currentTheme.isLight && { color: '#475569' }]}>Team Picture:</Text>
                         <View style={{
                           backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a101d',
@@ -22117,12 +22117,14 @@ function CricketAddaMain() {
                           borderRadius: 12,
                           padding: 8,
                           marginBottom: 6,
+                          flexDirection: 'row',
                           alignItems: 'center',
+                          gap: 10,
                         }}>
-                          {/* Big Avatar Preview */}
+                          {/* Left: Big Team Picture Avatar */}
                           <View style={{
-                            width: 68,
-                            height: 68,
+                            width: 76,
+                            height: 76,
                             borderRadius: 14,
                             backgroundColor: currentTheme.isLight ? '#ffffff' : '#162235',
                             borderWidth: 2,
@@ -22130,7 +22132,6 @@ function CricketAddaMain() {
                             justifyContent: 'center',
                             alignItems: 'center',
                             overflow: 'hidden',
-                            marginBottom: 8,
                           }}>
                             {(newTeamCustomLogoUrl || newTeamLogo) ? (
                               <Image
@@ -22140,82 +22141,84 @@ function CricketAddaMain() {
                                 resizeMode="cover"
                               />
                             ) : (
-                              <Text style={{ fontSize: 34 }}>{newTeamFlag || '🦁'}</Text>
+                              <Text style={{ fontSize: 38 }}>{newTeamFlag || '🦁'}</Text>
                             )}
                           </View>
 
-                          {/* Full-width Direct URL Text Input (colspan) */}
-                          <View style={{
-                            width: '100%',
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
-                            borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                            borderWidth: 1,
-                            borderRadius: 8,
-                            paddingHorizontal: 8,
-                            height: 36,
-                            marginBottom: 6,
-                          }}>
-                            <Text style={{ fontSize: 12, marginRight: 5 }}>🔗</Text>
-                            <TextInput
-                              style={{
-                                flex: 1,
-                                fontSize: 11.5,
-                                color: currentTheme.isLight ? '#0f172a' : '#ffffff',
-                                paddingVertical: 0,
-                              }}
-                              value={newTeamCustomLogoUrl || (typeof newTeamLogo === 'string' && newTeamLogo.startsWith('http') ? newTeamLogo : '')}
-                              onChangeText={t => {
-                                setNewTeamCustomLogoUrl(t);
-                                setNewTeamLogo(t.trim() || null);
-                              }}
-                              placeholder="Paste image URL (https://...)"
-                              placeholderTextColor="#64748b"
-                              autoCapitalize="none"
-                              autoCorrect={false}
-                            />
-                          </View>
+                          {/* Right: URL Input + Gallery & Camera Buttons */}
+                          <View style={{ flex: 1 }}>
+                            {/* URL Text Input */}
+                            <View style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+                              borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                              borderWidth: 1,
+                              borderRadius: 8,
+                              paddingHorizontal: 8,
+                              height: 36,
+                              marginBottom: 6,
+                            }}>
+                              <Text style={{ fontSize: 12, marginRight: 5 }}>🔗</Text>
+                              <TextInput
+                                style={{
+                                  flex: 1,
+                                  fontSize: 11.5,
+                                  color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                                  paddingVertical: 0,
+                                }}
+                                value={newTeamCustomLogoUrl || (typeof newTeamLogo === 'string' && newTeamLogo.startsWith('http') ? newTeamLogo : '')}
+                                onChangeText={t => {
+                                  setNewTeamCustomLogoUrl(t);
+                                  setNewTeamLogo(t.trim() || null);
+                                }}
+                                placeholder="Paste image URL (https://...)"
+                                placeholderTextColor="#64748b"
+                                autoCapitalize="none"
+                                autoCorrect={false}
+                              />
+                            </View>
 
-                          {/* Full-width Action Buttons: Gallery & Camera (colspan) */}
-                          <View style={{ width: '100%', flexDirection: 'row', gap: 6 }}>
-                            <TouchableOpacity
-                              style={{
-                                flex: 1,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 5,
-                                backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0369a1',
-                                paddingVertical: 7,
-                                borderRadius: 8,
-                              }}
-                              onPress={pickTeamLogoFromGallery}
-                            >
-                              <Text style={{ fontSize: 12 }}>🖼️</Text>
-                              <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
-                                From Gallery
-                              </Text>
-                            </TouchableOpacity>
+                            {/* Action Buttons: Gallery & Camera */}
+                            <View style={{ flexDirection: 'row', gap: 6 }}>
+                              <TouchableOpacity
+                                style={{
+                                  flex: 1,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 4,
+                                  backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0369a1',
+                                  paddingVertical: 7,
+                                  borderRadius: 8,
+                                }}
+                                onPress={pickTeamLogoFromGallery}
+                              >
+                                <Text style={{ fontSize: 12 }}>🖼️</Text>
+                                <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
+                                  Gallery
+                                </Text>
+                              </TouchableOpacity>
 
-                            <TouchableOpacity
-                              style={{
-                                flex: 1,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                gap: 5,
-                                backgroundColor: currentTheme.isLight ? '#dcfce7' : '#059669',
-                                paddingVertical: 7,
-                                borderRadius: 8,
-                              }}
-                              onPress={takeTeamLogoWithCamera}
-                            >
-                              <Text style={{ fontSize: 12 }}>📸</Text>
-                              <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
-                                From Camera
-                              </Text>
-                            </TouchableOpacity>
+                              <TouchableOpacity
+                                style={{
+                                  flex: 1,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  gap: 4,
+                                  backgroundColor: currentTheme.isLight ? '#dcfce7' : '#059669',
+                                  paddingVertical: 7,
+                                  borderRadius: 8,
+                                }}
+                                onPress={takeTeamLogoWithCamera}
+                              >
+                                <Text style={{ fontSize: 12 }}>📸</Text>
+                                <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
+                                  Camera
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
                           </View>
                         </View>
                       </>
