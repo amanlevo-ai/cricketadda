@@ -625,6 +625,8 @@ export async function flushOfflineSyncQueue() {
         success = await syncMatchesDbToFirebaseDirect(job.payload);
       } else if (job.action === 'syncTeams') {
         success = await syncTeamsToFirebaseDirect(job.payload);
+      } else if (job.action === 'syncSingleTeam') {
+        success = await syncSingleTeamToFirebaseDirect(job.payload);
       } else if (job.action === 'syncUsers') {
         success = await syncUsersToFirebaseDirect(job.payload);
       } else if (job.action === 'syncProfile') {

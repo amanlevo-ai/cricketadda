@@ -3952,23 +3952,14 @@ function MatchWizardStepper({ activeStep, onStepPress }) {
 // ============================================================================
 function SmartTeamLogo({ team, allTeams = [], allUsers = [], style, flagStyle, fallbackFlag = '🦁' }) {
   const [hasError, setHasError] = useState(false);
-  const localLogo = getDashTeamLogo(team?.name) || getDashTeamLogo(team?.shortName);
   const logoUri = resolveTeamLogo(team, allTeams, allUsers);
+  const localLogo = getDashTeamLogo(team?.name) || getDashTeamLogo(team?.shortName);
 
   useEffect(() => {
     setHasError(false);
   }, [logoUri]);
 
-  if (localLogo) {
-    return (
-      <Image
-        source={localLogo}
-        style={style}
-        resizeMode="contain"
-      />
-    );
-  }
-
+  // Priority 1: User-uploaded or custom team logo URL/URI
   if (logoUri && !hasError) {
     return (
       <Image
@@ -3976,6 +3967,17 @@ function SmartTeamLogo({ team, allTeams = [], allUsers = [], style, flagStyle, f
         style={style}
         resizeMode="cover"
         onError={() => setHasError(true)}
+      />
+    );
+  }
+
+  // Priority 2: Preset tournament crest/logo if no custom logo provided
+  if (localLogo) {
+    return (
+      <Image
+        source={localLogo}
+        style={style}
+        resizeMode="contain"
       />
     );
   }
@@ -6830,12 +6832,16 @@ function CricketAddaMain() {
       if (!Array.isArray(cloudTeams)) return;
       const cleanTeams = cloudTeams.filter(Boolean);
       setRegisteredTeams(prev => {
-        // If cloud is empty or cleared, check if there are newly created offline teams
+        // If cloud is empty or cleared, preserve any user/custom created teams and sync them up
         if (cleanTeams.length === 0 && (prev || []).length > 0) {
-          const pendingOfflineTeams = (prev || []).filter(t => t && t.isPendingSync && t.createdAt && t.createdAt >= DB_CLEAN_EPOCH);
-          if (pendingOfflineTeams.length > 0) {
-            syncTeamsToFirebase(pendingOfflineTeams);
-            return pendingOfflineTeams;
+          const keepTeams = (prev || []).filter(t => {
+            if (!t) return false;
+            const tTime = typeof t.createdAt === 'number' ? t.createdAt : (t.createdAt ? new Date(t.createdAt).getTime() : Date.now());
+            return t.isCustomCreated || isCreatedByMe(t) || (tTime >= DB_CLEAN_EPOCH);
+          });
+          if (keepTeams.length > 0) {
+            syncTeamsToFirebase(keepTeams);
+            return keepTeams;
           }
           AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify([])).catch(() => {});
           return [];
@@ -6877,19 +6883,21 @@ function CricketAddaMain() {
           }
         });
 
-        // Retain teams that exist in cloud + newly created offline teams
+        // Retain teams that exist in cloud + newly created custom or offline teams
         const nextList = Array.from(currentMap.values()).filter(t => {
           if (!t) return false;
           if (cloudMap.has(String(t.id || t.name).toLowerCase())) return true;
-          if (t.isPendingSync && t.createdAt && t.createdAt >= DB_CLEAN_EPOCH) return true;
+          const tTime = typeof t.createdAt === 'number' ? t.createdAt : (t.createdAt ? new Date(t.createdAt).getTime() : Date.now());
+          if (t.isCustomCreated || isCreatedByMe(t)) return true;
+          if (t.isPendingSync && tTime >= DB_CLEAN_EPOCH) return true;
           return false;
         });
 
-        // Sync any legitimate pending offline teams now that connection is active
-        const pendingOffline = nextList.filter(t => t.isPendingSync);
-        if (pendingOffline.length > 0) {
+        // Sync any legitimate un-synced teams now to Cloud
+        const unSyncedTeams = nextList.filter(t => !cloudMap.has(String(t.id || t.name).toLowerCase()));
+        if (unSyncedTeams.length > 0) {
           syncTeamsToFirebase(nextList);
-          nextList.forEach(t => { t.isPendingSync = false; });
+          unSyncedTeams.forEach(t => { t.isPendingSync = false; });
         }
 
         if (hasChanges || nextList.length !== (prev || []).length) {
@@ -7785,7 +7793,7 @@ function CricketAddaMain() {
     ? (currentMatchData.innings2?.flag || currentMatchData.flagB || match?.flagB || '⚔️')
     : (currentMatchData.innings1?.flag || currentMatchData.flagA || match?.flagA || '🦁');
 
-  const battingTeamLogo = getDashTeamLogo(battingTeamName) || resolveTeamLogo(
+  const customBatLogo = resolveTeamLogo(
     {
       name: battingTeamName,
       logo: currentInnings === 1 ? (currentMatchData.innings1?.logo || currentMatchData.innings1?.logoUri || currentMatchData.logoA) : (currentMatchData.innings2?.logo || currentMatchData.innings2?.logoUri || currentMatchData.logoB),
@@ -7793,9 +7801,10 @@ function CricketAddaMain() {
     },
     allAvailableMatchTeams,
     usersDb
-  ) || getRandomCrestForTeam(battingTeamName);
+  );
+  const battingTeamLogo = customBatLogo || getDashTeamLogo(battingTeamName) || getRandomCrestForTeam(battingTeamName);
 
-  const bowlingTeamLogo = getDashTeamLogo(bowlingTeamName) || resolveTeamLogo(
+  const customBowlLogo = resolveTeamLogo(
     {
       name: bowlingTeamName,
       logo: currentInnings === 1 ? (currentMatchData.innings2?.logo || currentMatchData.innings2?.logoUri || currentMatchData.logoB) : (currentMatchData.innings1?.logo || currentMatchData.innings1?.logoUri || currentMatchData.logoA),
@@ -7803,7 +7812,8 @@ function CricketAddaMain() {
     },
     allAvailableMatchTeams,
     usersDb
-  ) || getRandomCrestForTeam(bowlingTeamName);
+  );
+  const bowlingTeamLogo = customBowlLogo || getDashTeamLogo(bowlingTeamName) || getRandomCrestForTeam(bowlingTeamName);
 
   const getTeamShortName = (fullName, fallbackFlag) => {
     if (!fullName) return 'TEAM';
@@ -13993,6 +14003,7 @@ function CricketAddaMain() {
         AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
         if (isFirebaseConfigured() && updatedTeamObj) {
           syncSingleTeamToFirebase(updatedTeamObj);
+          syncTeamsToFirebase(updated);
         }
         return updated;
       });
@@ -14001,16 +14012,24 @@ function CricketAddaMain() {
       setUsersDb(prev => {
         const safePrev = Array.isArray(prev) ? prev.filter(Boolean) : [];
         const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
+        let updatedUser = null;
         const updated = safePrev.map(u => {
           if (!u) return null;
           if (u.email && u.email.toLowerCase() === uEmail) {
             const existingTeams = Array.isArray(u.createdTeams) ? u.createdTeams.filter(Boolean) : [];
             const newCreated = existingTeams.map(t => (t && t.id === targetTeamId ? { ...t, name: cleanName, shortName: cleanName.slice(0, 3).toUpperCase(), flag: newTeamFlag || t.flag, logo: finalTeamLogo, logoUri: finalTeamLogo, city: newTeamCity.trim() || t.city, squad: finalSquad, captain: captainPlayer?.name || t.captain, wicketkeeper: wkPlayer?.name || t.wicketkeeper } : t)).filter(Boolean);
-            return { ...u, createdTeams: newCreated };
+            updatedUser = { ...u, createdTeams: newCreated };
+            return updatedUser;
           }
           return u;
         }).filter(Boolean);
         AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updated)).catch(() => {});
+        if (isFirebaseConfigured()) {
+          if (updatedUser) {
+            syncSingleUserProfileToFirebase(updatedUser, uEmail);
+          }
+          syncUsersToFirebase(updated);
+        }
         return updated;
       });
 
@@ -14159,15 +14178,19 @@ function CricketAddaMain() {
       createdByEmail: uEmail,
       createdById: uId,
       isCustomCreated: true,
-      createdAt: new Date().toISOString(),
+      createdAt: Date.now(),
+      createdAtIso: new Date().toISOString(),
+      updatedAt: Date.now(),
     };
 
     // 1. Add to registered teams database
     setRegisteredTeams(prev => {
-      const updated = [newTeamObj, ...prev];
+      const prevSafe = Array.isArray(prev) ? prev.filter(t => t && t.id !== newTeamObj.id) : [];
+      const updated = [newTeamObj, ...prevSafe];
       AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
       if (isFirebaseConfigured()) {
         syncSingleTeamToFirebase(newTeamObj);
+        syncTeamsToFirebase(updated);
       }
       return updated;
     });
@@ -14175,15 +14198,23 @@ function CricketAddaMain() {
     // 2. Persist in user's account in usersDb
     setUsersDb(prev => {
       const safePrev = Array.isArray(prev) ? prev.filter(Boolean) : [];
+      let updatedUser = null;
       const updated = safePrev.map(u => {
         if (!u) return null;
         if (u.email && u.email.toLowerCase() === uEmail) {
           const prevTeams = Array.isArray(u.createdTeams) ? u.createdTeams.filter(t => t && t.id !== newTeamObj.id) : [];
-          return { ...u, createdTeams: [newTeamObj, ...prevTeams] };
+          updatedUser = { ...u, createdTeams: [newTeamObj, ...prevTeams] };
+          return updatedUser;
         }
         return u;
       }).filter(Boolean);
       AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updated)).catch(() => {});
+      if (isFirebaseConfigured()) {
+        if (updatedUser) {
+          syncSingleUserProfileToFirebase(updatedUser, uEmail);
+        }
+        syncUsersToFirebase(updated);
+      }
       return updated;
     });
 
@@ -25822,9 +25853,8 @@ function CricketAddaMain() {
                       const isOtherTeam = wzTeamStep === 2 && matchDraft.myTeam?.id === t.id;
 
                       // Resolve Performance Stats
-                      const seed = Math.abs(String(t.name || '').split('').reduce((acc, c) => acc + c.charCodeAt(0), 0));
-                      const tWins = t.wins ?? t.stats?.wins ?? ((seed % 10) + 3);
-                      const tLosses = t.losses ?? t.stats?.losses ?? ((seed % 5) + 1);
+                      const tWins = Number(t.wins ?? t.stats?.wins ?? 0);
+                      const tLosses = Number(t.losses ?? t.stats?.losses ?? 0);
                       const tTotal = tWins + tLosses;
                       const tWinPct = tTotal > 0 ? Math.round((tWins / tTotal) * 100) : 0;
 
@@ -25889,9 +25919,15 @@ function CricketAddaMain() {
                               </Text>
                             ) : (
                               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 1, gap: 5 }}>
-                                <Text style={{ color: '#86efac', fontSize: 11, fontWeight: '700', flexShrink: 0 }} numberOfLines={1}>
-                                  🏆 {tWins}W - {tLosses}L <Text style={{ color: '#eab308', fontWeight: '800' }}>({tWinPct}%)</Text>
-                                </Text>
+                                {tTotal > 0 ? (
+                                  <Text style={{ color: '#86efac', fontSize: 11, fontWeight: '700', flexShrink: 0 }} numberOfLines={1}>
+                                    🏆 {tWins}W - {tLosses}L <Text style={{ color: '#eab308', fontWeight: '800' }}>({tWinPct}%)</Text>
+                                  </Text>
+                                ) : (
+                                  <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '700', flexShrink: 0 }} numberOfLines={1}>
+                                    ⭐ New Team
+                                  </Text>
+                                )}
                                 {Boolean(t.city || t.homeGround) && (
                                   <>
                                     <Text style={{ color: '#64748b', fontSize: 10 }}>•</Text>
