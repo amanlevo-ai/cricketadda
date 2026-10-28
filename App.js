@@ -3767,13 +3767,18 @@ function resolveTeamLogo(team, allTeams = [], allUsers = []) {
     team.logo,
     team.logoUri,
     team.logoUrl,
+    team.picture,
+    team.pictureUri,
+    team.customLogo,
     team.customLogoUrl,
     team.photo,
     team.photoUri,
+    team.photoUrl,
     team.avatar,
     team.avatarUri,
     team.image,
     team.imageUri,
+    team.imageUrl,
   ];
   for (const c of candidates) {
     if (isGoodUri(c)) return c.trim();
@@ -10289,14 +10294,19 @@ function CricketAddaMain() {
       squad: compactSquad,
     });
 
+    // Lookup full team object from registeredTeams to guarantee logo / picture is available
+    const existingTeam = registeredTeams.find(t => t && ((team.id && t.id === team.id) || (team.name && (t.name || '').toLowerCase() === (team.name || '').toLowerCase())));
+    const fullTeam = { ...(existingTeam || {}), ...team };
+
     setQrDisplayData({
       type: 'team',
-      title: `${team.flag || '🦁'} ${team.name}`,
-      subtitle: `Official Team Passport • ${team.city || 'Club'} • ${(cleanSquad || []).length} Players`,
+      title: (team.name || fullTeam.name || 'Team').trim(),
+      subtitle: '',
       payload,
-      emoji: team.flag || '🦁',
-      teamFlag: team.flag || '🦁',
-      meta: { ...team, squad: cleanSquad },
+      emoji: fullTeam.flag || team.flag || '🦁',
+      teamFlag: fullTeam.flag || team.flag || '🦁',
+      meta: { ...fullTeam, squad: cleanSquad },
+      team: fullTeam,
     });
     setQrDisplayModalVisible(true);
   };
@@ -22014,12 +22024,17 @@ function CricketAddaMain() {
                           gap: 4,
                         }}
                         onPress={() => {
+                          const activeEditingTeam = editingTeamId ? registeredTeams.find(t => t.id === editingTeamId) : null;
                           openTeamQrCode({
+                            ...(activeEditingTeam || {}),
                             id: editingTeamId || `custom_team_${Date.now()}`,
                             name: newTeamName.trim(),
                             flag: newTeamFlag || '🦁',
                             city: newTeamCity.trim() || 'Local Ground',
                             squad: newTeamSquad,
+                            logo: newTeamLogo || activeEditingTeam?.logo || activeEditingTeam?.photo,
+                            picture: newTeamLogo || activeEditingTeam?.picture,
+                            customLogo: newTeamLogo || activeEditingTeam?.customLogo,
                           });
                         }}
                       >
@@ -30152,13 +30167,40 @@ function CricketAddaMain() {
           }}>
             {/* Header */}
             <View style={{ width: '100%', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#38bdf8', fontSize: 16, fontWeight: '900' }}>
-                  {qrDisplayData.title}
-                </Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 1 }}>
-                  {qrDisplayData.subtitle}
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 8 }}>
+                {qrDisplayData.type === 'team' ? (
+                  <View style={{
+                    width: 52,
+                    height: 52,
+                    borderRadius: 26,
+                    overflow: 'hidden',
+                    marginRight: 12,
+                    borderWidth: 2,
+                    borderColor: currentTheme.isLight ? '#0284c7' : '#38bdf8',
+                    backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                  }}>
+                    <SmartTeamLogo
+                      team={qrDisplayData.team || qrDisplayData.meta}
+                      allTeams={registeredTeams}
+                      allUsers={usersDb}
+                      style={{ width: '100%', height: '100%' }}
+                      flagStyle={{ fontSize: 28 }}
+                      fallbackFlag={qrDisplayData.teamFlag || '🏏'}
+                    />
+                  </View>
+                ) : null}
+                <View style={{ flex: 1, justifyContent: 'center' }}>
+                  <Text style={{ color: '#38bdf8', fontSize: 18, fontWeight: '900' }} numberOfLines={1}>
+                    {qrDisplayData.title}
+                  </Text>
+                  {qrDisplayData.subtitle ? (
+                    <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 1 }}>
+                      {qrDisplayData.subtitle}
+                    </Text>
+                  ) : null}
+                </View>
               </View>
               <TouchableOpacity style={styles.wizardCloseBtn} onPress={() => setQrDisplayModalVisible(false)}>
                 <Text style={styles.wizardCloseBtnText}>✕</Text>
@@ -30171,24 +30213,24 @@ function CricketAddaMain() {
             </View>
 
             {/* Explanatory Pill */}
-            <View style={{ backgroundColor: '#1e293b', borderRadius: 10, padding: 12, width: '100%', marginVertical: 8, alignItems: 'center' }}>
-              <Text style={{ color: '#e2e8f0', fontSize: 11.5, textAlign: 'center', lineHeight: 16 }}>
-                {qrDisplayData.type === 'team'
-                  ? '📷 Scan this Team QR in the Match Setup Wizard to auto-add this team and full squad.'
-                  : (qrDisplayData.type === 'player_pass' || qrDisplayData.type === 'player')
-                  ? '👤 Unique Player Passport QR. Scan with any camera or CricketAdda scanner to add you to match squads & track career stats.'
-                  : '📋 Official Match Scorer Pass. Scan to authenticate and handover live scoring privileges.'}
-              </Text>
-            </View>
+            {qrDisplayData.type !== 'team' && (
+              <View style={{ backgroundColor: '#1e293b', borderRadius: 10, padding: 12, width: '100%', marginVertical: 8, alignItems: 'center' }}>
+                <Text style={{ color: '#e2e8f0', fontSize: 11.5, textAlign: 'center', lineHeight: 16 }}>
+                  {(qrDisplayData.type === 'player_pass' || qrDisplayData.type === 'player')
+                    ? '👤 Unique Player Passport QR. Scan with any camera or CricketAdda scanner to add you to match squads & track career stats.'
+                    : '📋 Official Match Scorer Pass. Scan to authenticate and handover live scoring privileges.'}
+                </Text>
+              </View>
+            )}
 
             {/* Actions */}
-            <View style={{ width: '100%', flexDirection: 'row', gap: 8, marginTop: 4 }}>
+            <View style={{ width: '100%', flexDirection: 'row', gap: 8, marginTop: 8 }}>
               <TouchableOpacity
                 style={{
                   flex: 1,
                   backgroundColor: '#0284c7',
-                  paddingVertical: 10,
-                  borderRadius: 8,
+                  paddingVertical: 11,
+                  borderRadius: 10,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
@@ -30200,9 +30242,9 @@ function CricketAddaMain() {
                     if (isPlayer) {
                       shareMsg = `🏏 CricketAdda Player Passport\n👤 Name: ${qrDisplayData.meta?.name || qrDisplayData.title}\n🏏 Role: ${qrDisplayData.meta?.role || 'Batter'}\n🎽 Jersey: ${qrDisplayData.meta?.jersey || '#1'}\n🛡️ Team: ${qrDisplayData.meta?.team || 'CricketAdda'}${qrDisplayData.meta?.phone ? `\n📞 Phone: ${qrDisplayData.meta?.phone}` : ''}\n\nScan this passport QR in CricketAdda to add to squads & track live stats!`;
                     } else if (isTeam) {
-                      shareMsg = `🏏 CricketAdda Team Passport\n🛡️ ${qrDisplayData.title}\n${qrDisplayData.subtitle}\n\nScan to import this team & squad in CricketAdda!`;
+                      shareMsg = `🏏 CricketAdda Team Passport\n🛡️ ${qrDisplayData.title}\n\nScan to import this team & squad in CricketAdda!`;
                     } else {
-                      shareMsg = `🏏 CricketAdda Scorer Pass\n${qrDisplayData.title}\n${qrDisplayData.subtitle}\nScan to authenticate scorer handover!`;
+                      shareMsg = `🏏 CricketAdda Scorer Pass\n${qrDisplayData.title}\nScan to authenticate scorer handover!`;
                     }
                     await Share.share({
                       title: qrDisplayData.title || 'CricketAdda QR Passport',
@@ -30213,21 +30255,21 @@ function CricketAddaMain() {
                   }
                 }}
               >
-                <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: 'bold' }}>Share / Export 📤</Text>
+                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: 'bold' }}>Share</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 style={{
                   backgroundColor: '#334155',
-                  paddingVertical: 10,
-                  paddingHorizontal: 16,
-                  borderRadius: 8,
+                  paddingVertical: 11,
+                  paddingHorizontal: 20,
+                  borderRadius: 10,
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
                 onPress={() => setQrDisplayModalVisible(false)}
               >
-                <Text style={{ color: '#f8fafc', fontSize: 12.5, fontWeight: 'bold' }}>Close</Text>
+                <Text style={{ color: '#f8fafc', fontSize: 13, fontWeight: 'bold' }}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
