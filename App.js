@@ -13109,12 +13109,12 @@ function CricketAddaMain() {
         }
         if (!matchDraft.myWicketkeeper) {
           const wkP = (matchDraft.myPlayingXI || []).find(p => p.isWk || p.role === 'WK');
-          const autoWk = wkP ? wkP.name : (matchDraft.myPlayingXI[1]?.name || matchDraft.myPlayingXI[0]?.name || '');
+          const autoWk = wkP ? wkP.name : '';
           updateDraft({ myWicketkeeper: autoWk });
         }
         if (!matchDraft.oppWicketkeeper) {
           const wkP = (matchDraft.opponentPlayingXI || []).find(p => p.isWk || p.role === 'WK');
-          const autoWk = wkP ? wkP.name : (matchDraft.opponentPlayingXI[1]?.name || matchDraft.opponentPlayingXI[0]?.name || '');
+          const autoWk = wkP ? wkP.name : '';
           updateDraft({ oppWicketkeeper: autoWk });
         }
 
@@ -13201,7 +13201,7 @@ function CricketAddaMain() {
     Keyboard.dismiss();
     const defaultXI = Array.isArray(team?.squad) ? team.squad.slice(0, 11) : [];
     const defaultCap = team.captain || defaultXI[0]?.name || '';
-    const defaultWk = team.wicketkeeper || defaultXI.find(p => p.isWk)?.name || (defaultXI.length > 1 ? defaultXI[1]?.name : defaultXI[0]?.name || '');
+    const defaultWk = (team.wicketkeeper && defaultXI.some(p => p.name === team.wicketkeeper)) ? team.wicketkeeper : (defaultXI.find(p => p.isWk || p.role === 'WK')?.name || '');
 
     if (slot === 'teamA') {
       updateDraft({
@@ -13234,11 +13234,11 @@ function CricketAddaMain() {
     Keyboard.dismiss();
     const defaultXI_A = Array.isArray(teamA?.squad) ? teamA.squad.slice(0, 11) : [];
     const defaultCap_A = teamA.captain || defaultXI_A[0]?.name || '';
-    const defaultWk_A = teamA.wicketkeeper || defaultXI_A.find(p => p.isWk)?.name || (defaultXI_A.length > 1 ? defaultXI_A[1]?.name : defaultXI_A[0]?.name || '');
+    const defaultWk_A = (teamA.wicketkeeper && defaultXI_A.some(p => p.name === teamA.wicketkeeper)) ? teamA.wicketkeeper : (defaultXI_A.find(p => p.isWk || p.role === 'WK')?.name || '');
 
     const defaultXI_B = Array.isArray(teamB?.squad) ? teamB.squad.slice(0, 11) : [];
     const defaultCap_B = teamB.captain || defaultXI_B[0]?.name || '';
-    const defaultWk_B = teamB.wicketkeeper || defaultXI_B.find(p => p.isWk)?.name || (defaultXI_B.length > 1 ? defaultXI_B[1]?.name : defaultXI_B[0]?.name || '');
+    const defaultWk_B = (teamB.wicketkeeper && defaultXI_B.some(p => p.name === teamB.wicketkeeper)) ? teamB.wicketkeeper : (defaultXI_B.find(p => p.isWk || p.role === 'WK')?.name || '');
 
     updateDraft({
       myTeam: teamA,
@@ -13968,7 +13968,7 @@ function CricketAddaMain() {
     }
 
     const captainPlayer = finalSquad.find(p => p.isCaptain) || finalSquad[0];
-    const wkPlayer = finalSquad.find(p => p.isWk || p.role === 'WK') || ((finalSquad || []).length > 1 ? finalSquad[1] : null);
+    const wkPlayer = finalSquad.find(p => p.isWk || p.role === 'WK');
 
     if (editingTeamId) {
       // UPDATE EXISTING TEAM
@@ -13992,7 +13992,7 @@ function CricketAddaMain() {
                 logoUri: finalTeamLogo,
                 city: newTeamCity.trim() || t.city || 'Local City',
                 captain: captainPlayer?.name || t.captain || userProfile?.name || `${cleanName} Captain`,
-                wicketkeeper: wkPlayer?.name || t.wicketkeeper || 'Wicketkeeper',
+                wicketkeeper: wkPlayer?.name || '',
                 squad: finalSquad,
               };
             } else {
@@ -14023,7 +14023,7 @@ function CricketAddaMain() {
           if (!u) return null;
           if (u.email && u.email.toLowerCase() === uEmail) {
             const existingTeams = Array.isArray(u.createdTeams) ? u.createdTeams.filter(Boolean) : [];
-            const newCreated = existingTeams.map(t => (t && t.id === targetTeamId ? { ...t, name: cleanName, shortName: cleanName.slice(0, 3).toUpperCase(), flag: newTeamFlag || t.flag, logo: finalTeamLogo, logoUri: finalTeamLogo, city: newTeamCity.trim() || t.city, squad: finalSquad, captain: captainPlayer?.name || t.captain, wicketkeeper: wkPlayer?.name || t.wicketkeeper } : t)).filter(Boolean);
+            const newCreated = existingTeams.map(t => (t && t.id === targetTeamId ? { ...t, name: cleanName, shortName: cleanName.slice(0, 3).toUpperCase(), flag: newTeamFlag || t.flag, logo: finalTeamLogo, logoUri: finalTeamLogo, city: newTeamCity.trim() || t.city, squad: finalSquad, captain: captainPlayer?.name || t.captain, wicketkeeper: wkPlayer?.name || '' } : t)).filter(Boolean);
             updatedUser = { ...u, createdTeams: newCreated };
             return updatedUser;
           }
@@ -14178,7 +14178,7 @@ function CricketAddaMain() {
       city: newTeamCity.trim() || 'Local Ground',
       homeGround: 'Home Stadium',
       captain: captainPlayer?.name || userProfile?.name || `${cleanName} Captain`,
-      wicketkeeper: wkPlayer?.name || 'Wicketkeeper',
+      wicketkeeper: wkPlayer?.name || '',
       squad: finalSquad,
       createdBy: userProfile?.name || 'Captain',
       createdByEmail: uEmail,
