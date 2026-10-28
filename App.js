@@ -7286,6 +7286,9 @@ function CricketAddaMain() {
       if (newTeamModalVisible) {
         setNewTeamModalVisible(false);
         setEditingTeamId(null);
+        setNewTeamLogo(null);
+        setNewTeamCustomLogoUrl('');
+        setShowTeamLogoUrlInput(false);
         return true;
       }
       if (commentaryModalVisible) {
@@ -13510,6 +13513,9 @@ function CricketAddaMain() {
     setNewTeamName(initialName ? initialName.trim() : '');
     setNewTeamFlag('🦁');
     setNewTeamCity('');
+    setNewTeamLogo(null);
+    setNewTeamCustomLogoUrl('');
+    setShowTeamLogoUrlInput(false);
 
     // Automatically set current user as Player 1 (Captain) with their registered details
     const captainObj = {
@@ -14162,6 +14168,9 @@ function CricketAddaMain() {
       setMatchTeamEditSlot(null);
       setNewTeamModalVisible(false);
       setEditingTeamId(null);
+      setNewTeamLogo(null);
+      setNewTeamCustomLogoUrl('');
+      setShowTeamLogoUrlInput(false);
       setTeamSearchQuery('');
 
       showAppToast(
@@ -14308,6 +14317,9 @@ function CricketAddaMain() {
     setMatchTeamEditSlot(null);
     setNewTeamModalVisible(false);
     setEditingTeamId(null);
+    setNewTeamLogo(null);
+    setNewTeamCustomLogoUrl('');
+    setShowTeamLogoUrlInput(false);
     setTeamSearchQuery('');
 
     showAppToast(`Team "${cleanName}" (${(finalSquad || []).length} players) created successfully! 🎉`, '🏏', 'success');
@@ -22042,7 +22054,16 @@ function CricketAddaMain() {
                         <Text style={{ color: '#10b981', fontSize: 11, fontWeight: 'bold' }}>Team QR</Text>
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity style={styles.closeRoundBtn} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
+                    <TouchableOpacity
+                      style={styles.closeRoundBtn}
+                      onPress={() => {
+                        setNewTeamModalVisible(false);
+                        setEditingTeamId(null);
+                        setNewTeamLogo(null);
+                        setNewTeamCustomLogoUrl('');
+                        setShowTeamLogoUrlInput(false);
+                      }}
+                    >
                       <Text style={styles.closeRoundBtnText}>✕</Text>
                     </TouchableOpacity>
                   </View>
@@ -22171,7 +22192,12 @@ function CricketAddaMain() {
                                 resizeMode="cover"
                               />
                             ) : (
-                              <Text style={{ fontSize: 38 }}>{newTeamFlag || '🦁'}</Text>
+                              <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+                                <Text style={{ fontSize: 26, opacity: 0.55 }}>📷</Text>
+                                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9.5, fontWeight: '700', marginTop: 2 }}>
+                                  No Picture
+                                </Text>
+                              </View>
                             )}
                           </View>
 
@@ -22248,6 +22274,26 @@ function CricketAddaMain() {
                                   Camera
                                 </Text>
                               </TouchableOpacity>
+
+                              {(newTeamCustomLogoUrl || newTeamLogo) ? (
+                                <TouchableOpacity
+                                  style={{
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: 3,
+                                    backgroundColor: 'rgba(239, 68, 68, 0.15)',
+                                    borderColor: '#ef4444',
+                                    borderWidth: 1,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 7,
+                                    borderRadius: 8,
+                                  }}
+                                  onPress={removeTeamLogo}
+                                >
+                                  <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: 'bold' }}>✕ Clear</Text>
+                                </TouchableOpacity>
+                              ) : null}
                             </View>
                           </View>
                         </View>
@@ -22831,7 +22877,16 @@ function CricketAddaMain() {
 
             {/* Action Buttons: Pinned to touch bottom */}
             <View style={[styles.modalBtnRow, { marginTop: 'auto', paddingTop: 6, marginBottom: 0 }]}>
-              <TouchableOpacity style={[styles.skipBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
+              <TouchableOpacity
+                style={[styles.skipBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]}
+                onPress={() => {
+                  setNewTeamModalVisible(false);
+                  setEditingTeamId(null);
+                  setNewTeamLogo(null);
+                  setNewTeamCustomLogoUrl('');
+                  setShowTeamLogoUrlInput(false);
+                }}
+              >
                 <Text style={[styles.skipBtnText, currentTheme.isLight && { color: '#475569' }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
