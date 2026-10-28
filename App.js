@@ -21986,11 +21986,11 @@ function CricketAddaMain() {
                 <>
                   <View style={styles.photoPickerHeader}>
                     <View style={{ flex: 1 }}>
-                      <Text style={[styles.photoPickerTitle, { color: isEditingOpponentTeam ? '#38bdf8' : '#10b981' }]}>
+                      <Text style={[styles.photoPickerTitle, { color: isEditingOpponentTeam ? '#38bdf8' : '#10b981' }]} numberOfLines={1}>
                         {isEditingOpponentTeam
-                          ? `🔒 Manage Opponent Squad: ${newTeamName || ''}`
+                          ? (newTeamName || 'Opponent Squad')
                           : editingTeamId
-                          ? `🏏 Edit Team & Squad: ${newTeamName || ''}`
+                          ? (newTeamName || 'Edit Team')
                           : '🏏 Create Your Team'}
                       </Text>
                       {isEditingOpponentTeam ? (
