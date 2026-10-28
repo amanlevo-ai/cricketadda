@@ -21961,7 +21961,7 @@ function CricketAddaMain() {
       {/* MODAL 5.56: NEW CUSTOM TEAM & 20-PLAYER SQUAD BUILDER MODAL (MAX 20 PLAYERS) */}
       <Modal visible={newTeamModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), height: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             {(() => {
               const activeEditingTeam = editingTeamId ? registeredTeams.find(t => t.id === editingTeamId) : null;
               const isEditingOpponentTeam = Boolean(editingTeamId && !isCreatedByMe(activeEditingTeam));
@@ -22016,7 +22016,7 @@ function CricketAddaMain() {
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
+                  <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
                     {/* 1. TEAM DETAILS */}
                     {isEditingOpponentTeam ? (
                       <View style={{
@@ -22114,69 +22114,71 @@ function CricketAddaMain() {
                           backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a101d',
                           borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
                           borderWidth: 1,
-                          borderRadius: 10,
-                          padding: 6,
-                          marginBottom: 4,
+                          borderRadius: 12,
+                          padding: 8,
+                          marginBottom: 6,
+                          alignItems: 'center',
                         }}>
-                          {/* Top Row: Live Preview Avatar + Direct URL Text Input */}
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                            <View style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 10,
-                              backgroundColor: currentTheme.isLight ? '#ffffff' : '#162235',
-                              borderWidth: 1.5,
-                              borderColor: currentTheme.primary,
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                              overflow: 'hidden',
-                            }}>
-                              {(newTeamCustomLogoUrl || newTeamLogo) ? (
-                                <Image
-                                  key={newTeamCustomLogoUrl || newTeamLogo}
-                                  source={{ uri: newTeamCustomLogoUrl || newTeamLogo }}
-                                  style={{ width: '100%', height: '100%' }}
-                                  resizeMode="cover"
-                                />
-                              ) : (
-                                <Text style={{ fontSize: 20 }}>{newTeamFlag || '🦁'}</Text>
-                              )}
-                            </View>
-
-                            <View style={{
-                              flex: 1,
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
-                              borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                              borderWidth: 1,
-                              borderRadius: 8,
-                              paddingHorizontal: 8,
-                              height: 36,
-                            }}>
-                              <Text style={{ fontSize: 12, marginRight: 5 }}>🔗</Text>
-                              <TextInput
-                                style={{
-                                  flex: 1,
-                                  fontSize: 11.5,
-                                  color: currentTheme.isLight ? '#0f172a' : '#ffffff',
-                                  paddingVertical: 0,
-                                }}
-                                value={newTeamCustomLogoUrl || (typeof newTeamLogo === 'string' && newTeamLogo.startsWith('http') ? newTeamLogo : '')}
-                                onChangeText={t => {
-                                  setNewTeamCustomLogoUrl(t);
-                                  setNewTeamLogo(t.trim() || null);
-                                }}
-                                placeholder="Paste image URL (https://...)"
-                                placeholderTextColor="#64748b"
-                                autoCapitalize="none"
-                                autoCorrect={false}
+                          {/* Big Avatar Preview */}
+                          <View style={{
+                            width: 68,
+                            height: 68,
+                            borderRadius: 14,
+                            backgroundColor: currentTheme.isLight ? '#ffffff' : '#162235',
+                            borderWidth: 2,
+                            borderColor: currentTheme.primary,
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            overflow: 'hidden',
+                            marginBottom: 8,
+                          }}>
+                            {(newTeamCustomLogoUrl || newTeamLogo) ? (
+                              <Image
+                                key={newTeamCustomLogoUrl || newTeamLogo}
+                                source={{ uri: newTeamCustomLogoUrl || newTeamLogo }}
+                                style={{ width: '100%', height: '100%' }}
+                                resizeMode="cover"
                               />
-                            </View>
+                            ) : (
+                              <Text style={{ fontSize: 34 }}>{newTeamFlag || '🦁'}</Text>
+                            )}
                           </View>
 
-                          {/* Action Buttons: Gallery & Camera */}
-                          <View style={{ flexDirection: 'row', gap: 6 }}>
+                          {/* Full-width Direct URL Text Input (colspan) */}
+                          <View style={{
+                            width: '100%',
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
+                            borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            paddingHorizontal: 8,
+                            height: 36,
+                            marginBottom: 6,
+                          }}>
+                            <Text style={{ fontSize: 12, marginRight: 5 }}>🔗</Text>
+                            <TextInput
+                              style={{
+                                flex: 1,
+                                fontSize: 11.5,
+                                color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                                paddingVertical: 0,
+                              }}
+                              value={newTeamCustomLogoUrl || (typeof newTeamLogo === 'string' && newTeamLogo.startsWith('http') ? newTeamLogo : '')}
+                              onChangeText={t => {
+                                setNewTeamCustomLogoUrl(t);
+                                setNewTeamLogo(t.trim() || null);
+                              }}
+                              placeholder="Paste image URL (https://...)"
+                              placeholderTextColor="#64748b"
+                              autoCapitalize="none"
+                              autoCorrect={false}
+                            />
+                          </View>
+
+                          {/* Full-width Action Buttons: Gallery & Camera (colspan) */}
+                          <View style={{ width: '100%', flexDirection: 'row', gap: 6 }}>
                             <TouchableOpacity
                               style={{
                                 flex: 1,
@@ -22185,13 +22187,13 @@ function CricketAddaMain() {
                                 justifyContent: 'center',
                                 gap: 5,
                                 backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0369a1',
-                                paddingVertical: 6,
-                                borderRadius: 6,
+                                paddingVertical: 7,
+                                borderRadius: 8,
                               }}
                               onPress={pickTeamLogoFromGallery}
                             >
                               <Text style={{ fontSize: 12 }}>🖼️</Text>
-                              <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
+                              <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
                                 From Gallery
                               </Text>
                             </TouchableOpacity>
@@ -22204,13 +22206,13 @@ function CricketAddaMain() {
                                 justifyContent: 'center',
                                 gap: 5,
                                 backgroundColor: currentTheme.isLight ? '#dcfce7' : '#059669',
-                                paddingVertical: 6,
-                                borderRadius: 6,
+                                paddingVertical: 7,
+                                borderRadius: 8,
                               }}
                               onPress={takeTeamLogoWithCamera}
                             >
                               <Text style={{ fontSize: 12 }}>📸</Text>
-                              <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
+                              <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
                                 From Camera
                               </Text>
                             </TouchableOpacity>
@@ -22267,7 +22269,7 @@ function CricketAddaMain() {
                     currentTheme.isLight && { color: '#475569' },
                     playerAddTab === 'qr' && (currentTheme.isLight ? { color: '#ffffff', fontWeight: '900' } : styles.playerAddTabTextActive)
                   ]}>
-                    📷 Scan QR Pass
+                    📷 Scan QR Code
                   </Text>
                 </TouchableOpacity>
 
@@ -22636,13 +22638,13 @@ function CricketAddaMain() {
               {/* TAB 3: MANUAL PLAYER CREATION (OPTION A) */}
               {playerAddTab === 'popular' && (
                 <View style={[styles.addPlayerCardBox, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }, { padding: 8, marginVertical: 4 }]}>
-                  {/* Role Selector Pills */}
+                  {/* Role Selector Pills without icons */}
                   <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
                     {[
-                      { key: 'BAT', label: 'Batter', icon: '🏏' },
-                      { key: 'BOWL', label: 'Bowler', is3DBall: true },
-                      { key: 'ALL', label: 'All-Rounder', icon: '⚡' },
-                      { key: 'WK', label: 'WK', icon: '🧤' },
+                      { key: 'BAT', label: 'Batter' },
+                      { key: 'BOWL', label: 'Bowler' },
+                      { key: 'ALL', label: 'All-Rounder' },
+                      { key: 'WK', label: 'WK' },
                     ].map(r => {
                       const isSel = newPlayerRoleInput === r.key;
                       return (
@@ -22650,11 +22652,9 @@ function CricketAddaMain() {
                           key={r.key}
                           style={{
                             flex: 1,
-                            flexDirection: 'row',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            gap: 4,
-                            paddingVertical: 6,
+                            paddingVertical: 7,
                             paddingHorizontal: 2,
                             borderRadius: 8,
                             borderWidth: 1.2,
@@ -22663,13 +22663,8 @@ function CricketAddaMain() {
                           }}
                           onPress={() => setNewPlayerRoleInput(r.key)}
                         >
-                          {r.is3DBall ? (
-                            <RealisticCricketLeatherBall size={11} />
-                          ) : (
-                            <Text style={{ fontSize: 11 }}>{r.icon}</Text>
-                          )}
                           <Text style={{
-                            fontSize: 11,
+                            fontSize: 11.5,
                             fontWeight: isSel ? '900' : '600',
                             color: isSel ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#94a3b8'),
                           }}>
@@ -22725,7 +22720,7 @@ function CricketAddaMain() {
                   </View>
                 ) : (
                   <View style={{
-                    maxHeight: 140,
+                    maxHeight: 180,
                     borderWidth: 1,
                     borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
                     borderRadius: 10,
