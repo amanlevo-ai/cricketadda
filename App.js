@@ -16052,7 +16052,7 @@ function CricketAddaMain() {
                 <Image source={require('./assets/header-logo.png')} style={styles.logoImg} resizeMode="contain" />
                 <View>
                   <Text style={[styles.brandTitle, currentTheme.isLight && { color: '#0f172a' }]}>
-                    CricketAdda <Text style={[styles.proBadge, { backgroundColor: currentTheme.primary, color: currentTheme.primaryText }]}>PRO</Text>
+                    CricketAdda
                   </Text>
                 </View>
               </TouchableOpacity>
@@ -16491,7 +16491,7 @@ function CricketAddaMain() {
                 <Text style={[styles.teamsMetricNum, { color: '#10b981' }]}>
                   {(registeredTeams || []).filter(isCreatedByMe).length}
                 </Text>
-                <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>My Created</Text>
+                <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Your Teams</Text>
               </View>
 
               <View style={[styles.teamsMetricDivider, { backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#334155' }]} />
@@ -16500,7 +16500,7 @@ function CricketAddaMain() {
                 <Text style={[styles.teamsMetricNum, { color: '#0284c7' }]}>
                   {(registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t)).length}
                 </Text>
-                <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>I Play For</Text>
+                <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>You Play For</Text>
               </View>
 
               <View style={[styles.teamsMetricDivider, { backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#334155' }]} />
@@ -16515,7 +16515,17 @@ function CricketAddaMain() {
           </View>
 
           {/* Search Box */}
-          <View style={[styles.teamSearchContainer, { backgroundColor: currentTheme.inputBg, borderColor: currentTheme.inputBorder }]}>
+          <View style={[styles.teamSearchContainer, {
+            backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a192f',
+            borderColor: currentTheme.isLight ? '#94a3b8' : '#38bdf8',
+            borderWidth: 1.5,
+            borderRadius: 12,
+            shadowColor: '#38bdf8',
+            shadowOffset: { width: 0, height: 1 },
+            shadowOpacity: 0.15,
+            shadowRadius: 4,
+            elevation: 2,
+          }]}>
             <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
             <TextInput
               style={[styles.teamSearchInput, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}
@@ -16549,7 +16559,7 @@ function CricketAddaMain() {
                   teamFilterTab === 'created' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)
                 ]}
               >
-                👑 My Created ({(registeredTeams || []).filter(isCreatedByMe).length})
+                👑 Your Teams ({(registeredTeams || []).filter(isCreatedByMe).length})
               </Text>
             </TouchableOpacity>
 
@@ -16568,7 +16578,7 @@ function CricketAddaMain() {
                   teamFilterTab === 'playing' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)
                 ]}
               >
-                🤝 Teams I Play For ({(registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t)).length})
+                🤝 You Play For ({(registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t)).length})
               </Text>
             </TouchableOpacity>
 
@@ -16687,22 +16697,14 @@ function CricketAddaMain() {
                           overflow: 'hidden',
                         }}
                       >
-                        {getDashTeamLogo(t.name) ? (
-                          <Image
-                            source={getDashTeamLogo(t.name)}
-                            style={{ width: 44, height: 44 }}
-                            resizeMode="contain"
-                          />
-                        ) : (t.logo || t.logoUri) ? (
-                          <Image
-                            key={t.logo || t.logoUri}
-                            source={{ uri: t.logo || t.logoUri }}
-                            style={{ width: 44, height: 44 }}
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <Text style={{ fontSize: 24 }}>{t.flag || '🦁'}</Text>
-                        )}
+                        <SmartTeamLogo
+                          team={t}
+                          allTeams={registeredTeams}
+                          allUsers={usersDb}
+                          style={{ width: 44, height: 44 }}
+                          flagStyle={{ fontSize: 24 }}
+                          fallbackFlag={t.flag || '🦁'}
+                        />
                       </View>
                       <View style={{ flex: 1 }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -16819,7 +16821,7 @@ function CricketAddaMain() {
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
                         <Text style={{ fontSize: 12 }}>👥</Text>
                         <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#475569' : '#cbd5e1' }}>
-                          Squad: <Text style={{ fontWeight: '800', color: currentTheme.primary }}>{squadCount}/20 Players</Text>
+                          Squad: <Text style={{ fontWeight: '800', color: currentTheme.primary }}>{squadCount} {squadCount === 1 ? 'Player' : 'Players'}</Text>
                         </Text>
                       </View>
 
@@ -16853,9 +16855,9 @@ function CricketAddaMain() {
                       }}
                       onPress={() => openNewTeamModal('teamA', '', t)}
                     >
-                      <Text style={{ fontSize: 14 }}>👥</Text>
+                      <Text style={{ fontSize: 14 }}>✏️</Text>
                       <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800', letterSpacing: 0.2 }}>
-                        {isOwner ? 'Edit Team & Squad ➔' : 'View Team & Squad ➔'}
+                        {isOwner ? 'Edit Team' : 'View Team'}
                       </Text>
                     </TouchableOpacity>
 
@@ -28485,13 +28487,14 @@ function CricketAddaMain() {
                     onPress={() => selectTeamForSlot(targetTeamSlot, t)}
                   >
                     <View style={[styles.teamCardFlagBox, { overflow: 'hidden' }]}>
-                      {getDashTeamLogo(t.name) ? (
-                        <Image source={getDashTeamLogo(t.name)} style={{ width: '85%', height: '85%' }} resizeMode="contain" />
-                      ) : (t.logo || t.logoUri) ? (
-                        <Image key={t.logo || t.logoUri} source={{ uri: t.logo || t.logoUri }} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
-                      ) : (
-                        <Text style={{ fontSize: 28 }}>{t.flag || '🦁'}</Text>
-                      )}
+                      <SmartTeamLogo
+                        team={t}
+                        allTeams={registeredTeams}
+                        allUsers={usersDb}
+                        style={{ width: '100%', height: '100%' }}
+                        flagStyle={{ fontSize: 28 }}
+                        fallbackFlag={t.flag || '🦁'}
+                      />
                     </View>
                     <View style={{ flex: 1 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
