@@ -13679,10 +13679,6 @@ function CricketAddaMain() {
       Alert.alert('Player Name Required', 'Please enter the player\'s full name.');
       return;
     }
-    if ((newTeamSquad || []).length >= 20) {
-      Alert.alert('Squad Full', 'Squad limit reached (20/20 max players).');
-      return;
-    }
     const targetPhone = (playerPhoneSearchResult.phone || playerPhoneInput || '').replace(/[^0-9]/g, '');
     if (newTeamSquad.some(p => p.name.toLowerCase() === targetName.toLowerCase() || (targetPhone && p.phone === targetPhone))) {
       Alert.alert('Duplicate Player', `"${targetName}" is already in the squad.`);
@@ -13741,10 +13737,6 @@ function CricketAddaMain() {
       Alert.alert('Invalid Mobile Number', 'Please enter a full 10-digit mobile number, or leave it blank.');
       return;
     }
-    if ((newTeamSquad || []).length >= 20) {
-      Alert.alert('Squad Full', 'Squad limit reached (20/20 max players).');
-      return;
-    }
     const cleanName = newPlayerNameInput.trim();
     if (newTeamSquad.some(p => p.name.toLowerCase() === cleanName.toLowerCase())) {
       Alert.alert('Duplicate Player', `"${cleanName}" is already in the squad.`);
@@ -13792,10 +13784,6 @@ function CricketAddaMain() {
   const handleAddScannedPlayerToSquad = (playerData) => {
     if (!newTeamName || !newTeamName.trim()) {
       Alert.alert('Team Name Required', 'Team name is mandatory. Please enter a Team Name before adding players to the squad.');
-      return;
-    }
-    if ((newTeamSquad || []).length >= 20) {
-      Alert.alert('Squad Full', 'Squad full (20/20 max players).');
       return;
     }
     const pName = playerData.name || 'Scanned Player';
@@ -13851,10 +13839,6 @@ function CricketAddaMain() {
     }
     if (!newPlayerNameInput || !newPlayerNameInput.trim()) {
       Alert.alert('Player Name Required', 'Please enter a player name.');
-      return;
-    }
-    if ((newTeamSquad || []).length >= 20) {
-      Alert.alert('Squad Full', 'Squad limit reached (20/20 max players).');
       return;
     }
     const cleanPlayerName = newPlayerNameInput.trim();
@@ -13966,9 +13950,6 @@ function CricketAddaMain() {
         avatarUri: userProfile.avatarUri || null,
       });
     }
-
-    // Ensure squad does not exceed 20
-    finalSquad = finalSquad.slice(0, 20);
 
     const captainPlayer = finalSquad.find(p => p.isCaptain) || finalSquad[0];
     const wkPlayer = finalSquad.find(p => p.isWk || p.role === 'WK') || ((finalSquad || []).length > 1 ? finalSquad[1] : null);
@@ -14440,10 +14421,6 @@ function CricketAddaMain() {
     if (!team) return;
     if (!isCreatedByMe(team)) {
       showAppToast('You can only add players to teams created by you', '🔒', 'error');
-      return;
-    }
-    if ((team.squad || []).length >= 20) {
-      showAppToast('Squad limit reached (20/20 max players)', '⚠️', 'error');
       return;
     }
     const cleanName = newTeamPlayerName.trim();
@@ -22016,16 +21993,16 @@ function CricketAddaMain() {
                     </TouchableOpacity>
                   </View>
 
-                  <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="always">
-                    {/* 1. TEAM DETAILS */}
+                  <View style={{ flex: 1, minHeight: 0 }}>
+                    {/* TEAM DETAILS */}
                     {isEditingOpponentTeam ? (
                       <View style={{
                         backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111c2e',
                         borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
                         borderWidth: 1.5,
                         borderRadius: 14,
-                        padding: 12,
-                        marginBottom: 12,
+                        padding: 10,
+                        marginBottom: 6,
                       }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                           <View style={{
@@ -22059,14 +22036,13 @@ function CricketAddaMain() {
                             </Text>
                           </View>
                         </View>
-                        <Text style={{ color: '#0284c7', fontSize: 10.5, fontWeight: '600', marginTop: 8 }}>
+                        <Text style={{ color: '#0284c7', fontSize: 10.5, fontWeight: '600', marginTop: 6 }}>
                           ℹ️ Only squad players can be added or removed for this match. Team branding belongs to opponent.
                         </Text>
                       </View>
                     ) : (
                       <>
-                        <Text style={[styles.pickerSectionHeading, { marginTop: 2, marginBottom: 3 }, currentTheme.isLight && { color: '#0f172a' }]}>🏷️ 1. TEAM DETAILS:</Text>
-                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                        <View style={{ flexDirection: 'row', gap: 8, marginTop: 2, marginBottom: 4 }}>
                           <View style={{ flex: 1.4 }}>
                             <Text style={[styles.inputFieldLabel, { marginBottom: 2 }, currentTheme.isLight && { color: '#475569' }]}>Team Name:</Text>
                             <TextInput
@@ -22224,12 +22200,9 @@ function CricketAddaMain() {
                       </>
                     )}
 
-              {/* 2. ADD PLAYERS TO SQUAD (MAX 20) */}
-              <View style={styles.squadBuilderHeaderRow}>
-                <Text style={styles.pickerSectionHeading}>👥 2. ADD PLAYERS ({(newTeamSquad || []).length}/20):</Text>
-                <Text style={[styles.squadLimitBadge, (newTeamSquad || []).length >= 20 && { color: '#ef4444' }]}>
-                  {(newTeamSquad || []).length >= 20 ? 'Max 20 Reached' : `${20 - (newTeamSquad || []).length} slots left`}
-                </Text>
+              {/* ADD PLAYERS TO SQUAD */}
+              <View style={[styles.squadBuilderHeaderRow, { marginTop: 4, marginBottom: 3 }]}>
+                <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>👥 ADD PLAYERS:</Text>
               </View>
 
               {/* Player Addition Method Tabs */}
@@ -22642,11 +22615,11 @@ function CricketAddaMain() {
               {playerAddTab === 'popular' && (
                 <View style={[styles.addPlayerCardBox, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }, { padding: 8, marginVertical: 4 }]}>
                   {/* Role Selector Pills without icons */}
-                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: 5, marginBottom: 6 }}>
                     {[
                       { key: 'BAT', label: 'Batter' },
                       { key: 'BOWL', label: 'Bowler' },
-                      { key: 'ALL', label: 'All-Rounder' },
+                      { key: 'ALL', label: 'All-Round' },
                       { key: 'WK', label: 'WK' },
                     ].map(r => {
                       const isSel = newPlayerRoleInput === r.key;
@@ -22657,20 +22630,23 @@ function CricketAddaMain() {
                             flex: 1,
                             alignItems: 'center',
                             justifyContent: 'center',
-                            paddingVertical: 7,
+                            paddingVertical: 4.5,
                             paddingHorizontal: 2,
-                            borderRadius: 8,
+                            borderRadius: 6,
                             borderWidth: 1.2,
                             backgroundColor: isSel ? '#10b981' : (currentTheme.isLight ? '#ffffff' : '#1e293b'),
                             borderColor: isSel ? '#10b981' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
                           }}
                           onPress={() => setNewPlayerRoleInput(r.key)}
                         >
-                          <Text style={{
-                            fontSize: 11.5,
-                            fontWeight: isSel ? '900' : '600',
-                            color: isSel ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#94a3b8'),
-                          }}>
+                          <Text
+                            numberOfLines={1}
+                            style={{
+                              fontSize: r.key === 'ALL' ? 10.5 : 11,
+                              fontWeight: isSel ? '900' : '600',
+                              color: isSel ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#94a3b8'),
+                            }}
+                          >
                             {r.label}
                           </Text>
                         </TouchableOpacity>
@@ -22697,9 +22673,7 @@ function CricketAddaMain() {
                       style={[
                         styles.addPlayerMiniSubmitBtn,
                         { height: 38, paddingHorizontal: 14, backgroundColor: '#10b981', borderColor: '#10b981' },
-                        (newTeamSquad || []).length >= 20 && { opacity: 0.5 },
                       ]}
-                      disabled={(newTeamSquad || []).length >= 20}
                       onPress={handleAddPlayerToNewTeamSquad}
                     >
                       <Text style={[styles.addPlayerMiniSubmitText, { fontWeight: 'bold' }]}>➕ Add</Text>
@@ -22708,13 +22682,13 @@ function CricketAddaMain() {
                 </View>
               )}
 
-              {/* SQUAD LIST (MAX 20) */}
-              <View style={{ marginTop: 6 }}>
+              {/* SQUAD LIST */}
+              <View style={{ flex: 1, minHeight: 90, marginTop: 4 }}>
                 <Text style={[styles.pickerSectionHeading, { marginBottom: 3 }, currentTheme.isLight && { color: '#0f172a' }]}>
                   📋 TEAM SQUAD ({(newTeamSquad || []).length} Players):
                 </Text>
                 {(!newTeamSquad || (newTeamSquad || []).length === 0) ? (
-                  <View style={[styles.squadEmptyPrompt, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }, { padding: 10, marginVertical: 4 }]}>
+                  <View style={[styles.squadEmptyPrompt, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }, { flex: 1, justifyContent: 'center', padding: 8, marginVertical: 2 }]}>
                     <Text style={{ fontSize: 18, marginBottom: 2 }}>👥</Text>
                     <Text style={[styles.squadEmptyPromptText, currentTheme.isLight && { color: '#0f172a' }]}>No players added yet.</Text>
                     <Text style={{ color: currentTheme.isLight ? '#64748b' : '#64748b', fontSize: 10.5, textAlign: 'center', marginTop: 2 }}>
@@ -22723,13 +22697,13 @@ function CricketAddaMain() {
                   </View>
                 ) : (
                   <View style={{
-                    maxHeight: 180,
+                    flex: 1,
                     borderWidth: 1,
                     borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
                     borderRadius: 10,
                     backgroundColor: currentTheme.isLight ? '#f8fafc' : '#071220',
                     padding: 4,
-                    marginVertical: 3,
+                    marginVertical: 2,
                   }}>
                     <ScrollView
                       nestedScrollEnabled={true}
@@ -22799,26 +22773,26 @@ function CricketAddaMain() {
                   </View>
                 )}
               </View>
+            </View>
 
-              {/* Action Buttons */}
-              <View style={[styles.modalBtnRow, { marginTop: 8, marginBottom: 4 }]}>
-                <TouchableOpacity style={[styles.skipBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
-                  <Text style={[styles.skipBtnText, currentTheme.isLight && { color: '#475569' }]}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.confirmBtn, { backgroundColor: isEditingOpponentTeam ? '#0284c7' : '#10b981' }]}
-                  onPress={handleSaveNewTeamWithSquad}
-                >
-                  <Text style={[styles.confirmBtnText, { color: '#ffffff' }]}>
-                    {isEditingOpponentTeam
-                      ? '💾 Update Team'
-                      : editingTeamId
-                      ? '💾 Update Team'
-                      : '💾 Save Team'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
+            {/* Action Buttons: Pinned to touch bottom */}
+            <View style={[styles.modalBtnRow, { marginTop: 'auto', paddingTop: 6, marginBottom: 0 }]}>
+              <TouchableOpacity style={[styles.skipBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
+                <Text style={[styles.skipBtnText, currentTheme.isLight && { color: '#475569' }]}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmBtn, { backgroundColor: isEditingOpponentTeam ? '#0284c7' : '#10b981' }]}
+                onPress={handleSaveNewTeamWithSquad}
+              >
+                <Text style={[styles.confirmBtnText, { color: '#ffffff' }]}>
+                  {isEditingOpponentTeam
+                    ? '💾 Update Team'
+                    : editingTeamId
+                    ? '💾 Update Team'
+                    : '💾 Save Team'}
+                </Text>
+              </TouchableOpacity>
+            </View>
                 </>
               );
             })()}
