@@ -19955,7 +19955,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       <Modal visible={photoPickerVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View>
@@ -20903,7 +20903,7 @@ function CricketAddaMain() {
       {/* MODAL 5: ENHANCED INTERACTIVE WICKET DISMISSAL MODAL */}
       <Modal visible={wicketModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View>
@@ -21168,7 +21168,7 @@ function CricketAddaMain() {
       {/* MODAL 5.5: RECORD DROPPED CATCH MODAL */}
       <Modal visible={dropCatchModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View>
@@ -21832,7 +21832,7 @@ function CricketAddaMain() {
       {/* MODAL 5.55: LIVE BALL-BY-BALL COMMENTARY OVERLAY MODAL */}
       <Modal visible={commentaryModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <View style={styles.photoPickerHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Text style={[styles.photoPickerTitle, { color: '#38bdf8' }]}>🎙️ Live Commentary</Text>
@@ -21961,7 +21961,7 @@ function CricketAddaMain() {
       {/* MODAL 5.56: NEW CUSTOM TEAM & 20-PLAYER SQUAD BUILDER MODAL (MAX 20 PLAYERS) */}
       <Modal visible={newTeamModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             {(() => {
               const activeEditingTeam = editingTeamId ? registeredTeams.find(t => t.id === editingTeamId) : null;
               const isEditingOpponentTeam = Boolean(editingTeamId && !isCreatedByMe(activeEditingTeam));
@@ -22065,63 +22065,65 @@ function CricketAddaMain() {
                       </View>
                     ) : (
                       <>
-                        <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>🏷️ 1. TEAM DETAILS:</Text>
-                        <View style={styles.wizardInputBox}>
-                          <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>
-                            Team Name <Text style={{ color: '#ef4444', fontWeight: 'bold' }}>* (Mandatory)</Text>:
-                          </Text>
-                          <TextInput
-                            style={[
-                              styles.wizardTextInput,
-                              currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' },
-                              (!newTeamName || !newTeamName.trim()) && { borderColor: '#f59e0b' },
-                              registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && { borderColor: '#ef4444', borderWidth: 1.5 }
-                            ]}
-                            value={newTeamName}
-                            onChangeText={setNewTeamName}
-                            placeholder="e.g. Mumbai Super Kings"
-                            placeholderTextColor="#94a3b8"
-                          />
+                        <Text style={[styles.pickerSectionHeading, { marginTop: 2, marginBottom: 3 }, currentTheme.isLight && { color: '#0f172a' }]}>🏷️ 1. TEAM DETAILS:</Text>
+                        <View style={{ flexDirection: 'row', gap: 8, marginBottom: 4 }}>
+                          <View style={{ flex: 1.4 }}>
+                            <Text style={[styles.inputFieldLabel, { marginBottom: 2 }, currentTheme.isLight && { color: '#475569' }]}>Team Name:</Text>
+                            <TextInput
+                              style={[
+                                styles.wizardTextInput,
+                                currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' },
+                                { height: 38, fontSize: 12.5, paddingHorizontal: 10 },
+                                (!newTeamName || !newTeamName.trim()) && { borderColor: '#f59e0b' },
+                                registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && { borderColor: '#ef4444', borderWidth: 1.5 }
+                              ]}
+                              value={newTeamName}
+                              onChangeText={setNewTeamName}
+                              placeholder="e.g. Mumbai Kings"
+                              placeholderTextColor="#94a3b8"
+                            />
+                          </View>
+                          <View style={{ flex: 1 }}>
+                            <Text style={[styles.inputFieldLabel, { marginBottom: 2 }, currentTheme.isLight && { color: '#475569' }]}>City / Club:</Text>
+                            <TextInput
+                              style={[
+                                styles.wizardTextInput,
+                                currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' },
+                                { height: 38, fontSize: 12.5, paddingHorizontal: 10 }
+                              ]}
+                              value={newTeamCity}
+                              onChangeText={setNewTeamCity}
+                              placeholder="e.g. Mumbai"
+                              placeholderTextColor="#94a3b8"
+                            />
+                          </View>
                         </View>
 
-                        
-
                         {registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
-                            <Text style={{ fontSize: 13 }}>⚠️</Text>
-                            <Text style={{ color: '#ef4444', fontSize: 11.5, fontWeight: 'bold' }}>
-                              Team name "{newTeamName.trim()}" is already taken. Please choose a unique name.
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -2, marginBottom: 4, paddingHorizontal: 4 }}>
+                            <Text style={{ fontSize: 12 }}>⚠️</Text>
+                            <Text style={{ color: '#ef4444', fontSize: 11, fontWeight: 'bold' }}>
+                              Team name "{newTeamName.trim()}" is already taken.
                             </Text>
                           </View>
                         )}
 
-                        <View style={styles.wizardInputBox}>
-                          <Text style={[styles.inputFieldLabel, currentTheme.isLight && { color: '#475569' }]}>City / Club (Optional):</Text>
-                          <TextInput
-                            style={[styles.wizardTextInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }]}
-                            value={newTeamCity}
-                            onChangeText={setNewTeamCity}
-                            placeholder="e.g. Wankhede / Mumbai"
-                            placeholderTextColor="#94a3b8"
-                          />
-                        </View>
-
-                        {/* CUSTOM TEAM PICTURE / LOGO & MASCOT */}
-                        <Text style={[styles.inputFieldLabel, { marginTop: 8 }, currentTheme.isLight && { color: '#475569' }]}>Team Picture:</Text>
+                        {/* CUSTOM TEAM PICTURE */}
+                        <Text style={[styles.inputFieldLabel, { marginTop: 4, marginBottom: 2 }, currentTheme.isLight && { color: '#475569' }]}>Team Picture:</Text>
                         <View style={{
                           backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a101d',
                           borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
                           borderWidth: 1,
-                          borderRadius: 14,
-                          padding: 12,
-                          marginVertical: 6,
+                          borderRadius: 10,
+                          padding: 6,
+                          marginBottom: 4,
                         }}>
                           {/* Top Row: Live Preview Avatar + Direct URL Text Input */}
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                             <View style={{
-                              width: 48,
-                              height: 48,
-                              borderRadius: 12,
+                              width: 36,
+                              height: 36,
+                              borderRadius: 10,
                               backgroundColor: currentTheme.isLight ? '#ffffff' : '#162235',
                               borderWidth: 1.5,
                               borderColor: currentTheme.primary,
@@ -22137,7 +22139,7 @@ function CricketAddaMain() {
                                   resizeMode="cover"
                                 />
                               ) : (
-                                <Text style={{ fontSize: 26 }}>{newTeamFlag || '🦁'}</Text>
+                                <Text style={{ fontSize: 20 }}>{newTeamFlag || '🦁'}</Text>
                               )}
                             </View>
 
@@ -22148,15 +22150,15 @@ function CricketAddaMain() {
                               backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
                               borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
                               borderWidth: 1,
-                              borderRadius: 10,
-                              paddingHorizontal: 10,
-                              height: 44,
+                              borderRadius: 8,
+                              paddingHorizontal: 8,
+                              height: 36,
                             }}>
-                              <Text style={{ fontSize: 13, marginRight: 6 }}>🔗</Text>
+                              <Text style={{ fontSize: 12, marginRight: 5 }}>🔗</Text>
                               <TextInput
                                 style={{
                                   flex: 1,
-                                  fontSize: 12,
+                                  fontSize: 11.5,
                                   color: currentTheme.isLight ? '#0f172a' : '#ffffff',
                                   paddingVertical: 0,
                                 }}
@@ -22174,22 +22176,22 @@ function CricketAddaMain() {
                           </View>
 
                           {/* Action Buttons: Gallery & Camera */}
-                          <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                          <View style={{ flexDirection: 'row', gap: 6 }}>
                             <TouchableOpacity
                               style={{
                                 flex: 1,
                                 flexDirection: 'row',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: 6,
+                                gap: 5,
                                 backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0369a1',
-                                paddingVertical: 8,
-                                borderRadius: 8,
+                                paddingVertical: 6,
+                                borderRadius: 6,
                               }}
                               onPress={pickTeamLogoFromGallery}
                             >
-                              <Text style={{ fontSize: 13 }}>🖼️</Text>
-                              <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
+                              <Text style={{ fontSize: 12 }}>🖼️</Text>
+                              <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
                                 From Gallery
                               </Text>
                             </TouchableOpacity>
@@ -22200,21 +22202,19 @@ function CricketAddaMain() {
                                 flexDirection: 'row',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                gap: 6,
+                                gap: 5,
                                 backgroundColor: currentTheme.isLight ? '#dcfce7' : '#059669',
-                                paddingVertical: 8,
-                                borderRadius: 8,
+                                paddingVertical: 6,
+                                borderRadius: 6,
                               }}
                               onPress={takeTeamLogoWithCamera}
                             >
-                              <Text style={{ fontSize: 13 }}>📸</Text>
-                              <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11.5, fontWeight: 'bold' }}>
+                              <Text style={{ fontSize: 12 }}>📸</Text>
+                              <Text style={{ color: currentTheme.isLight ? '#15803d' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>
                                 From Camera
                               </Text>
                             </TouchableOpacity>
                           </View>
-
-
                         </View>
                       </>
                     )}
@@ -22576,9 +22576,9 @@ function CricketAddaMain() {
                       {/* Viewfinder Camera Stage with Live Camera Feed */}
                       <View style={{
                         width: '100%',
-                        height: 230,
+                        height: 180,
                         backgroundColor: '#000000',
-                        borderRadius: 14,
+                        borderRadius: 12,
                         borderWidth: 2,
                         borderColor: '#38bdf8',
                         justifyContent: 'center',
@@ -22599,10 +22599,10 @@ function CricketAddaMain() {
                         />
 
                         {/* Corner Brackets */}
-                        <View pointerEvents="none" style={{ position: 'absolute', top: 8, left: 8, width: 22, height: 22, borderTopWidth: 3, borderLeftWidth: 3, borderColor: '#10b981' }} />
-                        <View pointerEvents="none" style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderTopWidth: 3, borderRightWidth: 3, borderColor: '#10b981' }} />
-                        <View pointerEvents="none" style={{ position: 'absolute', bottom: 8, left: 8, width: 22, height: 22, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: '#10b981' }} />
-                        <View pointerEvents="none" style={{ position: 'absolute', bottom: 8, right: 8, width: 22, height: 22, borderBottomWidth: 3, borderRightWidth: 3, borderColor: '#10b981' }} />
+                        <View pointerEvents="none" style={{ position: 'absolute', top: 8, left: 8, width: 20, height: 20, borderTopWidth: 3, borderLeftWidth: 3, borderColor: '#10b981' }} />
+                        <View pointerEvents="none" style={{ position: 'absolute', top: 8, right: 8, width: 20, height: 20, borderTopWidth: 3, borderRightWidth: 3, borderColor: '#10b981' }} />
+                        <View pointerEvents="none" style={{ position: 'absolute', bottom: 8, left: 8, width: 20, height: 20, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: '#10b981' }} />
+                        <View pointerEvents="none" style={{ position: 'absolute', bottom: 8, right: 8, width: 20, height: 20, borderBottomWidth: 3, borderRightWidth: 3, borderColor: '#10b981' }} />
 
                         {/* Animated Laser Scan Beam */}
                         <Animated.View
@@ -22621,139 +22621,117 @@ function CricketAddaMain() {
                               {
                                 translateY: qrLaserAnim.interpolate({
                                   inputRange: [0, 1],
-                                  outputRange: [-95, 95],
+                                  outputRange: [-70, 70],
                                 }),
                               },
                             ],
                           }}
                         />
                       </View>
-
-                      {/* Quick Simulation Chips for instant testing */}
-                      <View style={{ width: '100%', marginTop: 8 }}>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                          <View style={{ flexDirection: 'row', gap: 6 }}>
-                            {[
-                              { name: 'Virat Kohli', phone: '9811001818', role: 'BAT', jersey: '18', battingStyle: 'Right Hand Bat' },
-                              { name: 'Jasprit Bumrah', phone: '9844009393', role: 'BOWL', jersey: '93', battingStyle: 'Right Hand Bat' },
-                              { name: 'Hardik Pandya', phone: '9855003333', role: 'ALL', jersey: '33', battingStyle: 'Right Hand Bat' },
-                              { name: 'MS Dhoni', phone: '9833000707', role: 'WK', jersey: '7', battingStyle: 'Right Hand Bat' },
-                              { name: 'Suryakumar Yadav', phone: '9866006363', role: 'BAT', jersey: '63', battingStyle: 'Right Hand Bat' },
-                              { name: 'Rohit Sharma', phone: '9822004545', role: 'BAT', jersey: '45', battingStyle: 'Right Hand Bat' },
-                            ].map(p => (
-                              <TouchableOpacity
-                                key={p.name}
-                                style={{
-                                  backgroundColor: '#1e293b',
-                                  borderColor: '#10b981',
-                                  borderWidth: 1,
-                                  borderRadius: 8,
-                                  paddingVertical: 5,
-                                  paddingHorizontal: 9,
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                }}
-                                onPress={() => {
-                                  setQrScanPurpose('add_squad_player');
-                                  handleScanQrPayload(JSON.stringify({ type: 'player_pass', name: p.name, phone: p.phone, role: p.role, jersey: p.jersey, battingStyle: p.battingStyle }));
-                                }}
-                              >
-                                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }}>{p.name}</Text>
-                                <Text style={{ color: '#10b981', fontSize: 9.5 }}>• {p.role === 'BAT' ? 'Batter' : p.role === 'BOWL' ? 'Bowler' : p.role === 'WK' ? 'WK' : 'All-Rounder'}</Text>
-                              </TouchableOpacity>
-                            ))}
-                          </View>
-                        </ScrollView>
-                      </View>
                     </View>
                   )}
                 </View>
               )}
 
-              {/* TAB 3: STAR / MANUAL SELECTION */}
+              {/* TAB 3: MANUAL PLAYER CREATION (OPTION A) */}
               {playerAddTab === 'popular' && (
-                <View style={styles.addPlayerCardBox}>
-                  <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: 'bold', marginBottom: 6 }}>
-                    ⭐ QUICK-ADD FROM REGISTERED PLAYERS:
-                  </Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 10 }}>
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      {registeredPlayers.slice(0, 10).map(p => {
-                        const inSquad = newTeamSquad.some(sq => sq.name.toLowerCase() === p.name.toLowerCase());
-                        return (
-                          <TouchableOpacity
-                            key={p.id || p.name}
-                            style={[
-                              styles.quickStarAddChip,
-                              inSquad && { opacity: 0.5, borderColor: '#64748b' },
-                            ]}
-                            disabled={inSquad}
-                            onPress={() => {
-                              handleAddScannedPlayerToSquad(p);
-                            }}
-                          >
-                            <Text style={{ fontSize: 12 }}>
-                              {p.role === 'BAT' ? '🏏' : p.role === 'BOWL' ? '🔴' : p.role === 'WK' ? '🧤' : '⚡'}
-                            </Text>
-                            <Text style={styles.quickStarAddName}>{p.name}</Text>
-                            {inSquad ? (
-                              <Text style={{ color: '#10b981', fontSize: 10, fontWeight: 'bold' }}>✓</Text>
-                            ) : (
-                              <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '900' }}>+</Text>
-                            )}
-                          </TouchableOpacity>
-                        );
-                      })}
-                    </View>
-                  </ScrollView>
+                <View style={[styles.addPlayerCardBox, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }, { padding: 8, marginVertical: 4 }]}>
+                  {/* Role Selector Pills */}
+                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                    {[
+                      { key: 'BAT', label: 'Batter', icon: '🏏' },
+                      { key: 'BOWL', label: 'Bowler', is3DBall: true },
+                      { key: 'ALL', label: 'All-Rounder', icon: '⚡' },
+                      { key: 'WK', label: 'WK', icon: '🧤' },
+                    ].map(r => {
+                      const isSel = newPlayerRoleInput === r.key;
+                      return (
+                        <TouchableOpacity
+                          key={r.key}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 4,
+                            paddingVertical: 6,
+                            paddingHorizontal: 2,
+                            borderRadius: 8,
+                            borderWidth: 1.2,
+                            backgroundColor: isSel ? '#10b981' : (currentTheme.isLight ? '#ffffff' : '#1e293b'),
+                            borderColor: isSel ? '#10b981' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
+                          }}
+                          onPress={() => setNewPlayerRoleInput(r.key)}
+                        >
+                          {r.is3DBall ? (
+                            <RealisticCricketLeatherBall size={11} />
+                          ) : (
+                            <Text style={{ fontSize: 11 }}>{r.icon}</Text>
+                          )}
+                          <Text style={{
+                            fontSize: 11,
+                            fontWeight: isSel ? '900' : '600',
+                            color: isSel ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#94a3b8'),
+                          }}>
+                            {r.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
 
-                  {/* Manual Type */}
-                  <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8, alignItems: 'stretch' }}>
+                  {/* Manual Name Input + Add Button */}
+                  <View style={{ flexDirection: 'row', gap: 6, alignItems: 'stretch' }}>
                     <TextInput
-                      style={[styles.wizardTextInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }, { flex: 1, height: 42, paddingHorizontal: 12, textAlign: 'left', textAlignVertical: 'center' }]}
+                      style={[
+                        styles.wizardTextInput,
+                        currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' },
+                        { flex: 1, height: 38, paddingHorizontal: 10, fontSize: 12.5, textAlign: 'left', textAlignVertical: 'center' }
+                      ]}
                       value={newPlayerNameInput}
                       onChangeText={setNewPlayerNameInput}
-                      placeholder="Type custom player name"
+                      placeholder="Type player name"
                       placeholderTextColor="#94a3b8"
+                      returnKeyType="done"
+                      onSubmitEditing={handleAddPlayerToNewTeamSquad}
                     />
                     <TouchableOpacity
                       style={[
                         styles.addPlayerMiniSubmitBtn,
-                        { height: 42, paddingHorizontal: 16 },
+                        { height: 38, paddingHorizontal: 14, backgroundColor: '#10b981', borderColor: '#10b981' },
                         (newTeamSquad || []).length >= 20 && { opacity: 0.5 },
                       ]}
                       disabled={(newTeamSquad || []).length >= 20}
                       onPress={handleAddPlayerToNewTeamSquad}
                     >
-                      <Text style={styles.addPlayerMiniSubmitText}>➕ Add</Text>
+                      <Text style={[styles.addPlayerMiniSubmitText, { fontWeight: 'bold' }]}>➕ Add</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
               )}
 
               {/* SQUAD LIST (MAX 20) */}
-              <View style={{ marginTop: 12 }}>
-                <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>
+              <View style={{ marginTop: 6 }}>
+                <Text style={[styles.pickerSectionHeading, { marginBottom: 3 }, currentTheme.isLight && { color: '#0f172a' }]}>
                   📋 TEAM SQUAD ({(newTeamSquad || []).length} Players):
                 </Text>
                 {(!newTeamSquad || (newTeamSquad || []).length === 0) ? (
-                  <View style={[styles.squadEmptyPrompt, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                    <Text style={{ fontSize: 20, marginBottom: 4 }}>👥</Text>
-                    <Text style={[styles.squadEmptyPromptText, currentTheme.isLight && { color: '#0f172a' }]}>No custom players added yet.</Text>
-                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#64748b', fontSize: 11, textAlign: 'center', marginTop: 2 }}>
-                      Add teammates above via Mobile Number or QR Scan.
+                  <View style={[styles.squadEmptyPrompt, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }, { padding: 10, marginVertical: 4 }]}>
+                    <Text style={{ fontSize: 18, marginBottom: 2 }}>👥</Text>
+                    <Text style={[styles.squadEmptyPromptText, currentTheme.isLight && { color: '#0f172a' }]}>No players added yet.</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#64748b', fontSize: 10.5, textAlign: 'center', marginTop: 2 }}>
+                      Add teammates above via Mobile, QR Scan, or Manual.
                     </Text>
                   </View>
                 ) : (
                   <View style={{
-                    maxHeight: 180,
+                    maxHeight: 140,
                     borderWidth: 1,
                     borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
-                    borderRadius: 12,
+                    borderRadius: 10,
                     backgroundColor: currentTheme.isLight ? '#f8fafc' : '#071220',
-                    padding: 6,
-                    marginVertical: 4,
+                    padding: 4,
+                    marginVertical: 3,
                   }}>
                     <ScrollView
                       nestedScrollEnabled={true}
@@ -22825,7 +22803,7 @@ function CricketAddaMain() {
               </View>
 
               {/* Action Buttons */}
-              <View style={[styles.modalBtnRow, { marginTop: 16, marginBottom: 12 }]}>
+              <View style={[styles.modalBtnRow, { marginTop: 8, marginBottom: 4 }]}>
                 <TouchableOpacity style={[styles.skipBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]} onPress={() => { setNewTeamModalVisible(false); setEditingTeamId(null); }}>
                   <Text style={[styles.skipBtnText, currentTheme.isLight && { color: '#475569' }]}>Cancel</Text>
                 </TouchableOpacity>
@@ -22835,10 +22813,10 @@ function CricketAddaMain() {
                 >
                   <Text style={[styles.confirmBtnText, { color: '#ffffff' }]}>
                     {isEditingOpponentTeam
-                      ? `💾 Update Opponent Squad (${(newTeamSquad || []).length} Pl)`
+                      ? '💾 Update Team'
                       : editingTeamId
-                      ? `💾 Update Team & Squad (${(newTeamSquad || []).length} Pl)`
-                      : `💾 Save Team & Squad (${(newTeamSquad || []).length} Pl)`}
+                      ? '💾 Update Team'
+                      : '💾 Save Team'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -22855,7 +22833,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       <Modal visible={inningStartModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <View style={styles.photoPickerHeader}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                 <RealisticCricketLeatherBall size={18} />
@@ -23095,7 +23073,7 @@ function CricketAddaMain() {
       {/* MODAL 5.8: CHANGE BOWLER & END OF OVER MODAL */}
       <Modal visible={changeBowlerModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               <View style={styles.photoPickerHeader}>
                 <View>
@@ -30559,7 +30537,7 @@ function CricketAddaMain() {
       {/* MODAL: ADD PLAYER TO CREATED TEAM MODAL */}
       <Modal visible={addPlayerModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, padding: 16 }]}>
+          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
               {/* Modal Header */}
               <View style={styles.photoPickerHeader}>
@@ -36217,8 +36195,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 14,
-    marginBottom: 6,
+    marginTop: 6,
+    marginBottom: 3,
   },
   squadLimitBadge: {
     color: '#38bdf8',
@@ -36230,8 +36208,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#334155',
     borderRadius: 10,
-    padding: 10,
-    marginBottom: 10,
+    padding: 8,
+    marginBottom: 4,
   },
   addPlayerMiniSubmitBtn: {
     backgroundColor: '#065f46',
@@ -37428,8 +37406,8 @@ const styles = StyleSheet.create({
 
   /* SQUAD ROSTER LIST CARDS */
   squadPlayerCardsWrap: {
-    gap: 6,
-    marginTop: 4,
+    gap: 4,
+    marginTop: 2,
   },
   squadPlayerCardRow: {
     flexDirection: 'row',
@@ -37438,7 +37416,7 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     borderWidth: 1,
     borderRadius: 8,
-    paddingVertical: 7,
+    paddingVertical: 5,
     paddingHorizontal: 8,
   },
   squadPlayerCardNum: {
