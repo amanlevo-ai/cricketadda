@@ -6705,7 +6705,7 @@ function CricketAddaMain() {
             }).catch(() => {});
 
             fetchFirebaseMatchesDb().then(cloudDb => {
-              if (cloudDb && typeof cloudDb === 'object') {
+              if (cloudDb && typeof cloudDb === 'object' && Object.keys(cloudDb).length > 0) {
                 setMatchesDb(prev => {
                   const merged = { ...prev };
                   Object.entries(cloudDb).forEach(([mId, m]) => {
@@ -6721,6 +6721,11 @@ function CricketAddaMain() {
                   AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(merged)).catch(() => {});
                   return merged;
                 });
+              } else {
+                setMatchesDb({});
+                setActiveMatchId(null);
+                AsyncStorage.removeItem(STORAGE_KEYS.MATCHES_DB).catch(() => {});
+                AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_MATCH_ID).catch(() => {});
               }
             }).catch(() => {});
           }).catch(() => {});
@@ -6943,10 +6948,7 @@ function CricketAddaMain() {
 
     // 3. Matches DB Real-Time Subscription
     const unsubMatches = subscribeToFirebaseMatchesDb(cloudMatches => {
-      if (!cloudMatches || typeof cloudMatches !== 'object' || Object.keys(cloudMatches).length === 0) {
-        setMatchesDb(prev => ({ ...MATCH_DATABASE, ...(prev || {}) }));
-        return;
-      }
+      if (!cloudMatches || typeof cloudMatches !== 'object') return;
       setMatchesDb(prev => {
         let hasChanges = false;
         // Start with cloudMatches as authority for existing keys
@@ -6986,6 +6988,10 @@ function CricketAddaMain() {
 
         if (hasChanges) {
           AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(next)).catch(() => {});
+          if (activeMatchId && !next[activeMatchId]) {
+            setActiveMatchId(null);
+            AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_MATCH_ID).catch(() => {});
+          }
           return next;
         }
         return prev;
