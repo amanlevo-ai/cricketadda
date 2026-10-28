@@ -21977,13 +21977,11 @@ function CricketAddaMain() {
                           ? `🏏 Edit Team & Squad: ${newTeamName || ''}`
                           : '🏏 Create Your Team'}
                       </Text>
-                      <Text style={{ color: '#94a3b8', fontSize: 11.5, marginTop: 2 }}>
-                        {isEditingOpponentTeam
-                          ? 'Opponent Team: Add or remove players for this match. Team branding is locked.'
-                          : editingTeamId
-                          ? 'Update details, mascot flag, and squad roster (max 20 players)'
-                          : 'Enter team name & add teammates (max 20 players)'}
-                      </Text>
+                      {isEditingOpponentTeam ? (
+                        <Text style={{ color: '#94a3b8', fontSize: 11.5, marginTop: 2 }}>
+                          Opponent Team: Add or remove players for this match. Team branding is locked.
+                        </Text>
+                      ) : null}
                     </View>
                     {(newTeamName || '').trim().length > 0 && (
                       <TouchableOpacity
@@ -22081,19 +22079,12 @@ function CricketAddaMain() {
                             ]}
                             value={newTeamName}
                             onChangeText={setNewTeamName}
-                            placeholder="e.g. Mumbai Super Kings (Mandatory)"
+                            placeholder="e.g. Mumbai Super Kings"
                             placeholderTextColor="#94a3b8"
                           />
                         </View>
 
-                        {(!newTeamName || !newTeamName.trim()) && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
-                            <Text style={{ fontSize: 12 }}>⚠️</Text>
-                            <Text style={{ color: '#f59e0b', fontSize: 11, fontWeight: '600' }}>
-                              Team name is mandatory before adding players or saving.
-                            </Text>
-                          </View>
-                        )}
+                        
 
                         {registeredTeams.some(t => (editingTeamId ? t.id !== editingTeamId : true) && t.name && t.name.trim().toLowerCase() === (newTeamName || '').trim().toLowerCase()) && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: -4, marginBottom: 8, paddingHorizontal: 4 }}>
@@ -22116,7 +22107,7 @@ function CricketAddaMain() {
                         </View>
 
                         {/* CUSTOM TEAM PICTURE / LOGO & MASCOT */}
-                        <Text style={[styles.inputFieldLabel, { marginTop: 8 }, currentTheme.isLight && { color: '#475569' }]}>Team Picture & Mascot:</Text>
+                        <Text style={[styles.inputFieldLabel, { marginTop: 8 }, currentTheme.isLight && { color: '#475569' }]}>Team Picture:</Text>
                         <View style={{
                           backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a101d',
                           borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
@@ -22223,26 +22214,7 @@ function CricketAddaMain() {
                             </TouchableOpacity>
                           </View>
 
-                          {/* Team Mascot / Emoji Flag Selector */}
-                          <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginTop: 2, marginBottom: 4 }}>
-                            Or Choose Mascot Flag:
-                          </Text>
-                          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            {['🦁', '⚡', '👑', '🌊', '🦅', '🏏', '🔥', '🛡️', '⚔️', '⭐', '🐯', '🐂', '🐺', '🏆'].map(flg => (
-                              <TouchableOpacity
-                                key={flg}
-                                style={[
-                                  styles.teamFlagSelectChip,
-                                  newTeamFlag === flg && styles.teamFlagSelectChipActive,
-                                ]}
-                                onPress={() => {
-                                  setNewTeamFlag(flg);
-                                }}
-                              >
-                                <Text style={{ fontSize: 20 }}>{flg}</Text>
-                              </TouchableOpacity>
-                            ))}
-                          </ScrollView>
+
                         </View>
                       </>
                     )}
@@ -22361,45 +22333,7 @@ function CricketAddaMain() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Quick Test Dummy Player Pills */}
-                  <View style={{ marginBottom: 10 }}>
-                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10, fontWeight: 'bold', marginBottom: 5 }}>
-                      ⚡ TAP DUMMY PLAYER TO TEST SEARCH:
-                    </Text>
-                    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                      <View style={{ flexDirection: 'row', gap: 6 }}>
-                        {registeredPlayers.map(rp => {
-                          const roleText = rp.role === 'BAT' ? 'Batter' : rp.role === 'BOWL' ? 'Bowler' : rp.role === 'WK' ? 'WK' : 'All-Rounder';
-                          return (
-                            <TouchableOpacity
-                              key={rp.id || rp.name}
-                              style={{
-                                backgroundColor: currentTheme.isLight ? '#ffffff' : '#1e293b',
-                                borderColor: currentTheme.isLight ? '#cbd5e1' : '#38bdf8',
-                                borderWidth: 1,
-                                borderRadius: 8,
-                                paddingHorizontal: 9,
-                                paddingVertical: 5,
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 5,
-                              }}
-                              onPress={() => {
-                                setPlayerPhoneInput(rp.phone);
-                                setPlayerPhoneSearchResult(rp);
-                                setNewPlayerNameInput(rp.name);
-                                setNewPlayerRoleInput(rp.role || 'BAT');
-                              }}
-                            >
-                              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 11, fontWeight: 'bold' }}>{rp.name}</Text>
-                              <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 9.5, fontWeight: '600' }}>({roleText})</Text>
-                              <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 9.5 }}>• {rp.phone}</Text>
-                            </TouchableOpacity>
-                          );
-                        })}
-                      </View>
-                    </ScrollView>
-                  </View>
+
 
                   {/* Registered Player Profile Card / Loading / Not Found Message */}
                   {phoneSearching ? (
@@ -22526,13 +22460,7 @@ function CricketAddaMain() {
                         </Text>
                       </TouchableOpacity>
                     </View>
-                  ) : (
-                    <View style={{ paddingVertical: 10, alignItems: 'center' }}>
-                      <Text style={{ color: '#64748b', fontSize: 11, textAlign: 'center', lineHeight: 16 }}>
-                        💡 Enter a registered player's 10-digit mobile number above and tap "Search" to view their profile and add them to your squad.
-                      </Text>
-                    </View>
-                  )}
+                  ) : null}
                 </View>
               )}
 
@@ -22807,7 +22735,7 @@ function CricketAddaMain() {
               {/* SQUAD LIST (MAX 20) */}
               <View style={{ marginTop: 12 }}>
                 <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>
-                  📋 SQUAD ROSTER ({(newTeamSquad || []).length} Players):
+                  📋 TEAM SQUAD ({(newTeamSquad || []).length} Players):
                 </Text>
                 {(!newTeamSquad || (newTeamSquad || []).length === 0) ? (
                   <View style={[styles.squadEmptyPrompt, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
@@ -22818,7 +22746,22 @@ function CricketAddaMain() {
                     </Text>
                   </View>
                 ) : (
-                  <View style={styles.squadPlayerCardsWrap}>
+                  <View style={{
+                    maxHeight: 180,
+                    borderWidth: 1,
+                    borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                    borderRadius: 12,
+                    backgroundColor: currentTheme.isLight ? '#f8fafc' : '#071220',
+                    padding: 6,
+                    marginVertical: 4,
+                  }}>
+                    <ScrollView
+                      nestedScrollEnabled={true}
+                      showsVerticalScrollIndicator={true}
+                      persistentScrollbar={true}
+                      keyboardShouldPersistTaps="handled"
+                    >
+                      <View style={styles.squadPlayerCardsWrap}>
                     {newTeamSquad.map((p, idx) => {
                       const roleText = p.role === 'BAT' ? 'Batter' : p.role === 'BOWL' ? 'Bowler' : p.role === 'WK' ? 'WK' : 'All-Rounder';
                       const isCapt = p.isCaptain || idx === 0 || (userProfile?.name && p.name && p.name.toLowerCase() === userProfile.name.toLowerCase());
@@ -22875,6 +22818,8 @@ function CricketAddaMain() {
                         </View>
                       );
                     })}
+                      </View>
+                    </ScrollView>
                   </View>
                 )}
               </View>
