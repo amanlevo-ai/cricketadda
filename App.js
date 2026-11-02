@@ -6575,33 +6575,43 @@ function CricketAddaMain() {
               const totBalls = ov * 6 + bl;
               setLiveBalls(totBalls);
 
-              const legalBallsInCurOver = totBalls % 6;
-              const rawThisOver = mObj.liveState?.liveThisOver || mObj.liveThisOver || [];
-              let safeThisOver = [];
-              if (legalBallsInCurOver === 0) {
-                const legalCount = (rawThisOver || []).filter(s => s && !String(s).includes('Wd') && !String(s).includes('Nb')).length;
-                safeThisOver = legalCount > 0 ? [] : rawThisOver;
-              } else {
-                let legalCount = 0;
-                const filtered = [];
-                for (let i = (rawThisOver || []).length - 1; i >= 0; i--) {
-                  const sym = rawThisOver[i];
-                  if (!sym) continue;
-                  const isLegal = !String(sym).includes('Wd') && !String(sym).includes('Nb');
-                  if (isLegal) {
-                    if (legalCount >= legalBallsInCurOver) break;
-                    legalCount++;
-                  }
-                  filtered.unshift(sym);
-                }
-                safeThisOver = filtered;
-              }
-              setLiveThisOver(safeThisOver);
-
               const candidateHistory = (Array.isArray(mObj.liveState?.scoringHistory) && mObj.liveState.scoringHistory.length >= (mObj.scoringHistory?.length || 0))
                 ? mObj.liveState.scoringHistory
                 : (Array.isArray(mObj.scoringHistory) ? mObj.scoringHistory : (mObj.liveState?.scoringHistory || []));
               setScoringHistory(candidateHistory);
+
+              const legalBallsInCurOver = totBalls % 6;
+              let safeThisOver = [];
+              if (candidateHistory.length > 0) {
+                if (legalBallsInCurOver === 0) {
+                  const nonLegalTail = [];
+                  for (let i = candidateHistory.length - 1; i >= 0; i--) {
+                    const d = candidateHistory[i];
+                    if (!d || (d.innings && d.innings !== activeInningNum)) break;
+                    if (d.isLegalDelivery !== false) break;
+                    if (d.ballSymbol) nonLegalTail.unshift(d.ballSymbol);
+                  }
+                  safeThisOver = nonLegalTail;
+                } else {
+                  let legalCount = 0;
+                  const filtered = [];
+                  for (let i = candidateHistory.length - 1; i >= 0; i--) {
+                    const d = candidateHistory[i];
+                    if (!d) continue;
+                    if (d.innings && d.innings !== activeInningNum) break;
+                    const isLegal = d.isLegalDelivery !== false;
+                    if (isLegal) {
+                      if (legalCount >= legalBallsInCurOver) break;
+                      legalCount++;
+                    }
+                    if (d.ballSymbol) filtered.unshift(d.ballSymbol);
+                  }
+                  safeThisOver = filtered;
+                }
+              } else {
+                safeThisOver = mObj.liveState?.liveThisOver || mObj.liveThisOver || [];
+              }
+              setLiveThisOver(safeThisOver);
             } else {
               setActiveMatchId(null);
             }
@@ -6905,15 +6915,15 @@ function CricketAddaMain() {
     }
   }, [matchDraft]);
 
-  // If user opens or returns to scorer tab with an active match, ensure match data is loaded
+  // If user opens or returns to scorer tab with an active match, ensure match data is loaded (Spectators or initial match load only)
   useEffect(() => {
-    if (activeTab === 'scorer' && activeMatchId && match?.id !== activeMatchId) {
+    if (activeTab === 'scorer' && activeMatchId && !isOfficialScorer && match?.id !== activeMatchId) {
       const targetMatch = matchesDb?.[activeMatchId] || MATCH_DATABASE[activeMatchId];
       if (targetMatch && typeof handleScoreMatchPress === 'function') {
         handleScoreMatchPress(activeMatchId);
       }
     }
-  }, [activeTab, activeMatchId, match?.id, matchesDb]);
+  }, [activeTab, activeMatchId, isOfficialScorer, match?.id, matchesDb]);
 
   // Live Real-Time Continuous Cloud Subscriptions: Instant Multi-Device Sync for Teams, Users & Matches
   useEffect(() => {
@@ -8726,10 +8736,10 @@ function CricketAddaMain() {
       }
     });
     const cached = liveBowlerStats[name] || Object.entries(liveBowlerStats || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
-    const finalBalls = (cached && cached.balls !== undefined) ? Number(cached.balls) : hBalls;
-    const finalRuns = (cached && cached.runs !== undefined) ? Number(cached.runs) : hRuns;
-    const finalWickets = (cached && cached.wickets !== undefined) ? Number(cached.wickets) : hWickets;
-    const finalMaidens = (cached && cached.maidens !== undefined) ? Number(cached.maidens) : hMaidens;
+    const finalBalls = Math.max(hBalls, (cached && cached.balls !== undefined) ? Number(cached.balls) : 0);
+    const finalRuns = Math.max(hRuns, (cached && cached.runs !== undefined) ? Number(cached.runs) : 0);
+    const finalWickets = Math.max(hWickets, (cached && cached.wickets !== undefined) ? Number(cached.wickets) : 0);
+    const finalMaidens = Math.max(hMaidens, (cached && cached.maidens !== undefined) ? Number(cached.maidens) : 0);
     const ovStr = `${Math.floor(finalBalls / 6)}.${finalBalls % 6}`;
     const econ = finalBalls > 0 ? ((finalRuns / finalBalls) * 6).toFixed(1) : '0.0';
     return { ovStr, maidens: finalMaidens, runs: finalRuns, wickets: finalWickets, econ };
@@ -9918,13 +9928,21 @@ function CricketAddaMain() {
 
     // 3. Update Live Bowler stats (Only credit bowler with wicket for bowler dismissals; Run outs and retired outs are team wickets)
     const isBowlerCreditedWkt = isWkt && customDismissalType !== 'run_out' && customDismissalType !== 'retired' && customDismissalType !== 'obstructing';
+    const curBwBalls = (liveBowlerStats[bowler]?.balls || 0) + (isLegalDelivery ? 1 : 0);
+    const curBwRuns = (liveBowlerStats[bowler]?.runs || 0) + bowlerRunsConceded;
+    const curBwWkts = (liveBowlerStats[bowler]?.wickets || 0) + (isBowlerCreditedWkt ? 1 : 0);
+    const curBwOvStr = `${Math.floor(curBwBalls / 6)}.${curBwBalls % 6}`;
+    const curBwEcon = curBwBalls > 0 ? ((curBwRuns / curBwBalls) * 6).toFixed(1) : '0.0';
     const updatedLiveBowlers = {
       ...liveBowlerStats,
       [bowler]: {
-        ...(liveBowlerStats[bowler] || { runs: 0, wickets: 0, balls: 0, maidens: 0 }),
-        runs: (liveBowlerStats[bowler]?.runs || 0) + bowlerRunsConceded,
-        wickets: (liveBowlerStats[bowler]?.wickets || 0) + (isBowlerCreditedWkt ? 1 : 0),
-        balls: (liveBowlerStats[bowler]?.balls || 0) + (isLegalDelivery ? 1 : 0),
+        ...(liveBowlerStats[bowler] || { maidens: 0 }),
+        name: bowler,
+        runs: curBwRuns,
+        wickets: curBwWkts,
+        balls: curBwBalls,
+        overs: curBwOvStr,
+        econ: curBwEcon,
       },
     };
     setLiveBowlerStats(updatedLiveBowlers);
@@ -15559,6 +15577,14 @@ function CricketAddaMain() {
     setStartStriker(finalStriker);
     setStartNonStriker(finalNonStriker);
     setStartBowler(finalBowler);
+    setMatch(prev => ({
+      ...prev,
+      id: newMatchId,
+      status: 'live',
+      currentStriker: finalStriker,
+      currentNonStriker: finalNonStriker,
+      currentBowler: finalBowler,
+    }));
     setInningStartModalVisible(false);
     navigateTo('scorer', newMatchId);
   };
@@ -15571,9 +15597,9 @@ function CricketAddaMain() {
     // do NOT re-initialize or blow away the live in-memory scoring state! Simply navigate to the scorer pad.
     if (
       matchId === activeMatchId &&
-      isOfficialScorer &&
-      match?.id === activeMatchId
+      isOfficialScorer
     ) {
+      setMatch(prev => ({ ...prev, id: matchId }));
       navigateTo('scorer', matchId);
       return;
     }
@@ -15638,41 +15664,45 @@ function CricketAddaMain() {
     const bl = parseInt(parts[1], 10) || 0;
     setLiveBalls(ov * 6 + bl);
 
-    const totalBallsCount = ov * 6 + bl;
-    const legalBallsInCurOver = totalBallsCount % 6;
-
-    // Resolve candidate raw balls for this over
-    const rawThisOver = targetMatch.liveState?.liveThisOver || targetMatch.liveThisOver || [];
-
-    // Filter rawThisOver so it STRICTLY contains only deliveries for the CURRENT in-progress over
-    let safeThisOver = [];
-    if (legalBallsInCurOver === 0) {
-      // Over completed or new over just started: must be empty unless only non-legal deliveries occurred
-      const legalCount = (rawThisOver || []).filter(s => s && !String(s).includes('Wd') && !String(s).includes('Nb')).length;
-      safeThisOver = legalCount > 0 ? [] : rawThisOver;
-    } else {
-      // Keep only up to legalBallsInCurOver legal deliveries from the end of the array
-      let legalCount = 0;
-      const filtered = [];
-      for (let i = (rawThisOver || []).length - 1; i >= 0; i--) {
-        const sym = rawThisOver[i];
-        if (!sym) continue;
-        const isLegal = !String(sym).includes('Wd') && !String(sym).includes('Nb');
-        if (isLegal) {
-          if (legalCount >= legalBallsInCurOver) break;
-          legalCount++;
-        }
-        filtered.unshift(sym);
-      }
-      safeThisOver = filtered;
-    }
-    setLiveThisOver(safeThisOver);
-
     const candidateHistory = (Array.isArray(targetMatch.liveState?.scoringHistory) && targetMatch.liveState.scoringHistory.length >= (targetMatch.scoringHistory?.length || 0))
       ? targetMatch.liveState.scoringHistory
       : (Array.isArray(targetMatch.scoringHistory) ? targetMatch.scoringHistory : (targetMatch.liveState?.scoringHistory || []));
-
     setScoringHistory(candidateHistory);
+
+    const totalBallsCount = ov * 6 + bl;
+    const legalBallsInCurOver = totalBallsCount % 6;
+
+    let safeThisOver = [];
+    if (candidateHistory.length > 0) {
+      if (legalBallsInCurOver === 0) {
+        const nonLegalTail = [];
+        for (let i = candidateHistory.length - 1; i >= 0; i--) {
+          const d = candidateHistory[i];
+          if (!d || (d.innings && d.innings !== activeInningNum)) break;
+          if (d.isLegalDelivery !== false) break;
+          if (d.ballSymbol) nonLegalTail.unshift(d.ballSymbol);
+        }
+        safeThisOver = nonLegalTail;
+      } else {
+        let legalCount = 0;
+        const filtered = [];
+        for (let i = candidateHistory.length - 1; i >= 0; i--) {
+          const d = candidateHistory[i];
+          if (!d) continue;
+          if (d.innings && d.innings !== activeInningNum) break;
+          const isLegal = d.isLegalDelivery !== false;
+          if (isLegal) {
+            if (legalCount >= legalBallsInCurOver) break;
+            legalCount++;
+          }
+          if (d.ballSymbol) filtered.unshift(d.ballSymbol);
+        }
+        safeThisOver = filtered;
+      }
+    } else {
+      safeThisOver = targetMatch.liveState?.liveThisOver || targetMatch.liveThisOver || [];
+    }
+    setLiveThisOver(safeThisOver);
 
     // 3. Batters map: correctly map not-out batters & stats
     const activeBatting = activeInn.batting || [];
