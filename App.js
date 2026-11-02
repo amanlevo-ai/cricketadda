@@ -6572,12 +6572,31 @@ function CricketAddaMain() {
               const parts = ovStr.split('.');
               const ov = parseInt(parts[0], 10) || 0;
               const bl = parseInt(parts[1], 10) || 0;
-              setLiveBalls(ov * 6 + bl);
+              const totBalls = ov * 6 + bl;
+              setLiveBalls(totBalls);
 
-              const candidateThisOver = (Array.isArray(mObj.liveState?.liveThisOver) && mObj.liveState.liveThisOver.length >= (mObj.liveThisOver?.length || 0))
-                ? mObj.liveState.liveThisOver
-                : (Array.isArray(mObj.liveThisOver) ? mObj.liveThisOver : (mObj.liveState?.liveThisOver || []));
-              setLiveThisOver(candidateThisOver);
+              const legalBallsInCurOver = totBalls % 6;
+              const rawThisOver = mObj.liveState?.liveThisOver || mObj.liveThisOver || [];
+              let safeThisOver = [];
+              if (legalBallsInCurOver === 0) {
+                const legalCount = (rawThisOver || []).filter(s => s && !String(s).includes('Wd') && !String(s).includes('Nb')).length;
+                safeThisOver = legalCount > 0 ? [] : rawThisOver;
+              } else {
+                let legalCount = 0;
+                const filtered = [];
+                for (let i = (rawThisOver || []).length - 1; i >= 0; i--) {
+                  const sym = rawThisOver[i];
+                  if (!sym) continue;
+                  const isLegal = !String(sym).includes('Wd') && !String(sym).includes('Nb');
+                  if (isLegal) {
+                    if (legalCount >= legalBallsInCurOver) break;
+                    legalCount++;
+                  }
+                  filtered.unshift(sym);
+                }
+                safeThisOver = filtered;
+              }
+              setLiveThisOver(safeThisOver);
 
               const candidateHistory = (Array.isArray(mObj.liveState?.scoringHistory) && mObj.liveState.scoringHistory.length >= (mObj.scoringHistory?.length || 0))
                 ? mObj.liveState.scoringHistory
@@ -7030,7 +7049,11 @@ function CricketAddaMain() {
             next[mId] = mData;
             hasChanges = true;
           } else {
-            // Guard active live match: never downgrade with older packet / fewer balls from generic DB polling
+            // Guard active live match: if this device is the official scorer, never overwrite with generic cloud polling!
+            if (mId === activeMatchId && isOfficialScorer) {
+              next[mId] = existing;
+              return;
+            }
             if (mId === activeMatchId && !mData.isUndoAction && typeof mData.liveBalls === 'number' && typeof existing.liveBalls === 'number' && mData.liveBalls < existing.liveBalls) {
               next[mId] = existing;
               return;
@@ -10118,12 +10141,46 @@ function CricketAddaMain() {
           runs: currentInnings === 1 ? nextRunsForDb : (cur.innings1?.runs || 0),
           wickets: currentInnings === 1 ? nextWktsForDb : (cur.innings1?.wickets || 0),
           overs: currentInnings === 1 ? oversFormatted : (cur.innings1?.overs || '0.0'),
+          batting: currentInnings === 1 ? Object.values(updatedLiveBatters).map(b => ({
+            name: b.name,
+            runs: b.runs || 0,
+            balls: b.balls || 0,
+            fours: b.fours || 0,
+            sixes: b.sixes || 0,
+            notOut: !b.isOut,
+            dismissal: b.dismissal || (b.isOut ? 'out' : 'not out'),
+          })) : (cur.innings1?.batting || []),
+          bowling: currentInnings === 1 ? Object.values(updatedLiveBowlers).map(bw => ({
+            name: bw.name,
+            overs: bw.overs || '0.0',
+            runs: bw.runs || 0,
+            wickets: bw.wickets || 0,
+            maidens: bw.maidens || 0,
+            econ: bw.balls > 0 ? ((bw.runs / bw.balls) * 6).toFixed(2) : '0.00',
+          })) : (cur.innings1?.bowling || []),
         },
         innings2: {
           ...(cur.innings2 || {}),
           runs: currentInnings === 2 ? nextRunsForDb : (cur.innings2?.runs || 0),
           wickets: currentInnings === 2 ? nextWktsForDb : (cur.innings2?.wickets || 0),
           overs: currentInnings === 2 ? oversFormatted : (cur.innings2?.overs || '0.0'),
+          batting: currentInnings === 2 ? Object.values(updatedLiveBatters).map(b => ({
+            name: b.name,
+            runs: b.runs || 0,
+            balls: b.balls || 0,
+            fours: b.fours || 0,
+            sixes: b.sixes || 0,
+            notOut: !b.isOut,
+            dismissal: b.dismissal || (b.isOut ? 'out' : 'not out'),
+          })) : (cur.innings2?.batting || []),
+          bowling: currentInnings === 2 ? Object.values(updatedLiveBowlers).map(bw => ({
+            name: bw.name,
+            overs: bw.overs || '0.0',
+            runs: bw.runs || 0,
+            wickets: bw.wickets || 0,
+            maidens: bw.maidens || 0,
+            econ: bw.balls > 0 ? ((bw.runs / bw.balls) * 6).toFixed(2) : '0.00',
+          })) : (cur.innings2?.bowling || []),
         },
         liveState: {
           currentInnings,
@@ -11743,6 +11800,32 @@ function CricketAddaMain() {
     setLiveThisOver([]);
     setChangeBowlerModalVisible(false);
     setCustomNextBowler('');
+
+    if (activeMatchId) {
+      setMatchesDb(prev => {
+        const cur = prev[activeMatchId] || {};
+        const updatedMatch = {
+          ...cur,
+          currentBowler: finalBowler,
+          lastOverBowler: cur.currentBowler || bowler,
+          previousBowler: cur.currentBowler || bowler,
+          liveThisOver: [],
+          liveState: {
+            ...(cur.liveState || {}),
+            currentBowler: finalBowler,
+            liveThisOver: [],
+            liveBowlerStats: {
+              ...(cur.liveState?.liveBowlerStats || {}),
+              [finalBowler]: cur.liveState?.liveBowlerStats?.[finalBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
+            },
+          },
+          lastUpdatedAt: Date.now(),
+        };
+        const updatedDb = { ...prev, [activeMatchId]: updatedMatch };
+        AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
+        return updatedDb;
+      });
+    }
 
     broadcastMatchState({
       currentBowler: finalBowler,
@@ -15484,6 +15567,17 @@ function CricketAddaMain() {
     const targetMatch = matchesDb?.[matchId] || MATCH_DATABASE[matchId];
     if (!targetMatch) return;
 
+    // Fast-path: If user is the active official scorer on this device and ALREADY scoring this active match,
+    // do NOT re-initialize or blow away the live in-memory scoring state! Simply navigate to the scorer pad.
+    if (
+      matchId === activeMatchId &&
+      isOfficialScorer &&
+      match?.id === activeMatchId
+    ) {
+      navigateTo('scorer', matchId);
+      return;
+    }
+
     setActiveMatchId(matchId);
     setMatchesDb(prev => ({
       ...MATCH_DATABASE,
@@ -15544,25 +15638,41 @@ function CricketAddaMain() {
     const bl = parseInt(parts[1], 10) || 0;
     setLiveBalls(ov * 6 + bl);
 
-    const candidateThisOver = (Array.isArray(targetMatch.liveState?.liveThisOver) && targetMatch.liveState.liveThisOver.length >= (targetMatch.liveThisOver?.length || 0))
-      ? targetMatch.liveState.liveThisOver
-      : (Array.isArray(targetMatch.liveThisOver) ? targetMatch.liveThisOver : (targetMatch.liveState?.liveThisOver || []));
+    const totalBallsCount = ov * 6 + bl;
+    const legalBallsInCurOver = totalBallsCount % 6;
 
-    const finalThisOver = (matchId === activeMatchId && Array.isArray(liveThisOver) && liveThisOver.length >= candidateThisOver.length)
-      ? liveThisOver
-      : candidateThisOver;
+    // Resolve candidate raw balls for this over
+    const rawThisOver = targetMatch.liveState?.liveThisOver || targetMatch.liveThisOver || [];
 
-    setLiveThisOver(finalThisOver);
+    // Filter rawThisOver so it STRICTLY contains only deliveries for the CURRENT in-progress over
+    let safeThisOver = [];
+    if (legalBallsInCurOver === 0) {
+      // Over completed or new over just started: must be empty unless only non-legal deliveries occurred
+      const legalCount = (rawThisOver || []).filter(s => s && !String(s).includes('Wd') && !String(s).includes('Nb')).length;
+      safeThisOver = legalCount > 0 ? [] : rawThisOver;
+    } else {
+      // Keep only up to legalBallsInCurOver legal deliveries from the end of the array
+      let legalCount = 0;
+      const filtered = [];
+      for (let i = (rawThisOver || []).length - 1; i >= 0; i--) {
+        const sym = rawThisOver[i];
+        if (!sym) continue;
+        const isLegal = !String(sym).includes('Wd') && !String(sym).includes('Nb');
+        if (isLegal) {
+          if (legalCount >= legalBallsInCurOver) break;
+          legalCount++;
+        }
+        filtered.unshift(sym);
+      }
+      safeThisOver = filtered;
+    }
+    setLiveThisOver(safeThisOver);
 
     const candidateHistory = (Array.isArray(targetMatch.liveState?.scoringHistory) && targetMatch.liveState.scoringHistory.length >= (targetMatch.scoringHistory?.length || 0))
       ? targetMatch.liveState.scoringHistory
       : (Array.isArray(targetMatch.scoringHistory) ? targetMatch.scoringHistory : (targetMatch.liveState?.scoringHistory || []));
 
-    const finalHistory = (matchId === activeMatchId && Array.isArray(scoringHistory) && scoringHistory.length >= candidateHistory.length)
-      ? scoringHistory
-      : candidateHistory;
-
-    setScoringHistory(finalHistory);
+    setScoringHistory(candidateHistory);
 
     // 3. Batters map: correctly map not-out batters & stats
     const activeBatting = activeInn.batting || [];
@@ -15602,13 +15712,17 @@ function CricketAddaMain() {
         sixes: Number(bw.sixes) || 0,
       };
     });
-    setLiveBowlerStats(newLiveBowlers);
+    const baseBowlers = {
+      ...newLiveBowlers,
+      ...(targetMatch.liveState?.liveBowlerStats || {}),
+    };
+    setLiveBowlerStats(baseBowlers);
 
     // 5. Active batters on crease: pick not-out batters
     const notOutBatters = activeBatting.filter(b => b.notOut);
-    const initialStriker = targetMatch.liveState?.currentStriker || targetMatch.currentStriker || notOutBatters[0]?.name || activeBatting[0]?.name || 'Striker';
-    const initialNonStriker = targetMatch.liveState?.currentNonStriker || targetMatch.currentNonStriker || notOutBatters[1]?.name || (activeBatting[1] ? activeBatting[1].name : activeBatting[0]?.name) || 'Non-Striker';
-    const initialBowler = targetMatch.liveState?.currentBowler || targetMatch.currentBowler || (activeBowling.find(bw => bw.overs && !String(bw.overs).endsWith('.0'))?.name) || activeBowling[0]?.name || 'Opening Bowler';
+    const initialStriker = targetMatch.currentStriker || targetMatch.liveState?.currentStriker || notOutBatters[0]?.name || activeBatting[0]?.name || 'Striker';
+    const initialNonStriker = targetMatch.currentNonStriker || targetMatch.liveState?.currentNonStriker || notOutBatters[1]?.name || (activeBatting[1] ? activeBatting[1].name : activeBatting[0]?.name) || 'Non-Striker';
+    const initialBowler = targetMatch.currentBowler || targetMatch.liveState?.currentBowler || (activeBowling.find(bw => bw.overs && !String(bw.overs).endsWith('.0'))?.name) || activeBowling[0]?.name || 'Opening Bowler';
 
     setMatch(prev => ({
       ...prev,
