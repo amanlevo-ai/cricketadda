@@ -7059,6 +7059,12 @@ function CricketAddaMain() {
             next[mId] = mData;
             hasChanges = true;
           } else {
+            // If the match was explicitly reset remotely, accept it unconditionally!
+            if (mData.forceReset || mData.forceResetAt || mData.isReset) {
+              next[mId] = { ...existing, ...mData };
+              hasChanges = true;
+              return;
+            }
             // Guard active live match: if this device is the official scorer, never overwrite with generic cloud polling!
             if (mId === activeMatchId && isOfficialScorer) {
               next[mId] = existing;
@@ -8150,9 +8156,16 @@ function CricketAddaMain() {
     const incomingInnings = d.currentInnings || 1;
 
     // Out-of-order packet protection:
-    // If incoming packet is older than what we already applied in the same inning (and not an undo action),
+    // If incoming packet is older than what we already applied in the same inning (and not an undo action or reset signal),
     // drop it to prevent "show -> hide -> show" flickering!
-    if (
+    const isResetSignal = Boolean(d.forceReset || d.forceResetAt || d.isReset);
+    if (isResetSignal) {
+      lastAppliedRemoteSyncRef.current = {
+        timestamp: incomingTime || Date.now(),
+        balls: 0,
+        innings: 1,
+      };
+    } else if (
       !d.isUndoAction &&
       incomingInnings === lastAppliedRemoteSyncRef.current.innings
     ) {
@@ -8366,7 +8379,8 @@ function CricketAddaMain() {
     if (!isFirebaseConfigured() || !activeMatchId) return;
     const unsubscribe = subscribeToFirebaseMatch(activeMatchId, cloudData => {
       if (!cloudData) return;
-      const isRemote = cloudData.senderClientId && cloudData.senderClientId !== clientIdRef?.current;
+      const isResetSignal = Boolean(cloudData.forceReset || cloudData.forceResetAt || cloudData.isReset);
+      const isRemote = isResetSignal || (cloudData.senderClientId && cloudData.senderClientId !== clientIdRef?.current);
       if (!isOfficialScorer || isRemote) {
         applyRemoteState(cloudData);
       }
@@ -15594,10 +15608,12 @@ function CricketAddaMain() {
     if (!targetMatch) return;
 
     // Fast-path: If user is the active official scorer on this device and ALREADY scoring this active match,
-    // do NOT re-initialize or blow away the live in-memory scoring state! Simply navigate to the scorer pad.
+    // do NOT re-initialize or blow away the live in-memory scoring state UNLESS a reset was triggered!
+    const isResetTarget = Boolean(targetMatch.forceReset || targetMatch.forceResetAt || targetMatch.isReset);
     if (
       matchId === activeMatchId &&
-      isOfficialScorer
+      isOfficialScorer &&
+      !isResetTarget
     ) {
       setMatch(prev => ({ ...prev, id: matchId }));
       navigateTo('scorer', matchId);
