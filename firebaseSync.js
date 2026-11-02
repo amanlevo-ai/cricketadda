@@ -216,20 +216,29 @@ export async function enqueueOfflineSync(action, payload) {
 // DELETED RECORDS / TOMBSTONES MANAGEMENT (PREVENTS GHOST RESURRECTION)
 // ============================================================================
 
-export async function fetchFirebaseDeletedMatches() {
+let cachedDeletedMatches = null;
+let lastDeletedMatchesFetch = 0;
+
+export async function fetchFirebaseDeletedMatches(forceFresh = false) {
   if (!isFirebaseConfigured()) return new Set();
+  const now = Date.now();
+  if (!forceFresh && cachedDeletedMatches && (now - lastDeletedMatchesFetch < 60000)) {
+    return cachedDeletedMatches;
+  }
   try {
     const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const res = await fetch(`${baseUrl}/deleted_matches.json?t=${Date.now()}`);
+    const res = await fetch(`${baseUrl}/deleted_matches.json?t=${now}`);
     if (res.ok) {
       const data = await res.json();
       if (data && typeof data === 'object') {
-        return new Set(Object.keys(data).map(k => String(k).trim()));
+        cachedDeletedMatches = new Set(Object.keys(data).map(k => String(k).trim()));
+        lastDeletedMatchesFetch = now;
+        return cachedDeletedMatches;
       }
     }
-    return new Set();
+    return cachedDeletedMatches || new Set();
   } catch (e) {
-    return new Set();
+    return cachedDeletedMatches || new Set();
   }
 }
 
@@ -720,25 +729,35 @@ export async function fetchFirebaseMatch(matchId) {
 export function subscribeToFirebaseMatch(matchId, onMatchUpdate) {
   if (!isFirebaseConfigured()) return () => {};
   let isActive = true;
+  let isFetching = false;
   const id = matchId || 'match_final_2026';
   const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
   const url = `${baseUrl}/matches/${id}.json`;
 
   const fetchLatest = async () => {
-    if (!isActive) return;
+    if (!isActive || isFetching) return;
+    isFetching = true;
     try {
-      const res = await fetch(url);
+      const res = await fetch(`${url}?t=${Date.now()}`, {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+        },
+      });
       if (res.ok) {
         const data = await res.json();
         if (data && typeof onMatchUpdate === 'function' && isActive) {
           onMatchUpdate(data);
         }
       }
-    } catch (e) {}
+    } catch (e) {
+    } finally {
+      isFetching = false;
+    }
   };
 
   fetchLatest();
-  const interval = setInterval(fetchLatest, 1500);
+  const interval = setInterval(fetchLatest, 750);
 
   return () => {
     isActive = false;

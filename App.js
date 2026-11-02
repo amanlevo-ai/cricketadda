@@ -4578,6 +4578,7 @@ function CricketAddaMain() {
   const inn1ScorecardDataRef = useRef(null);
   const inn2ScorecardDataRef = useRef(null);
   const lastCelebrationIdRef = useRef(null);
+  const lastAppliedRemoteSyncRef = useRef({ timestamp: 0, balls: 0, innings: 1 });
   const [syncConnected, setSyncConnected] = useState(false);
 
   const [matchFilter, setMatchFilter] = useState('all');
@@ -6970,6 +6971,11 @@ function CricketAddaMain() {
             next[mId] = mData;
             hasChanges = true;
           } else {
+            // Guard active live match: never downgrade with older packet / fewer balls from generic DB polling
+            if (mId === activeMatchId && !mData.isUndoAction && typeof mData.liveBalls === 'number' && typeof existing.liveBalls === 'number' && mData.liveBalls < existing.liveBalls) {
+              next[mId] = existing;
+              return;
+            }
             if (
               mData.liveRuns !== existing.liveRuns ||
               mData.liveWickets !== existing.liveWickets ||
@@ -8044,6 +8050,32 @@ function CricketAddaMain() {
 
   const applyRemoteState = d => {
     if (!d) return;
+
+    const incomingTime = Number(d.lastSyncedAt || d.lastUpdatedAt || 0);
+    const incomingBalls = typeof d.liveBalls === 'number' ? d.liveBalls : null;
+    const incomingInnings = d.currentInnings || 1;
+
+    // Out-of-order packet protection:
+    // If incoming packet is older than what we already applied in the same inning (and not an undo action),
+    // drop it to prevent "show -> hide -> show" flickering!
+    if (
+      !d.isUndoAction &&
+      incomingInnings === lastAppliedRemoteSyncRef.current.innings
+    ) {
+      if (incomingTime > 0 && lastAppliedRemoteSyncRef.current.timestamp > 0 && incomingTime < lastAppliedRemoteSyncRef.current.timestamp) {
+        return; // Drop delayed/stale packet
+      }
+      if (incomingBalls !== null && incomingBalls < lastAppliedRemoteSyncRef.current.balls) {
+        return; // Drop packet with fewer balls
+      }
+    }
+
+    lastAppliedRemoteSyncRef.current = {
+      timestamp: Math.max(incomingTime, lastAppliedRemoteSyncRef.current.timestamp),
+      balls: incomingBalls !== null ? incomingBalls : lastAppliedRemoteSyncRef.current.balls,
+      innings: incomingInnings,
+    };
+
     isApplyingRemoteSyncRef.current = true;
     if (d.activeMatchId) setActiveMatchId(d.activeMatchId);
     if (typeof d.liveRuns === 'number') setLiveRuns(d.liveRuns);
@@ -11430,6 +11462,7 @@ function CricketAddaMain() {
 
       // Broadcast undo state live to Cloud & PC Spectators
       broadcastMatchState({
+        isUndoAction: true,
         status: 'live',
         result: '',
         liveRuns: lastAction.liveRuns,
@@ -11505,6 +11538,7 @@ function CricketAddaMain() {
       });
 
       broadcastMatchState({
+        isUndoAction: true,
         status: 'live',
         result: '',
         liveRuns: nextR,
