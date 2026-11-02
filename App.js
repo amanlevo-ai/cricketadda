@@ -6573,8 +6573,16 @@ function CricketAddaMain() {
               const ov = parseInt(parts[0], 10) || 0;
               const bl = parseInt(parts[1], 10) || 0;
               setLiveBalls(ov * 6 + bl);
-              setLiveThisOver(mObj.liveThisOver || mObj.liveState?.liveThisOver || []);
-              setScoringHistory(mObj.scoringHistory || mObj.liveState?.scoringHistory || []);
+
+              const candidateThisOver = (Array.isArray(mObj.liveState?.liveThisOver) && mObj.liveState.liveThisOver.length >= (mObj.liveThisOver?.length || 0))
+                ? mObj.liveState.liveThisOver
+                : (Array.isArray(mObj.liveThisOver) ? mObj.liveThisOver : (mObj.liveState?.liveThisOver || []));
+              setLiveThisOver(candidateThisOver);
+
+              const candidateHistory = (Array.isArray(mObj.liveState?.scoringHistory) && mObj.liveState.scoringHistory.length >= (mObj.scoringHistory?.length || 0))
+                ? mObj.liveState.scoringHistory
+                : (Array.isArray(mObj.scoringHistory) ? mObj.scoringHistory : (mObj.liveState?.scoringHistory || []));
+              setScoringHistory(candidateHistory);
             } else {
               setActiveMatchId(null);
             }
@@ -10097,6 +10105,11 @@ function CricketAddaMain() {
       const cur = prev[activeMatchId] || {};
       const updatedMatch = {
         ...cur,
+        liveRuns: nextRunsForDb,
+        liveWickets: nextWktsForDb,
+        liveBalls: nextBallsForDb,
+        liveOvers: oversFormatted,
+        liveThisOver: nextThisOver,
         currentStriker: nextStriker,
         currentNonStriker: nextNonStriker,
         currentBowler: bowler,
@@ -11507,6 +11520,11 @@ function CricketAddaMain() {
           ...cur,
           status: 'live',
           result: '',
+          liveRuns: lastAction.liveRuns,
+          liveWickets: lastAction.liveWickets,
+          liveBalls: lastAction.liveBalls,
+          liveOvers: oversFormatted,
+          liveThisOver: lastAction.liveThisOver,
           innings1: {
             ...(cur.innings1 || {}),
             runs: currentInnings === 1 ? lastAction.liveRuns : (cur.innings1?.runs || 0),
@@ -12129,6 +12147,11 @@ function CricketAddaMain() {
       const cur = prev[activeMatchId] || {};
       const updatedMatch = {
         ...cur,
+        liveRuns: nextRuns,
+        liveWickets,
+        liveBalls: nextBalls,
+        liveOvers: oversFormatted,
+        liveThisOver: nextThisOver,
         innings1: {
           ...(cur.innings1 || {}),
           runs: currentInnings === 1 ? nextRuns : (cur.innings1?.runs || 0),
@@ -15511,17 +15534,35 @@ function CricketAddaMain() {
     setSelectedExtraType(null);
 
     // 2. Synchronize active score & overs
-    const currentRuns = Number(activeInn.runs) || 0;
-    const currentWickets = Number(activeInn.wickets) || 0;
+    const currentRuns = Number(activeInn.runs ?? targetMatch.liveRuns ?? targetMatch.liveState?.liveRuns ?? 0);
+    const currentWickets = Number(activeInn.wickets ?? targetMatch.liveWickets ?? targetMatch.liveState?.liveWickets ?? 0);
     setLiveRuns(currentRuns);
     setLiveWickets(currentWickets);
 
-    const parts = String(activeInn.overs || '0.0').split('.');
+    const parts = String(activeInn.overs || targetMatch.liveOvers || targetMatch.liveState?.oversStr || '0.0').split('.');
     const ov = parseInt(parts[0], 10) || 0;
     const bl = parseInt(parts[1], 10) || 0;
     setLiveBalls(ov * 6 + bl);
-    setLiveThisOver(targetMatch.liveThisOver || targetMatch.liveState?.liveThisOver || []);
-    setScoringHistory(targetMatch.scoringHistory || targetMatch.liveState?.scoringHistory || []);
+
+    const candidateThisOver = (Array.isArray(targetMatch.liveState?.liveThisOver) && targetMatch.liveState.liveThisOver.length >= (targetMatch.liveThisOver?.length || 0))
+      ? targetMatch.liveState.liveThisOver
+      : (Array.isArray(targetMatch.liveThisOver) ? targetMatch.liveThisOver : (targetMatch.liveState?.liveThisOver || []));
+
+    const finalThisOver = (matchId === activeMatchId && Array.isArray(liveThisOver) && liveThisOver.length >= candidateThisOver.length)
+      ? liveThisOver
+      : candidateThisOver;
+
+    setLiveThisOver(finalThisOver);
+
+    const candidateHistory = (Array.isArray(targetMatch.liveState?.scoringHistory) && targetMatch.liveState.scoringHistory.length >= (targetMatch.scoringHistory?.length || 0))
+      ? targetMatch.liveState.scoringHistory
+      : (Array.isArray(targetMatch.scoringHistory) ? targetMatch.scoringHistory : (targetMatch.liveState?.scoringHistory || []));
+
+    const finalHistory = (matchId === activeMatchId && Array.isArray(scoringHistory) && scoringHistory.length >= candidateHistory.length)
+      ? scoringHistory
+      : candidateHistory;
+
+    setScoringHistory(finalHistory);
 
     // 3. Batters map: correctly map not-out batters & stats
     const activeBatting = activeInn.batting || [];
