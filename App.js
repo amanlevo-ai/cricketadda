@@ -1470,10 +1470,11 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
 
   // 1. Resolve Innings 1 Batting
   let inn1Batting = [];
+  const safeInn1Bat = Array.isArray(inn1.batting) ? inn1.batting : (inn1.batting && typeof inn1.batting === 'object' ? Object.values(inn1.batting) : []);
   if (Array.isArray(liveDataInnings1?.batting) && liveDataInnings1.batting.length > 0) {
     inn1Batting = liveDataInnings1.batting;
-  } else if (Array.isArray(inn1.batting) && inn1.batting.some(b => (b.runs || 0) > 0 || (b.balls || 0) > 0)) {
-    inn1Batting = inn1.batting;
+  } else if (safeInn1Bat.some(b => (b.runs || 0) > 0 || (b.balls || 0) > 0)) {
+    inn1Batting = safeInn1Bat;
   } else if (Array.isArray(mLive.firstInningsSummary?.batting) && mLive.firstInningsSummary.batting.length > 0) {
     inn1Batting = mLive.firstInningsSummary.batting;
   } else if (mLive.liveBatters && (mLive.currentInnings === 1 || !mLive.firstInningsSummary)) {
@@ -1481,16 +1482,17 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
       name,
       ...mLive.liveBatters[name],
     }));
-  } else if (Array.isArray(inn1.batting)) {
-    inn1Batting = inn1.batting;
+  } else {
+    inn1Batting = safeInn1Bat;
   }
 
   // 2. Resolve Innings 1 Bowling
   let inn1Bowling = [];
+  const safeInn1Bowl = Array.isArray(inn1.bowling) ? inn1.bowling : (inn1.bowling && typeof inn1.bowling === 'object' ? Object.values(inn1.bowling) : []);
   if (Array.isArray(liveDataInnings1?.bowling) && liveDataInnings1.bowling.length > 0) {
     inn1Bowling = liveDataInnings1.bowling;
-  } else if (Array.isArray(inn1.bowling) && inn1.bowling.some(bw => (bw.runs || 0) > 0 || (bw.wickets || 0) > 0 || (bw.balls || 0) > 0)) {
-    inn1Bowling = inn1.bowling;
+  } else if (safeInn1Bowl.some(bw => (bw.runs || 0) > 0 || (bw.wickets || 0) > 0 || (bw.balls || 0) > 0)) {
+    inn1Bowling = safeInn1Bowl;
   } else if (Array.isArray(mLive.firstInningsSummary?.bowling) && mLive.firstInningsSummary.bowling.length > 0) {
     inn1Bowling = mLive.firstInningsSummary.bowling;
   } else if (mLive.liveBowlerStats && (mLive.currentInnings === 1 || !mLive.firstInningsSummary)) {
@@ -1504,31 +1506,33 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
         econ: balls > 0 ? ((bw.runs / balls) * 6).toFixed(2) : '0.00',
       };
     });
-  } else if (Array.isArray(inn1.bowling)) {
-    inn1Bowling = inn1.bowling;
+  } else {
+    inn1Bowling = safeInn1Bowl;
   }
 
   // 3. Resolve Innings 2 Batting
   let inn2Batting = [];
+  const safeInn2Bat = Array.isArray(inn2.batting) ? inn2.batting : (inn2.batting && typeof inn2.batting === 'object' ? Object.values(inn2.batting) : []);
   if (Array.isArray(liveDataInnings2?.batting) && liveDataInnings2.batting.length > 0) {
     inn2Batting = liveDataInnings2.batting;
-  } else if (Array.isArray(inn2.batting) && inn2.batting.some(b => (b.runs || 0) > 0 || (b.balls || 0) > 0)) {
-    inn2Batting = inn2.batting;
+  } else if (safeInn2Bat.some(b => (b.runs || 0) > 0 || (b.balls || 0) > 0)) {
+    inn2Batting = safeInn2Bat;
   } else if (mLive.liveBatters && mLive.currentInnings === 2) {
     inn2Batting = Object.keys(mLive?.liveBatters || {}).map(name => ({
       name,
       ...mLive.liveBatters[name],
     }));
-  } else if (Array.isArray(inn2.batting)) {
-    inn2Batting = inn2.batting;
+  } else {
+    inn2Batting = safeInn2Bat;
   }
 
   // 4. Resolve Innings 2 Bowling
   let inn2Bowling = [];
+  const safeInn2Bowl = Array.isArray(inn2.bowling) ? inn2.bowling : (inn2.bowling && typeof inn2.bowling === 'object' ? Object.values(inn2.bowling) : []);
   if (Array.isArray(liveDataInnings2?.bowling) && liveDataInnings2.bowling.length > 0) {
     inn2Bowling = liveDataInnings2.bowling;
-  } else if (Array.isArray(inn2.bowling) && inn2.bowling.some(bw => (bw.runs || 0) > 0 || (bw.wickets || 0) > 0 || (bw.balls || 0) > 0)) {
-    inn2Bowling = inn2.bowling;
+  } else if (safeInn2Bowl.some(bw => (bw.runs || 0) > 0 || (bw.wickets || 0) > 0 || (bw.balls || 0) > 0)) {
+    inn2Bowling = safeInn2Bowl;
   } else if (mLive.liveBowlerStats && mLive.currentInnings === 2) {
     inn2Bowling = Object.keys(mLive?.liveBowlerStats || {}).map(name => {
       const bw = mLive.liveBowlerStats[name];
@@ -1540,8 +1544,8 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
         econ: balls > 0 ? ((bw.runs / balls) * 6).toFixed(2) : '0.00',
       };
     });
-  } else if (Array.isArray(inn2.bowling)) {
-    inn2Bowling = inn2.bowling;
+  } else {
+    inn2Bowling = safeInn2Bowl;
   }
 
   const inn1Team = inn1.team || matchData.teamA || 'Team 1';
@@ -7927,12 +7931,17 @@ function CricketAddaMain() {
       }
     }
 
-    // 3. Search currentMatchData innings lineups
+    // 3. Search currentMatchData innings lineups (safely handle Arrays or Object maps)
+    const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
+    const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
+    const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
+    const inn2Bowl = Array.isArray(currentMatchData?.innings2?.bowling) ? currentMatchData.innings2.bowling : Object.values(currentMatchData?.innings2?.bowling || {});
+
     const allMatchPlayers = [
-      ...(currentMatchData?.innings1?.batting || []),
-      ...(currentMatchData?.innings1?.bowling || []),
-      ...(currentMatchData?.innings2?.batting || []),
-      ...(currentMatchData?.innings2?.bowling || []),
+      ...inn1Bat,
+      ...inn1Bowl,
+      ...inn2Bat,
+      ...inn2Bowl,
     ];
     for (const p of allMatchPlayers) {
       if (p && typeof p === 'object' && p.name && p.name.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase() === clean) {
@@ -8315,16 +8324,19 @@ function CricketAddaMain() {
       return registeredBatTeam.squad.map(p => typeof p === 'string' ? p : p.name);
     }
     if (currentInnings === 1) {
-      if (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0) {
-        return currentMatchData.innings1.batting.map(b => b.name);
+      const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
+      if (inn1Bat.length > 0) {
+        return inn1Bat.map(b => b.name);
       }
       return [];
     } else {
-      if (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0) {
-        return currentMatchData.innings2.batting.map(b => b.name);
+      const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
+      if (inn2Bat.length > 0) {
+        return inn2Bat.map(b => b.name);
       }
-      if (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0) {
-        return currentMatchData.innings1.bowling.map(b => b.name);
+      const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
+      if (inn1Bowl.length > 0) {
+        return inn1Bowl.map(b => b.name);
       }
       return [];
     }
@@ -8342,7 +8354,6 @@ function CricketAddaMain() {
   // All Playing XI players of the opposition fielding/bowling team eligible to bowl
   const activeOppBowlers = (() => {
     if (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0) return currentMatchData.fieldingSquad;
-    if (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0) return currentMatchData.fieldingSquad;
     if (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0) {
       return currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name);
     }
@@ -8351,19 +8362,23 @@ function CricketAddaMain() {
       return registeredOppTeam.squad.map(p => typeof p === 'string' ? p : p.name);
     }
     if (currentInnings === 1) {
-      if (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0) {
-        return currentMatchData.innings1.bowling.map(b => b.name);
+      const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
+      if (inn1Bowl.length > 0) {
+        return inn1Bowl.map(b => b.name);
       }
-      if (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0) {
-        return currentMatchData.innings2.batting.map(b => b.name);
+      const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
+      if (inn2Bat.length > 0) {
+        return inn2Bat.map(b => b.name);
       }
       return [];
     } else {
-      if (currentMatchData?.innings2?.bowling && currentMatchData.innings2.bowling.length > 0) {
-        return currentMatchData.innings2.bowling.map(b => b.name);
+      const inn2Bowl = Array.isArray(currentMatchData?.innings2?.bowling) ? currentMatchData.innings2.bowling : Object.values(currentMatchData?.innings2?.bowling || {});
+      if (inn2Bowl.length > 0) {
+        return inn2Bowl.map(b => b.name);
       }
-      if (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0) {
-        return currentMatchData.innings1.batting.map(b => b.name);
+      const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
+      if (inn1Bat.length > 0) {
+        return inn1Bat.map(b => b.name);
       }
       return [];
     }
@@ -8831,20 +8846,24 @@ function CricketAddaMain() {
     setNeedsNewBowler(false);
 
     // 2. Set Opening Batters for 2nd Innings
-    const team2Batters = (currentMatchData?.innings2?.batting && currentMatchData.innings2.batting.length > 0)
-      ? currentMatchData.innings2.batting.map(b => b.name)
+    const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
+    const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
+    const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
+
+    const team2Batters = inn2Bat.length > 0
+      ? inn2Bat.map(b => b.name)
       : (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0)
       ? currentMatchData.fieldingSquad
-      : (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0)
-      ? currentMatchData.innings1.bowling.map(b => b.name)
+      : inn1Bowl.length > 0
+      ? inn1Bowl.map(b => b.name)
       : (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0)
       ? currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name)
       : [];
 
-    const team1Bowlers = (currentMatchData?.innings1?.bowling && currentMatchData.innings1.bowling.length > 0)
-      ? currentMatchData.innings1.bowling.map(b => b.name)
-      : (currentMatchData?.innings1?.batting && currentMatchData.innings1.batting.length > 0)
-      ? currentMatchData.innings1.batting.map(b => b.name)
+    const team1Bowlers = inn1Bowl.length > 0
+      ? inn1Bowl.map(b => b.name)
+      : inn1Bat.length > 0
+      ? inn1Bat.map(b => b.name)
       : (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0)
       ? currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name)
       : [];
@@ -12560,8 +12579,12 @@ function CricketAddaMain() {
       }
     });
 
-    // 2. Add static playing XI batters
-    (staticBatting || []).forEach(b => {
+    // 2. Add static playing XI batters (safely handle Array, Object map, or null)
+    const safeStaticBatting = Array.isArray(staticBatting)
+      ? staticBatting
+      : (staticBatting && typeof staticBatting === 'object' ? Object.values(staticBatting) : []);
+
+    safeStaticBatting.forEach(b => {
       if (b && b.name) battersMap.set(String(b.name).toLowerCase(), { ...b });
     });
 
@@ -12665,8 +12688,12 @@ function CricketAddaMain() {
   ) => {
     const bowlersMap = new Map();
 
-    // 1. Seed with static bowlers
-    (staticBowling || []).forEach(bw => {
+    // 1. Seed with static bowlers (safely handle Array, Object map, or null)
+    const safeStaticBowling = Array.isArray(staticBowling)
+      ? staticBowling
+      : (staticBowling && typeof staticBowling === 'object' ? Object.values(staticBowling) : []);
+
+    safeStaticBowling.forEach(bw => {
       if (bw && bw.name) {
         bowlersMap.set(String(bw.name).trim().toLowerCase(), {
           ...bw,
@@ -31580,14 +31607,24 @@ function CricketAddaMain() {
 class ErrorBoundary extends React.Component {
   constructor(props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, errorInfo: null };
   }
   static getDerivedStateFromError(error) {
     return { hasError: true, error };
   }
   componentDidCatch(error, errorInfo) {
     console.error('Crash caught by ErrorBoundary:', error, errorInfo);
+    this.setState({ errorInfo });
   }
+  handleResetAndReload = async () => {
+    try {
+      await AsyncStorage.multiRemove([
+        STORAGE_KEYS.ACTIVE_MATCH_ID,
+        STORAGE_KEYS.ACTIVE_TAB,
+      ]);
+    } catch (e) {}
+    this.setState({ hasError: false, error: null, errorInfo: null });
+  };
   render() {
     if (this.state.hasError) {
       return (
@@ -31596,15 +31633,30 @@ class ErrorBoundary extends React.Component {
           <Text style={{ color: '#f59e0b', fontSize: 20, fontWeight: '900', marginBottom: 8, textAlign: 'center' }}>
             CricketAdda Crash Guard
           </Text>
-          <Text style={{ color: '#cbd5e1', fontSize: 13, textAlign: 'center', marginBottom: 20 }}>
+          <Text style={{ color: '#cbd5e1', fontSize: 13, textAlign: 'center', marginBottom: 12 }}>
             {String(this.state.error?.message || 'An unexpected error occurred.')}
           </Text>
-          <TouchableOpacity
-            style={{ backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 24, borderRadius: 10 }}
-            onPress={() => this.setState({ hasError: false, error: null })}
-          >
-            <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 14 }}>🔄 Reload App</Text>
-          </TouchableOpacity>
+          {Boolean(this.state.error?.stack || this.state.errorInfo?.componentStack) && (
+            <ScrollView style={{ maxHeight: 180, width: '100%', backgroundColor: '#0f172a', borderRadius: 8, padding: 10, marginBottom: 16, borderWidth: 1, borderColor: '#ef4444' }}>
+              <Text style={{ color: '#f87171', fontSize: 10.5, fontFamily: Platform.OS === 'ios' ? 'Courier' : 'monospace' }}>
+                {String(this.state.error?.stack || this.state.errorInfo?.componentStack || '')}
+              </Text>
+            </ScrollView>
+          )}
+          <View style={{ flexDirection: 'row', gap: 10 }}>
+            <TouchableOpacity
+              style={{ backgroundColor: '#10b981', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10 }}
+              onPress={() => this.setState({ hasError: false, error: null, errorInfo: null })}
+            >
+              <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 13 }}>🔄 Reload App</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={{ backgroundColor: '#334155', paddingVertical: 12, paddingHorizontal: 16, borderRadius: 10 }}
+              onPress={this.handleResetAndReload}
+            >
+              <Text style={{ color: '#94a3b8', fontWeight: 'bold', fontSize: 13 }}>🧹 Reset & Reload</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       );
     }
