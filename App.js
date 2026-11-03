@@ -4586,6 +4586,7 @@ function CricketAddaMain() {
   const inn2ScorecardDataRef = useRef(null);
   const lastCelebrationIdRef = useRef(null);
   const lastAppliedRemoteSyncRef = useRef({ timestamp: 0, balls: 0, innings: 1 });
+  const lastResetConsumedAtRef = useRef(0);
   const [syncConnected, setSyncConnected] = useState(false);
 
   const [matchFilter, setMatchFilter] = useState('all');
@@ -8160,8 +8161,14 @@ function CricketAddaMain() {
     // Out-of-order packet protection:
     // If incoming packet is older than what we already applied in the same inning (and not an undo action or reset signal),
     // drop it to prevent "show -> hide -> show" flickering!
-    const isResetSignal = Boolean(d.forceReset || d.forceResetAt || d.isReset);
+    const isResetSignal = Boolean(
+      (d.forceReset || d.forceResetAt || d.isReset) &&
+      (!d.forceResetAt || d.forceResetAt > (lastResetConsumedAtRef.current || 0))
+    );
     if (isResetSignal) {
+      if (d.forceResetAt) {
+        lastResetConsumedAtRef.current = d.forceResetAt;
+      }
       lastAppliedRemoteSyncRef.current = {
         timestamp: incomingTime || Date.now(),
         balls: 0,
@@ -8311,10 +8318,23 @@ function CricketAddaMain() {
     const teamBFlag = match?.flagB || currentMatchInDb.flagB || (currentInnings === 2 ? battingTeamFlag : bowlingTeamFlag);
     const matchTitle = match?.title || currentMatchInDb.title || `${teamAName} vs ${teamBName}`;
 
+    // Keep lastAppliedRemoteSyncRef in sync with local broadcasts so incoming stale echoes are dropped
+    const payloadBalls = customPayload.liveBalls !== undefined ? customPayload.liveBalls : liveBalls;
+    const payloadInnings = customPayload.currentInnings || currentInnings || 1;
+    lastAppliedRemoteSyncRef.current = {
+      timestamp: Date.now(),
+      balls: typeof payloadBalls === 'number' ? payloadBalls : (lastAppliedRemoteSyncRef.current.balls || 0),
+      innings: payloadInnings,
+    };
+
     const payload = {
       senderClientId: clientIdRef?.current || '',
       activeMatchId,
       title: matchTitle,
+      forceReset: false,
+      isReset: false,
+      forceResetAt: null,
+      isUndoAction: false,
       teamA: teamAName,
       teamB: teamBName,
       flagA: teamAFlag,
@@ -8384,9 +8404,34 @@ function CricketAddaMain() {
     if (!isFirebaseConfigured() || !activeMatchId) return;
     const unsubscribe = subscribeToFirebaseMatch(activeMatchId, cloudData => {
       if (!cloudData) return;
-      const isResetSignal = Boolean(cloudData.forceReset || cloudData.forceResetAt || cloudData.isReset);
-      const isRemote = isResetSignal || (cloudData.senderClientId && cloudData.senderClientId !== clientIdRef?.current);
-      if (!isOfficialScorer || isRemote) {
+      const isSelfEcho = Boolean(
+        cloudData.senderClientId &&
+        clientIdRef?.current &&
+        cloudData.senderClientId === clientIdRef.current
+      );
+      if (isOfficialScorer && isSelfEcho) {
+        // Scorer's own device: ignore delayed echo polling to prevent "show -> hide -> show" flickering!
+        return;
+      }
+
+      const isExternalReset = Boolean(
+        (cloudData.forceReset || cloudData.forceResetAt || cloudData.isReset) &&
+        cloudData.forceResetAt &&
+        cloudData.forceResetAt > (lastResetConsumedAtRef.current || 0) &&
+        !isSelfEcho
+      );
+
+      if (isExternalReset) {
+        lastResetConsumedAtRef.current = cloudData.forceResetAt;
+        applyRemoteState(cloudData);
+        return;
+      }
+
+      if (!isOfficialScorer) {
+        // Spectators / viewers apply all incoming remote updates
+        applyRemoteState(cloudData);
+      } else if (cloudData.senderClientId && cloudData.senderClientId !== clientIdRef?.current) {
+        // If scoring authority moved to a different remote device
         applyRemoteState(cloudData);
       }
     });
