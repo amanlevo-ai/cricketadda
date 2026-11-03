@@ -231,7 +231,7 @@ const DASH_CREST_GALLERY = [
 ];
 
 const getRandomCrestForTeam = (teamName) => {
-  if (!teamName) return DASH_CREST_GALLERY[0];
+  if (!teamName || !String(teamName).trim()) return null;
   let hash = 0;
   const str = String(teamName).toLowerCase().trim();
   for (let i = 0; i < str.length; i++) {
@@ -243,7 +243,7 @@ const getRandomCrestForTeam = (teamName) => {
 };
 
 const getDashTeamLogo = (name) => {
-  if (!name) return DASH_CREST_GALLERY[0];
+  if (!name || !String(name).trim()) return null;
   const clean = String(name).toLowerCase().trim();
   if (DASH_TEAM_LOGOS[clean]) return DASH_TEAM_LOGOS[clean];
   const normalized = clean.replace(/[^a-z0-9 ]/g, '').trim();
@@ -4713,19 +4713,19 @@ const DB_CLEAN_EPOCH = 1790319500000; // Sept 25, 2026 DB full wipe epoch
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000; // 30 days inactivity limit (2,592,000,000 ms)
 
 const EMPTY_MATCH_TEMPLATE = {
-  id: 'match_new',
-  title: 'Live Match',
+  id: '',
+  title: '',
   tournament: 'Cricket Adda',
   venue: 'Cricket Stadium',
   status: 'setup',
-  teamA: 'Team 1',
-  teamB: 'Team 2',
-  flagA: '🦁',
-  flagB: '⚡',
+  teamA: '',
+  teamB: '',
+  flagA: '',
+  flagB: '',
   toss: '',
   innings1: {
-    team: 'Team 1',
-    flag: '🦁',
+    team: '',
+    flag: '',
     runs: 0,
     wickets: 0,
     overs: '0.0',
@@ -6607,7 +6607,6 @@ function CricketAddaMain() {
             }
           }
         } catch (authErr) {}
-        setIsSessionRestoring(false);
 
         // 1. Load or initialize persistent unique device identity
         let devId = await AsyncStorage.getItem(STORAGE_KEYS.DEVICE_ID);
@@ -6964,6 +6963,7 @@ function CricketAddaMain() {
             }
           } catch (e) {}
         }
+        setIsSessionRestoring(false);
 
         // Live Cloud Sync: Fetch cloud database state and purge tombstones
         if (isFirebaseConfigured()) {
@@ -7069,7 +7069,10 @@ function CricketAddaMain() {
             }).catch(() => {});
           }).catch(() => {});
         }
-      } catch (e) {}
+      } catch (e) {
+      } finally {
+        setIsSessionRestoring(false);
+      }
     };
     loadUserPreferences();
   }, []);
@@ -8141,12 +8144,12 @@ function CricketAddaMain() {
   const maxLegalBalls = maxOvers * 6; // e.g. 20 * 6 = 120 legal balls
 
   const battingTeamName = currentInnings === 1
-    ? (currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Tigers XI')
-    : (currentMatchData.innings2?.team || (currentMatchData.innings1?.team === currentMatchData.teamA ? currentMatchData.teamB : currentMatchData.teamA) || currentMatchData.teamB || match?.teamB || 'Warriors XI');
+    ? (currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || '')
+    : (currentMatchData.innings2?.team || (currentMatchData.innings1?.team === currentMatchData.teamA ? currentMatchData.teamB : currentMatchData.teamA) || currentMatchData.teamB || match?.teamB || '');
 
   const bowlingTeamName = currentInnings === 1
-    ? (currentMatchData.innings2?.team || (currentMatchData.innings1?.team === currentMatchData.teamA ? currentMatchData.teamB : currentMatchData.teamA) || currentMatchData.teamB || match?.teamB || 'Warriors XI')
-    : (currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Tigers XI');
+    ? (currentMatchData.innings2?.team || (currentMatchData.innings1?.team === currentMatchData.teamA ? currentMatchData.teamB : currentMatchData.teamA) || currentMatchData.teamB || match?.teamB || '')
+    : (currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || '');
 
   const battingTeamFlag = currentInnings === 1
     ? (currentMatchData.innings1?.flag || currentMatchData.flagA || match?.flagA || '🦁')
@@ -17971,7 +17974,7 @@ function CricketAddaMain() {
                   flex: 1,
                   marginRight: 6,
                 }} numberOfLines={1}>
-                  {battingTeamName || 'Team 1'} vs {bowlingTeamName || 'Team 2'}
+                  {battingTeamName && bowlingTeamName ? `${battingTeamName} vs ${bowlingTeamName}` : (match?.title || 'LIVE MATCH')}
                 </Text>
                 
                 <View style={{
@@ -18367,8 +18370,8 @@ function CricketAddaMain() {
 
               {/* 2. MAIN MATCH SUMMARY SCORECARD (BROADCAST CARD: 1ST BATTING TEAM ON LEFT, 2ND BATTING TEAM ON RIGHT) */}
               {(() => {
-                const team1Name = currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Team 1';
-                const team2Name = currentMatchData.innings2?.team || (currentMatchData.teamA === team1Name ? currentMatchData.teamB : currentMatchData.teamA) || match?.teamB || 'Team 2';
+                const team1Name = currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || '';
+                const team2Name = currentMatchData.innings2?.team || (currentMatchData.teamA === team1Name ? currentMatchData.teamB : currentMatchData.teamA) || match?.teamB || '';
                 const team1Flag = currentMatchData.innings1?.flag || currentMatchData.flagA || match?.flagA || '🦁';
                 const team2Flag = currentMatchData.innings2?.flag || currentMatchData.flagB || match?.flagB || '⚔️';
                 const team1Logo = (currentInnings === 1 ? battingTeamLogo : bowlingTeamLogo) || currentMatchData.innings1?.logoUri || currentMatchData.logoA;
