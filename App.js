@@ -1805,6 +1805,205 @@ const getResponsiveBadgePos = (wheelDimension, angleDegrees, badgeW, badgeH) => 
   };
 };
 
+const reconstructLiveStatsFromHistory = (history = [], curInnings = 1, existingBatters = {}, existingBowlers = {}) => {
+  const batters = {};
+  if (Array.isArray(existingBatters)) {
+    existingBatters.forEach(b => {
+      if (b && b.name) {
+        batters[b.name] = {
+          name: b.name,
+          runs: Number(b.runs) || 0,
+          balls: Number(b.balls) || 0,
+          fours: Number(b.fours) || 0,
+          sixes: Number(b.sixes) || 0,
+          dots: Number(b.dots) || 0,
+          singles: Number(b.singles) || 0,
+          doubles: Number(b.doubles) || 0,
+          triples: Number(b.triples) || 0,
+          isNotOut: b.notOut !== undefined ? Boolean(b.notOut) : (b.isNotOut !== undefined ? Boolean(b.isNotOut) : true),
+          dismissal: b.dismissal || (b.notOut ? 'not out' : 'out'),
+        };
+      }
+    });
+  } else if (existingBatters && typeof existingBatters === 'object') {
+    Object.entries(existingBatters).forEach(([k, v]) => {
+      if (v) batters[k] = { ...v };
+    });
+  }
+
+  const bowlers = {};
+  if (Array.isArray(existingBowlers)) {
+    existingBowlers.forEach(bw => {
+      if (bw && bw.name) {
+        const parts = String(bw.overs || '0.0').split('.');
+        const bOv = parseInt(parts[0], 10) || 0;
+        const bBl = parseInt(parts[1], 10) || 0;
+        bowlers[bw.name] = {
+          name: bw.name,
+          balls: bw.balls !== undefined ? Number(bw.balls) : (bOv * 6 + bBl),
+          runs: Number(bw.runs) || 0,
+          wickets: Number(bw.wickets) || 0,
+          maidens: Number(bw.maidens) || 0,
+          overs: String(bw.overs || '0.0'),
+          econ: bw.econ || '0.0',
+        };
+      }
+    });
+  } else if (existingBowlers && typeof existingBowlers === 'object') {
+    Object.entries(existingBowlers).forEach(([k, v]) => {
+      if (v) bowlers[k] = { ...v };
+    });
+  }
+
+  const currentDeliveries = (history || []).filter(d => !d.innings || d.innings === curInnings);
+  if (currentDeliveries.length === 0) {
+    return { batters, bowlers };
+  }
+
+  const computedBatters = {};
+  const computedBowlers = {};
+
+  currentDeliveries.forEach(d => {
+    // 1. Batter stats
+    if (d.striker) {
+      const st = d.striker;
+      if (!computedBatters[st]) {
+        computedBatters[st] = {
+          name: st,
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          dots: 0,
+          singles: 0,
+          doubles: 0,
+          triples: 0,
+          isNotOut: true,
+          dismissal: 'batting *',
+        };
+      }
+      const isLegal = d.isLegalDelivery !== false;
+      const extra = d.extraType || 'none';
+      const isWide = extra === 'wide';
+      const isBye = extra === 'bye';
+      const isLegBye = extra === 'legBye';
+      const isPenalty = extra === 'penalty';
+
+      if (!isWide && !isPenalty) {
+        computedBatters[st].balls += 1;
+      }
+
+      let runsOffBat = 0;
+      if (!isWide && !isBye && !isLegBye && !isPenalty) {
+        if (extra === 'noBall') {
+          if (d.nbRunType === 'bat' || !d.nbRunType) {
+            runsOffBat = Number(d.addedRuns || 0) > 0 ? (Number(d.addedRuns) - 1) : 0;
+          }
+        } else {
+          runsOffBat = Number(d.addedRuns || 0);
+        }
+      }
+
+      computedBatters[st].runs += runsOffBat;
+      if (runsOffBat === 4) computedBatters[st].fours += 1;
+      else if (runsOffBat === 6) computedBatters[st].sixes += 1;
+      else if (runsOffBat === 1) computedBatters[st].singles += 1;
+      else if (runsOffBat === 2) computedBatters[st].doubles += 1;
+      else if (runsOffBat === 3) computedBatters[st].triples += 1;
+      else if (runsOffBat === 0 && !isWide && !isPenalty) computedBatters[st].dots += 1;
+
+      const bCount = computedBatters[st].balls;
+      computedBatters[st].strikeRate = bCount > 0 ? ((computedBatters[st].runs / bCount) * 100).toFixed(1) : '0.0';
+    }
+
+    if (d.nonStriker) {
+      const nst = d.nonStriker;
+      if (!computedBatters[nst]) {
+        computedBatters[nst] = {
+          name: nst,
+          runs: 0,
+          balls: 0,
+          fours: 0,
+          sixes: 0,
+          dots: 0,
+          singles: 0,
+          doubles: 0,
+          triples: 0,
+          isNotOut: true,
+          dismissal: 'batting *',
+        };
+      }
+    }
+
+    if (d.isWkt) {
+      const outP = d.dismissedPlayerName || d.striker;
+      if (computedBatters[outP]) {
+        computedBatters[outP].isNotOut = false;
+        computedBatters[outP].dismissal = d.dismissalDesc || d.dismissalType || 'out';
+      }
+    }
+
+    // 2. Bowler stats
+    if (d.bowler) {
+      const bw = d.bowler;
+      if (!computedBowlers[bw]) {
+        computedBowlers[bw] = {
+          name: bw,
+          runs: 0,
+          balls: 0,
+          wickets: 0,
+          maidens: 0,
+          overs: '0.0',
+          econ: '0.0',
+        };
+      }
+      if (d.isLegalDelivery !== false) {
+        computedBowlers[bw].balls += 1;
+      }
+      const extra = d.extraType || 'none';
+      if (extra !== 'bye' && extra !== 'legBye' && extra !== 'penalty') {
+        computedBowlers[bw].runs += Number(d.addedRuns || 0);
+      }
+      if (d.isWkt && d.dismissalType !== 'run_out' && d.dismissalType !== 'retired') {
+        computedBowlers[bw].wickets += 1;
+      }
+      const bBalls = computedBowlers[bw].balls;
+      computedBowlers[bw].overs = `${Math.floor(bBalls / 6)}.${bBalls % 6}`;
+      computedBowlers[bw].econ = bBalls > 0 ? ((computedBowlers[bw].runs / bBalls) * 6).toFixed(1) : '0.0';
+    }
+  });
+
+  // Reconcile computed into batters map
+  Object.keys(computedBatters).forEach(name => {
+    batters[name] = {
+      ...(batters[name] || {}),
+      ...computedBatters[name],
+      balls: Math.max(batters[name]?.balls || 0, computedBatters[name].balls),
+      runs: Math.max(batters[name]?.runs || 0, computedBatters[name].runs),
+      fours: Math.max(batters[name]?.fours || 0, computedBatters[name].fours),
+      sixes: Math.max(batters[name]?.sixes || 0, computedBatters[name].sixes),
+    };
+    const bCount = batters[name].balls;
+    batters[name].strikeRate = bCount > 0 ? ((batters[name].runs / bCount) * 100).toFixed(1) : '0.0';
+  });
+
+  // Reconcile computed into bowlers map
+  Object.keys(computedBowlers).forEach(name => {
+    bowlers[name] = {
+      ...(bowlers[name] || {}),
+      ...computedBowlers[name],
+      balls: Math.max(bowlers[name]?.balls || 0, computedBowlers[name].balls),
+      runs: Math.max(bowlers[name]?.runs || 0, computedBowlers[name].runs),
+      wickets: Math.max(bowlers[name]?.wickets || 0, computedBowlers[name].wickets),
+    };
+    const bBalls = bowlers[name].balls;
+    bowlers[name].overs = `${Math.floor(bBalls / 6)}.${bBalls % 6}`;
+    bowlers[name].econ = bBalls > 0 ? ((bowlers[name].runs / bBalls) * 6).toFixed(1) : '0.0';
+  });
+
+  return { batters, bowlers };
+};
+
 // ============================================================================
 // COMPREHENSIVE MATCH DATABASE (LIVE & RECENT TOURNAMENT MATCHES)
 // ============================================================================
@@ -6620,6 +6819,45 @@ function CricketAddaMain() {
                 safeThisOver = mObj.liveState?.liveThisOver || mObj.liveThisOver || [];
               }
               setLiveThisOver(safeThisOver);
+
+              const { batters: restoredBatters, bowlers: restoredBowlers } = reconstructLiveStatsFromHistory(
+                candidateHistory,
+                activeInningNum,
+                mObj.liveBatters || mObj.liveState?.liveBatters || activeInn.batting || {},
+                mObj.liveBowlerStats || mObj.liveState?.liveBowlerStats || activeInn.bowling || {}
+              );
+              setLiveBatters(restoredBatters);
+              setLiveBowlerStats(restoredBowlers);
+
+              const lastHist = (candidateHistory || []).slice().reverse().find(d => !d.innings || d.innings === activeInningNum);
+              const isMid = candidateHistory.length > 0 && (totBalls % 6 !== 0);
+              const restoredBowler = (isMid && lastHist?.bowler ? lastHist.bowler : null) ||
+                mObj.currentBowler ||
+                mObj.liveState?.currentBowler ||
+                lastHist?.bowler ||
+                (activeInn.bowling?.[0]?.name) ||
+                '';
+              const restoredStriker = mObj.currentStriker || mObj.liveState?.currentStriker || lastHist?.striker || (activeInn.batting?.[0]?.name) || '';
+              const restoredNonStriker = mObj.currentNonStriker || mObj.liveState?.currentNonStriker || lastHist?.nonStriker || (activeInn.batting?.[1]?.name) || '';
+
+              setMatch(prev => ({
+                ...prev,
+                ...(mObj || {}),
+                id: targetActiveId,
+                title: mObj.title,
+                status: mObj.status || 'live',
+                teamA: mObj.teamA || inn1.team,
+                teamB: mObj.teamB || inn2.team,
+                flagA: mObj.flagA || inn1.flag,
+                flagB: mObj.flagB || inn2.flag,
+                logoA: mObj.logoA,
+                logoB: mObj.logoB,
+                overs: activeInn.maxOvers || mObj.totalOvers || 20,
+                currentStriker: restoredStriker,
+                currentNonStriker: restoredNonStriker,
+                currentBowler: restoredBowler,
+                fieldingSquad: mObj.fieldingSquad || [],
+              }));
             } else {
               setActiveMatchId(null);
             }
@@ -8589,9 +8827,19 @@ function CricketAddaMain() {
     });
   };
 
-  let striker = match.currentStriker || currentMatchData?.liveState?.currentStriker || currentMatchData?.currentStriker || '';
-  let nonStriker = match.currentNonStriker || currentMatchData?.liveState?.currentNonStriker || currentMatchData?.currentNonStriker || '';
-  let bowler = match.currentBowler || currentMatchData?.currentBowler || (currentMatchData?.innings1?.bowling?.[0]?.name) || (activeOppBowlers[0] || 'Bowler');
+  const currentInningsDeliveries = (scoringHistory || []).filter(d => !d.innings || d.innings === currentInnings);
+  const lastHistDelivery = currentInningsDeliveries.length > 0 ? currentInningsDeliveries[currentInningsDeliveries.length - 1] : null;
+  const isMidOver = currentInningsDeliveries.length > 0 && (currentInningsDeliveries.length % 6 !== 0);
+
+  let striker = match.currentStriker || currentMatchData?.liveState?.currentStriker || currentMatchData?.currentStriker || lastHistDelivery?.striker || '';
+  let nonStriker = match.currentNonStriker || currentMatchData?.liveState?.currentNonStriker || currentMatchData?.currentNonStriker || lastHistDelivery?.nonStriker || '';
+  let bowler = (isMidOver && lastHistDelivery?.bowler ? lastHistDelivery.bowler : null) ||
+    match.currentBowler ||
+    currentMatchData?.currentBowler ||
+    currentMatchData?.liveState?.currentBowler ||
+    lastHistDelivery?.bowler ||
+    (currentMatchData?.innings1?.bowling?.[0]?.name) ||
+    (activeOppBowlers[0] || 'Bowler');
 
   // Hard Guarantee: an OUT batter can NEVER be striker or non-striker at the crease
   if (isBatterOut(striker)) {
@@ -8824,10 +9072,10 @@ function CricketAddaMain() {
       }
     });
     const cached = liveBatters[name] || Object.entries(liveBatters || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
-    const finalRuns = (cached && cached.runs !== undefined) ? Number(cached.runs) : hRuns;
-    const finalBalls = (cached && cached.balls !== undefined) ? Number(cached.balls) : hBalls;
-    const finalFours = (cached && cached.fours !== undefined) ? Number(cached.fours) : hFours;
-    const finalSixes = (cached && cached.sixes !== undefined) ? Number(cached.sixes) : hSixes;
+    const finalRuns = Math.max(hRuns, (cached && cached.runs !== undefined) ? Number(cached.runs) : 0);
+    const finalBalls = Math.max(hBalls, (cached && cached.balls !== undefined) ? Number(cached.balls) : 0);
+    const finalFours = Math.max(hFours, (cached && cached.fours !== undefined) ? Number(cached.fours) : 0);
+    const finalSixes = Math.max(hSixes, (cached && cached.sixes !== undefined) ? Number(cached.sixes) : 0);
     const sr = finalBalls > 0 ? ((finalRuns / finalBalls) * 100).toFixed(1) : '0.0';
     return { runs: finalRuns, balls: finalBalls, fours: finalFours, sixes: finalSixes, sr };
   };
@@ -10542,6 +10790,51 @@ function CricketAddaMain() {
       setChangeBowlerModalVisible(true);
     }
 
+    setMatch(prev => ({
+      ...prev,
+      currentStriker: nextStriker,
+      currentNonStriker: nextNonStriker,
+      currentBowler: bowler,
+    }));
+
+    if (activeMatchId) {
+      setMatchesDb(prev => {
+        const cur = prev[activeMatchId] || {};
+        const updatedMatch = {
+          ...cur,
+          liveRuns: nextRuns,
+          liveWickets: nextWkts,
+          liveBalls: nextBalls,
+          liveOvers: `${Math.floor(nextBalls / 6)}.${nextBalls % 6}`,
+          liveThisOver: nextThisOver,
+          currentStriker: nextStriker,
+          currentNonStriker: nextNonStriker,
+          currentBowler: bowler,
+          scoringHistory: [...scoringHistory, snapshot],
+          liveBatters: updatedLiveBatters,
+          liveBowlerStats: updatedLiveBowlers,
+          liveState: {
+            ...(cur.liveState || {}),
+            liveRuns: nextRuns,
+            liveWickets: nextWkts,
+            liveBalls: nextBalls,
+            oversStr: `${Math.floor(nextBalls / 6)}.${nextBalls % 6}`,
+            liveThisOver: nextThisOver,
+            currentStriker: nextStriker,
+            currentNonStriker: nextNonStriker,
+            currentBowler: bowler,
+            scoringHistory: [...scoringHistory, snapshot],
+            liveBatters: updatedLiveBatters,
+            liveBowlerStats: updatedLiveBowlers,
+          },
+          lastUpdatedAt: Date.now(),
+        };
+        const nextDb = { ...prev, [activeMatchId]: updatedMatch };
+        AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(nextDb)).catch(() => {});
+        return nextDb;
+      });
+    }
+
     // 10. Direct Instant Broadcast to Sync Server
     broadcastMatchState({
       liveRuns: nextRuns,
@@ -10553,10 +10846,12 @@ function CricketAddaMain() {
       liveBowlerStats: updatedLiveBowlers,
       currentStriker: nextStriker,
       currentNonStriker: nextNonStriker,
+      currentBowler: bowler,
       match: {
         ...match,
         currentStriker: nextStriker,
         currentNonStriker: nextNonStriker,
+        currentBowler: bowler,
       },
       scoringHistory: [...scoringHistory, snapshot],
       celebrationEvent,
@@ -15833,55 +16128,37 @@ function CricketAddaMain() {
     }
     setLiveThisOver(safeThisOver);
 
-    // 3. Batters map: correctly map not-out batters & stats
+    // 3. Batters map: correctly map not-out batters & stats reconciled with delivery history
     const activeBatting = activeInn.batting || [];
-    const newLiveBatters = {};
-    activeBatting.forEach(b => {
-      newLiveBatters[b.name] = {
-        name: b.name,
-        runs: Number(b.runs) || 0,
-        balls: Number(b.balls) || 0,
-        fours: Number(b.fours) || 0,
-        sixes: Number(b.sixes) || 0,
-        strikeRate: b.strikeRate || (b.balls > 0 ? ((b.runs / b.balls) * 100).toFixed(2) : '0.00'),
-        dots: Number(b.dots) || 0,
-        isOut: !b.notOut,
-        dismissal: b.dismissal || (b.notOut ? 'not out' : 'out'),
-      };
-    });
-    setLiveBatters(newLiveBatters);
-
-    // 4. Bowlers map
-    const activeBowling = activeInn.bowling || [];
-    const newLiveBowlers = {};
-    activeBowling.forEach(bw => {
-      const bwParts = String(bw.overs || '0.0').split('.');
-      const bOv = parseInt(bwParts[0], 10) || 0;
-      const bBl = parseInt(bwParts[1], 10) || 0;
-      newLiveBowlers[bw.name] = {
-        name: bw.name,
-        overs: String(bw.overs || '0.0'),
-        balls: bOv * 6 + bBl,
-        maidens: Number(bw.maidens) || 0,
-        runs: Number(bw.runs) || 0,
-        wickets: Number(bw.wickets) || 0,
-        econ: bw.econ || '0.00',
-        dots: Number(bw.dots) || 0,
-        fours: Number(bw.fours) || 0,
-        sixes: Number(bw.sixes) || 0,
-      };
-    });
-    const baseBowlers = {
-      ...newLiveBowlers,
+    const baseLiveBatters = targetMatch.liveBatters || targetMatch.liveState?.liveBatters || {};
+    const baseLiveBowlers = {
+      ...(targetMatch.liveBowlerStats || {}),
       ...(targetMatch.liveState?.liveBowlerStats || {}),
     };
-    setLiveBowlerStats(baseBowlers);
 
-    // 5. Active batters on crease: pick not-out batters
+    const { batters: reconciledBatters, bowlers: reconciledBowlers } = reconstructLiveStatsFromHistory(
+      candidateHistory,
+      activeInningNum,
+      Object.keys(baseLiveBatters).length > 0 ? baseLiveBatters : activeBatting,
+      Object.keys(baseLiveBowlers).length > 0 ? baseLiveBowlers : (activeInn.bowling || [])
+    );
+    setLiveBatters(reconciledBatters);
+    setLiveBowlerStats(reconciledBowlers);
+
+    // 5. Active batters and bowler on crease
     const notOutBatters = activeBatting.filter(b => b.notOut);
-    const initialStriker = targetMatch.currentStriker || targetMatch.liveState?.currentStriker || notOutBatters[0]?.name || activeBatting[0]?.name || 'Striker';
-    const initialNonStriker = targetMatch.currentNonStriker || targetMatch.liveState?.currentNonStriker || notOutBatters[1]?.name || (activeBatting[1] ? activeBatting[1].name : activeBatting[0]?.name) || 'Non-Striker';
-    const initialBowler = targetMatch.currentBowler || targetMatch.liveState?.currentBowler || (activeBowling.find(bw => bw.overs && !String(bw.overs).endsWith('.0'))?.name) || activeBowling[0]?.name || 'Opening Bowler';
+    const lastHistDel = (candidateHistory || []).slice().reverse().find(d => !d.innings || d.innings === activeInningNum);
+    const isMidOver = candidateHistory.length > 0 && (totalBallsCount % 6 !== 0);
+
+    const initialStriker = targetMatch.currentStriker || targetMatch.liveState?.currentStriker || lastHistDel?.striker || notOutBatters[0]?.name || activeBatting[0]?.name || 'Striker';
+    const initialNonStriker = targetMatch.currentNonStriker || targetMatch.liveState?.currentNonStriker || lastHistDel?.nonStriker || notOutBatters[1]?.name || (activeBatting[1] ? activeBatting[1].name : activeBatting[0]?.name) || 'Non-Striker';
+    const initialBowler = (isMidOver && lastHistDel?.bowler ? lastHistDel.bowler : null) ||
+      targetMatch.currentBowler ||
+      targetMatch.liveState?.currentBowler ||
+      lastHistDel?.bowler ||
+      (activeInn.bowling?.find(bw => bw.overs && !String(bw.overs).endsWith('.0'))?.name) ||
+      activeInn.bowling?.[0]?.name ||
+      'Opening Bowler';
 
     setMatch(prev => ({
       ...prev,
@@ -15898,7 +16175,7 @@ function CricketAddaMain() {
       currentStriker: initialStriker,
       currentNonStriker: initialNonStriker,
       currentBowler: initialBowler,
-      previousBowler: activeBowling[1]?.name || null,
+      previousBowler: activeInn.bowling?.[1]?.name || null,
       lastOverBowler: null,
       fieldingSquad: targetMatch.fieldingSquad || [],
     }));
