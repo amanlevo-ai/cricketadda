@@ -9014,11 +9014,25 @@ function CricketAddaMain() {
     let overBalls = [];
     if (currentInningsDeliveries.length > 0) {
       if (legalInCurOver === 0 && effBalls > 0) {
-        let legCount = 0;
-        for (let i = currentInningsDeliveries.length - 1; i >= 0 && legCount < 6; i--) {
-          const d = currentInningsDeliveries[i];
-          if (d.ballSymbol) overBalls.unshift(d.ballSymbol);
-          if (d.isLegalDelivery !== false) legCount++;
+        // Over has completed (6, 12, 18 balls)
+        // If we are currently waiting for a new bowler (needsNewBowler = true), show the completed over
+        // Once the new bowler is selected (needsNewBowler = false), the new over starts clean and empty!
+        if (needsNewBowler) {
+          let legCount = 0;
+          for (let i = currentInningsDeliveries.length - 1; i >= 0 && legCount < 6; i--) {
+            const d = currentInningsDeliveries[i];
+            if (d.ballSymbol) overBalls.unshift(d.ballSymbol);
+            if (d.isLegalDelivery !== false) legCount++;
+          }
+        } else {
+          // If any non-legal deliveries were bowled in the new over before any legal ball
+          const nonLegalHead = [];
+          for (let i = currentInningsDeliveries.length - 1; i >= 0; i--) {
+            const d = currentInningsDeliveries[i];
+            if (d.isLegalDelivery !== false) break;
+            if (d.ballSymbol) nonLegalHead.unshift(d.ballSymbol);
+          }
+          overBalls = nonLegalHead;
         }
       } else {
         let legCount = 0;
@@ -9032,7 +9046,7 @@ function CricketAddaMain() {
         }
       }
     }
-    if (overBalls.length === 0 && Array.isArray(liveThisOver) && liveThisOver.length > 0) {
+    if (overBalls.length === 0 && Array.isArray(liveThisOver) && liveThisOver.length > 0 && (!needsNewBowler && legalInCurOver > 0)) {
       overBalls = liveThisOver;
     }
 
@@ -9044,7 +9058,7 @@ function CricketAddaMain() {
       crr: ((effRuns / Math.max(effBalls, 1)) * 6).toFixed(2),
       thisOver: overBalls,
     };
-  }, [scoringHistory, liveRuns, liveBalls, liveWickets, liveBatters, liveBowlerStats, liveThisOver, currentInnings]);
+  }, [scoringHistory, liveRuns, liveBalls, liveWickets, liveBatters, liveBowlerStats, liveThisOver, currentInnings, needsNewBowler]);
 
   const oversStr = reconciledScore.oversStr;
   const crr = reconciledScore.crr;
@@ -12239,8 +12253,8 @@ function CricketAddaMain() {
 
     setMatch(prev => ({
       ...prev,
-      lastOverBowler: prev.currentBowler,
-      previousBowler: prev.currentBowler,
+      lastOverBowler: prev.lastOverBowler || prev.currentBowler || lastOverBowler,
+      previousBowler: prev.previousBowler || prev.currentBowler || lastOverBowler,
       currentBowler: finalBowler,
     }));
 
