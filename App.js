@@ -4554,7 +4554,14 @@ const EMPTY_MATCH_TEMPLATE = {
   },
 };
 
-const isMatchLive = (m) => Boolean(m && (m.status === 'live' || m.status === 'in_progress'));
+const isMatchLive = (m) => {
+  if (!m) return false;
+  if (m.status === 'completed' || m.status === 'abandoned' || m.status === 'finished') return false;
+  if (m.status === 'live' || m.status === 'in_progress') return true;
+  // If status was temporarily tagged 'setup' or omitted, but match has teams/innings created, it is active live!
+  if (m.teamA || m.team1?.name || m.innings1?.team) return true;
+  return false;
+};
 const isMatchCompleted = (m) => Boolean(m && (m.status === 'completed' || m.status === 'abandoned' || m.status === 'finished'));
 
 let isSplashDismissedInSession = false;
@@ -6819,11 +6826,6 @@ function CricketAddaMain() {
                   AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(merged)).catch(() => {});
                   return merged;
                 });
-              } else {
-                setMatchesDb({});
-                setActiveMatchId(null);
-                AsyncStorage.removeItem(STORAGE_KEYS.MATCHES_DB).catch(() => {});
-                AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_MATCH_ID).catch(() => {});
               }
             }).catch(() => {});
           }).catch(() => {});
@@ -8209,6 +8211,7 @@ function CricketAddaMain() {
     setMatch(prev => ({
       ...prev,
       ...(d.match || {}),
+      status: d.status || (d.match && d.match.status) || prev.status || 'live',
       auditMode: d.auditMode !== undefined ? d.auditMode : (d.match?.auditMode ?? prev.auditMode),
       isPausedForAudit: d.isPausedForAudit !== undefined ? d.isPausedForAudit : (d.match?.isPausedForAudit ?? prev.isPausedForAudit),
       currentStriker: d.currentStriker || d.match?.currentStriker || prev.currentStriker || '',
@@ -8251,7 +8254,7 @@ function CricketAddaMain() {
           currentStriker: d.currentStriker || existingMatch.currentStriker,
           currentNonStriker: d.currentNonStriker || existingMatch.currentNonStriker,
           currentBowler: d.currentBowler || existingMatch.currentBowler,
-          status: (d.match && d.match.status) || d.status || existingMatch.status || 'live',
+          status: d.status || (d.match && d.match.status) || existingMatch.status || 'live',
           innings1: d.innings1 || existingMatch.innings1,
           innings2: d.innings2 || existingMatch.innings2,
           liveState: {
