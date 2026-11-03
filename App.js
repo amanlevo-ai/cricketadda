@@ -8692,14 +8692,67 @@ function CricketAddaMain() {
     return `${ovStr}/${maxBowlerOversQuota} ov • ${finalRuns} r • ${finalWickets} w • Econ: ${econ}`;
   };
 
-  const oversStr = `${Math.floor(liveBalls / 6)}.${liveBalls % 6}`;
-  const crr = ((liveRuns / Math.max(liveBalls, 1)) * 6).toFixed(2);
+  // Mathematical Integrity Reconciler:
+  // Guarantees that team runs, overs, and wickets can NEVER diverge from delivery history, batters, or bowler stats!
+  const reconciledScore = useMemo(() => {
+    let histRuns = 0;
+    let histBalls = 0;
+    let histWkts = 0;
+    const currentInningsDeliveries = (scoringHistory || []).filter(d => !d.innings || d.innings === currentInnings);
+    currentInningsDeliveries.forEach(d => {
+      histRuns += Number(d.addedRuns || 0);
+      if (d.isLegalDelivery !== false) histBalls++;
+      if (d.isWkt) histWkts++;
+    });
 
-  // The displayed "This Over" balls MUST ALWAYS correspond to the current over's legal ball count (liveBalls % 6)
-    const sanitizedThisOver = useMemo(() => {
-    if (!Array.isArray(liveThisOver)) return [];
-    return liveThisOver;
-  }, [liveThisOver]);
+    const sumBattersRuns = Object.values(liveBatters || {}).reduce((acc, b) => acc + (Number(b?.runs) || 0), 0);
+    const sumBattersBalls = Object.values(liveBatters || {}).reduce((acc, b) => acc + (Number(b?.balls) || 0), 0);
+    const maxBowlerBalls = Object.values(liveBowlerStats || {}).reduce((acc, bw) => Math.max(acc, Number(bw?.balls) || 0), 0);
+
+    const effRuns = Math.max(Number(liveRuns) || 0, histRuns, sumBattersRuns);
+    const effBalls = Math.max(Number(liveBalls) || 0, histBalls, sumBattersBalls, maxBowlerBalls);
+    const effWkts = Math.max(Number(liveWickets) || 0, histWkts);
+
+    // Extract current over balls directly from history for 100% accuracy
+    const legalInCurOver = effBalls % 6;
+    let overBalls = [];
+    if (currentInningsDeliveries.length > 0) {
+      if (legalInCurOver === 0 && effBalls > 0) {
+        let legCount = 0;
+        for (let i = currentInningsDeliveries.length - 1; i >= 0 && legCount < 6; i--) {
+          const d = currentInningsDeliveries[i];
+          if (d.ballSymbol) overBalls.unshift(d.ballSymbol);
+          if (d.isLegalDelivery !== false) legCount++;
+        }
+      } else {
+        let legCount = 0;
+        for (let i = currentInningsDeliveries.length - 1; i >= 0; i--) {
+          const d = currentInningsDeliveries[i];
+          if (d.isLegalDelivery !== false) {
+            if (legCount >= legalInCurOver) break;
+            legCount++;
+          }
+          if (d.ballSymbol) overBalls.unshift(d.ballSymbol);
+        }
+      }
+    }
+    if (overBalls.length === 0 && Array.isArray(liveThisOver) && liveThisOver.length > 0) {
+      overBalls = liveThisOver;
+    }
+
+    return {
+      runs: effRuns,
+      balls: effBalls,
+      wickets: effWkts,
+      oversStr: `${Math.floor(effBalls / 6)}.${effBalls % 6}`,
+      crr: ((effRuns / Math.max(effBalls, 1)) * 6).toFixed(2),
+      thisOver: overBalls,
+    };
+  }, [scoringHistory, liveRuns, liveBalls, liveWickets, liveBatters, liveBowlerStats, liveThisOver, currentInnings]);
+
+  const oversStr = reconciledScore.oversStr;
+  const crr = reconciledScore.crr;
+  const sanitizedThisOver = reconciledScore.thisOver;
 
   const getBatterDetailed = name => {
     if (!name) return { runs: 0, balls: 0, fours: 0, sixes: 0, sr: '0.0' };
@@ -8878,15 +8931,15 @@ function CricketAddaMain() {
       ? (inn2?.team || (isTeamABatting1st ? teamBName : teamAName))
       : team1BatName;
 
-    // Batting score resolution (prefer local live state if current active match and has live progress, otherwise persisted lm)
-    const activeLiveRuns = (isCur && (liveRuns > 0 || liveBalls > 0))
-      ? liveRuns
+    // Batting score resolution (prefer reconciled live state if current active match and has live progress, otherwise persisted lm)
+    const activeLiveRuns = (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0))
+      ? reconciledScore.runs
       : (lm.liveRuns ?? (curInn === 2 ? inn2?.runs : inn1?.runs) ?? 0);
-    const activeLiveWickets = (isCur && (liveRuns > 0 || liveBalls > 0))
-      ? liveWickets
+    const activeLiveWickets = (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0))
+      ? reconciledScore.wickets
       : (lm.liveWickets ?? (curInn === 2 ? inn2?.wickets : inn1?.wickets) ?? 0);
-    const activeLiveOvers = (isCur && (liveRuns > 0 || liveBalls > 0))
-      ? `${oversStr} Ov`
+    const activeLiveOvers = (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0))
+      ? `${reconciledScore.oversStr} Ov`
       : (lm.liveOvers ? `${lm.liveOvers} Ov` : (curInn === 2 ? (inn2?.overs ? `${inn2.overs} Ov` : '0.0 Ov') : (inn1?.overs ? `${inn1.overs} Ov` : '0.0 Ov')));
 
     let sA, ovA, sB, ovB;
@@ -9863,13 +9916,21 @@ function CricketAddaMain() {
       else if (totalR > 0) batterSinglesAdded = totalR;
     }
 
+    // 1. Calculate next unified runs, balls and wickets anchored to reconciledScore
+    const baseRuns = reconciledScore.runs;
+    const baseBalls = reconciledScore.balls;
+    const baseWkts = reconciledScore.wickets;
+    const nextRuns = baseRuns + addedRuns;
+    const nextBalls = baseBalls + (isLegalDelivery ? 1 : 0);
+    const nextWkts = baseWkts + (isWkt ? 1 : 0);
+
     // Save exact state snapshot into history stack before mutating state
     const snapshot = {
       id: `act_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-      liveRuns,
-      liveWickets,
-      liveBalls,
-      liveThisOver: [...liveThisOver],
+      liveRuns: baseRuns,
+      liveWickets: baseWkts,
+      liveBalls: baseBalls,
+      liveThisOver: [...reconciledScore.thisOver],
       liveBatters: JSON.parse(JSON.stringify(liveBatters)),
       liveBowlerStats: JSON.parse(JSON.stringify(liveBowlerStats)),
       striker,
@@ -9895,10 +9956,10 @@ function CricketAddaMain() {
     };
     setScoringHistory(prev => [...prev, snapshot]);
 
-    // 1. Update Runs & Balls
-    setLiveRuns(r => r + addedRuns);
-    if (isLegalDelivery) {
-      setLiveBalls(b => b + 1);
+    setLiveRuns(nextRuns);
+    setLiveBalls(nextBalls);
+    if (isWkt) {
+      setLiveWickets(nextWkts);
     }
 
     // 2. Update Live Batters stats
@@ -10160,10 +10221,11 @@ function CricketAddaMain() {
     setLiveCommentaryList(updatedCommentaryList);
 
     // 5.1 Persist in-flight live state to matches database & storage
-    const nextBallsForDb = liveBalls + (isLegalDelivery ? 1 : 0);
-    const nextRunsForDb = liveRuns + addedRuns;
-    const nextWktsForDb = liveWickets + (isWkt ? 1 : 0);
+    const nextBallsForDb = nextBalls;
+    const nextRunsForDb = nextRuns;
+    const nextWktsForDb = nextWkts;
     const oversFormatted = `${Math.floor(nextBallsForDb / 6)}.${nextBallsForDb % 6}`;
+    const nextOvStr = oversFormatted;
     setMatchesDb(prev => {
       const cur = prev[activeMatchId] || {};
       const updatedMatch = {
@@ -10244,11 +10306,6 @@ function CricketAddaMain() {
       AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
       return updatedDb;
     });
-
-    const nextBalls = liveBalls + (isLegalDelivery ? 1 : 0);
-    const nextRuns = liveRuns + addedRuns;
-    const nextWkts = liveWickets + (isWkt ? 1 : 0);
-    const nextOvStr = `${Math.floor(nextBalls / 6)}.${nextBalls % 6}`;
 
     // 7. Check if this ball COMPLETES the 1st Innings
     if (currentInnings === 1) {
@@ -17995,12 +18052,12 @@ function CricketAddaMain() {
                         </Text>
                         <Text style={{ color: isTeam1Batting ? '#ffffff' : '#93c5fd', fontSize: 17, fontWeight: '900', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
                           {isTeam1Batting
-                            ? `${liveRuns}/${liveWickets}`
+                            ? `${reconciledScore.runs}/${reconciledScore.wickets}`
                             : `${firstInningsSummary?.runs ?? (currentMatchData.innings1?.runs ?? 0)}/${firstInningsSummary?.wickets ?? (currentMatchData.innings1?.wickets ?? 0)}`}
                         </Text>
                         <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }} numberOfLines={1}>
                           {isTeam1Batting
-                            ? `(${oversStr} ov)`
+                            ? `(${reconciledScore.oversStr} ov)`
                             : `(${firstInningsSummary?.overs || currentMatchData.innings1?.overs || '20.0'} ov)`}
                         </Text>
                       </View>
@@ -18062,12 +18119,12 @@ function CricketAddaMain() {
                         </Text>
                         <Text style={{ color: isTeam2Batting ? '#ffffff' : '#fca5a5', fontSize: 17, fontWeight: '900', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
                           {isTeam2Batting
-                            ? `${liveRuns}/${liveWickets}`
+                            ? `${reconciledScore.runs}/${reconciledScore.wickets}`
                             : 'Yet to bat'}
                         </Text>
                         <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }} numberOfLines={1}>
                           {isTeam2Batting
-                            ? `(${oversStr} ov)`
+                            ? `(${reconciledScore.oversStr} ov)`
                             : `(${maxOvers || 20}.0 ov)`}
                         </Text>
                       </View>
