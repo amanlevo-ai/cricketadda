@@ -10329,7 +10329,7 @@ function CricketAddaMain() {
     // 4. Strike Rotation & New Batter Assignment logic
     let nextStriker = striker;
     let nextNonStriker = nonStriker;
-    const isOverEnd = isLegalDelivery && (liveBalls + 1) % 6 === 0;
+    const isOverEnd = Boolean(isLegalDelivery && nextBalls > 0 && nextBalls % 6 === 0);
 
     if (isWkt) {
       const newInc = (incomingBatterName && incomingBatterName.trim()) ? incomingBatterName.trim() : `Batter #${liveWickets + 2}`;
@@ -10781,21 +10781,28 @@ function CricketAddaMain() {
         wickets: wicketsInThisOver,
       });
 
-      setMatch(prev => ({ ...prev, lastOverBowler: bowler, previousBowler: bowler }));
+      setMatch(prev => ({
+        ...prev,
+        lastOverBowler: bowler,
+        previousBowler: bowler,
+        currentStriker: nextStriker,
+        currentNonStriker: nextNonStriker,
+        currentBowler: '',
+      }));
       setNeedsNewBowler(true);
       const eligible = activeOppBowlers.filter(b => b.toLowerCase() !== bowler.toLowerCase());
       if (eligible.length > 0) {
         setNextBowler(eligible[0]);
       }
       setChangeBowlerModalVisible(true);
+    } else {
+      setMatch(prev => ({
+        ...prev,
+        currentStriker: nextStriker,
+        currentNonStriker: nextNonStriker,
+        currentBowler: bowler,
+      }));
     }
-
-    setMatch(prev => ({
-      ...prev,
-      currentStriker: nextStriker,
-      currentNonStriker: nextNonStriker,
-      currentBowler: bowler,
-    }));
 
     if (activeMatchId) {
       setMatchesDb(prev => {
@@ -10809,7 +10816,9 @@ function CricketAddaMain() {
           liveThisOver: nextThisOver,
           currentStriker: nextStriker,
           currentNonStriker: nextNonStriker,
-          currentBowler: bowler,
+          currentBowler: isOverEnd ? '' : bowler,
+          lastOverBowler: isOverEnd ? bowler : cur.lastOverBowler,
+          previousBowler: isOverEnd ? bowler : cur.previousBowler,
           scoringHistory: [...scoringHistory, snapshot],
           liveBatters: updatedLiveBatters,
           liveBowlerStats: updatedLiveBowlers,
@@ -10822,7 +10831,9 @@ function CricketAddaMain() {
             liveThisOver: nextThisOver,
             currentStriker: nextStriker,
             currentNonStriker: nextNonStriker,
-            currentBowler: bowler,
+            currentBowler: isOverEnd ? '' : bowler,
+            lastOverBowler: isOverEnd ? bowler : cur.liveState?.lastOverBowler,
+            previousBowler: isOverEnd ? bowler : cur.liveState?.previousBowler,
             scoringHistory: [...scoringHistory, snapshot],
             liveBatters: updatedLiveBatters,
             liveBowlerStats: updatedLiveBowlers,
@@ -10846,12 +10857,14 @@ function CricketAddaMain() {
       liveBowlerStats: updatedLiveBowlers,
       currentStriker: nextStriker,
       currentNonStriker: nextNonStriker,
-      currentBowler: bowler,
+      currentBowler: isOverEnd ? '' : bowler,
       match: {
         ...match,
         currentStriker: nextStriker,
         currentNonStriker: nextNonStriker,
-        currentBowler: bowler,
+        currentBowler: isOverEnd ? '' : bowler,
+        lastOverBowler: isOverEnd ? bowler : match.lastOverBowler,
+        previousBowler: isOverEnd ? bowler : match.previousBowler,
       },
       scoringHistory: [...scoringHistory, snapshot],
       celebrationEvent,
@@ -12289,11 +12302,18 @@ function CricketAddaMain() {
       return;
     }
 
-    if (needsNewBowler) {
-      const eligible = activeOppBowlers.filter(b => b !== bowler && !isBowlerQuotaMaxed(b));
+    const isCurrentOverComplete = Boolean(
+      needsNewBowler ||
+      (reconciledScore.balls > 0 && reconciledScore.balls % 6 === 0 && (scoringHistory || []).length > 0 && (!match.currentBowler || match.currentBowler === match.lastOverBowler))
+    );
+
+    if (isCurrentOverComplete) {
+      const lastBw = match.lastOverBowler || match.previousBowler || bowler;
+      const eligible = activeOppBowlers.filter(b => b.toLowerCase() !== lastBw.toLowerCase() && !isBowlerQuotaMaxed(b));
       if (eligible.length > 0) {
         setNextBowler(eligible[0]);
       }
+      setNeedsNewBowler(true);
       setChangeBowlerModalVisible(true);
       showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
       return;
