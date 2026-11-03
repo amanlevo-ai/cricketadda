@@ -4738,8 +4738,8 @@ const EMPTY_MATCH_TEMPLATE = {
     oversDetail: [],
   },
   innings2: {
-    team: 'Team 2',
-    flag: '⚡',
+    team: '',
+    flag: '',
     runs: 0,
     wickets: 0,
     overs: '0.0',
@@ -6845,12 +6845,12 @@ function CricketAddaMain() {
                 id: targetActiveId,
                 title: mObj.title,
                 status: mObj.status || 'live',
-                teamA: mObj.teamA || inn1.team,
-                teamB: mObj.teamB || inn2.team,
-                flagA: mObj.flagA || inn1.flag,
-                flagB: mObj.flagB || inn2.flag,
-                logoA: mObj.logoA,
-                logoB: mObj.logoB,
+                teamA: mObj.teamA || mObj.match?.teamA || inn1.team || '',
+                teamB: mObj.teamB || mObj.match?.teamB || inn2.team || '',
+                flagA: mObj.flagA || mObj.match?.flagA || inn1.flag || '🦁',
+                flagB: mObj.flagB || mObj.match?.flagB || inn2.flag || '⚔️',
+                logoA: mObj.logoA || mObj.match?.logoA || inn1.logoUri || resolveTeamLogo({ name: mObj.teamA || mObj.match?.teamA || inn1.team }, existingTeams, usersDb),
+                logoB: mObj.logoB || mObj.match?.logoB || inn2.logoUri || resolveTeamLogo({ name: mObj.teamB || mObj.match?.teamB || inn2.team }, existingTeams, usersDb),
                 overs: activeInn.maxOvers || mObj.totalOvers || 20,
                 currentStriker: restoredStriker,
                 currentNonStriker: restoredNonStriker,
@@ -8466,9 +8466,18 @@ function CricketAddaMain() {
     }
     if (d.currentInnings) setCurrentInnings(d.currentInnings);
     if (d.firstInningsSummary) setFirstInningsSummary(d.firstInningsSummary);
+    const resolvedTeamA = d.teamA || d.match?.teamA || d.innings1?.team || '';
+    const resolvedTeamB = d.teamB || d.match?.teamB || d.innings2?.team || '';
+    const resolvedLogoA = d.logoA || d.match?.logoA || d.innings1?.logoUri || '';
+    const resolvedLogoB = d.logoB || d.match?.logoB || d.innings2?.logoUri || '';
+
     setMatch(prev => ({
       ...prev,
       ...(d.match || {}),
+      teamA: resolvedTeamA || prev.teamA || '',
+      teamB: resolvedTeamB || prev.teamB || '',
+      logoA: resolvedLogoA || prev.logoA || '',
+      logoB: resolvedLogoB || prev.logoB || '',
       status: d.status || (d.match && d.match.status) || prev.status || 'live',
       auditMode: d.auditMode !== undefined ? d.auditMode : (d.match?.auditMode ?? prev.auditMode),
       isPausedForAudit: d.isPausedForAudit !== undefined ? d.isPausedForAudit : (d.match?.isPausedForAudit ?? prev.isPausedForAudit),
@@ -8493,10 +8502,18 @@ function CricketAddaMain() {
     if (d.activeMatchId) {
       setMatchesDb(prev => {
         const existingMatch = prev[d.activeMatchId] || {};
+        const effTeamA = resolvedTeamA || existingMatch.teamA || existingMatch.match?.teamA || '';
+        const effTeamB = resolvedTeamB || existingMatch.teamB || existingMatch.match?.teamB || '';
+        const effLogoA = resolvedLogoA || existingMatch.logoA || existingMatch.match?.logoA || '';
+        const effLogoB = resolvedLogoB || existingMatch.logoB || existingMatch.match?.logoB || '';
         const updatedMatch = {
           ...existingMatch,
           ...(d.match || {}),
           id: d.activeMatchId,
+          teamA: effTeamA,
+          teamB: effTeamB,
+          logoA: effLogoA,
+          logoB: effLogoB,
           auditMode: d.auditMode !== undefined ? d.auditMode : ((d.match && d.match.auditMode) ?? existingMatch.auditMode),
           isPausedForAudit: d.isPausedForAudit !== undefined ? d.isPausedForAudit : ((d.match && d.match.isPausedForAudit) ?? existingMatch.isPausedForAudit),
           liveRuns: typeof d.liveRuns === 'number' ? d.liveRuns : existingMatch.liveRuns,
@@ -8513,8 +8530,18 @@ function CricketAddaMain() {
           currentNonStriker: d.currentNonStriker || existingMatch.currentNonStriker,
           currentBowler: d.currentBowler || existingMatch.currentBowler,
           status: d.status || (d.match && d.match.status) || existingMatch.status || 'live',
-          innings1: d.innings1 || existingMatch.innings1,
-          innings2: d.innings2 || existingMatch.innings2,
+          innings1: {
+            ...(existingMatch.innings1 || {}),
+            ...(d.innings1 || {}),
+            team: d.innings1?.team || effTeamA || existingMatch.innings1?.team || '',
+            logoUri: d.innings1?.logoUri || effLogoA || existingMatch.innings1?.logoUri || '',
+          },
+          innings2: {
+            ...(existingMatch.innings2 || {}),
+            ...(d.innings2 || {}),
+            team: d.innings2?.team || effTeamB || existingMatch.innings2?.team || '',
+            logoUri: d.innings2?.logoUri || effLogoB || existingMatch.innings2?.logoUri || '',
+          },
           liveState: {
             ...(existingMatch.liveState || {}),
             auditMode: d.auditMode !== undefined ? d.auditMode : ((d.match && d.match.auditMode) ?? existingMatch.auditMode),
@@ -9234,8 +9261,8 @@ function CricketAddaMain() {
     if (!lm) return null;
     const isCur = lm.id === activeMatchId;
 
-    const teamAName = lm.teamA || lm.innings1?.team || 'Team 1';
-    const teamBName = lm.teamB || lm.innings2?.team || 'Team 2';
+    const teamAName = lm.teamA || lm.match?.teamA || lm.innings1?.team || '';
+    const teamBName = lm.teamB || lm.match?.teamB || lm.innings2?.team || '';
 
     const inn1 = lm.innings1;
     const inn2 = lm.innings2;
