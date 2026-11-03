@@ -8403,10 +8403,9 @@ function CricketAddaMain() {
     // If incoming packet is older than what we already applied in the same inning (and not an undo action or reset signal),
     // drop it to prevent "show -> hide -> show" flickering!
     const isResetSignal = Boolean(
-      d.forceReset ||
-      d.isReset ||
-      (d.forceResetAt && d.forceResetAt >= (lastResetConsumedAtRef.current || 0)) ||
-      (incomingBalls === 0 && Array.isArray(d.scoringHistory) && d.scoringHistory.length === 0)
+      (d.forceReset || d.forceResetAt || d.isReset) &&
+      d.forceResetAt &&
+      d.forceResetAt > (lastResetConsumedAtRef.current || 0)
     );
     if (isResetSignal) {
       if (d.forceResetAt) {
@@ -8693,10 +8692,9 @@ function CricketAddaMain() {
       }
 
       const isExternalReset = Boolean(
-        cloudData.forceReset ||
-        cloudData.isReset ||
-        (cloudData.forceResetAt && cloudData.forceResetAt >= (lastResetConsumedAtRef.current || 0)) ||
-        (cloudData.liveBalls === 0 && Array.isArray(cloudData.scoringHistory) && cloudData.scoringHistory.length === 0)
+        (cloudData.forceReset || cloudData.forceResetAt || cloudData.isReset) &&
+        cloudData.forceResetAt &&
+        cloudData.forceResetAt > (lastResetConsumedAtRef.current || 0)
       );
 
       if (isExternalReset) {
@@ -16092,10 +16090,9 @@ function CricketAddaMain() {
     // Fast-path: If user is the active official scorer on this device and ALREADY scoring this active match,
     // do NOT re-initialize or blow away the live in-memory scoring state UNLESS a reset was triggered!
     const isResetTarget = Boolean(
-      targetMatch.forceReset ||
-      targetMatch.forceResetAt ||
-      targetMatch.isReset ||
-      (targetMatch.liveBalls === 0 && (!targetMatch.scoringHistory || targetMatch.scoringHistory.length === 0))
+      (targetMatch.forceReset || targetMatch.forceResetAt || targetMatch.isReset) &&
+      targetMatch.forceResetAt &&
+      targetMatch.forceResetAt > (lastResetConsumedAtRef.current || 0)
     );
     if (
       matchId === activeMatchId &&
