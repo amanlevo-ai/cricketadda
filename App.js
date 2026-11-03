@@ -8400,8 +8400,10 @@ function CricketAddaMain() {
     // If incoming packet is older than what we already applied in the same inning (and not an undo action or reset signal),
     // drop it to prevent "show -> hide -> show" flickering!
     const isResetSignal = Boolean(
-      (d.forceReset || d.forceResetAt || d.isReset) &&
-      (!d.forceResetAt || d.forceResetAt > (lastResetConsumedAtRef.current || 0))
+      d.forceReset ||
+      d.isReset ||
+      (d.forceResetAt && d.forceResetAt >= (lastResetConsumedAtRef.current || 0)) ||
+      (incomingBalls === 0 && Array.isArray(d.scoringHistory) && d.scoringHistory.length === 0)
     );
     if (isResetSignal) {
       if (d.forceResetAt) {
@@ -8410,8 +8412,13 @@ function CricketAddaMain() {
       lastAppliedRemoteSyncRef.current = {
         timestamp: incomingTime || Date.now(),
         balls: 0,
-        innings: 1,
+        innings: incomingInnings || 1,
       };
+      setLiveRuns(0);
+      setLiveBalls(0);
+      setLiveWickets(0);
+      setLiveThisOver([]);
+      setScoringHistory([]);
     } else if (
       !d.isUndoAction &&
       incomingInnings === lastAppliedRemoteSyncRef.current.innings
@@ -8656,14 +8663,13 @@ function CricketAddaMain() {
       }
 
       const isExternalReset = Boolean(
-        (cloudData.forceReset || cloudData.forceResetAt || cloudData.isReset) &&
-        cloudData.forceResetAt &&
-        cloudData.forceResetAt > (lastResetConsumedAtRef.current || 0) &&
-        !isSelfEcho
+        cloudData.forceReset ||
+        cloudData.isReset ||
+        (cloudData.forceResetAt && cloudData.forceResetAt >= (lastResetConsumedAtRef.current || 0)) ||
+        (cloudData.liveBalls === 0 && Array.isArray(cloudData.scoringHistory) && cloudData.scoringHistory.length === 0)
       );
 
       if (isExternalReset) {
-        lastResetConsumedAtRef.current = cloudData.forceResetAt;
         applyRemoteState(cloudData);
         return;
       }
@@ -9008,9 +9014,10 @@ function CricketAddaMain() {
     const sumBattersBalls = Object.values(liveBatters || {}).reduce((acc, b) => acc + (Number(b?.balls) || 0), 0);
     const maxBowlerBalls = Object.values(liveBowlerStats || {}).reduce((acc, bw) => Math.max(acc, Number(bw?.balls) || 0), 0);
 
-    const effRuns = Math.max(Number(liveRuns) || 0, histRuns, sumBattersRuns);
-    const effBalls = Math.max(Number(liveBalls) || 0, histBalls, sumBattersBalls, maxBowlerBalls);
-    const effWkts = Math.max(Number(liveWickets) || 0, histWkts);
+    const isZeroState = (Number(liveBalls) || 0) === 0 && histBalls === 0;
+    const effRuns = isZeroState ? (Number(liveRuns) || 0) : Math.max(Number(liveRuns) || 0, histRuns, sumBattersRuns);
+    const effBalls = isZeroState ? 0 : Math.max(Number(liveBalls) || 0, histBalls, sumBattersBalls, maxBowlerBalls);
+    const effWkts = isZeroState ? (Number(liveWickets) || 0) : Math.max(Number(liveWickets) || 0, histWkts);
 
     // Extract current over balls directly from history for 100% accuracy
     const legalInCurOver = effBalls % 6;
@@ -16054,7 +16061,12 @@ function CricketAddaMain() {
 
     // Fast-path: If user is the active official scorer on this device and ALREADY scoring this active match,
     // do NOT re-initialize or blow away the live in-memory scoring state UNLESS a reset was triggered!
-    const isResetTarget = Boolean(targetMatch.forceReset || targetMatch.forceResetAt || targetMatch.isReset);
+    const isResetTarget = Boolean(
+      targetMatch.forceReset ||
+      targetMatch.forceResetAt ||
+      targetMatch.isReset ||
+      (targetMatch.liveBalls === 0 && (!targetMatch.scoringHistory || targetMatch.scoringHistory.length === 0))
+    );
     if (
       matchId === activeMatchId &&
       isOfficialScorer &&
