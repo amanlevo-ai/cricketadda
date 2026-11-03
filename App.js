@@ -8436,6 +8436,9 @@ function CricketAddaMain() {
     if (typeof d.liveWickets === 'number') setLiveWickets(d.liveWickets);
     if (typeof d.liveBalls === 'number') setLiveBalls(d.liveBalls);
     if (Array.isArray(d.liveThisOver)) setLiveThisOver(d.liveThisOver);
+    else if (isResetSignal || d.liveBalls === 0) setLiveThisOver([]);
+    if (Array.isArray(d.scoringHistory)) setScoringHistory(d.scoringHistory);
+    else if (isResetSignal || d.liveBalls === 0) setScoringHistory([]);
     if (d.activeScorer) {
       const myDevId = clientIdRef?.current || '';
       const myPh = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
