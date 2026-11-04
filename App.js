@@ -5980,8 +5980,16 @@ function CricketAddaMain() {
     if (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) return true;
     if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
 
-    // 4. Creator specific name match (only if phone/email not recorded):
-    if (!creatorPhone && !creatorEmail && creatorName && uName && creatorName === uName && uName !== 'match creator' && uName !== 'official scorer') {
+    // 4. Creator / Scorer specific name match:
+    if (creatorName && uName && (creatorName === uName || creatorName.includes(uName) || uName.includes(creatorName)) && uName !== 'match creator' && uName !== 'official scorer') {
+      return true;
+    }
+    if (assignedName && uName && (assignedName === uName || assignedName.includes(uName) || uName.includes(assignedName)) && uName !== 'match creator' && uName !== 'official scorer') {
+      return true;
+    }
+
+    // 5. Local Database Ownership: If this match exists in the user's local matchesDb, user has full scoring authority
+    if (matchesDb && matchesDb[targetMatch.id || targetMatch.activeMatchId]) {
       return true;
     }
 
@@ -6615,6 +6623,17 @@ function CricketAddaMain() {
           await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_ID, devId);
         }
         if (clientIdRef) clientIdRef.current = devId;
+
+        // Fast-path: Immediately hydrate matchesDb from local cache to prevent startup delay/flash
+        try {
+          const fastRawMatches = await AsyncStorage.getItem(STORAGE_KEYS.MATCHES_DB);
+          if (fastRawMatches) {
+            const parsedFast = JSON.parse(fastRawMatches);
+            if (parsedFast && typeof parsedFast === 'object' && Object.keys(parsedFast).length > 0) {
+              setMatchesDb(parsedFast);
+            }
+          }
+        } catch (_) {}
 
         // Load Stored Theme Preference
         const storedTheme = await AsyncStorage.getItem(STORAGE_KEYS.THEME);
@@ -16126,8 +16145,17 @@ function CricketAddaMain() {
   };
 
   const handleScoreMatchPress = matchId => {
-    const targetMatch = matchesDb?.[matchId] || MATCH_DATABASE[matchId];
+    const targetMatch = matchesDb?.[matchId] || allLiveMatchesList.find(m => m.id === matchId) || MATCH_DATABASE[matchId] || match;
     if (!targetMatch) return;
+    const resolvedMatchId = targetMatch.id || matchId;
+
+    // Auto-claim official scoring authorization for this user when opening from dashboard
+    setViewerSimulated(false);
+    setMyScoringMatchIds(prev => {
+      const updated = Array.from(new Set([...(prev || []), resolvedMatchId]));
+      AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
 
     // Fast-path: If user is the active official scorer on this device and ALREADY scoring this active match,
     // do NOT re-initialize or blow away the live in-memory scoring state UNLESS a reset was triggered!
@@ -16137,22 +16165,22 @@ function CricketAddaMain() {
       targetMatch.forceResetAt > (lastResetConsumedAtRef.current || 0)
     );
     if (
-      matchId === activeMatchId &&
+      resolvedMatchId === activeMatchId &&
       isOfficialScorer &&
       !isResetTarget
     ) {
-      setMatch(prev => ({ ...prev, id: matchId }));
-      navigateTo('scorer', matchId);
+      setMatch(prev => ({ ...prev, id: resolvedMatchId }));
+      navigateTo('scorer', resolvedMatchId);
       return;
     }
 
-    setActiveMatchId(matchId);
+    setActiveMatchId(resolvedMatchId);
     setMatchesDb(prev => ({
       ...MATCH_DATABASE,
       ...(prev || {}),
-      [matchId]: {
-        ...(MATCH_DATABASE[matchId] || {}),
-        ...((prev || {})[matchId] || {}),
+      [resolvedMatchId]: {
+        ...(MATCH_DATABASE[resolvedMatchId] || {}),
+        ...((prev || {})[resolvedMatchId] || {}),
         ...targetMatch,
       }
     }));
@@ -17152,7 +17180,12 @@ function CricketAddaMain() {
                 const liveData = getLiveMatchCardData(m);
                 if (!liveData) return null;
                 return (
-                  <View key={liveData.id || `live_${idx}`} style={{ width: width - 20, paddingHorizontal: 12, paddingBottom: 6 }}>
+                  <TouchableOpacity
+                    key={liveData.id || `live_${idx}`}
+                    activeOpacity={0.88}
+                    onPress={() => handleScoreMatchPress(m.id || liveData.id)}
+                    style={{ width: width - 20, paddingHorizontal: 12, paddingBottom: 6 }}
+                  >
                     {/* Tournament & Venue */}
                     <View style={{ marginBottom: 6 }}>
                       <Text style={styles.dashFeaturedTournName} numberOfLines={1}>
@@ -17227,7 +17260,7 @@ function CricketAddaMain() {
                         {liveData.equation}
                       </Text>
                     </View>
-                  </View>
+                  </TouchableOpacity>
                 );
               })}
             </ScrollView>
@@ -17251,6 +17284,11 @@ function CricketAddaMain() {
               ))}
             </View>
           </View>
+          ) : isSessionRestoring ? (
+            <View style={[styles.dashFeaturedOuterFrame, { paddingVertical: 24, alignItems: 'center', justifyContent: 'center' }]}>
+              <ActivityIndicator size="small" color="#22c55e" />
+              <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700', marginTop: 8 }}>Loading live matches...</Text>
+            </View>
           ) : (
             <View style={[styles.dashFeaturedOuterFrame, { paddingVertical: 20, alignItems: 'center', justifyContent: 'center' }]}>
               <Text style={{ fontSize: 28, marginBottom: 4 }}>🏏</Text>
@@ -19316,22 +19354,47 @@ function CricketAddaMain() {
                 </View>
                 </View>
               ) : (
-                /* Spectator Read-Only Notice */
+                /* Spectator Read-Only Notice with Instant Claim Button */
                 <View style={{
                   backgroundColor: '#071526',
-                  borderRadius: 8,
+                  borderRadius: 10,
                   borderWidth: 1,
                   borderColor: '#1e3a5f',
-                  padding: 8,
+                  padding: 10,
                   marginBottom: 8,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 8,
                 }}>
-                  <Text style={{ fontSize: 16 }}>👁️</Text>
-                  <Text style={{ color: '#94a3b8', fontSize: 11, flex: 1, lineHeight: 15 }}>
-                    Live match is synced live from official match scorer. Keypad input is disabled in Spectator Mode.
-                  </Text>
+                  <Text style={{ fontSize: 18 }}>👁️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#e2e8f0', fontSize: 11.5, fontWeight: '700' }}>
+                      Spectator Mode
+                    </Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 10, lineHeight: 14 }}>
+                      Keypad is locked. Tap below to start scoring this match.
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setViewerSimulated(false);
+                      const targetId = activeMatchId || match?.id;
+                      if (targetId) {
+                        setMyScoringMatchIds(prev => Array.from(new Set([...(prev || []), targetId])));
+                        AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(Array.from(new Set([...(myScoringMatchIds || []), targetId])))).catch(() => {});
+                      }
+                      showAppToast('Official Scoring Mode activated 🏏', '🏏', 'success');
+                    }}
+                    style={{
+                      backgroundColor: '#22c55e',
+                      paddingVertical: 6,
+                      paddingHorizontal: 12,
+                      borderRadius: 8,
+                    }}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ color: '#000000', fontSize: 11.5, fontWeight: '900' }}>Start Scoring</Text>
+                  </TouchableOpacity>
                 </View>
               )}
                           </>
