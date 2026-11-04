@@ -6774,17 +6774,24 @@ function CricketAddaMain() {
               setLiveRuns(rns);
               setLiveWickets(wkts);
 
-              const ovStr = String(activeInn.overs || mObj.liveOvers || mObj.liveState?.oversStr || '0.0');
-              const parts = ovStr.split('.');
-              const ov = parseInt(parts[0], 10) || 0;
-              const bl = parseInt(parts[1], 10) || 0;
-              const totBalls = ov * 6 + bl;
-              setLiveBalls(totBalls);
-
               const candidateHistory = (Array.isArray(mObj.liveState?.scoringHistory) && mObj.liveState.scoringHistory.length >= (mObj.scoringHistory?.length || 0))
                 ? mObj.liveState.scoringHistory
                 : (Array.isArray(mObj.scoringHistory) ? mObj.scoringHistory : (mObj.liveState?.scoringHistory || []));
               setScoringHistory(candidateHistory);
+
+              const historyBalls = (candidateHistory || [])
+                .filter(d => !d.innings || d.innings === activeInningNum)
+                .filter(d => d.isLegalDelivery !== false).length;
+              const directBalls = typeof mObj.liveBalls === 'number'
+                ? mObj.liveBalls
+                : (typeof activeInn.balls === 'number' ? activeInn.balls : 0);
+              const ovStr = String(mObj.liveOvers || activeInn.overs || mObj.liveState?.oversStr || '0.0');
+              const parts = ovStr.split('.');
+              const ov = parseInt(parts[0], 10) || 0;
+              const bl = parseInt(parts[1], 10) || 0;
+              const parsedOvBalls = ov * 6 + bl;
+              const totBalls = Math.max(historyBalls, directBalls, parsedOvBalls);
+              setLiveBalls(totBalls);
 
               const legalBallsInCurOver = totBalls % 6;
               let safeThisOver = [];
@@ -8597,6 +8604,9 @@ function CricketAddaMain() {
 
     // Keep lastAppliedRemoteSyncRef in sync with local broadcasts so incoming stale echoes are dropped
     const payloadBalls = customPayload.liveBalls !== undefined ? customPayload.liveBalls : liveBalls;
+    const payloadRuns = customPayload.liveRuns !== undefined ? customPayload.liveRuns : liveRuns;
+    const payloadWkts = customPayload.liveWickets !== undefined ? customPayload.liveWickets : liveWickets;
+    const payloadOvers = customPayload.liveOvers || `${Math.floor(payloadBalls / 6)}.${payloadBalls % 6}`;
     const payloadInnings = customPayload.currentInnings || currentInnings || 1;
     lastAppliedRemoteSyncRef.current = {
       timestamp: Date.now(),
@@ -8624,9 +8634,10 @@ function CricketAddaMain() {
       bowlingTeamName,
       bowlingTeamFlag,
       bowlingTeamLogo: effectiveBowlLogo,
-      liveRuns,
-      liveWickets,
-      liveBalls,
+      liveRuns: payloadRuns,
+      liveWickets: payloadWkts,
+      liveBalls: payloadBalls,
+      liveOvers: payloadOvers,
       liveThisOver,
       activeScorer,
       currentInnings,
@@ -8638,6 +8649,10 @@ function CricketAddaMain() {
         teamB: teamBName,
         flagA: teamAFlag,
         flagB: teamBFlag,
+        liveRuns: payloadRuns,
+        liveWickets: payloadWkts,
+        liveBalls: payloadBalls,
+        liveOvers: payloadOvers,
         creatorId: match?.creatorId || currentMatchInDb.creatorId || userProfile?.id,
         creatorDeviceId: match?.creatorDeviceId || currentMatchInDb.creatorDeviceId || clientIdRef?.current,
         creatorPhone: match?.creatorPhone || currentMatchInDb.creatorPhone || userProfile?.phone || authPhone || '',
@@ -8666,8 +8681,22 @@ function CricketAddaMain() {
       currentStriker: customPayload.currentStriker || (match && match.currentStriker) || striker,
       currentNonStriker: customPayload.currentNonStriker || (match && match.currentNonStriker) || nonStriker,
       currentBowler: customPayload.currentBowler || (match && match.currentBowler) || bowler,
-      innings1: customPayload.innings1 || inn1ScorecardDataRef?.current,
-      innings2: customPayload.innings2 || inn2ScorecardDataRef?.current,
+      innings1: customPayload.innings1 || {
+        ...(currentMatchInDb.innings1 || {}),
+        ...(inn1ScorecardDataRef?.current || {}),
+        runs: payloadInnings === 1 ? payloadRuns : (currentMatchInDb.innings1?.runs ?? inn1ScorecardDataRef?.current?.runs ?? 0),
+        wickets: payloadInnings === 1 ? payloadWkts : (currentMatchInDb.innings1?.wickets ?? inn1ScorecardDataRef?.current?.wickets ?? 0),
+        overs: payloadInnings === 1 ? payloadOvers : (currentMatchInDb.innings1?.overs ?? inn1ScorecardDataRef?.current?.overs ?? '0.0'),
+        balls: payloadInnings === 1 ? payloadBalls : (currentMatchInDb.innings1?.balls ?? inn1ScorecardDataRef?.current?.balls ?? 0),
+      },
+      innings2: customPayload.innings2 || {
+        ...(currentMatchInDb.innings2 || {}),
+        ...(inn2ScorecardDataRef?.current || {}),
+        runs: payloadInnings === 2 ? payloadRuns : (currentMatchInDb.innings2?.runs ?? inn2ScorecardDataRef?.current?.runs ?? 0),
+        wickets: payloadInnings === 2 ? payloadWkts : (currentMatchInDb.innings2?.wickets ?? inn2ScorecardDataRef?.current?.wickets ?? 0),
+        overs: payloadInnings === 2 ? payloadOvers : (currentMatchInDb.innings2?.overs ?? inn2ScorecardDataRef?.current?.overs ?? '0.0'),
+        balls: payloadInnings === 2 ? payloadBalls : (currentMatchInDb.innings2?.balls ?? inn2ScorecardDataRef?.current?.balls ?? 0),
+      },
       ...customPayload,
     };
 
@@ -8866,17 +8895,20 @@ function CricketAddaMain() {
 
   const currentInningsDeliveries = (scoringHistory || []).filter(d => !d.innings || d.innings === currentInnings);
   const lastHistDelivery = currentInningsDeliveries.length > 0 ? currentInningsDeliveries[currentInningsDeliveries.length - 1] : null;
-  const isMidOver = currentInningsDeliveries.length > 0 && (currentInningsDeliveries.length % 6 !== 0);
+  const legalDeliveriesCount = currentInningsDeliveries.filter(d => d.isLegalDelivery !== false).length;
+  const isMidOver = legalDeliveriesCount > 0 && (legalDeliveriesCount % 6 !== 0);
 
   let striker = match.currentStriker || currentMatchData?.liveState?.currentStriker || currentMatchData?.currentStriker || lastHistDelivery?.striker || '';
   let nonStriker = match.currentNonStriker || currentMatchData?.liveState?.currentNonStriker || currentMatchData?.currentNonStriker || lastHistDelivery?.nonStriker || '';
+  const lastCompletedOverBowler = match.lastOverBowler || match.previousBowler || (legalDeliveriesCount > 0 && legalDeliveriesCount % 6 === 0 ? lastHistDelivery?.bowler : '');
   let bowler = (isMidOver && lastHistDelivery?.bowler ? lastHistDelivery.bowler : null) ||
     match.currentBowler ||
     currentMatchData?.currentBowler ||
     currentMatchData?.liveState?.currentBowler ||
-    lastHistDelivery?.bowler ||
-    (currentMatchData?.innings1?.bowling?.[0]?.name) ||
-    (activeOppBowlers[0] || 'Bowler');
+    (isMidOver ? lastHistDelivery?.bowler : null) ||
+    (needsNewBowler ? (nextBowler || activeOppBowlers.find(b => b.toLowerCase() !== (lastCompletedOverBowler || '').toLowerCase()) || activeOppBowlers[0]) : null) ||
+    (!lastCompletedOverBowler || currentMatchData?.innings1?.bowling?.[0]?.name?.toLowerCase() !== lastCompletedOverBowler.toLowerCase() ? currentMatchData?.innings1?.bowling?.[0]?.name : null) ||
+    (activeOppBowlers.find(b => b.toLowerCase() !== (lastCompletedOverBowler || '').toLowerCase()) || activeOppBowlers[0] || 'Bowler');
 
   // Hard Guarantee: an OUT batter can NEVER be striker or non-striker at the crease
   if (isBatterOut(striker)) {
@@ -9124,10 +9156,11 @@ function CricketAddaMain() {
       }
     });
     const cached = liveBatters[name] || Object.entries(liveBatters || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
-    const finalRuns = Math.max(hRuns, (cached && cached.runs !== undefined) ? Number(cached.runs) : 0);
-    const finalBalls = Math.max(hBalls, (cached && cached.balls !== undefined) ? Number(cached.balls) : 0);
-    const finalFours = Math.max(hFours, (cached && cached.fours !== undefined) ? Number(cached.fours) : 0);
-    const finalSixes = Math.max(hSixes, (cached && cached.sixes !== undefined) ? Number(cached.sixes) : 0);
+    const hasHistoryForBatter = hBalls > 0;
+    const finalRuns = hasHistoryForBatter ? hRuns : Math.max(hRuns, (cached && cached.runs !== undefined) ? Number(cached.runs) : 0);
+    const finalBalls = hasHistoryForBatter ? hBalls : Math.max(hBalls, (cached && cached.balls !== undefined) ? Number(cached.balls) : 0);
+    const finalFours = hasHistoryForBatter ? hFours : Math.max(hFours, (cached && cached.fours !== undefined) ? Number(cached.fours) : 0);
+    const finalSixes = hasHistoryForBatter ? hSixes : Math.max(hSixes, (cached && cached.sixes !== undefined) ? Number(cached.sixes) : 0);
     const sr = finalBalls > 0 ? ((finalRuns / finalBalls) * 100).toFixed(1) : '0.0';
     return { runs: finalRuns, balls: finalBalls, fours: finalFours, sixes: finalSixes, sr };
   };
@@ -9159,10 +9192,11 @@ function CricketAddaMain() {
       }
     });
     const cached = liveBowlerStats[name] || Object.entries(liveBowlerStats || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
-    const finalBalls = Math.max(hBalls, (cached && cached.balls !== undefined) ? Number(cached.balls) : 0);
-    const finalRuns = Math.max(hRuns, (cached && cached.runs !== undefined) ? Number(cached.runs) : 0);
-    const finalWickets = Math.max(hWickets, (cached && cached.wickets !== undefined) ? Number(cached.wickets) : 0);
-    const finalMaidens = Math.max(hMaidens, (cached && cached.maidens !== undefined) ? Number(cached.maidens) : 0);
+    const hasHistoryForBowler = hBalls > 0;
+    const finalBalls = hasHistoryForBowler ? hBalls : Math.max(hBalls, (cached && cached.balls !== undefined) ? Number(cached.balls) : 0);
+    const finalRuns = hasHistoryForBowler ? hRuns : Math.max(hRuns, (cached && cached.runs !== undefined) ? Number(cached.runs) : 0);
+    const finalWickets = hasHistoryForBowler ? hWickets : Math.max(hWickets, (cached && cached.wickets !== undefined) ? Number(cached.wickets) : 0);
+    const finalMaidens = hasHistoryForBowler ? hMaidens : Math.max(hMaidens, (cached && cached.maidens !== undefined) ? Number(cached.maidens) : 0);
     const ovStr = `${Math.floor(finalBalls / 6)}.${finalBalls % 6}`;
     const econ = finalBalls > 0 ? ((finalRuns / finalBalls) * 6).toFixed(1) : '0.0';
     return { ovStr, maidens: finalMaidens, runs: finalRuns, wickets: finalWickets, econ };
@@ -9286,9 +9320,17 @@ function CricketAddaMain() {
     const activeLiveWickets = (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0))
       ? reconciledScore.wickets
       : (lm.liveWickets ?? (curInn === 2 ? inn2?.wickets : inn1?.wickets) ?? 0);
-    const activeLiveOvers = (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0))
-      ? `${reconciledScore.oversStr} Ov`
-      : (lm.liveOvers ? `${lm.liveOvers} Ov` : (curInn === 2 ? (inn2?.overs ? `${inn2.overs} Ov` : '0.0 Ov') : (inn1?.overs ? `${inn1.overs} Ov` : '0.0 Ov')));
+    const resolvedBalls = (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0))
+      ? reconciledScore.balls
+      : (typeof lm.liveBalls === 'number'
+        ? lm.liveBalls
+        : ((Array.isArray(lm.scoringHistory) && lm.scoringHistory.length > 0)
+          ? lm.scoringHistory.filter(d => !d.innings || d.innings === curInn).filter(d => d.isLegalDelivery !== false).length
+          : (() => {
+              const p = String(curInn === 2 ? (inn2?.overs || '0.0') : (inn1?.overs || '0.0')).split('.');
+              return (parseInt(p[0], 10) || 0) * 6 + (parseInt(p[1], 10) || 0);
+            })()));
+    const activeLiveOvers = `${Math.floor(resolvedBalls / 6)}.${resolvedBalls % 6} Ov`;
 
     let sA, ovA, sB, ovB;
     if (curInn === 1) {
