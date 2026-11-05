@@ -64,6 +64,11 @@ import {
   syncMatchToFirebaseDirect,
   sendScorerCorrectionRequest,
 } from './firebaseSync';
+import {
+  deriveInningsStateFromDeliveries,
+  deriveMatchStateFromDeliveries,
+  auditStateIntegrity,
+} from './cricketStateEngine';
 import Svg, {
   Circle,
   Path,
@@ -6780,82 +6785,44 @@ function CricketAddaMain() {
                 setFirstInningsSummary(null);
               }
 
-              const rns = Number(activeInn.runs ?? mObj.liveRuns ?? mObj.liveState?.liveRuns ?? 0);
-              const wkts = Number(activeInn.wickets ?? mObj.liveWickets ?? mObj.liveState?.liveWickets ?? 0);
-              setLiveRuns(rns);
-              setLiveWickets(wkts);
-
               const candidateHistory = (Array.isArray(mObj.liveState?.scoringHistory) && mObj.liveState.scoringHistory.length >= (mObj.scoringHistory?.length || 0))
                 ? mObj.liveState.scoringHistory
                 : (Array.isArray(mObj.scoringHistory) ? mObj.scoringHistory : (mObj.liveState?.scoringHistory || []));
               setScoringHistory(candidateHistory);
 
-              const historyBalls = (candidateHistory || [])
-                .filter(d => !d.innings || d.innings === activeInningNum)
-                .filter(d => d.isLegalDelivery !== false).length;
-              const directBalls = typeof mObj.liveBalls === 'number'
-                ? mObj.liveBalls
-                : (typeof activeInn.balls === 'number' ? activeInn.balls : 0);
-              const ovStr = String(mObj.liveOvers || activeInn.overs || mObj.liveState?.oversStr || '0.0');
-              const parts = ovStr.split('.');
-              const ov = parseInt(parts[0], 10) || 0;
-              const bl = parseInt(parts[1], 10) || 0;
-              const parsedOvBalls = ov * 6 + bl;
-              const totBalls = Math.max(historyBalls, directBalls, parsedOvBalls);
-              setLiveBalls(totBalls);
+              // UNIFIED DERIVATION ENGINE: Derive 100% of state from immutable ball event history
+              const derivedMatch = deriveMatchStateFromDeliveries(candidateHistory, {
+                ...mObj,
+                currentInnings: activeInningNum,
+                team1Squad: mObj.team1Squad || inn1.batting || [],
+                team2Squad: mObj.team2Squad || inn2.batting || [],
+                swapBattersOnOverEnd,
+              });
 
-              const legalBallsInCurOver = totBalls % 6;
-              let safeThisOver = [];
-              if (candidateHistory.length > 0) {
-                if (legalBallsInCurOver === 0) {
-                  const nonLegalTail = [];
-                  for (let i = candidateHistory.length - 1; i >= 0; i--) {
-                    const d = candidateHistory[i];
-                    if (!d || (d.innings && d.innings !== activeInningNum)) break;
-                    if (d.isLegalDelivery !== false) break;
-                    if (d.ballSymbol) nonLegalTail.unshift(d.ballSymbol);
-                  }
-                  safeThisOver = nonLegalTail;
-                } else {
-                  let legalCount = 0;
-                  const filtered = [];
-                  for (let i = candidateHistory.length - 1; i >= 0; i--) {
-                    const d = candidateHistory[i];
-                    if (!d) continue;
-                    if (d.innings && d.innings !== activeInningNum) break;
-                    const isLegal = d.isLegalDelivery !== false;
-                    if (isLegal) {
-                      if (legalCount >= legalBallsInCurOver) break;
-                      legalCount++;
-                    }
-                    if (d.ballSymbol) filtered.unshift(d.ballSymbol);
-                  }
-                  safeThisOver = filtered;
-                }
-              } else {
-                safeThisOver = mObj.liveState?.liveThisOver || mObj.liveThisOver || [];
-              }
-              setLiveThisOver(safeThisOver);
+              auditStateIntegrity(derivedMatch, mObj, 'loadUserPreferences');
 
-              const { batters: restoredBatters, bowlers: restoredBowlers } = reconstructLiveStatsFromHistory(
-                candidateHistory,
-                activeInningNum,
-                mObj.liveBatters || mObj.liveState?.liveBatters || activeInn.batting || {},
-                mObj.liveBowlerStats || mObj.liveState?.liveBowlerStats || activeInn.bowling || {}
-              );
-              setLiveBatters(restoredBatters);
-              setLiveBowlerStats(restoredBowlers);
+              setLiveRuns(derivedMatch.activeScore.runs);
+              setLiveWickets(derivedMatch.activeScore.wickets);
+              setLiveBalls(derivedMatch.activeScore.balls);
+              setLiveThisOver(derivedMatch.activeScore.thisOver);
+              setLiveBatters(derivedMatch.activeScore.liveBatters);
+              setLiveBowlerStats(derivedMatch.activeScore.liveBowlerStats);
 
-              const lastHist = (candidateHistory || []).slice().reverse().find(d => !d.innings || d.innings === activeInningNum);
-              const isMid = candidateHistory.length > 0 && (totBalls % 6 !== 0);
-              const restoredBowler = (isMid && lastHist?.bowler ? lastHist.bowler : null) ||
+              const restoredBowler = derivedMatch.activeScore.currentBowler ||
                 mObj.currentBowler ||
                 mObj.liveState?.currentBowler ||
-                lastHist?.bowler ||
                 (activeInn.bowling?.[0]?.name) ||
                 '';
-              const restoredStriker = mObj.currentStriker || mObj.liveState?.currentStriker || lastHist?.striker || (activeInn.batting?.[0]?.name) || '';
-              const restoredNonStriker = mObj.currentNonStriker || mObj.liveState?.currentNonStriker || lastHist?.nonStriker || (activeInn.batting?.[1]?.name) || '';
+              const restoredStriker = derivedMatch.activeScore.currentStriker ||
+                mObj.currentStriker ||
+                mObj.liveState?.currentStriker ||
+                (activeInn.batting?.[0]?.name) ||
+                '';
+              const restoredNonStriker = derivedMatch.activeScore.currentNonStriker ||
+                mObj.currentNonStriker ||
+                mObj.liveState?.currentNonStriker ||
+                (activeInn.batting?.[1]?.name) ||
+                '';
 
               setMatch(prev => ({
                 ...prev,
@@ -8459,13 +8426,30 @@ function CricketAddaMain() {
 
     isApplyingRemoteSyncRef.current = true;
     if (d.activeMatchId) setActiveMatchId(d.activeMatchId);
-    if (typeof d.liveRuns === 'number') setLiveRuns(d.liveRuns);
-    if (typeof d.liveWickets === 'number') setLiveWickets(d.liveWickets);
-    if (typeof d.liveBalls === 'number') setLiveBalls(d.liveBalls);
-    if (Array.isArray(d.liveThisOver)) setLiveThisOver(d.liveThisOver);
-    else if (isResetSignal || d.liveBalls === 0) setLiveThisOver([]);
-    if (Array.isArray(d.scoringHistory)) setScoringHistory(d.scoringHistory);
-    else if (isResetSignal || d.liveBalls === 0) setScoringHistory([]);
+    if (Array.isArray(d.scoringHistory)) {
+      setScoringHistory(d.scoringHistory);
+      if (d.scoringHistory.length > 0) {
+        const derived = deriveMatchStateFromDeliveries(d.scoringHistory, d.match || d);
+        setLiveRuns(derived.activeScore.runs);
+        setLiveWickets(derived.activeScore.wickets);
+        setLiveBalls(derived.activeScore.balls);
+        setLiveThisOver(derived.activeScore.thisOver);
+        setLiveBatters(derived.activeScore.liveBatters);
+        setLiveBowlerStats(derived.activeScore.liveBowlerStats);
+      } else {
+        if (typeof d.liveRuns === 'number') setLiveRuns(d.liveRuns);
+        if (typeof d.liveWickets === 'number') setLiveWickets(d.liveWickets);
+        if (typeof d.liveBalls === 'number') setLiveBalls(d.liveBalls);
+        if (Array.isArray(d.liveThisOver)) setLiveThisOver(d.liveThisOver);
+      }
+    } else {
+      if (typeof d.liveRuns === 'number') setLiveRuns(d.liveRuns);
+      if (typeof d.liveWickets === 'number') setLiveWickets(d.liveWickets);
+      if (typeof d.liveBalls === 'number') setLiveBalls(d.liveBalls);
+      if (Array.isArray(d.liveThisOver)) setLiveThisOver(d.liveThisOver);
+      else if (isResetSignal || d.liveBalls === 0) setLiveThisOver([]);
+      if (isResetSignal || d.liveBalls === 0) setScoringHistory([]);
+    }
     if (d.activeScorer) {
       const myDevId = clientIdRef?.current || '';
       const myPh = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
@@ -8692,21 +8676,17 @@ function CricketAddaMain() {
       currentStriker: customPayload.currentStriker || (match && match.currentStriker) || striker,
       currentNonStriker: customPayload.currentNonStriker || (match && match.currentNonStriker) || nonStriker,
       currentBowler: customPayload.currentBowler || (match && match.currentBowler) || bowler,
-      innings1: customPayload.innings1 || {
-        ...(currentMatchInDb.innings1 || {}),
-        ...(inn1ScorecardDataRef?.current || {}),
-        runs: payloadInnings === 1 ? payloadRuns : (currentMatchInDb.innings1?.runs ?? inn1ScorecardDataRef?.current?.runs ?? 0),
-        wickets: payloadInnings === 1 ? payloadWkts : (currentMatchInDb.innings1?.wickets ?? inn1ScorecardDataRef?.current?.wickets ?? 0),
-        overs: payloadInnings === 1 ? payloadOvers : (currentMatchInDb.innings1?.overs ?? inn1ScorecardDataRef?.current?.overs ?? '0.0'),
-        balls: payloadInnings === 1 ? payloadBalls : (currentMatchInDb.innings1?.balls ?? inn1ScorecardDataRef?.current?.balls ?? 0),
+      innings1: customPayload.innings1 || currentMatchInDb.innings1 || {
+        runs: payloadInnings === 1 ? payloadRuns : 0,
+        wickets: payloadInnings === 1 ? payloadWkts : 0,
+        overs: payloadInnings === 1 ? payloadOvers : '0.0',
+        balls: payloadInnings === 1 ? payloadBalls : 0,
       },
-      innings2: customPayload.innings2 || {
-        ...(currentMatchInDb.innings2 || {}),
-        ...(inn2ScorecardDataRef?.current || {}),
-        runs: payloadInnings === 2 ? payloadRuns : (currentMatchInDb.innings2?.runs ?? inn2ScorecardDataRef?.current?.runs ?? 0),
-        wickets: payloadInnings === 2 ? payloadWkts : (currentMatchInDb.innings2?.wickets ?? inn2ScorecardDataRef?.current?.wickets ?? 0),
-        overs: payloadInnings === 2 ? payloadOvers : (currentMatchInDb.innings2?.overs ?? inn2ScorecardDataRef?.current?.overs ?? '0.0'),
-        balls: payloadInnings === 2 ? payloadBalls : (currentMatchInDb.innings2?.balls ?? inn2ScorecardDataRef?.current?.balls ?? 0),
+      innings2: customPayload.innings2 || currentMatchInDb.innings2 || {
+        runs: payloadInnings === 2 ? payloadRuns : 0,
+        wickets: payloadInnings === 2 ? payloadWkts : 0,
+        overs: payloadInnings === 2 ? payloadOvers : '0.0',
+        balls: payloadInnings === 2 ? payloadBalls : 0,
       },
       ...customPayload,
     };
@@ -9068,150 +9048,84 @@ function CricketAddaMain() {
     return `${ovStr}/${maxBowlerOversQuota} ov • ${finalRuns} r • ${finalWickets} w • Econ: ${econ}`;
   };
 
-  // Mathematical Integrity Reconciler:
-  // Guarantees that team runs, overs, and wickets can NEVER diverge from delivery history, batters, or bowler stats!
-  const reconciledScore = useMemo(() => {
-    let histRuns = 0;
-    let histBalls = 0;
-    let histWkts = 0;
-    const currentInningsDeliveries = (scoringHistory || []).filter(d => !d.innings || d.innings === currentInnings);
-    currentInningsDeliveries.forEach(d => {
-      histRuns += Number(d.addedRuns || 0);
-      if (d.isLegalDelivery !== false) histBalls++;
-      if (d.isWkt) histWkts++;
-    });
-
-    const sumBattersRuns = Object.values(liveBatters || {}).reduce((acc, b) => acc + (Number(b?.runs) || 0), 0);
-    const sumBattersBalls = Object.values(liveBatters || {}).reduce((acc, b) => acc + (Number(b?.balls) || 0), 0);
-    const maxBowlerBalls = Object.values(liveBowlerStats || {}).reduce((acc, bw) => Math.max(acc, Number(bw?.balls) || 0), 0);
-
-    const isZeroState = (Number(liveBalls) || 0) === 0 && histBalls === 0;
-    const effRuns = isZeroState ? (Number(liveRuns) || 0) : Math.max(Number(liveRuns) || 0, histRuns, sumBattersRuns);
-    const effBalls = isZeroState ? 0 : Math.max(Number(liveBalls) || 0, histBalls, sumBattersBalls, maxBowlerBalls);
-    const effWkts = isZeroState ? (Number(liveWickets) || 0) : Math.max(Number(liveWickets) || 0, histWkts);
-
-    // Extract current over balls directly from history for 100% accuracy
-    const legalInCurOver = effBalls % 6;
-    let overBalls = [];
-    if (currentInningsDeliveries.length > 0) {
-      if (legalInCurOver === 0 && effBalls > 0) {
-        // Over has completed (6, 12, 18 balls)
-        // If we are currently waiting for a new bowler (needsNewBowler = true), show the completed over
-        // Once the new bowler is selected (needsNewBowler = false), the new over starts clean and empty!
-        if (needsNewBowler) {
-          let legCount = 0;
-          for (let i = currentInningsDeliveries.length - 1; i >= 0 && legCount < 6; i--) {
-            const d = currentInningsDeliveries[i];
-            if (d.ballSymbol) overBalls.unshift(d.ballSymbol);
-            if (d.isLegalDelivery !== false) legCount++;
-          }
-        } else {
-          // If any non-legal deliveries were bowled in the new over before any legal ball
-          const nonLegalHead = [];
-          for (let i = currentInningsDeliveries.length - 1; i >= 0; i--) {
-            const d = currentInningsDeliveries[i];
-            if (d.isLegalDelivery !== false) break;
-            if (d.ballSymbol) nonLegalHead.unshift(d.ballSymbol);
-          }
-          overBalls = nonLegalHead;
-        }
-      } else {
-        let legCount = 0;
-        for (let i = currentInningsDeliveries.length - 1; i >= 0; i--) {
-          const d = currentInningsDeliveries[i];
-          if (d.isLegalDelivery !== false) {
-            if (legCount >= legalInCurOver) break;
-            legCount++;
-          }
-          if (d.ballSymbol) overBalls.unshift(d.ballSymbol);
-        }
-      }
-    }
-    if (overBalls.length === 0 && Array.isArray(liveThisOver) && liveThisOver.length > 0 && (!needsNewBowler && legalInCurOver > 0)) {
-      overBalls = liveThisOver;
-    }
-
-    return {
-      runs: effRuns,
-      balls: effBalls,
-      wickets: effWkts,
-      oversStr: `${Math.floor(effBalls / 6)}.${effBalls % 6}`,
-      crr: ((effRuns / Math.max(effBalls, 1)) * 6).toFixed(2),
-      thisOver: overBalls,
+  // UNIFIED MATHEMATICAL ENGINE: Recompute entire innings state directly from delivery event log
+  const derivedInningsState = useMemo(() => {
+    const candidateDeliveries = Array.isArray(scoringHistory) ? scoringHistory : [];
+    const meta = {
+      team1Name: match.teamA || currentMatchData?.teamA,
+      team2Name: match.teamB || currentMatchData?.teamB,
+      currentStriker: match.currentStriker,
+      currentNonStriker: match.currentNonStriker,
+      currentBowler: match.currentBowler,
+      swapBattersOnOverEnd,
+      battingSquad: currentMatchData?.innings1?.batting || activeBattingSquad || [],
+      bowlingSquad: currentMatchData?.innings1?.bowling || activeOppBowlers || [],
     };
-  }, [scoringHistory, liveRuns, liveBalls, liveWickets, liveBatters, liveBowlerStats, liveThisOver, currentInnings, needsNewBowler]);
+    return deriveInningsStateFromDeliveries(candidateDeliveries, currentInnings, meta);
+  }, [scoringHistory, currentInnings, match.teamA, match.teamB, match.currentStriker, match.currentNonStriker, match.currentBowler, swapBattersOnOverEnd, currentMatchData, activeBattingSquad, activeOppBowlers]);
+
+  const reconciledScore = useMemo(() => {
+    return {
+      runs: derivedInningsState.runs,
+      balls: derivedInningsState.balls,
+      wickets: derivedInningsState.wickets,
+      oversStr: derivedInningsState.oversStr,
+      crr: derivedInningsState.crr,
+      thisOver: derivedInningsState.thisOver,
+    };
+  }, [derivedInningsState]);
 
   const oversStr = reconciledScore.oversStr;
   const crr = reconciledScore.crr;
   const sanitizedThisOver = reconciledScore.thisOver;
 
-  const getBatterDetailed = name => {
+  const getBatterDetailed = useCallback(name => {
     if (!name) return { runs: 0, balls: 0, fours: 0, sixes: 0, sr: '0.0' };
-    if (liveBalls === 0 && (!scoringHistory || scoringHistory.length === 0)) {
-      return { runs: 0, balls: 0, fours: 0, sixes: 0, sr: '0.0' };
-    }
     const norm = String(name).trim().toLowerCase();
-    let hRuns = 0;
-    let hBalls = 0;
-    let hFours = 0;
-    let hSixes = 0;
-    (scoringHistory || []).forEach(d => {
-      if ((!d.innings || d.innings === currentInnings) && d.striker && String(d.striker).trim().toLowerCase() === norm) {
-        if (d.extraType !== 'wide') {
-          hBalls++;
-          const r = Number(d.runsOffBat !== undefined ? d.runsOffBat : (d.addedRuns || 0));
-          hRuns += r;
-          if (r === 4) hFours++;
-          if (r === 6) hSixes++;
-        }
-      }
-    });
+    const found = derivedInningsState.battersMap[name] ||
+      Object.entries(derivedInningsState.battersMap || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
+    if (found) {
+      return {
+        runs: found.runs,
+        balls: found.balls,
+        fours: found.fours,
+        sixes: found.sixes,
+        sr: found.strikeRate || '0.0',
+      };
+    }
     const cached = liveBatters[name] || Object.entries(liveBatters || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
-    const hasHistoryForBatter = hBalls > 0;
-    const finalRuns = hasHistoryForBatter ? hRuns : Math.max(hRuns, (cached && cached.runs !== undefined) ? Number(cached.runs) : 0);
-    const finalBalls = hasHistoryForBatter ? hBalls : Math.max(hBalls, (cached && cached.balls !== undefined) ? Number(cached.balls) : 0);
-    const finalFours = hasHistoryForBatter ? hFours : Math.max(hFours, (cached && cached.fours !== undefined) ? Number(cached.fours) : 0);
-    const finalSixes = hasHistoryForBatter ? hSixes : Math.max(hSixes, (cached && cached.sixes !== undefined) ? Number(cached.sixes) : 0);
-    const sr = finalBalls > 0 ? ((finalRuns / finalBalls) * 100).toFixed(1) : '0.0';
-    return { runs: finalRuns, balls: finalBalls, fours: finalFours, sixes: finalSixes, sr };
-  };
+    return {
+      runs: Number(cached?.runs) || 0,
+      balls: Number(cached?.balls) || 0,
+      fours: Number(cached?.fours) || 0,
+      sixes: Number(cached?.sixes) || 0,
+      sr: cached?.strikeRate || '0.0',
+    };
+  }, [derivedInningsState.battersMap, liveBatters]);
 
-  const getBowlerDetailed = name => {
+  const getBowlerDetailed = useCallback(name => {
     if (!name) return { ovStr: '0.0', maidens: 0, runs: 0, wickets: 0, econ: '0.0' };
-    if (liveBalls === 0 && (!scoringHistory || scoringHistory.length === 0)) {
-      return { ovStr: '0.0', maidens: 0, runs: 0, wickets: 0, econ: '0.0' };
-    }
     const norm = String(name).trim().toLowerCase();
-    let hBalls = 0;
-    let hRuns = 0;
-    let hWickets = 0;
-    let hMaidens = 0;
-    (scoringHistory || []).forEach(d => {
-      if ((!d.innings || d.innings === currentInnings) && d.bowler && String(d.bowler).trim().toLowerCase() === norm) {
-        if (d.isLegalDelivery !== false) hBalls++;
-        const isByeOrLegBye = d.extraType === 'bye' || d.extraType === 'legBye';
-        const runsConceded = isByeOrLegBye ? 0 : (Number(d.addedRuns) || 0);
-        hRuns += runsConceded;
-        const dType = d.customDismissalType || d.dismissalType;
-        const isBowlerWkt = Boolean(
-          d.isWkt &&
-          dType !== 'run_out' &&
-          dType !== 'retired' &&
-          dType !== 'obstructing'
-        );
-        if (isBowlerWkt) hWickets++;
-      }
-    });
+    const found = derivedInningsState.bowlersMap[name] ||
+      Object.entries(derivedInningsState.bowlersMap || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
+    if (found) {
+      return {
+        ovStr: found.overs,
+        maidens: found.maidens,
+        runs: found.runs,
+        wickets: found.wickets,
+        econ: found.econ || '0.0',
+      };
+    }
     const cached = liveBowlerStats[name] || Object.entries(liveBowlerStats || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
-    const hasHistoryForBowler = hBalls > 0;
-    const finalBalls = hasHistoryForBowler ? hBalls : Math.max(hBalls, (cached && cached.balls !== undefined) ? Number(cached.balls) : 0);
-    const finalRuns = hasHistoryForBowler ? hRuns : Math.max(hRuns, (cached && cached.runs !== undefined) ? Number(cached.runs) : 0);
-    const finalWickets = hasHistoryForBowler ? hWickets : Math.max(hWickets, (cached && cached.wickets !== undefined) ? Number(cached.wickets) : 0);
-    const finalMaidens = hasHistoryForBowler ? hMaidens : Math.max(hMaidens, (cached && cached.maidens !== undefined) ? Number(cached.maidens) : 0);
-    const ovStr = `${Math.floor(finalBalls / 6)}.${finalBalls % 6}`;
-    const econ = finalBalls > 0 ? ((finalRuns / finalBalls) * 6).toFixed(1) : '0.0';
-    return { ovStr, maidens: finalMaidens, runs: finalRuns, wickets: finalWickets, econ };
-  };
+    return {
+      ovStr: cached?.overs || '0.0',
+      maidens: Number(cached?.maidens) || 0,
+      runs: Number(cached?.runs) || 0,
+      wickets: Number(cached?.wickets) || 0,
+      econ: cached?.econ || '0.0',
+    };
+  }, [derivedInningsState.bowlersMap, liveBowlerStats]);
 
   const lastOverBalls = useMemo(() => {
     if (!Array.isArray(scoringHistory) || scoringHistory.length === 0) return [];
@@ -9310,10 +9224,16 @@ function CricketAddaMain() {
     const inn1 = lm.innings1;
     const inn2 = lm.innings2;
 
+    const lmHistory = (Array.isArray(lm.scoringHistory) && lm.scoringHistory.length > 0)
+      ? lm.scoringHistory
+      : (Array.isArray(lm.liveState?.scoringHistory) ? lm.liveState.scoringHistory : (isCur && Array.isArray(scoringHistory) ? scoringHistory : []));
+
+    const derivedLm = lmHistory.length > 0 ? deriveMatchStateFromDeliveries(lmHistory, lm) : null;
+
     // Determine current active innings for this match
     const curInn = isCur
       ? currentInnings
-      : (lm.currentInnings || lm.liveState?.currentInnings || (inn2 && inn2.runs !== undefined && inn2.runs > 0 ? 2 : 1));
+      : (derivedLm ? derivedLm.currentInnings : (lm.currentInnings || lm.liveState?.currentInnings || (inn2 && inn2.runs !== undefined && inn2.runs > 0 ? 2 : 1)));
 
     // Identify which team batted in 1st innings
     const team1BatName = inn1?.team || teamAName;
@@ -9324,24 +9244,32 @@ function CricketAddaMain() {
       ? (inn2?.team || (isTeamABatting1st ? teamBName : teamAName))
       : team1BatName;
 
-    // Batting score resolution (prefer reconciled live state if current active match and has live progress, otherwise persisted lm)
-    const activeLiveRuns = (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0))
-      ? reconciledScore.runs
-      : (lm.liveRuns ?? (curInn === 2 ? inn2?.runs : inn1?.runs) ?? 0);
-    const activeLiveWickets = (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0))
-      ? reconciledScore.wickets
-      : (lm.liveWickets ?? (curInn === 2 ? inn2?.wickets : inn1?.wickets) ?? 0);
-    const resolvedBalls = (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0))
-      ? reconciledScore.balls
-      : (typeof lm.liveBalls === 'number'
-        ? lm.liveBalls
-        : ((Array.isArray(lm.scoringHistory) && lm.scoringHistory.length > 0)
-          ? lm.scoringHistory.filter(d => !d.innings || d.innings === curInn).filter(d => d.isLegalDelivery !== false).length
-          : (() => {
-              const p = String(curInn === 2 ? (inn2?.overs || '0.0') : (inn1?.overs || '0.0')).split('.');
-              return (parseInt(p[0], 10) || 0) * 6 + (parseInt(p[1], 10) || 0);
-            })()));
-    const activeLiveOvers = `${Math.floor(resolvedBalls / 6)}.${resolvedBalls % 6} Ov`;
+    // Batting score resolution: 100% anchored to derived deliveries if available
+    const activeLiveRuns = derivedLm
+      ? (curInn === 2 ? derivedLm.innings2.runs : derivedLm.innings1.runs)
+      : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
+        ? reconciledScore.runs
+        : (lm.liveRuns ?? (curInn === 2 ? inn2?.runs : inn1?.runs) ?? 0));
+
+    const activeLiveWickets = derivedLm
+      ? (curInn === 2 ? derivedLm.innings2.wickets : derivedLm.innings1.wickets)
+      : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
+        ? reconciledScore.wickets
+        : (lm.liveWickets ?? (curInn === 2 ? inn2?.wickets : inn1?.wickets) ?? 0));
+
+    const activeLiveOvers = derivedLm
+      ? `${curInn === 2 ? derivedLm.innings2.overs : derivedLm.innings1.overs} Ov`
+      : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
+        ? `${reconciledScore.oversStr} Ov`
+        : (() => {
+            const p = String(curInn === 2 ? (inn2?.overs || '0.0') : (inn1?.overs || '0.0')).split('.');
+            const bls = (parseInt(p[0], 10) || 0) * 6 + (parseInt(p[1], 10) || 0);
+            return `${Math.floor(bls / 6)}.${bls % 6} Ov`;
+          })());
+
+    const inn1DispRuns = derivedLm ? derivedLm.innings1.runs : (inn1?.runs ?? 0);
+    const inn1DispWkts = derivedLm ? derivedLm.innings1.wickets : (inn1?.wickets ?? 0);
+    const inn1DispOvers = derivedLm ? derivedLm.innings1.overs : (inn1?.overs ?? '0.0');
 
     let sA, ovA, sB, ovB;
     if (curInn === 1) {
@@ -9359,13 +9287,13 @@ function CricketAddaMain() {
     } else {
       // Innings 2: 1st batting team finished; 2nd batting team is chasing
       if (isTeamABatting1st) {
-        sA = `${inn1?.runs ?? 0}/${inn1?.wickets ?? 0}`;
-        ovA = `${inn1?.overs ?? '0.0'} Ov`;
+        sA = `${inn1DispRuns}/${inn1DispWkts}`;
+        ovA = `${inn1DispOvers} Ov`;
         sB = `${activeLiveRuns}/${activeLiveWickets}`;
         ovB = activeLiveOvers;
       } else {
-        sB = `${inn1?.runs ?? 0}/${inn1?.wickets ?? 0}`;
-        ovB = `${inn1?.overs ?? '0.0'} Ov`;
+        sB = `${inn1DispRuns}/${inn1DispWkts}`;
+        ovB = `${inn1DispOvers} Ov`;
         sA = `${activeLiveRuns}/${activeLiveWickets}`;
         ovA = activeLiveOvers;
       }
@@ -10317,127 +10245,83 @@ function CricketAddaMain() {
       else if (totalR > 0) batterSinglesAdded = totalR;
     }
 
-    // 1. Calculate next unified runs, balls and wickets anchored to reconciledScore
-    const baseRuns = reconciledScore.runs;
-    const baseBalls = reconciledScore.balls;
-    const baseWkts = reconciledScore.wickets;
-    const nextRuns = baseRuns + addedRuns;
-    const nextBalls = baseBalls + (isLegalDelivery ? 1 : 0);
-    const nextWkts = baseWkts + (isWkt ? 1 : 0);
-
-    // Save exact state snapshot into history stack before mutating state
-    const snapshot = {
-      id: `act_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
-      liveRuns: baseRuns,
-      liveWickets: baseWkts,
-      liveBalls: baseBalls,
-      liveThisOver: [...reconciledScore.thisOver],
-      liveBatters: JSON.parse(JSON.stringify(liveBatters)),
-      liveBowlerStats: JSON.parse(JSON.stringify(liveBowlerStats)),
-      striker,
-      nonStriker,
-      bowler,
-      addedRuns,
-      isLegalDelivery,
-      ballSymbol,
-      isWkt,
+    // 1. Construct immutable ball event
+    const ballEvent = {
+      id: `ball_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      match_id: activeMatchId,
+      innings: currentInnings,
+      over: Math.floor(reconciledScore.balls / 6),
+      ball_no: (reconciledScore.balls % 6) + (isLegalDelivery ? 1 : 0),
+      striker: striker,
+      nonStriker: nonStriker,
+      bowler: bowler,
+      runs: addedRuns,
+      addedRuns: addedRuns,
+      runsOffBat: batterRunsAdded,
+      extraType: extraType || 'none',
+      extraPenalty: extraPenalty || (extraType === 'wide' || extraType === 'noBall' ? 1 : 0),
+      nbRunType: nbRunType || null,
+      overthrowRuns: otRuns || 0,
+      isLegalDelivery: Boolean(isLegalDelivery),
+      ballSymbol: ballSymbol,
+      isWkt: Boolean(isWkt),
       dismissedPlayerName: isWkt ? outBatterTarget : null,
       dismissalType: isWkt ? (customDismissalType || dismissalType || 'bowled') : null,
       dismissalDesc: isWkt ? computedDismissalDesc : null,
       incomingBatter: isWkt ? incomingBatterName : null,
+      fielder: isWkt ? (wicketFielderName || wicketFielder) : null,
       finalFielder: isWkt ? (wicketFielderName || wicketFielder) : null,
-      extraType,
-      nbRunType,
-      overthrowRuns: otRuns,
-      shotSector,
-      innings: currentInnings,
+      shotSector: shotSector || null,
       team: battingTeamName,
-      scoredBy: activeScorer.name,
+      scoredBy: activeScorer.name || 'Official Scorer',
+      timestamp: Date.now(),
+      // Snapshot fields for instant backward-compat undo
+      liveRuns: reconciledScore.runs,
+      liveWickets: reconciledScore.wickets,
+      liveBalls: reconciledScore.balls,
+      liveThisOver: [...reconciledScore.thisOver],
+      liveBatters: JSON.parse(JSON.stringify(liveBatters)),
+      liveBowlerStats: JSON.parse(JSON.stringify(liveBowlerStats)),
       liveCommentaryList: [...liveCommentaryList],
     };
-    setScoringHistory(prev => [...prev, snapshot]);
+    const nextHistory = [...(scoringHistory || []), ballEvent];
 
-    setLiveRuns(nextRuns);
-    setLiveBalls(nextBalls);
-    if (isWkt) {
-      setLiveWickets(nextWkts);
-    }
+    // Single deterministic mathematical derivation from ball log
+    const matchMeta = {
+      currentInnings,
+      totalOvers: maxOvers,
+      team1Name: currentInnings === 1 ? battingTeamName : bowlingTeamName,
+      team2Name: currentInnings === 1 ? bowlingTeamName : battingTeamName,
+      team1Flag: currentInnings === 1 ? battingTeamFlag : bowlingTeamFlag,
+      team2Flag: currentInnings === 1 ? bowlingTeamFlag : battingTeamFlag,
+      team1Squad: currentInnings === 1 ? squad1 : squad2,
+      team2Squad: currentInnings === 1 ? squad2 : squad1,
+      openingStriker: currentInnings === 1 ? (match?.innings1OpeningStriker || striker) : (match?.innings2OpeningStriker || striker),
+      openingNonStriker: currentInnings === 1 ? (match?.innings1OpeningNonStriker || nonStriker) : (match?.innings2OpeningNonStriker || nonStriker),
+      openingBowler: bowler,
+      currentStriker: striker,
+      currentNonStriker: nonStriker,
+      currentBowler: bowler,
+      swapBattersOnOverEnd,
+    };
+    const derivedMatch = deriveMatchStateFromDeliveries(nextHistory, matchMeta);
+    const derivedActive = derivedMatch.activeScore;
 
-    // 2. Update Live Batters stats
+    setScoringHistory(nextHistory);
+    setLiveRuns(derivedActive.runs);
+    setLiveBalls(derivedActive.balls);
+    setLiveWickets(derivedActive.wickets);
+    setLiveThisOver(derivedActive.thisOver);
+    setLiveBatters(derivedActive.liveBatters);
+    setLiveBowlerStats(derivedActive.liveBowlerStats);
+
     const isOddRuns = extraType === 'penalty' ? false : ((runs + otRuns) % 2 === 1);
-    const isDismissedOnStrike = outBatterTarget === striker;
-    const strikerBallsAdded = isWkt ? (isDismissedOnStrike ? 1 : 0) : batterBallsAdded;
-    const strikerDotsAdded = isWkt ? (isDismissedOnStrike ? 1 : 0) : batterDotsAdded;
-
-    const updatedLiveBatters = {
-      ...liveBatters,
-      [striker]: {
-        ...(liveBatters[striker] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0 }),
-        runs: (liveBatters[striker]?.runs || 0) + batterRunsAdded,
-        balls: (liveBatters[striker]?.balls || 0) + strikerBallsAdded,
-        fours: (liveBatters[striker]?.fours || 0) + batterFoursAdded,
-        sixes: (liveBatters[striker]?.sixes || 0) + batterSixesAdded,
-        dots: (liveBatters[striker]?.dots || 0) + strikerDotsAdded,
-        singles: (liveBatters[striker]?.singles || 0) + batterSinglesAdded,
-        doubles: (liveBatters[striker]?.doubles || 0) + batterDoublesAdded,
-        triples: (liveBatters[striker]?.triples || 0) + batterTriplesAdded,
-      },
-    };
-
-    if (isWkt) {
-      updatedLiveBatters[outBatterTarget] = {
-        ...(updatedLiveBatters[outBatterTarget] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0 }),
-        dismissal: computedDismissalDesc,
-        isNotOut: false,
-      };
-
-      if (incomingBatterName && incomingBatterName.trim()) {
-        const incName = incomingBatterName.trim();
-        updatedLiveBatters[incName] = updatedLiveBatters[incName] || {
-          runs: 0,
-          balls: 0,
-          fours: 0,
-          sixes: 0,
-          dots: 0,
-          singles: 0,
-          doubles: 0,
-          triples: 0,
-          sr: '0.00',
-          dismissal: 'batting *',
-          isNotOut: true,
-        };
-      }
-    }
-    setLiveBatters(updatedLiveBatters);
-
-    // 3. Update Live Bowler stats (Only credit bowler with wicket for bowler dismissals; Run outs and retired outs are team wickets)
-    const isBowlerCreditedWkt = isWkt && customDismissalType !== 'run_out' && customDismissalType !== 'retired' && customDismissalType !== 'obstructing';
-    const curBwBalls = (liveBowlerStats[bowler]?.balls || 0) + (isLegalDelivery ? 1 : 0);
-    const curBwRuns = (liveBowlerStats[bowler]?.runs || 0) + bowlerRunsConceded;
-    const curBwWkts = (liveBowlerStats[bowler]?.wickets || 0) + (isBowlerCreditedWkt ? 1 : 0);
-    const curBwOvStr = `${Math.floor(curBwBalls / 6)}.${curBwBalls % 6}`;
-    const curBwEcon = curBwBalls > 0 ? ((curBwRuns / curBwBalls) * 6).toFixed(1) : '0.0';
-    const updatedLiveBowlers = {
-      ...liveBowlerStats,
-      [bowler]: {
-        ...(liveBowlerStats[bowler] || { maidens: 0 }),
-        name: bowler,
-        runs: curBwRuns,
-        wickets: curBwWkts,
-        balls: curBwBalls,
-        overs: curBwOvStr,
-        econ: curBwEcon,
-      },
-    };
-    setLiveBowlerStats(updatedLiveBowlers);
-
-    // 4. Strike Rotation & New Batter Assignment logic
     let nextStriker = striker;
     let nextNonStriker = nonStriker;
-    const isOverEnd = Boolean(isLegalDelivery && nextBalls > 0 && nextBalls % 6 === 0);
+    const isOverEnd = Boolean(isLegalDelivery && derivedActive.balls > 0 && derivedActive.balls % 6 === 0);
 
     if (isWkt) {
-      const newInc = (incomingBatterName && incomingBatterName.trim()) ? incomingBatterName.trim() : `Batter #${liveWickets + 2}`;
+      const newInc = (incomingBatterName && incomingBatterName.trim()) ? incomingBatterName.trim() : `Batter #${derivedActive.wickets + 1}`;
       if (outBatterTarget === striker) {
         nextStriker = newInc;
         nextNonStriker = otherBatterTarget;
@@ -10470,14 +10354,12 @@ function CricketAddaMain() {
       }));
     }
 
-    // 5. Update This Over Balls Display (fresh array for each over)
-    const prevLegalCount = liveThisOver.filter(s => {
-      if (!s) return false;
-      const str = String(s).trim();
-      return !str.includes('Wd') && !str.includes('Nb');
-    }).length;
-    const nextThisOver = prevLegalCount >= 6 ? [ballSymbol] : [...liveThisOver, ballSymbol];
-    setLiveThisOver(nextThisOver);
+    const nextThisOver = derivedActive.thisOver;
+    const updatedLiveBatters = derivedActive.liveBatters;
+    const updatedLiveBowlers = derivedActive.liveBowlerStats;
+    const nextRuns = derivedActive.runs;
+    const nextBalls = derivedActive.balls;
+    const nextWkts = derivedActive.wickets;
 
     // 5.5 Trigger Attractive Live Celebration Pop-Up for Milestones (50s, 100s, 3-Wkt, 5-Wkt), 4s, 6s, and Wickets
     const priorBatterRuns = liveBatters[striker]?.runs || 0;
@@ -10621,92 +10503,7 @@ function CricketAddaMain() {
     const updatedCommentaryList = [...newCommEntries, ...liveCommentaryList];
     setLiveCommentaryList(updatedCommentaryList);
 
-    // 5.1 Persist in-flight live state to matches database & storage
-    const nextBallsForDb = nextBalls;
-    const nextRunsForDb = nextRuns;
-    const nextWktsForDb = nextWkts;
-    const oversFormatted = `${Math.floor(nextBallsForDb / 6)}.${nextBallsForDb % 6}`;
-    const nextOvStr = oversFormatted;
-    setMatchesDb(prev => {
-      const cur = prev[activeMatchId] || {};
-      const updatedMatch = {
-        ...cur,
-        liveRuns: nextRunsForDb,
-        liveWickets: nextWktsForDb,
-        liveBalls: nextBallsForDb,
-        liveOvers: oversFormatted,
-        liveThisOver: nextThisOver,
-        currentStriker: nextStriker,
-        currentNonStriker: nextNonStriker,
-        currentBowler: bowler,
-        innings1: {
-          ...(cur.innings1 || {}),
-          runs: currentInnings === 1 ? nextRunsForDb : (cur.innings1?.runs || 0),
-          wickets: currentInnings === 1 ? nextWktsForDb : (cur.innings1?.wickets || 0),
-          overs: currentInnings === 1 ? oversFormatted : (cur.innings1?.overs || '0.0'),
-          batting: currentInnings === 1 ? Object.values(updatedLiveBatters).map(b => ({
-            name: b.name,
-            runs: b.runs || 0,
-            balls: b.balls || 0,
-            fours: b.fours || 0,
-            sixes: b.sixes || 0,
-            notOut: !b.isOut,
-            dismissal: b.dismissal || (b.isOut ? 'out' : 'not out'),
-          })) : (cur.innings1?.batting || []),
-          bowling: currentInnings === 1 ? Object.values(updatedLiveBowlers).map(bw => ({
-            name: bw.name,
-            overs: bw.overs || '0.0',
-            runs: bw.runs || 0,
-            wickets: bw.wickets || 0,
-            maidens: bw.maidens || 0,
-            econ: bw.balls > 0 ? ((bw.runs / bw.balls) * 6).toFixed(2) : '0.00',
-          })) : (cur.innings1?.bowling || []),
-        },
-        innings2: {
-          ...(cur.innings2 || {}),
-          runs: currentInnings === 2 ? nextRunsForDb : (cur.innings2?.runs || 0),
-          wickets: currentInnings === 2 ? nextWktsForDb : (cur.innings2?.wickets || 0),
-          overs: currentInnings === 2 ? oversFormatted : (cur.innings2?.overs || '0.0'),
-          batting: currentInnings === 2 ? Object.values(updatedLiveBatters).map(b => ({
-            name: b.name,
-            runs: b.runs || 0,
-            balls: b.balls || 0,
-            fours: b.fours || 0,
-            sixes: b.sixes || 0,
-            notOut: !b.isOut,
-            dismissal: b.dismissal || (b.isOut ? 'out' : 'not out'),
-          })) : (cur.innings2?.batting || []),
-          bowling: currentInnings === 2 ? Object.values(updatedLiveBowlers).map(bw => ({
-            name: bw.name,
-            overs: bw.overs || '0.0',
-            runs: bw.runs || 0,
-            wickets: bw.wickets || 0,
-            maidens: bw.maidens || 0,
-            econ: bw.balls > 0 ? ((bw.runs / bw.balls) * 6).toFixed(2) : '0.00',
-          })) : (cur.innings2?.bowling || []),
-        },
-        liveState: {
-          currentInnings,
-          liveRuns: nextRunsForDb,
-          liveWickets: nextWktsForDb,
-          liveBalls: nextBallsForDb,
-          liveThisOver: nextThisOver,
-          liveBatters: updatedLiveBatters,
-          liveBowlerStats: updatedLiveBowlers,
-          currentStriker: nextStriker,
-          currentNonStriker: nextNonStriker,
-          currentBowler: bowler,
-          scoringHistory: [...scoringHistory, snapshot],
-          liveCommentaryList: updatedCommentaryList,
-          firstInningsSummary,
-          lastOverStats,
-        },
-        lastUpdatedAt: Date.now(),
-      };
-      const updatedDb = { ...prev, [activeMatchId]: updatedMatch };
-      AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
-      return updatedDb;
-    });
+    const nextOvStr = derivedActive.oversStr;
 
     // 7. Check if this ball COMPLETES the 1st Innings
     if (currentInnings === 1) {
@@ -10778,7 +10575,7 @@ function CricketAddaMain() {
             batting: updatedLiveBatters,
             bowling: updatedLiveBowlers,
           },
-          scoringHistory: [...scoringHistory, snapshot],
+          scoringHistory: nextHistory,
           celebrationEvent,
         });
 
@@ -10860,7 +10657,7 @@ function CricketAddaMain() {
             status: 'completed',
             result: resText,
           },
-          scoringHistory: [...scoringHistory, snapshot],
+          scoringHistory: nextHistory,
           celebrationEvent,
         });
 
@@ -10917,31 +10714,56 @@ function CricketAddaMain() {
           liveRuns: nextRuns,
           liveWickets: nextWkts,
           liveBalls: nextBalls,
-          liveOvers: `${Math.floor(nextBalls / 6)}.${nextBalls % 6}`,
+          liveOvers: nextOvStr,
           liveThisOver: nextThisOver,
           currentStriker: nextStriker,
           currentNonStriker: nextNonStriker,
           currentBowler: isOverEnd ? '' : bowler,
           lastOverBowler: isOverEnd ? bowler : cur.lastOverBowler,
           previousBowler: isOverEnd ? bowler : cur.previousBowler,
-          scoringHistory: [...scoringHistory, snapshot],
+          scoringHistory: nextHistory,
           liveBatters: updatedLiveBatters,
           liveBowlerStats: updatedLiveBowlers,
+          innings1: {
+            ...(cur.innings1 || {}),
+            runs: derivedMatch.innings1.runs,
+            wickets: derivedMatch.innings1.wickets,
+            overs: derivedMatch.innings1.oversStr,
+            balls: derivedMatch.innings1.balls,
+            batting: derivedMatch.innings1.batting,
+            bowling: derivedMatch.innings1.bowling,
+            extras: derivedMatch.innings1.extras,
+            fallOfWickets: derivedMatch.innings1.fallOfWickets,
+          },
+          innings2: {
+            ...(cur.innings2 || {}),
+            runs: derivedMatch.innings2.runs,
+            wickets: derivedMatch.innings2.wickets,
+            overs: derivedMatch.innings2.oversStr,
+            balls: derivedMatch.innings2.balls,
+            batting: derivedMatch.innings2.batting,
+            bowling: derivedMatch.innings2.bowling,
+            extras: derivedMatch.innings2.extras,
+            fallOfWickets: derivedMatch.innings2.fallOfWickets,
+          },
           liveState: {
-            ...(cur.liveState || {}),
+            currentInnings,
             liveRuns: nextRuns,
             liveWickets: nextWkts,
             liveBalls: nextBalls,
-            oversStr: `${Math.floor(nextBalls / 6)}.${nextBalls % 6}`,
+            oversStr: nextOvStr,
             liveThisOver: nextThisOver,
             currentStriker: nextStriker,
             currentNonStriker: nextNonStriker,
             currentBowler: isOverEnd ? '' : bowler,
             lastOverBowler: isOverEnd ? bowler : cur.liveState?.lastOverBowler,
             previousBowler: isOverEnd ? bowler : cur.liveState?.previousBowler,
-            scoringHistory: [...scoringHistory, snapshot],
+            scoringHistory: nextHistory,
             liveBatters: updatedLiveBatters,
             liveBowlerStats: updatedLiveBowlers,
+            liveCommentaryList: updatedCommentaryList,
+            firstInningsSummary,
+            lastOverStats,
           },
           lastUpdatedAt: Date.now(),
         };
@@ -10956,6 +10778,7 @@ function CricketAddaMain() {
       liveRuns: nextRuns,
       liveWickets: nextWkts,
       liveBalls: nextBalls,
+      liveOvers: nextOvStr,
       liveThisOver: nextThisOver,
       liveCommentaryList: [...newCommEntries, ...liveCommentaryList],
       liveBatters: updatedLiveBatters,
@@ -10971,7 +10794,7 @@ function CricketAddaMain() {
         lastOverBowler: isOverEnd ? bowler : match.lastOverBowler,
         previousBowler: isOverEnd ? bowler : match.previousBowler,
       },
-      scoringHistory: [...scoringHistory, snapshot],
+      scoringHistory: nextHistory,
       celebrationEvent,
     });
 
@@ -12071,26 +11894,49 @@ function CricketAddaMain() {
     if (!lastAction) return;
 
     if (!lastAction.isFallback && scoringHistory && (scoringHistory || []).length > 0) {
-      setScoringHistory(prev => prev.slice(0, -1));
+      const remainingHistory = scoringHistory.slice(0, -1);
 
-      // Restore exact state from snapshot
+      const matchMeta = {
+        currentInnings,
+        totalOvers: maxOvers,
+        team1Name: currentInnings === 1 ? battingTeamName : bowlingTeamName,
+        team2Name: currentInnings === 1 ? bowlingTeamName : battingTeamName,
+        team1Flag: currentInnings === 1 ? battingTeamFlag : bowlingTeamFlag,
+        team2Flag: currentInnings === 1 ? bowlingTeamFlag : battingTeamFlag,
+        team1Squad: currentInnings === 1 ? squad1 : squad2,
+        team2Squad: currentInnings === 1 ? squad2 : squad1,
+        openingStriker: currentInnings === 1 ? (match?.innings1OpeningStriker || striker) : (match?.innings2OpeningStriker || striker),
+        openingNonStriker: currentInnings === 1 ? (match?.innings1OpeningNonStriker || nonStriker) : (match?.innings2OpeningNonStriker || nonStriker),
+        openingBowler: bowler,
+        swapBattersOnOverEnd,
+      };
+      const derivedMatch = deriveMatchStateFromDeliveries(remainingHistory, matchMeta);
+      const derivedActive = derivedMatch.activeScore;
+
+      // Restore exact state from derivation
       setNeedsNewBowler(false);
       setChangeBowlerModalVisible(false);
       setMatchResultText('');
 
-      setLiveRuns(lastAction.liveRuns);
-      setLiveWickets(lastAction.liveWickets);
-      setLiveBalls(lastAction.liveBalls);
-      setLiveThisOver(lastAction.liveThisOver);
-      if (lastAction.liveBatters) setLiveBatters(lastAction.liveBatters);
-      if (lastAction.liveBowlerStats) setLiveBowlerStats(lastAction.liveBowlerStats);
+      setScoringHistory(remainingHistory);
+      setLiveRuns(derivedActive.runs);
+      setLiveWickets(derivedActive.wickets);
+      setLiveBalls(derivedActive.balls);
+      setLiveThisOver(derivedActive.thisOver);
+      setLiveBatters(derivedActive.liveBatters);
+      setLiveBowlerStats(derivedActive.liveBowlerStats);
+
+      const targetStriker = lastAction.striker || derivedActive.currentStriker || striker;
+      const targetNonStriker = lastAction.nonStriker || derivedActive.currentNonStriker || nonStriker;
+      const targetBowler = lastAction.bowler || derivedActive.currentBowler || bowler;
+
       setMatch(prev => ({
         ...prev,
         status: 'live',
         result: '',
-        currentStriker: lastAction.striker,
-        currentNonStriker: lastAction.nonStriker,
-        currentBowler: lastAction.bowler,
+        currentStriker: targetStriker,
+        currentNonStriker: targetNonStriker,
+        currentBowler: targetBowler,
       }));
 
       // If it was a dropped catch, remove it from live list and revert fielding database
@@ -12127,44 +11973,53 @@ function CricketAddaMain() {
       setLiveCommentaryList(updatedComm);
 
       // Update persistent matches database with rolled-back state
-      const remainingHistory = scoringHistory.slice(0, -1);
       setMatchesDb(prev => {
         const cur = prev[activeMatchId] || {};
-        const oversFormatted = `${Math.floor(lastAction.liveBalls / 6)}.${lastAction.liveBalls % 6}`;
+        const oversFormatted = derivedActive.oversStr;
         const updatedMatch = {
           ...cur,
           status: 'live',
           result: '',
-          liveRuns: lastAction.liveRuns,
-          liveWickets: lastAction.liveWickets,
-          liveBalls: lastAction.liveBalls,
+          liveRuns: derivedActive.runs,
+          liveWickets: derivedActive.wickets,
+          liveBalls: derivedActive.balls,
           liveOvers: oversFormatted,
-          liveThisOver: lastAction.liveThisOver,
+          liveThisOver: derivedActive.thisOver,
           innings1: {
             ...(cur.innings1 || {}),
-            runs: currentInnings === 1 ? lastAction.liveRuns : (cur.innings1?.runs || 0),
-            wickets: currentInnings === 1 ? lastAction.liveWickets : (cur.innings1?.wickets || 0),
-            overs: currentInnings === 1 ? oversFormatted : (cur.innings1?.overs || '0.0'),
+            runs: derivedMatch.innings1.runs,
+            wickets: derivedMatch.innings1.wickets,
+            overs: derivedMatch.innings1.oversStr,
+            balls: derivedMatch.innings1.balls,
+            batting: derivedMatch.innings1.batting,
+            bowling: derivedMatch.innings1.bowling,
+            extras: derivedMatch.innings1.extras,
+            fallOfWickets: derivedMatch.innings1.fallOfWickets,
           },
           innings2: {
             ...(cur.innings2 || {}),
-            runs: currentInnings === 2 ? lastAction.liveRuns : (cur.innings2?.runs || 0),
-            wickets: currentInnings === 2 ? lastAction.liveWickets : (cur.innings2?.wickets || 0),
-            overs: currentInnings === 2 ? oversFormatted : (cur.innings2?.overs || '0.0'),
+            runs: derivedMatch.innings2.runs,
+            wickets: derivedMatch.innings2.wickets,
+            overs: derivedMatch.innings2.oversStr,
+            balls: derivedMatch.innings2.balls,
+            batting: derivedMatch.innings2.batting,
+            bowling: derivedMatch.innings2.bowling,
+            extras: derivedMatch.innings2.extras,
+            fallOfWickets: derivedMatch.innings2.fallOfWickets,
           },
           liveState: {
             currentInnings,
             status: 'live',
             result: '',
-            liveRuns: lastAction.liveRuns,
-            liveWickets: lastAction.liveWickets,
-            liveBalls: lastAction.liveBalls,
-            liveThisOver: lastAction.liveThisOver,
-            liveBatters: lastAction.liveBatters || liveBatters,
-            liveBowlerStats: lastAction.liveBowlerStats || liveBowlerStats,
-            currentStriker: lastAction.striker,
-            currentNonStriker: lastAction.nonStriker,
-            currentBowler: lastAction.bowler,
+            liveRuns: derivedActive.runs,
+            liveWickets: derivedActive.wickets,
+            liveBalls: derivedActive.balls,
+            liveThisOver: derivedActive.thisOver,
+            liveBatters: derivedActive.liveBatters,
+            liveBowlerStats: derivedActive.liveBowlerStats,
+            currentStriker: targetStriker,
+            currentNonStriker: targetNonStriker,
+            currentBowler: targetBowler,
             scoringHistory: remainingHistory,
             liveCommentaryList: updatedComm,
             firstInningsSummary,
@@ -12182,24 +12037,25 @@ function CricketAddaMain() {
         isUndoAction: true,
         status: 'live',
         result: '',
-        liveRuns: lastAction.liveRuns,
-        liveWickets: lastAction.liveWickets,
-        liveBalls: lastAction.liveBalls,
-        liveThisOver: lastAction.liveThisOver,
-        liveBatters: lastAction.liveBatters || liveBatters,
-        liveBowlerStats: lastAction.liveBowlerStats || liveBowlerStats,
+        liveRuns: derivedActive.runs,
+        liveWickets: derivedActive.wickets,
+        liveBalls: derivedActive.balls,
+        liveOvers: derivedActive.oversStr,
+        liveThisOver: derivedActive.thisOver,
+        liveBatters: derivedActive.liveBatters,
+        liveBowlerStats: derivedActive.liveBowlerStats,
         liveCommentaryList: updatedComm,
         scoringHistory: remainingHistory,
-        currentStriker: lastAction.striker,
-        currentNonStriker: lastAction.nonStriker,
-        currentBowler: lastAction.bowler,
+        currentStriker: targetStriker,
+        currentNonStriker: targetNonStriker,
+        currentBowler: targetBowler,
         match: {
           ...match,
           status: 'live',
           result: '',
-          currentStriker: lastAction.striker,
-          currentNonStriker: lastAction.nonStriker,
-          currentBowler: lastAction.bowler,
+          currentStriker: targetStriker,
+          currentNonStriker: targetNonStriker,
+          currentBowler: targetBowler,
         },
       });
 
@@ -12765,18 +12621,43 @@ function CricketAddaMain() {
       dropEventId: newDropEvent.id,
       liveCommentaryList: [...liveCommentaryList],
     };
-    setScoringHistory(prev => [...prev, dropSnapshot]);
+    const nextHistory = [...(scoringHistory || []), dropSnapshot];
 
-    // 3. Record ball and runs
-    setLiveRuns(nextRuns);
-    setLiveBalls(nextBalls);
-    const nextThisOver = isOverEnd ? [] : [...liveThisOver.slice(-5), ballSymbol];
-    setLiveThisOver(nextThisOver);
+    const matchMeta = {
+      currentInnings,
+      totalOvers: maxOvers,
+      team1Name: currentInnings === 1 ? battingTeamName : bowlingTeamName,
+      team2Name: currentInnings === 1 ? bowlingTeamName : battingTeamName,
+      team1Flag: currentInnings === 1 ? battingTeamFlag : bowlingTeamFlag,
+      team2Flag: currentInnings === 1 ? bowlingTeamFlag : battingTeamFlag,
+      team1Squad: currentInnings === 1 ? squad1 : squad2,
+      team2Squad: currentInnings === 1 ? squad2 : squad1,
+      openingStriker: currentInnings === 1 ? (match?.innings1OpeningStriker || striker) : (match?.innings2OpeningStriker || striker),
+      openingNonStriker: currentInnings === 1 ? (match?.innings1OpeningNonStriker || nonStriker) : (match?.innings2OpeningNonStriker || nonStriker),
+      openingBowler: bowler,
+      swapBattersOnOverEnd,
+    };
+    const derivedMatch = deriveMatchStateFromDeliveries(nextHistory, matchMeta);
+    const derivedActive = derivedMatch.activeScore;
+
+    setScoringHistory(nextHistory);
+    setLiveRuns(derivedActive.runs);
+    setLiveBalls(derivedActive.balls);
+    setLiveWickets(derivedActive.wickets);
+    setLiveThisOver(derivedActive.thisOver);
+    setLiveBatters(derivedActive.liveBatters);
+    setLiveBowlerStats(derivedActive.liveBowlerStats);
+
+    const nextThisOver = derivedActive.thisOver;
+    const nextRuns = derivedActive.runs;
+    const nextBalls = derivedActive.balls;
+    const updatedLiveBatters = derivedActive.liveBatters;
+    const updatedLiveBowlers = derivedActive.liveBowlerStats;
 
     // Generate real-time text commentary for dropped catch
     const dropCommEntry = {
       id: `comm_drop_${Date.now()}`,
-      overs: `${Math.floor(nextBalls / 6)}.${nextBalls % 6}`,
+      overs: derivedActive.oversStr,
       bowler,
       batter: striker,
       ballSymbol,
@@ -12790,7 +12671,7 @@ function CricketAddaMain() {
     setLiveCommentaryList(updatedCommList);
 
     // Persist to matchesDb
-    const oversFormatted = `${Math.floor(nextBalls / 6)}.${nextBalls % 6}`;
+    const oversFormatted = derivedActive.oversStr;
     setMatchesDb(prev => {
       const cur = prev[activeMatchId] || {};
       const updatedMatch = {
@@ -12802,13 +12683,25 @@ function CricketAddaMain() {
         liveThisOver: nextThisOver,
         innings1: {
           ...(cur.innings1 || {}),
-          runs: currentInnings === 1 ? nextRuns : (cur.innings1?.runs || 0),
-          overs: currentInnings === 1 ? oversFormatted : (cur.innings1?.overs || '0.0'),
+          runs: derivedMatch.innings1.runs,
+          wickets: derivedMatch.innings1.wickets,
+          overs: derivedMatch.innings1.oversStr,
+          balls: derivedMatch.innings1.balls,
+          batting: derivedMatch.innings1.batting,
+          bowling: derivedMatch.innings1.bowling,
+          extras: derivedMatch.innings1.extras,
+          fallOfWickets: derivedMatch.innings1.fallOfWickets,
         },
         innings2: {
           ...(cur.innings2 || {}),
-          runs: currentInnings === 2 ? nextRuns : (cur.innings2?.runs || 0),
-          overs: currentInnings === 2 ? oversFormatted : (cur.innings2?.overs || '0.0'),
+          runs: derivedMatch.innings2.runs,
+          wickets: derivedMatch.innings2.wickets,
+          overs: derivedMatch.innings2.oversStr,
+          balls: derivedMatch.innings2.balls,
+          batting: derivedMatch.innings2.batting,
+          bowling: derivedMatch.innings2.bowling,
+          extras: derivedMatch.innings2.extras,
+          fallOfWickets: derivedMatch.innings2.fallOfWickets,
         },
         liveState: {
           currentInnings,
@@ -12821,7 +12714,7 @@ function CricketAddaMain() {
           currentStriker: nextStriker,
           currentNonStriker: nextNonStriker,
           currentBowler: bowler,
-          scoringHistory: [...scoringHistory, dropSnapshot],
+          scoringHistory: nextHistory,
           liveCommentaryList: updatedCommList,
         },
         lastUpdatedAt: Date.now(),
@@ -12844,11 +12737,13 @@ function CricketAddaMain() {
     broadcastMatchState({
       liveRuns: nextRuns,
       liveBalls: nextBalls,
+      liveOvers: oversFormatted,
       liveThisOver: nextThisOver,
       liveBatters: updatedLiveBatters,
       liveBowlerStats: updatedLiveBowlers,
       currentStriker: nextStriker,
       currentNonStriker: nextNonStriker,
+      scoringHistory: nextHistory,
       liveCommentaryList: updatedCommList,
     });
 
@@ -13761,6 +13656,32 @@ function CricketAddaMain() {
     const crr = balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00';
 
     const historyStack = isTargetActive && (scoringHistory || []).length > 0 ? scoringHistory : (mLive?.scoringHistory || targetMatch.scoringHistory || []);
+    if (Array.isArray(historyStack) && historyStack.length > 0) {
+      const derivedInn = deriveInningsStateFromDeliveries(historyStack, inningNum, {
+        team1Name: targetMatch.teamA,
+        team2Name: targetMatch.teamB,
+        currentStriker: isTargetActive ? (match.currentStriker || striker) : mLive?.currentStriker,
+        currentNonStriker: isTargetActive ? (match.currentNonStriker || nonStriker) : mLive?.currentNonStriker,
+        currentBowler: isTargetActive ? (match.currentBowler || bowler) : mLive?.currentBowler,
+        battingSquad: baseInning.batting || [],
+        bowlingSquad: baseInning.bowling || [],
+      });
+      return {
+        ...baseInning,
+        team: baseInning.team || (inningNum === 1 ? targetMatch.teamA : targetMatch.teamB) || `Team ${inningNum}`,
+        flag: baseInning.flag || (inningNum === 1 ? targetMatch.flagA : targetMatch.flagB) || '🏏',
+        runs: derivedInn.runs,
+        wickets: derivedInn.wickets,
+        overs: derivedInn.oversStr,
+        balls: derivedInn.balls,
+        crr: derivedInn.crr,
+        batting: derivedInn.batting,
+        bowling: derivedInn.bowling,
+        extras: derivedInn.extras,
+        fow: derivedInn.fallOfWickets,
+      };
+    }
+
     const dynamicBattingList = getDynamicBatting(
       baseInning.batting || [],
       activeBattersMap,
@@ -16210,85 +16131,34 @@ function CricketAddaMain() {
     // 2. Synchronize active score & overs
     const currentRuns = Number(activeInn.runs ?? targetMatch.liveRuns ?? targetMatch.liveState?.liveRuns ?? 0);
     const currentWickets = Number(activeInn.wickets ?? targetMatch.liveWickets ?? targetMatch.liveState?.liveWickets ?? 0);
-    setLiveRuns(currentRuns);
-    setLiveWickets(currentWickets);
-
-    const parts = String(activeInn.overs || targetMatch.liveOvers || targetMatch.liveState?.oversStr || '0.0').split('.');
-    const ov = parseInt(parts[0], 10) || 0;
-    const bl = parseInt(parts[1], 10) || 0;
-    setLiveBalls(ov * 6 + bl);
-
     const candidateHistory = (Array.isArray(targetMatch.liveState?.scoringHistory) && targetMatch.liveState.scoringHistory.length >= (targetMatch.scoringHistory?.length || 0))
       ? targetMatch.liveState.scoringHistory
       : (Array.isArray(targetMatch.scoringHistory) ? targetMatch.scoringHistory : (targetMatch.liveState?.scoringHistory || []));
     setScoringHistory(candidateHistory);
 
-    const totalBallsCount = ov * 6 + bl;
-    const legalBallsInCurOver = totalBallsCount % 6;
+    // UNIFIED DERIVATION ENGINE: Derive complete state from ball events
+    const derivedMatch = deriveMatchStateFromDeliveries(candidateHistory, {
+      ...targetMatch,
+      currentInnings: activeInningNum,
+      team1Squad: targetMatch.team1Squad || inn1.batting || [],
+      team2Squad: targetMatch.team2Squad || inn2.batting || [],
+      swapBattersOnOverEnd,
+    });
 
-    let safeThisOver = [];
-    if (candidateHistory.length > 0) {
-      if (legalBallsInCurOver === 0) {
-        const nonLegalTail = [];
-        for (let i = candidateHistory.length - 1; i >= 0; i--) {
-          const d = candidateHistory[i];
-          if (!d || (d.innings && d.innings !== activeInningNum)) break;
-          if (d.isLegalDelivery !== false) break;
-          if (d.ballSymbol) nonLegalTail.unshift(d.ballSymbol);
-        }
-        safeThisOver = nonLegalTail;
-      } else {
-        let legalCount = 0;
-        const filtered = [];
-        for (let i = candidateHistory.length - 1; i >= 0; i--) {
-          const d = candidateHistory[i];
-          if (!d) continue;
-          if (d.innings && d.innings !== activeInningNum) break;
-          const isLegal = d.isLegalDelivery !== false;
-          if (isLegal) {
-            if (legalCount >= legalBallsInCurOver) break;
-            legalCount++;
-          }
-          if (d.ballSymbol) filtered.unshift(d.ballSymbol);
-        }
-        safeThisOver = filtered;
-      }
-    } else {
-      safeThisOver = targetMatch.liveState?.liveThisOver || targetMatch.liveThisOver || [];
-    }
-    setLiveThisOver(safeThisOver);
+    auditStateIntegrity(derivedMatch, targetMatch, 'handleScoreMatchPress');
 
-    // 3. Batters map: correctly map not-out batters & stats reconciled with delivery history
+    setLiveRuns(derivedMatch.activeScore.runs);
+    setLiveWickets(derivedMatch.activeScore.wickets);
+    setLiveBalls(derivedMatch.activeScore.balls);
+    setLiveThisOver(derivedMatch.activeScore.thisOver);
+    setLiveBatters(derivedMatch.activeScore.liveBatters);
+    setLiveBowlerStats(derivedMatch.activeScore.liveBowlerStats);
+
     const activeBatting = activeInn.batting || [];
-    const baseLiveBatters = targetMatch.liveBatters || targetMatch.liveState?.liveBatters || {};
-    const baseLiveBowlers = {
-      ...(targetMatch.liveBowlerStats || {}),
-      ...(targetMatch.liveState?.liveBowlerStats || {}),
-    };
-
-    const { batters: reconciledBatters, bowlers: reconciledBowlers } = reconstructLiveStatsFromHistory(
-      candidateHistory,
-      activeInningNum,
-      Object.keys(baseLiveBatters).length > 0 ? baseLiveBatters : activeBatting,
-      Object.keys(baseLiveBowlers).length > 0 ? baseLiveBowlers : (activeInn.bowling || [])
-    );
-    setLiveBatters(reconciledBatters);
-    setLiveBowlerStats(reconciledBowlers);
-
-    // 5. Active batters and bowler on crease
     const notOutBatters = activeBatting.filter(b => b.notOut);
-    const lastHistDel = (candidateHistory || []).slice().reverse().find(d => !d.innings || d.innings === activeInningNum);
-    const isMidOver = candidateHistory.length > 0 && (totalBallsCount % 6 !== 0);
-
-    const initialStriker = targetMatch.currentStriker || targetMatch.liveState?.currentStriker || lastHistDel?.striker || notOutBatters[0]?.name || activeBatting[0]?.name || 'Striker';
-    const initialNonStriker = targetMatch.currentNonStriker || targetMatch.liveState?.currentNonStriker || lastHistDel?.nonStriker || notOutBatters[1]?.name || (activeBatting[1] ? activeBatting[1].name : activeBatting[0]?.name) || 'Non-Striker';
-    const initialBowler = (isMidOver && lastHistDel?.bowler ? lastHistDel.bowler : null) ||
-      targetMatch.currentBowler ||
-      targetMatch.liveState?.currentBowler ||
-      lastHistDel?.bowler ||
-      (activeInn.bowling?.find(bw => bw.overs && !String(bw.overs).endsWith('.0'))?.name) ||
-      activeInn.bowling?.[0]?.name ||
-      'Opening Bowler';
+    const initialStriker = derivedMatch.activeScore.currentStriker || targetMatch.currentStriker || targetMatch.liveState?.currentStriker || notOutBatters[0]?.name || activeBatting[0]?.name || 'Striker';
+    const initialNonStriker = derivedMatch.activeScore.currentNonStriker || targetMatch.currentNonStriker || targetMatch.liveState?.currentNonStriker || notOutBatters[1]?.name || (activeBatting[1] ? activeBatting[1].name : activeBatting[0]?.name) || 'Non-Striker';
+    const initialBowler = derivedMatch.activeScore.currentBowler || targetMatch.currentBowler || targetMatch.liveState?.currentBowler || activeInn.bowling?.[0]?.name || 'Opening Bowler';
 
     setMatch(prev => ({
       ...prev,
