@@ -5968,27 +5968,27 @@ function CricketAddaMain() {
       return false;
     }
 
-    // --- NON-DELEGATED MATCH (CREATOR / LOCAL OWNER OWNS SCORING RIGHTS) ---
-    // 1. Local Device Match Ownership (Explicitly created on this phone or recorded in local db):
+    // --- NON-DELEGATED MATCH (CREATOR / OFFICIAL SCORER OWNS SCORING RIGHTS) ---
+    // 1. Permanent Cross-Device Account Match (Highest Priority: User ID, Phone, Email, Name):
+    // If the phone dies during scoring, logging in from any other device with this same account restores full scoring rights immediately!
+    if (creatorId && uId && String(creatorId) === String(uId)) return true;
+    if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
+    if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
+    if (creatorName && uName && creatorName === uName && uName !== 'match creator' && uName !== 'player') return true;
+
+    // 2. Explicit Local Match Ownership (Match created on this device or registered in myScoringMatchIds):
     if (
       (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) ||
-      (targetMatch.createdByMe && !targetMatch.isJoinedAsSpectator) ||
-      (matchesDb?.[targetMatch.id] && !matchesDb[targetMatch.id]?.isJoinedAsSpectator && !matchesDb[targetMatch.id]?.isSpectating)
+      (targetMatch.createdByMe && !targetMatch.isJoinedAsSpectator && !targetMatch.isSpectating)
     ) {
       return true;
     }
 
-    // 2. Cross-Device Account Match (Phone Number, Email, User ID, or Name):
-    if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
-    if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
-    if (creatorId && uId && creatorId === uId) return true;
-    if (creatorName && uName && creatorName === uName && uName !== 'match creator') return true;
-
-    // 3. Physical Device ID Fallback (For offline/guest matches created on this phone):
+    // 3. Physical Device ID Fallback (Only for offline/guest matches created on this phone before account login):
     if (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) return true;
     if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
 
-    // Any other device is strictly a Spectator (read-only):
+    // Any other device or viewer is strictly a Spectator (read-only):
     return false;
   }, [userProfile, authEmail, authPhone, authName, activeScorer, viewerSimulated, myScoringMatchIds, matchesDb]);
 
@@ -6005,23 +6005,31 @@ function CricketAddaMain() {
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
     const uPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const uId = userProfile?.id;
+    const uName = (userProfile?.name || authName || '').toLowerCase().trim();
     const myDeviceId = clientIdRef?.current || '';
 
     const creatorPhone = String(targetMatch.creatorPhone || matchObj.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const creatorEmail = (targetMatch.creatorEmail || matchObj.creatorEmail || '').toLowerCase().trim();
     const creatorId = targetMatch.creatorId || matchObj.creatorId;
+    const creatorName = (targetMatch.creatorName || matchObj.creatorName || '').toLowerCase().trim();
     const creatorDeviceId = targetMatch.creatorDeviceId || matchObj.creatorDeviceId;
 
-    if (
-      (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) ||
-      (matchesDb?.[targetMatch.id] && !matchesDb[targetMatch.id]?.isJoinedAsSpectator)
-    ) return true;
+    // 1. Account Identity (User ID, Phone Number, Email, Name)
+    if (creatorId && uId && String(creatorId) === String(uId)) return true;
     if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
     if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
-    if (creatorId && uId && creatorId === uId) return true;
+    if (creatorName && uName && creatorName === uName && uName !== 'match creator' && uName !== 'player') return true;
+
+    // 2. Explicit Local Match Ownership
+    if (
+      (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) ||
+      (targetMatch.createdByMe && !targetMatch.isJoinedAsSpectator && !targetMatch.isSpectating)
+    ) return true;
+
+    // 3. Device Fallback
     if (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) return true;
     return false;
-  }, [activeMatchId, matchesDb, userProfile, authEmail, authPhone, match, myScoringMatchIds]);
+  }, [activeMatchId, matchesDb, userProfile, authEmail, authPhone, authName, match, myScoringMatchIds]);
 
   const isMatchInAuditMode = useMemo(() => {
     const curMatch = (activeMatchId && matchesDb[activeMatchId]) || match;
@@ -6559,6 +6567,7 @@ function CricketAddaMain() {
   // Load persistent user preferences across app restarts
   useEffect(() => {
     const loadUserPreferences = async () => {
+      let activeAccountProfile = null;
       try {
         // 0. FAST-TRACK SESSION RESTORATION (Prevents login screen flash on cold start)
         try {
@@ -6574,6 +6583,7 @@ function CricketAddaMain() {
                 await AsyncStorage.multiRemove([STORAGE_KEYS.USER_PROFILE, STORAGE_KEYS.LAST_ACTIVE_TIME]);
                 setIsAuthenticated(false);
               } else {
+                activeAccountProfile = parsedProfile;
                 setUserProfile(parsedProfile);
                 if (parsedProfile.email) setAuthEmail(parsedProfile.email);
                 if (parsedProfile.phone) setAuthPhone(parsedProfile.phone);
@@ -6912,6 +6922,7 @@ function CricketAddaMain() {
                 setIsAuthenticated(false);
               } else {
                 // Valid active session within 30 days!
+                activeAccountProfile = parsedProfile;
                 setUserProfile(parsedProfile);
                 if (parsedProfile.email) setAuthEmail(parsedProfile.email);
                 if (parsedProfile.phone) setAuthPhone(parsedProfile.phone);
@@ -7019,12 +7030,33 @@ function CricketAddaMain() {
 
             fetchFirebaseMatchesDb().then(cloudDb => {
               if (cloudDb && typeof cloudDb === 'object' && Object.keys(cloudDb).length > 0) {
+                const userOwnedMatchIds = [];
+                const uId = activeAccountProfile?.id || userProfile?.id;
+                const uPhone = String(activeAccountProfile?.phone || userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
+                const uEmail = (activeAccountProfile?.email || userProfile?.email || authEmail || '').toLowerCase().trim();
+                const uName = (activeAccountProfile?.name || userProfile?.name || authName || '').toLowerCase().trim();
+
                 setMatchesDb(prev => {
                   const merged = { ...prev };
                   Object.entries(cloudDb).forEach(([mId, m]) => {
                     if (m && !delMatches.has(mId)) {
                       if (!merged[mId] || (m.lastUpdatedAt && m.lastUpdatedAt >= (merged[mId].lastUpdatedAt || 0))) {
                         merged[mId] = m;
+                      }
+
+                      // Check account ownership for automatic multi-device scoring resumption
+                      const mCreatorPhone = String(m.creatorPhone || m.match?.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
+                      const mCreatorEmail = (m.creatorEmail || m.match?.creatorEmail || '').toLowerCase().trim();
+                      const mCreatorId = m.creatorId || m.match?.creatorId;
+                      const mCreatorName = (m.creatorName || m.match?.creatorName || '').toLowerCase().trim();
+
+                      if (
+                        (uId && mCreatorId && String(mCreatorId) === String(uId)) ||
+                        (uPhone && mCreatorPhone && mCreatorPhone === uPhone) ||
+                        (uEmail && mCreatorEmail && mCreatorEmail === uEmail) ||
+                        (uName && mCreatorName && mCreatorName === uName && uName !== 'match creator')
+                      ) {
+                        userOwnedMatchIds.push(mId);
                       }
                     }
                   });
@@ -7034,6 +7066,14 @@ function CricketAddaMain() {
                   AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(merged)).catch(() => {});
                   return merged;
                 });
+
+                if (userOwnedMatchIds.length > 0) {
+                  setMyScoringMatchIds(prev => {
+                    const combined = Array.from(new Set([...(prev || []), ...userOwnedMatchIds]));
+                    AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(combined)).catch(() => {});
+                    return combined;
+                  });
+                }
               }
             }).catch(() => {});
           }).catch(() => {});
