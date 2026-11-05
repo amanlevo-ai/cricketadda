@@ -404,7 +404,13 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
   const extrasString = `${extrasBreakdown.total} (b ${extrasBreakdown.byes}, lb ${extrasBreakdown.legByes}, w ${extrasBreakdown.wides}, nb ${extrasBreakdown.noBalls}${extrasBreakdown.penalty > 0 ? `, pen ${extrasBreakdown.penalty}` : ''})`;
 
   const battingList = Object.values(battersMap).sort((a, b) => a.battingOrder - b.battingOrder);
-  const bowlingList = Object.values(bowlersMap);
+  const bowlingList = Object.values(bowlersMap).filter(bw => {
+    const balls = Number(bw.balls) || 0;
+    const overs = String(bw.overs || '0.0');
+    const runs = Number(bw.runs) || 0;
+    const wickets = Number(bw.wickets) || 0;
+    return balls > 0 || (overs !== '0.0' && overs !== '0') || runs > 0 || wickets > 0;
+  });
 
   const isOverEnd = legalBalls > 0 && legalBalls % 6 === 0;
 

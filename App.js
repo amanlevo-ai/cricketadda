@@ -9003,7 +9003,7 @@ function CricketAddaMain() {
     };
   }, [activeMatchId, isOfficialScorer]);
 
-    const getPlayerAvatarUri = useCallback((playerName) => {
+  const getPlayerAvatarUri = useCallback((playerName) => {
     if (!playerName) return null;
     const clean = String(playerName).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
     
@@ -9013,7 +9013,21 @@ function CricketAddaMain() {
       if (userProfile?.avatarUri) return userProfile.avatarUri;
     }
 
-    // 2. Check registered teams and squads
+    // 2. Check registered players list
+    if (Array.isArray(registeredPlayers)) {
+      for (const p of registeredPlayers) {
+        const pName = typeof p === 'string' ? p : p?.name;
+        if (pName) {
+          const pClean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+          if (pClean === clean || pClean.includes(clean) || clean.includes(pClean)) {
+            const uri = (typeof p === 'object' && (p?.avatarUri || p?.photoUrl || p?.avatar || p?.photo)) || null;
+            if (uri) return uri;
+          }
+        }
+      }
+    }
+
+    // 3. Check registered teams and squads
     if (Array.isArray(registeredTeams)) {
       for (const team of registeredTeams) {
         if (Array.isArray(team?.squad)) {
@@ -9022,7 +9036,8 @@ function CricketAddaMain() {
             if (pName) {
               const pClean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
               if (pClean === clean || pClean.includes(clean) || clean.includes(pClean)) {
-                if (typeof p === 'object' && p?.avatarUri) return p.avatarUri;
+                const uri = (typeof p === 'object' && (p?.avatarUri || p?.photoUrl || p?.avatar || p?.photo)) || null;
+                if (uri) return uri;
               }
             }
           }
@@ -9030,8 +9045,34 @@ function CricketAddaMain() {
       }
     }
 
-    // 3. Check currentMatchData players
+    // 4. Check allAvailableMatchTeams
+    if (allAvailableMatchTeams) {
+      const teamsArr = Array.isArray(allAvailableMatchTeams)
+        ? allAvailableMatchTeams
+        : (typeof allAvailableMatchTeams.values === 'function' ? Array.from(allAvailableMatchTeams.values()) : Object.values(allAvailableMatchTeams));
+      for (const team of teamsArr) {
+        if (Array.isArray(team?.squad)) {
+          for (const p of team.squad) {
+            const pName = typeof p === 'string' ? p : p?.name;
+            if (pName) {
+              const pClean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+              if (pClean === clean || pClean.includes(clean) || clean.includes(pClean)) {
+                const uri = (typeof p === 'object' && (p?.avatarUri || p?.photoUrl || p?.avatar || p?.photo)) || null;
+                if (uri) return uri;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // 5. Check currentMatchData players & squads
     const matchPlayers = [
+      ...(currentMatchData?.team1Squad || []),
+      ...(currentMatchData?.team2Squad || []),
+      ...(currentMatchData?.teamASquad || []),
+      ...(currentMatchData?.teamBSquad || []),
+      ...(currentMatchData?.fieldingSquad || []),
       ...(currentMatchData?.innings1?.batting || []),
       ...(currentMatchData?.innings2?.batting || []),
       ...(currentMatchData?.innings1?.bowling || []),
@@ -9044,28 +9085,30 @@ function CricketAddaMain() {
       if (pName) {
         const pClean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
         if (pClean === clean || pClean.includes(clean) || clean.includes(pClean)) {
-          if (typeof p === 'object' && p?.avatarUri) return p.avatarUri;
+          const uri = (typeof p === 'object' && (p?.avatarUri || p?.photoUrl || p?.avatar || p?.photo)) || null;
+          if (uri) return uri;
         }
       }
     }
 
-    // 4. Check usersDb
+    // 6. Check usersDb
     if (Array.isArray(usersDb)) {
       for (const u of usersDb) {
         const uName = (u?.name || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
         if (uName && (uName === clean || uName.includes(clean) || clean.includes(uName))) {
-          if (u?.avatarUri) return u.avatarUri;
+          const uri = u?.avatarUri || u?.photoUrl || u?.avatar || u?.photo || null;
+          if (uri) return uri;
         }
       }
     }
 
-    // 5. Check hardcoded PLAYER_AVATARS
+    // 7. Check hardcoded PLAYER_AVATARS
     const origClean = String(playerName).replace(/\s*\([^)]*\)/g, '').trim();
     if (PLAYER_AVATARS[origClean]) return PLAYER_AVATARS[origClean];
     if (PLAYER_AVATARS[playerName]) return PLAYER_AVATARS[playerName];
 
     return null;
-  }, [userProfile, authName, registeredTeams, currentMatchData, usersDb]);
+  }, [userProfile, authName, registeredPlayers, registeredTeams, allAvailableMatchTeams, currentMatchData, usersDb]);
 
   // All Playing XI players of the active batting team
   const activeBattingSquad = (() => {
@@ -13939,6 +13982,10 @@ function CricketAddaMain() {
     const crr = balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00';
 
     const historyStack = isTargetActive && (scoringHistory || []).length > 0 ? scoringHistory : (mLive?.scoringHistory || targetMatch.scoringHistory || []);
+    const resolvedTeamName = baseInning.team || (inningNum === 1 ? targetMatch.teamA : targetMatch.teamB) || `Team ${inningNum}`;
+    const resolvedFlag = baseInning.flag || (inningNum === 1 ? targetMatch.flagA : targetMatch.flagB) || '🏏';
+    const resolvedLogoUri = baseInning.logoUri || baseInning.logo || (inningNum === 1 ? (targetMatch.logoA || targetMatch.team1Logo) : (targetMatch.logoB || targetMatch.team2Logo)) || resolveTeamLogo({ name: resolvedTeamName }, allAvailableMatchTeams, usersDb);
+
     if (Array.isArray(historyStack) && historyStack.length > 0) {
       const derivedInn = deriveInningsStateFromDeliveries(historyStack, inningNum, {
         team1Name: targetMatch.teamA,
@@ -13951,15 +13998,23 @@ function CricketAddaMain() {
       });
       return {
         ...baseInning,
-        team: baseInning.team || (inningNum === 1 ? targetMatch.teamA : targetMatch.teamB) || `Team ${inningNum}`,
-        flag: baseInning.flag || (inningNum === 1 ? targetMatch.flagA : targetMatch.flagB) || '🏏',
+        team: resolvedTeamName,
+        flag: resolvedFlag,
+        logo: resolvedLogoUri,
+        logoUri: resolvedLogoUri,
         runs: derivedInn.runs,
         wickets: derivedInn.wickets,
         overs: derivedInn.oversStr,
         balls: derivedInn.balls,
         crr: derivedInn.crr,
         batting: derivedInn.batting,
-        bowling: derivedInn.bowling,
+        bowling: (derivedInn.bowling || []).filter(bw => {
+          const balls = Number(bw.balls) || 0;
+          const overs = String(bw.overs || '0.0');
+          const runs = Number(bw.runs) || 0;
+          const wickets = Number(bw.wickets) || 0;
+          return balls > 0 || (overs !== '0.0' && overs !== '0') || runs > 0 || wickets > 0;
+        }),
         extras: derivedInn.extras,
         fow: derivedInn.fallOfWickets,
       };
@@ -13987,15 +14042,17 @@ function CricketAddaMain() {
 
     return {
       ...baseInning,
-      team: baseInning.team || (inningNum === 1 ? targetMatch.teamA : targetMatch.teamB) || `Team ${inningNum}`,
-      flag: baseInning.flag || (inningNum === 1 ? targetMatch.flagA : targetMatch.flagB) || '🏏',
+      team: resolvedTeamName,
+      flag: resolvedFlag,
+      logo: resolvedLogoUri,
+      logoUri: resolvedLogoUri,
       runs,
       wickets,
       overs,
       balls,
       crr,
       batting: dynamicBattingList,
-      bowling: getDynamicBowling(
+      bowling: (getDynamicBowling(
         baseInning.bowling || [],
         activeBowlersMap,
         !isLiveNow,
@@ -14005,7 +14062,13 @@ function CricketAddaMain() {
         wickets,
         balls,
         isTargetActive ? (match.currentBowler || bowler) : mLive?.currentBowler
-      ),
+      ) || []).filter(bw => {
+        const balls = Number(bw.balls) || 0;
+        const overs = String(bw.overs || '0.0');
+        const runs = Number(bw.runs) || 0;
+        const wickets = Number(bw.wickets) || 0;
+        return balls > 0 || (overs !== '0.0' && overs !== '0') || runs > 0 || wickets > 0;
+      }),
       extras: finalExtras,
       fow: dynamicFow,
     };
@@ -19998,7 +20061,7 @@ function CricketAddaMain() {
                         </View>
 
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                          <PlayerAvatar name={pom.name} size={46} borderColor="#f59e0b" />
+                          <PlayerAvatar name={pom.name} size={46} customUri={getPlayerAvatarUri(pom.name)} borderColor="#f59e0b" />
                           <View style={{ flex: 1 }}>
                             <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }}>
                               {pom.name}
@@ -20039,7 +20102,7 @@ function CricketAddaMain() {
                             </Text>
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <PlayerAvatar name={bestBat.name} size={30} borderColor="#0284c7" />
+                            <PlayerAvatar name={bestBat.name} size={30} customUri={getPlayerAvatarUri(bestBat.name)} borderColor="#0284c7" />
                             <View style={{ flex: 1 }}>
                               <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
                                 {bestBat.name}
@@ -20073,7 +20136,7 @@ function CricketAddaMain() {
                             </Text>
                           </View>
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <PlayerAvatar name={bestBowl.name} size={30} borderColor="#10b981" />
+                            <PlayerAvatar name={bestBowl.name} size={30} customUri={getPlayerAvatarUri(bestBowl.name)} borderColor="#10b981" />
                             <View style={{ flex: 1 }}>
                               <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
                                 {bestBowl.name}
@@ -20094,32 +20157,50 @@ function CricketAddaMain() {
               })()}
 
           <View style={styles.inningTabRow}>
-            <TouchableOpacity
-              style={[styles.inningTabBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, scorecardInning === 1 && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.inningTabBtnActive), { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
-              onPress={() => setScorecardInning(1)}
-            >
-              {getDashTeamLogo(inn1ScorecardData.team) ? (
-                <Image source={getDashTeamLogo(inn1ScorecardData.team)} style={{ width: 18, height: 18 }} resizeMode="contain" />
-              ) : (
-                <Text style={{ fontSize: 13 }}>{inn1ScorecardData.flag || '🏏'}</Text>
-              )}
-              <Text style={[styles.inningTabText, currentTheme.isLight && { color: '#475569' }, scorecardInning === 1 && (currentTheme.isLight ? { color: '#0284c7' } : styles.inningTabTextActive)]}>
-                {inn1ScorecardData.team} ({inn1ScorecardData.runs}/{inn1ScorecardData.wickets})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.inningTabBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, scorecardInning === 2 && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.inningTabBtnActive), { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
-              onPress={() => setScorecardInning(2)}
-            >
-              {getDashTeamLogo(inn2ScorecardData.team) ? (
-                <Image source={getDashTeamLogo(inn2ScorecardData.team)} style={{ width: 18, height: 18 }} resizeMode="contain" />
-              ) : (
-                <Text style={{ fontSize: 13 }}>{inn2ScorecardData.flag || '🏏'}</Text>
-              )}
-              <Text style={[styles.inningTabText, currentTheme.isLight && { color: '#475569' }, scorecardInning === 2 && (currentTheme.isLight ? { color: '#0284c7' } : styles.inningTabTextActive)]}>
-                {inn2ScorecardData.team} ({inn2ScorecardData.runs}/{inn2ScorecardData.wickets})
-              </Text>
-            </TouchableOpacity>
+            {(() => {
+              const inn1TeamName = inn1ScorecardData.team || currentMatchData.teamA || currentMatchData.innings1?.team || 'Team 1';
+              const inn2TeamName = inn2ScorecardData.team || currentMatchData.teamB || currentMatchData.innings2?.team || 'Team 2';
+
+              const inn1Logo = inn1ScorecardData.logoUri || inn1ScorecardData.logo || currentMatchData.logoA || currentMatchData.team1Logo || currentMatchData.innings1?.logoUri || currentMatchData.innings1?.logo || resolveTeamLogo({ name: inn1TeamName }, allAvailableMatchTeams, usersDb);
+              const inn2Logo = inn2ScorecardData.logoUri || inn2ScorecardData.logo || currentMatchData.logoB || currentMatchData.team2Logo || currentMatchData.innings2?.logoUri || currentMatchData.innings2?.logo || resolveTeamLogo({ name: inn2TeamName }, allAvailableMatchTeams, usersDb);
+
+              const isGoodUri = uri => uri && typeof uri === 'string' && (uri.startsWith('http') || uri.startsWith('data:') || uri.startsWith('file:') || uri.startsWith('blob:') || uri.startsWith('content:'));
+
+              return (
+                <>
+                  <TouchableOpacity
+                    style={[styles.inningTabBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, scorecardInning === 1 && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.inningTabBtnActive), { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
+                    onPress={() => setScorecardInning(1)}
+                  >
+                    {isGoodUri(inn1Logo) ? (
+                      <Image source={{ uri: inn1Logo }} style={{ width: 18, height: 18, borderRadius: 3 }} resizeMode="contain" />
+                    ) : getDashTeamLogo(inn1ScorecardData.team) ? (
+                      <Image source={getDashTeamLogo(inn1ScorecardData.team)} style={{ width: 18, height: 18 }} resizeMode="contain" />
+                    ) : (
+                      <Text style={{ fontSize: 13 }}>{inn1ScorecardData.flag || '🏏'}</Text>
+                    )}
+                    <Text style={[styles.inningTabText, currentTheme.isLight && { color: '#475569' }, scorecardInning === 1 && (currentTheme.isLight ? { color: '#0284c7' } : styles.inningTabTextActive)]}>
+                      {inn1ScorecardData.team} ({inn1ScorecardData.runs}/{inn1ScorecardData.wickets})
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.inningTabBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, scorecardInning === 2 && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.inningTabBtnActive), { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }]}
+                    onPress={() => setScorecardInning(2)}
+                  >
+                    {isGoodUri(inn2Logo) ? (
+                      <Image source={{ uri: inn2Logo }} style={{ width: 18, height: 18, borderRadius: 3 }} resizeMode="contain" />
+                    ) : getDashTeamLogo(inn2ScorecardData.team) ? (
+                      <Image source={getDashTeamLogo(inn2ScorecardData.team)} style={{ width: 18, height: 18 }} resizeMode="contain" />
+                    ) : (
+                      <Text style={{ fontSize: 13 }}>{inn2ScorecardData.flag || '🏏'}</Text>
+                    )}
+                    <Text style={[styles.inningTabText, currentTheme.isLight && { color: '#475569' }, scorecardInning === 2 && (currentTheme.isLight ? { color: '#0284c7' } : styles.inningTabTextActive)]}>
+                      {inn2ScorecardData.team} ({inn2ScorecardData.runs}/{inn2ScorecardData.wickets})
+                    </Text>
+                  </TouchableOpacity>
+                </>
+              );
+            })()}
           </View>
 
           {/* BATTING TABLE WITH PLAYER PHOTOS */}
@@ -20143,7 +20224,7 @@ function CricketAddaMain() {
                   onPress={() => openBatterDetailsModal(b, activeInningData.team)}
                 >
                   <View style={{ flex: 2.3, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <PlayerAvatar name={b.name} size={32} customUri={b.name.includes(userProfile.name) ? userProfile.avatarUri : null} />
+                    <PlayerAvatar name={b.name} size={32} customUri={getPlayerAvatarUri(b.name)} />
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.batterNameText, currentTheme.isLight && { color: '#0f172a' }, b.isNotOut && { color: '#10b981', fontWeight: 'bold' }]}>
                         {b.name}
@@ -20187,14 +20268,26 @@ function CricketAddaMain() {
               <Text style={[styles.thText, currentTheme.isLight && { color: '#64748b' }, { flex: 1.1, textAlign: 'right' }]}>ECON</Text>
             </View>
 
-            {(!activeInningData.bowling || (activeInningData?.bowling || []).length === 0) ? (
-              <View style={{ paddingVertical: 14, alignItems: 'center' }}>
-                <Text style={{ color: '#64748b', fontSize: 12, fontStyle: 'italic' }}>
-                  Yet to bowl in this innings
-                </Text>
-              </View>
-            ) : (
-              activeInningData.bowling.map((bw, i) => {
+            {(() => {
+              const activeBowlersList = (activeInningData.bowling || []).filter(bw => {
+                const balls = Number(bw.balls) || 0;
+                const overs = String(bw.overs || '0.0');
+                const runs = Number(bw.runs) || 0;
+                const wickets = Number(bw.wickets) || 0;
+                return balls > 0 || (overs !== '0.0' && overs !== '0') || runs > 0 || wickets > 0;
+              });
+
+              if (activeBowlersList.length === 0) {
+                return (
+                  <View style={{ paddingVertical: 14, alignItems: 'center' }}>
+                    <Text style={{ color: '#64748b', fontSize: 12, fontStyle: 'italic' }}>
+                      Yet to bowl in this innings
+                    </Text>
+                  </View>
+                );
+              }
+
+              return activeBowlersList.map((bw, i) => {
                 const canClick = bw.overs !== '0.0' || bw.runs > 0 || bw.wickets > 0;
                 return (
                   <TouchableOpacity
@@ -20204,7 +20297,7 @@ function CricketAddaMain() {
                     onPress={() => openBowlerDetailsModal(bw, activeInningData.team)}
                   >
                     <View style={{ flex: 2.3, flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                      <PlayerAvatar name={bw.name} size={32} borderColor="#38bdf8" />
+                      <PlayerAvatar name={bw.name} size={32} customUri={getPlayerAvatarUri(bw.name)} borderColor="#38bdf8" />
                       <View style={{ flex: 1 }}>
                         <Text style={[styles.bowlerNameText, currentTheme.isLight && { color: '#0f172a' }]}>{bw.name}</Text>
                         <Text style={[styles.dismissalText, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{formatBowlerStyle(bw.style)}</Text>
@@ -20217,8 +20310,8 @@ function CricketAddaMain() {
                     <Text style={[styles.tdTextSR, { flex: 1.1, textAlign: 'right' }]}>{bw.econ}</Text>
                   </TouchableOpacity>
                 );
-              })
-            )}
+              });
+            })()}
 
             <View style={[styles.extraTotalRow, { borderBottomWidth: 0, paddingTop: 6, marginTop: 4 }]}>
               <Text style={[styles.totalLabel, currentTheme.isLight && { color: '#0f172a' }]}>Bowling Figures Total:</Text>
@@ -20328,6 +20421,7 @@ function CricketAddaMain() {
                             <PlayerAvatar
                               name={player.name}
                               size={44}
+                              customUri={getPlayerAvatarUri(player.name)}
                               borderColor={rank === 1 ? '#f59e0b' : (currentTheme.isLight ? '#cbd5e1' : '#334155')}
                             />
                             <View style={styles.mvpProBadge}>
@@ -21348,7 +21442,7 @@ function CricketAddaMain() {
                 {/* Header with Photo */}
                 <View style={styles.batterModalHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                    <PlayerAvatar name={selectedBowlerDetails.name} size={44} borderColor="#38bdf8" />
+                    <PlayerAvatar name={selectedBowlerDetails.name} size={44} customUri={getPlayerAvatarUri(selectedBowlerDetails.name)} borderColor="#38bdf8" />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.batterModalName}>{selectedBowlerDetails.name}</Text>
                       <Text style={styles.batterModalTeam}>{selectedBowlerDetails.style || 'Fast Bowler'}</Text>
@@ -21598,7 +21692,7 @@ function CricketAddaMain() {
 
                 {/* Batter & Score Hero Banner with Photo */}
                 <View style={styles.wktBatterHeroCard}>
-                  <PlayerAvatar name={selectedWicketDetails.batterName} size={48} borderColor="#ef4444" />
+                  <PlayerAvatar name={selectedWicketDetails.batterName} size={48} customUri={getPlayerAvatarUri(selectedWicketDetails.batterName)} borderColor="#ef4444" />
                   <View style={{ flex: 1, marginLeft: 10 }}>
                     <Text style={styles.wktBatterName}>{selectedWicketDetails.batterName || 'Dismissed Batter'}</Text>
                     <Text style={styles.wktBatterScore}>
@@ -21619,7 +21713,7 @@ function CricketAddaMain() {
                       <Text style={styles.wktInfoKey}>Bowler:</Text>
                     </View>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <PlayerAvatar name={selectedWicketDetails.bowler} size={20} borderColor="#38bdf8" />
+                      <PlayerAvatar name={selectedWicketDetails.bowler} size={20} customUri={getPlayerAvatarUri(selectedWicketDetails.bowler)} borderColor="#38bdf8" />
                       <Text style={styles.wktInfoVal}>{selectedWicketDetails.bowler || 'Bowler'}</Text>
                     </View>
                   </View>
@@ -21677,7 +21771,7 @@ function CricketAddaMain() {
               <ScrollView showsVerticalScrollIndicator={false}>
                 <View style={styles.batterModalHeader}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                    <PlayerAvatar name={selectedBatterDetails.name} size={44} customUri={selectedBatterDetails.name.includes(userProfile.name) ? userProfile.avatarUri : null} />
+                    <PlayerAvatar name={selectedBatterDetails.name} size={44} customUri={getPlayerAvatarUri(selectedBatterDetails.name)} />
                     <View style={{ flex: 1 }}>
                       <Text style={styles.batterModalName}>{selectedBatterDetails.name}</Text>
                       <Text style={styles.batterModalTeam}>{selectedBatterDetails.teamName} • {selectedBatterDetails.dismissal}</Text>
