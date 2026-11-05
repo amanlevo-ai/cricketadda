@@ -4802,6 +4802,8 @@ function CricketAddaMain() {
   const [matchDraft, setMatchDraft] = useState(INITIAL_MATCH_DRAFT);
   const [registeredTeams, setRegisteredTeams] = useState([]);
   const [myScoringMatchIds, setMyScoringMatchIds] = useState([]);
+  const [isDataHydrated, setIsDataHydrated] = useState(false);
+  const isDataHydratedRef = useRef(false);
   const hasReceivedInitialCloudTeamsRef = useRef(false);
   const hasReceivedInitialCloudUsersRef = useRef(false);
   const [wzPhase, setWzPhase] = useState(1); // 1: Select Teams (A & B), 2: Settings, 3: Toss, 4: Playing XI, 5: Confirm
@@ -5953,10 +5955,7 @@ function CricketAddaMain() {
     // Check if scoring duty is currently delegated away from creator to someone else
     const isDelegated = Boolean(
       targetMatch.isScoringDelegated ||
-      matchObj.isScoringDelegated ||
-      (assignedPhone && creatorPhone && assignedPhone !== creatorPhone) ||
-      (assignedEmail && creatorEmail && assignedEmail !== creatorEmail) ||
-      (assignedId && creatorId && assignedId !== creatorId)
+      matchObj.isScoringDelegated
     );
 
     if (isDelegated) {
@@ -5969,30 +5968,29 @@ function CricketAddaMain() {
       return false;
     }
 
-    // --- NON-DELEGATED MATCH (CREATOR OWNS SCORING RIGHTS) ---
-    // 1. Local Device Match Ownership (Explicitly created on this phone):
-    if (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) {
+    // --- NON-DELEGATED MATCH (CREATOR / LOCAL OWNER OWNS SCORING RIGHTS) ---
+    // 1. Local Device Match Ownership (Explicitly created on this phone or recorded in local db):
+    if (
+      (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) ||
+      (targetMatch.createdByMe && !targetMatch.isJoinedAsSpectator) ||
+      (matchesDb?.[targetMatch.id] && !matchesDb[targetMatch.id]?.isJoinedAsSpectator && !matchesDb[targetMatch.id]?.isSpectating)
+    ) {
       return true;
     }
 
-    // 2. Cross-Device Account Match (Phone Number, Email, or User ID):
-    // Highest priority: If battery runs low, drops, or user switches phones, logging in with Phone or Email immediately grants official scoring on ANY phone!
+    // 2. Cross-Device Account Match (Phone Number, Email, User ID, or Name):
     if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
     if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
     if (creatorId && uId && creatorId === uId) return true;
+    if (creatorName && uName && creatorName === uName && uName !== 'match creator') return true;
 
     // 3. Physical Device ID Fallback (For offline/guest matches created on this phone):
     if (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) return true;
     if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
 
-    // 4. Creator / Scorer specific name match (only if phone/email not recorded):
-    if (!creatorPhone && !creatorEmail && creatorName && uName && creatorName === uName && uName !== 'match creator' && uName !== 'official scorer') {
-      return true;
-    }
-
     // Any other device is strictly a Spectator (read-only):
     return false;
-  }, [userProfile, authEmail, authPhone, authName, activeScorer, viewerSimulated, myScoringMatchIds]);
+  }, [userProfile, authEmail, authPhone, authName, activeScorer, viewerSimulated, myScoringMatchIds, matchesDb]);
 
   const isOfficialScorer = useMemo(() => {
     const currentMatch = activeMatchId ? (matchesDb[activeMatchId] || match || MATCH_DATABASE[activeMatchId]) : null;
@@ -6014,7 +6012,10 @@ function CricketAddaMain() {
     const creatorId = targetMatch.creatorId || matchObj.creatorId;
     const creatorDeviceId = targetMatch.creatorDeviceId || matchObj.creatorDeviceId;
 
-    if (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) return true;
+    if (
+      (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) ||
+      (matchesDb?.[targetMatch.id] && !matchesDb[targetMatch.id]?.isJoinedAsSpectator)
+    ) return true;
     if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
     if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
     if (creatorId && uId && creatorId === uId) return true;
@@ -6461,6 +6462,15 @@ function CricketAddaMain() {
   });
 
   const dismissSplash = useCallback(async () => {
+    // Ensure all databases & matches are completely hydrated from storage before removing splash
+    if (!isDataHydratedRef.current) {
+      let attempts = 0;
+      while (!isDataHydratedRef.current && attempts < 30) {
+        await new Promise(r => setTimeout(r, 100));
+        attempts++;
+      }
+    }
+
     isSplashDismissedInSession = true;
     try {
       if (splashPlayer) splashPlayer.pause();
@@ -6500,39 +6510,6 @@ function CricketAddaMain() {
   useEventListener(splashPlayer, 'playToEnd', () => {
     dismissSplash();
   });
-
-  // Smart Session Continuity Guard:
-  // If user returns after background inactivity or has an ongoing scoring/wizard session,
-  // skip the 8.5s splash video immediately so their active match or setup isn't hidden.
-  useEffect(() => {
-    let isCancelled = false;
-    const checkSessionContinuity = async () => {
-      try {
-        const storedLastActive = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
-        const storedTab = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_TAB);
-        const storedWiz = await AsyncStorage.getItem(STORAGE_KEYS.WIZARD_STATE);
-
-        const now = Date.now();
-        const lastActive = storedLastActive ? parseInt(storedLastActive, 10) : 0;
-        const wasRecentlyActive = !isNaN(lastActive) && (now - lastActive < 12 * 60 * 60 * 1000); // within 12 hours
-        const hasOngoingWork = storedTab === 'scorer' || (storedWiz && JSON.parse(storedWiz)?.visible);
-
-        if (wasRecentlyActive || hasOngoingWork) {
-          if (!isCancelled) {
-            isSplashDismissedInSession = true;
-            setShowSplash(false);
-            try {
-              if (splashPlayer) splashPlayer.pause();
-            } catch (_) {}
-          }
-        }
-      } catch (_) {}
-    };
-    checkSessionContinuity();
-    return () => {
-      isCancelled = true;
-    };
-  }, [splashPlayer]);
 
   useEffect(() => {
     Animated.timing(progressAnim, {
@@ -6628,6 +6605,8 @@ function CricketAddaMain() {
             const parsedFast = JSON.parse(fastRawMatches);
             if (parsedFast && typeof parsedFast === 'object' && Object.keys(parsedFast).length > 0) {
               setMatchesDb(parsedFast);
+              const fastLocalIds = Object.keys(parsedFast).filter(id => !parsedFast[id]?.isJoinedAsSpectator);
+              setMyScoringMatchIds(prev => Array.from(new Set([...(prev || []), ...fastLocalIds])));
             }
           }
         } catch (_) {}
@@ -6876,12 +6855,17 @@ function CricketAddaMain() {
           }
 
           const storedMyScoring = await AsyncStorage.getItem(STORAGE_KEYS.MY_SCORING_MATCHES);
+          let parsedScoring = [];
           if (storedMyScoring) {
             try {
-              const parsedScoring = JSON.parse(storedMyScoring);
-              if (Array.isArray(parsedScoring)) setMyScoringMatchIds(parsedScoring);
+              const ps = JSON.parse(storedMyScoring);
+              if (Array.isArray(ps)) parsedScoring = ps;
             } catch (e) {}
           }
+          const localMatchIds = Object.keys(existingMatches).filter(id => !existingMatches[id]?.isJoinedAsSpectator);
+          const combinedScoringIds = Array.from(new Set([...parsedScoring, ...localMatchIds]));
+          setMyScoringMatchIds(combinedScoringIds);
+          AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(combinedScoringIds)).catch(() => {});
           const storedPlayers = await AsyncStorage.getItem(STORAGE_KEYS.REGISTERED_PLAYERS);
           if (storedPlayers) {
             try {
@@ -7057,6 +7041,8 @@ function CricketAddaMain() {
       } catch (e) {
       } finally {
         setIsSessionRestoring(false);
+        setIsDataHydrated(true);
+        isDataHydratedRef.current = true;
       }
     };
     loadUserPreferences();
@@ -16046,6 +16032,14 @@ function CricketAddaMain() {
     }
 
     setActiveMatchId(resolvedMatchId);
+    if (matchesDb?.[resolvedMatchId] && !targetMatch.isJoinedAsSpectator && !targetMatch.isSpectating) {
+      setMyScoringMatchIds(prev => {
+        if (Array.isArray(prev) && prev.includes(resolvedMatchId)) return prev;
+        const updated = [...(prev || []), resolvedMatchId];
+        AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
+        return updated;
+      });
+    }
     setMatchesDb(prev => ({
       ...MATCH_DATABASE,
       ...(prev || {}),
@@ -16158,6 +16152,25 @@ function CricketAddaMain() {
     return (
       <Animated.View style={[styles.splashFullContainer, { opacity: splashFade }]}>
         <StatusBar barStyle="light-content" backgroundColor="#020617" translucent={true} hidden={false} />
+        <TouchableOpacity
+          onPress={dismissSplash}
+          activeOpacity={0.8}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          style={{
+            position: 'absolute',
+            top: Math.max(topInset, 16) + 12,
+            right: 16,
+            zIndex: 999,
+            backgroundColor: 'rgba(15, 23, 42, 0.8)',
+            borderWidth: 1,
+            borderColor: 'rgba(255, 255, 255, 0.25)',
+            borderRadius: 20,
+            paddingVertical: 6,
+            paddingHorizontal: 14,
+          }}
+        >
+          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '700' }}>Skip ❯</Text>
+        </TouchableOpacity>
         <View style={styles.splashImageWrapper}>
           <VideoView
             style={styles.splashPosterImage}
@@ -16177,7 +16190,7 @@ function CricketAddaMain() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                 <View style={styles.splashPulsingDot} />
                 <Text style={styles.splashLoadingText}>
-                  Initializing CricketAdda Live Engine...
+                  {isDataHydrated ? 'Ready! Launching Dashboard...' : 'Loading Match Database & Live State...'}
                 </Text>
               </View>
               <Text style={styles.splashCountdownText}>
