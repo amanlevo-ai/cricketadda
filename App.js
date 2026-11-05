@@ -5980,16 +5980,8 @@ function CricketAddaMain() {
     if (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) return true;
     if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
 
-    // 4. Creator / Scorer specific name match:
-    if (creatorName && uName && (creatorName === uName || creatorName.includes(uName) || uName.includes(creatorName)) && uName !== 'match creator' && uName !== 'official scorer') {
-      return true;
-    }
-    if (assignedName && uName && (assignedName === uName || assignedName.includes(uName) || uName.includes(assignedName)) && uName !== 'match creator' && uName !== 'official scorer') {
-      return true;
-    }
-
-    // 5. Local Database Ownership: If this match exists in the user's local matchesDb, user has full scoring authority
-    if (matchesDb && matchesDb[targetMatch.id || targetMatch.activeMatchId]) {
+    // 4. Creator / Scorer specific name match (only if phone/email not recorded):
+    if (!creatorPhone && !creatorEmail && creatorName && uName && creatorName === uName && uName !== 'match creator' && uName !== 'official scorer') {
       return true;
     }
 
@@ -16149,14 +16141,6 @@ function CricketAddaMain() {
     if (!targetMatch) return;
     const resolvedMatchId = targetMatch.id || matchId;
 
-    // Auto-claim official scoring authorization for this user when opening from dashboard
-    setViewerSimulated(false);
-    setMyScoringMatchIds(prev => {
-      const updated = Array.from(new Set([...(prev || []), resolvedMatchId]));
-      AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
-      return updated;
-    });
-
     // Fast-path: If user is the active official scorer on this device and ALREADY scoring this active match,
     // do NOT re-initialize or blow away the live in-memory scoring state UNLESS a reset was triggered!
     const isResetTarget = Boolean(
@@ -19354,47 +19338,22 @@ function CricketAddaMain() {
                 </View>
                 </View>
               ) : (
-                /* Spectator Read-Only Notice with Instant Claim Button */
+                /* Spectator Read-Only Notice */
                 <View style={{
                   backgroundColor: '#071526',
-                  borderRadius: 10,
+                  borderRadius: 8,
                   borderWidth: 1,
                   borderColor: '#1e3a5f',
-                  padding: 10,
+                  padding: 8,
                   marginBottom: 8,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 8,
+                  gap: 6,
                 }}>
-                  <Text style={{ fontSize: 18 }}>👁️</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#e2e8f0', fontSize: 11.5, fontWeight: '700' }}>
-                      Spectator Mode
-                    </Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 10, lineHeight: 14 }}>
-                      Keypad is locked. Tap below to start scoring this match.
-                    </Text>
-                  </View>
-                  <TouchableOpacity
-                    onPress={() => {
-                      setViewerSimulated(false);
-                      const targetId = activeMatchId || match?.id;
-                      if (targetId) {
-                        setMyScoringMatchIds(prev => Array.from(new Set([...(prev || []), targetId])));
-                        AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(Array.from(new Set([...(myScoringMatchIds || []), targetId])))).catch(() => {});
-                      }
-                      showAppToast('Official Scoring Mode activated 🏏', '🏏', 'success');
-                    }}
-                    style={{
-                      backgroundColor: '#22c55e',
-                      paddingVertical: 6,
-                      paddingHorizontal: 12,
-                      borderRadius: 8,
-                    }}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={{ color: '#000000', fontSize: 11.5, fontWeight: '900' }}>Start Scoring</Text>
-                  </TouchableOpacity>
+                  <Text style={{ fontSize: 16 }}>👁️</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11, flex: 1, lineHeight: 15 }}>
+                    Live match is synced live from official match scorer. Keypad input is disabled in Spectator Mode.
+                  </Text>
                 </View>
               )}
                           </>
