@@ -24927,30 +24927,7 @@ function CricketAddaMain() {
                   </View>
                 </TouchableOpacity>
 
-                {/* Option 5: Reset Match to 0 */}
-                <TouchableOpacity
-                  onPress={handleResetCurrentMatchToZero}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
-                    paddingVertical: 11,
-                    paddingHorizontal: 12,
-                    borderRadius: 10,
-                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
-                    marginBottom: 4,
-                    borderWidth: 1,
-                    borderColor: 'rgba(234, 179, 8, 0.4)',
-                  }}
-                >
-                  <Text style={{ fontSize: 18 }}>🔄</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#fde047', fontSize: 13, fontWeight: '800' }}>Reset Match to 0</Text>
-                    <Text style={{ color: '#fef08a', fontSize: 11 }}>Clear balls & restart match scoring from 0.0</Text>
-                  </View>
-                </TouchableOpacity>
-
-                {/* Option 6: Cancel Match */}
+                {/* Option 5: Cancel Match */}
                 <TouchableOpacity
                   onPress={() => {
                     setScorerActionsModalVisible(false);
