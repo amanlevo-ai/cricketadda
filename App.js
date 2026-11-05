@@ -10131,7 +10131,8 @@ function CricketAddaMain() {
     incomingBatterName = null,
     dismissalDescParam = null
   ) => {
-    // 0. Check if current innings or match is already completed
+    try {
+      // 0. Check if current innings or match is already completed
     if (isFirstInningsFinished) {
       setInningsBreakModalVisible(true);
       return;
@@ -10320,8 +10321,8 @@ function CricketAddaMain() {
       team2Name: currentInnings === 1 ? bowlingTeamName : battingTeamName,
       team1Flag: currentInnings === 1 ? battingTeamFlag : bowlingTeamFlag,
       team2Flag: currentInnings === 1 ? bowlingTeamFlag : battingTeamFlag,
-      team1Squad: currentInnings === 1 ? squad1 : squad2,
-      team2Squad: currentInnings === 1 ? squad2 : squad1,
+      team1Squad: match?.team1Squad || currentMatchData?.team1Squad || currentMatchData?.innings1?.batting || activeBattingSquad || [],
+      team2Squad: match?.team2Squad || currentMatchData?.team2Squad || currentMatchData?.innings2?.batting || activeOppBowlers || [],
       openingStriker: currentInnings === 1 ? (match?.innings1OpeningStriker || striker) : (match?.innings2OpeningStriker || striker),
       openingNonStriker: currentInnings === 1 ? (match?.innings1OpeningNonStriker || nonStriker) : (match?.innings2OpeningNonStriker || nonStriker),
       openingBowler: bowler,
@@ -10825,6 +10826,10 @@ function CricketAddaMain() {
     });
 
     setSelectedExtraType(null);
+    } catch (recordErr) {
+      console.error('[recordBall Crash Protection]', recordErr);
+      showAppToast('Error recording ball: ' + (recordErr?.message || 'Unknown error'), '⚠️');
+    }
   };
 
   const parseBallSymbol = symbol => {
@@ -11913,9 +11918,10 @@ function CricketAddaMain() {
   };
 
   const executeConfirmedUndo = () => {
-    setUndoConfirmModalVisible(false);
-    const lastAction = undoPendingAction;
-    setUndoPendingAction(null);
+    try {
+      setUndoConfirmModalVisible(false);
+      const lastAction = undoPendingAction;
+      setUndoPendingAction(null);
 
     if (!lastAction) return;
 
@@ -11929,8 +11935,8 @@ function CricketAddaMain() {
         team2Name: currentInnings === 1 ? bowlingTeamName : battingTeamName,
         team1Flag: currentInnings === 1 ? battingTeamFlag : bowlingTeamFlag,
         team2Flag: currentInnings === 1 ? bowlingTeamFlag : battingTeamFlag,
-        team1Squad: currentInnings === 1 ? squad1 : squad2,
-        team2Squad: currentInnings === 1 ? squad2 : squad1,
+        team1Squad: match?.team1Squad || currentMatchData?.team1Squad || currentMatchData?.innings1?.batting || activeBattingSquad || [],
+        team2Squad: match?.team2Squad || currentMatchData?.team2Squad || currentMatchData?.innings2?.batting || activeOppBowlers || [],
         openingStriker: currentInnings === 1 ? (match?.innings1OpeningStriker || striker) : (match?.innings2OpeningStriker || striker),
         openingNonStriker: currentInnings === 1 ? (match?.innings1OpeningNonStriker || nonStriker) : (match?.innings2OpeningNonStriker || nonStriker),
         openingBowler: bowler,
@@ -12155,6 +12161,10 @@ function CricketAddaMain() {
     }
 
     showAppToast('No deliveries in this over to undo ↩️', '↩️', 'info');
+    } catch (undoErr) {
+      console.error('[executeConfirmedUndo Error Guard]', undoErr);
+      showAppToast('Could not undo delivery: ' + (undoErr?.message || 'Unknown error'), '⚠️');
+    }
   };
 
   const handleSendScorerNoteToAdmin = async () => {
@@ -12284,63 +12294,72 @@ function CricketAddaMain() {
   };
 
   const handleRunPress = runs => {
-    if (!isOfficialScorer) {
-      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
-      return;
-    }
-
-    const isCurrentOverComplete = Boolean(
-      needsNewBowler ||
-      (reconciledScore.balls > 0 && reconciledScore.balls % 6 === 0 && (scoringHistory || []).length > 0 && (!match.currentBowler || match.currentBowler === match.lastOverBowler))
-    );
-
-    if (isCurrentOverComplete) {
-      const lastBw = match.lastOverBowler || match.previousBowler || bowler;
-      const eligible = activeOppBowlers.filter(b => b.toLowerCase() !== lastBw.toLowerCase() && !isBowlerQuotaMaxed(b));
-      if (eligible.length > 0) {
-        setNextBowler(eligible[0]);
+    try {
+      if (!isOfficialScorer) {
+        showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
+        return;
       }
-      setNeedsNewBowler(true);
-      setChangeBowlerModalVisible(true);
-      showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
-      return;
-    }
 
-    const extraMode = selectedExtraType;
-    setSelectedExtraType(null);
+      const isCurrentOverComplete = Boolean(
+        needsNewBowler ||
+        (reconciledScore.balls > 0 && reconciledScore.balls % 6 === 0 && (scoringHistory || []).length > 0 && (!match.currentBowler || match.currentBowler === match.lastOverBowler))
+      );
 
-    // Cricket Rule: Extras not off the bat (Wide, Bye, Leg Bye, Penalty) NEVER ask for Wagon Wheel area!
-    const isOffBat = extraMode !== 'wide' && extraMode !== 'bye' && extraMode !== 'legBye' && extraMode !== 'penalty';
-    const isBoundary = runs === 4 || runs === 6;
-
-    // Check if Wagon Wheel should be prompted based on trigger mode
-    const shouldPromptWheel =
-      autoWheel &&
-      isOffBat &&
-      (wheelTriggerMode === 'all' || (wheelTriggerMode === 'boundaries' && isBoundary));
-
-    // If Wagon Wheel prompt is OFF or delivery is not eligible for wheel, record immediately
-    if (!shouldPromptWheel) {
-      if (extraMode === 'wide') {
-        recordBall(runs, 'wide', 1);
-      } else if (extraMode === 'noBall') {
-        recordBall(runs, 'noBall', 1, false, null, null, null, null, nbSubMode);
-      } else if (extraMode === 'bye') {
-        recordBall(runs, 'bye', 0);
-      } else if (extraMode === 'legBye') {
-        recordBall(runs, 'legBye', 0);
-      } else if (extraMode === 'penalty') {
-        recordBall(runs, 'penalty', 0);
-      } else {
-        recordBall(runs);
+      if (isCurrentOverComplete) {
+        const lastBw = String(match.lastOverBowler || match.previousBowler || bowler || '').trim();
+        const eligible = activeOppBowlers.filter(b => {
+          const bStr = String(typeof b === 'object' ? b.name : b || '').trim();
+          return bStr && bStr.toLowerCase() !== lastBw.toLowerCase() && !isBowlerQuotaMaxed(bStr);
+        });
+        if (eligible.length > 0) {
+          const firstEligible = typeof eligible[0] === 'object' ? eligible[0].name : eligible[0];
+          setNextBowler(firstEligible);
+        }
+        setNeedsNewBowler(true);
+        setChangeBowlerModalVisible(true);
+        showAppToast('Over completed. Please select next bowler 🔴', '🔴', 'warning');
+        return;
       }
-      return;
-    }
 
-    // When Wagon Wheel is ON for shots off the bat, prompt modal to select shot area
-    setPendingRuns(runs);
-    setPendingExtraType(extraMode);
-    setWheelModalVisible(true);
+      const extraMode = selectedExtraType;
+      setSelectedExtraType(null);
+
+      // Cricket Rule: Extras not off the bat (Wide, Bye, Leg Bye, Penalty) NEVER ask for Wagon Wheel area!
+      const isOffBat = extraMode !== 'wide' && extraMode !== 'bye' && extraMode !== 'legBye' && extraMode !== 'penalty';
+      const isBoundary = runs === 4 || runs === 6;
+
+      // Check if Wagon Wheel should be prompted based on trigger mode
+      const shouldPromptWheel =
+        autoWheel &&
+        isOffBat &&
+        (wheelTriggerMode === 'all' || (wheelTriggerMode === 'boundaries' && isBoundary));
+
+      // If Wagon Wheel prompt is OFF or delivery is not eligible for wheel, record immediately
+      if (!shouldPromptWheel) {
+        if (extraMode === 'wide') {
+          recordBall(runs, 'wide', 1);
+        } else if (extraMode === 'noBall') {
+          recordBall(runs, 'noBall', 1, false, null, null, null, null, nbSubMode);
+        } else if (extraMode === 'bye') {
+          recordBall(runs, 'bye', 0);
+        } else if (extraMode === 'legBye') {
+          recordBall(runs, 'legBye', 0);
+        } else if (extraMode === 'penalty') {
+          recordBall(runs, 'penalty', 0);
+        } else {
+          recordBall(runs);
+        }
+        return;
+      }
+
+      // When Wagon Wheel is ON for shots off the bat, prompt modal to select shot area
+      setPendingRuns(runs);
+      setPendingExtraType(extraMode);
+      setWheelModalVisible(true);
+    } catch (err) {
+      console.error('[handleRunPress Crash Protection]', err);
+      showAppToast('Could not record run: ' + (err?.message || 'Unknown error'), '⚠️');
+    }
   };
 
   const confirmWheelShot = (skip = false, chosenSector = null) => {
@@ -12607,8 +12626,8 @@ function CricketAddaMain() {
       team2Name: currentInnings === 1 ? bowlingTeamName : battingTeamName,
       team1Flag: currentInnings === 1 ? battingTeamFlag : bowlingTeamFlag,
       team2Flag: currentInnings === 1 ? bowlingTeamFlag : battingTeamFlag,
-      team1Squad: currentInnings === 1 ? squad1 : squad2,
-      team2Squad: currentInnings === 1 ? squad2 : squad1,
+      team1Squad: match?.team1Squad || currentMatchData?.team1Squad || currentMatchData?.innings1?.batting || activeBattingSquad || [],
+      team2Squad: match?.team2Squad || currentMatchData?.team2Squad || currentMatchData?.innings2?.batting || activeOppBowlers || [],
       openingStriker: currentInnings === 1 ? (match?.innings1OpeningStriker || striker) : (match?.innings2OpeningStriker || striker),
       openingNonStriker: currentInnings === 1 ? (match?.innings1OpeningNonStriker || nonStriker) : (match?.innings2OpeningNonStriker || nonStriker),
       openingBowler: bowler,
