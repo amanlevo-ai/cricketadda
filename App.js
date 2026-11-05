@@ -12550,55 +12550,6 @@ function CricketAddaMain() {
     });
 
     const ballSymbol = String(dropRuns);
-    const nextBalls = liveBalls + 1;
-    const nextRuns = liveRuns + dropRuns;
-    const isOverEnd = nextBalls % 6 === 0;
-
-    // Batters stats update
-    const curStrikerStats = liveBatters[striker] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0, singles: 0, doubles: 0, triples: 0 };
-    const updatedLiveBatters = {
-      ...liveBatters,
-      [striker]: {
-        ...curStrikerStats,
-        runs: (curStrikerStats.runs || 0) + dropRuns,
-        balls: (curStrikerStats.balls || 0) + 1,
-        fours: (curStrikerStats.fours || 0) + (dropRuns === 4 ? 1 : 0),
-        sixes: (curStrikerStats.sixes || 0) + (dropRuns === 6 ? 1 : 0),
-        dots: (curStrikerStats.dots || 0) + (dropRuns === 0 ? 1 : 0),
-        singles: (curStrikerStats.singles || 0) + (dropRuns === 1 ? 1 : 0),
-        doubles: (curStrikerStats.doubles || 0) + (dropRuns === 2 ? 1 : 0),
-        triples: (curStrikerStats.triples || 0) + (dropRuns === 3 ? 1 : 0),
-      },
-    };
-    setLiveBatters(updatedLiveBatters);
-
-    // Bowler stats update
-    const curBowlerStats = liveBowlerStats[bowler] || { runs: 0, wickets: 0, balls: 0, maidens: 0 };
-    const updatedLiveBowlers = {
-      ...liveBowlerStats,
-      [bowler]: {
-        ...curBowlerStats,
-        runs: (curBowlerStats.runs || 0) + dropRuns,
-        balls: (curBowlerStats.balls || 0) + 1,
-      },
-    };
-    setLiveBowlerStats(updatedLiveBowlers);
-
-    // Strike rotation on odd runs, and swap on over completion
-    const isOddRuns = dropRuns % 2 === 1;
-    let nextStriker = striker;
-    let nextNonStriker = nonStriker;
-    if (isOddRuns) {
-      nextStriker = nonStriker;
-      nextNonStriker = striker;
-    }
-    if (isOverEnd) {
-      const temp = nextStriker;
-      nextStriker = nextNonStriker;
-      nextNonStriker = temp;
-    }
-    setStriker(nextStriker);
-    setNonStriker(nextNonStriker);
 
     // Save drop catch snapshot to undo history
     const dropSnapshot = {
@@ -12653,6 +12604,21 @@ function CricketAddaMain() {
     const nextBalls = derivedActive.balls;
     const updatedLiveBatters = derivedActive.liveBatters;
     const updatedLiveBowlers = derivedActive.liveBowlerStats;
+
+    // Strike rotation on odd runs, and swap on over completion
+    const isOverEnd = derivedActive.balls > 0 && derivedActive.balls % 6 === 0;
+    const isOddRuns = dropRuns % 2 === 1;
+    let nextStriker = striker;
+    let nextNonStriker = nonStriker;
+    if (isOddRuns && !isOverEnd) {
+      nextStriker = nonStriker;
+      nextNonStriker = striker;
+    } else if (!isOddRuns && isOverEnd) {
+      nextStriker = nonStriker;
+      nextNonStriker = striker;
+    }
+    setStriker(nextStriker);
+    setNonStriker(nextNonStriker);
 
     // Generate real-time text commentary for dropped catch
     const dropCommEntry = {
