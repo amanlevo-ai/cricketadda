@@ -6775,10 +6775,15 @@ function CricketAddaMain() {
               }
 
               const isMatchReset = Boolean(
-                mObj.forceReset ||
-                mObj.isReset ||
-                (mObj.liveBalls === 0 && mObj.liveRuns === 0 && (!mObj.scoringHistory || mObj.scoringHistory.length === 0))
+                (mObj.forceReset || mObj.isReset) &&
+                mObj.forceResetAt &&
+                mObj.forceResetAt > (lastResetConsumedAtRef.current || 0) &&
+                (!mObj.scoringHistory || mObj.scoringHistory.length === 0) &&
+                (mObj.liveBalls === 0 || mObj.liveBalls === undefined)
               );
+              if (isMatchReset && mObj.forceResetAt) {
+                lastResetConsumedAtRef.current = mObj.forceResetAt;
+              }
               const candidateHistory = isMatchReset
                 ? []
                 : ((Array.isArray(mObj.liveState?.scoringHistory) && mObj.liveState.scoringHistory.length >= (mObj.scoringHistory?.length || 0))
@@ -7048,14 +7053,20 @@ function CricketAddaMain() {
                   Object.entries(cloudDb).forEach(([mId, m]) => {
                     if (m && !delMatches.has(mId)) {
                       const isCloudReset = Boolean(
-                        m.forceReset ||
-                        m.isReset ||
-                        (m.liveBalls === 0 && m.liveRuns === 0 && (!m.scoringHistory || m.scoringHistory.length === 0))
+                        (m.forceReset || m.isReset) &&
+                        m.forceResetAt &&
+                        m.forceResetAt > (lastResetConsumedAtRef.current || 0) &&
+                        (!m.scoringHistory || m.scoringHistory.length === 0) &&
+                        (m.liveBalls === 0 || m.liveBalls === undefined)
                       );
                       if (isCloudReset) {
+                        if (m.forceResetAt) lastResetConsumedAtRef.current = m.forceResetAt;
                         merged[mId] = {
                           ...(merged[mId] || {}),
                           ...m,
+                          forceReset: false,
+                          isReset: false,
+                          forceResetAt: null,
                           scoringHistory: [],
                           liveRuns: 0,
                           liveWickets: 0,
@@ -7068,6 +7079,9 @@ function CricketAddaMain() {
                           firstInningsSummary: null,
                           liveState: {
                             ...(m.liveState || {}),
+                            forceReset: false,
+                            isReset: false,
+                            forceResetAt: null,
                             scoringHistory: [],
                             liveRuns: 0,
                             liveWickets: 0,
@@ -7362,10 +7376,21 @@ function CricketAddaMain() {
             hasChanges = true;
           } else {
             // If the match was explicitly reset remotely, accept it unconditionally!
-            if (mData.forceReset || mData.forceResetAt || mData.isReset || (mData.liveBalls === 0 && mData.liveRuns === 0 && (!mData.scoringHistory || mData.scoringHistory.length === 0))) {
+            const isRemoteReset = Boolean(
+              (mData.forceReset || mData.isReset) &&
+              mData.forceResetAt &&
+              mData.forceResetAt > (lastResetConsumedAtRef.current || 0) &&
+              (!mData.scoringHistory || mData.scoringHistory.length === 0) &&
+              (mData.liveBalls === 0 || mData.liveBalls === undefined)
+            );
+            if (isRemoteReset) {
+              if (mData.forceResetAt) lastResetConsumedAtRef.current = mData.forceResetAt;
               const cleanedReset = {
                 ...existing,
                 ...mData,
+                forceReset: false,
+                isReset: false,
+                forceResetAt: null,
                 scoringHistory: [],
                 liveRuns: 0,
                 liveWickets: 0,
@@ -7378,6 +7403,9 @@ function CricketAddaMain() {
                 firstInningsSummary: null,
                 liveState: {
                   ...(mData.liveState || {}),
+                  forceReset: false,
+                  isReset: false,
+                  forceResetAt: null,
                   scoringHistory: [],
                   liveRuns: 0,
                   liveWickets: 0,
@@ -9448,15 +9476,19 @@ function CricketAddaMain() {
     const inn2 = lm.innings2;
 
     const isResetTarget = Boolean(
-      lm.forceReset ||
-      lm.isReset ||
-      (lm.liveBalls === 0 && lm.liveRuns === 0 && (!lm.scoringHistory || lm.scoringHistory.length === 0))
+      (lm.forceReset || lm.isReset) &&
+      lm.forceResetAt &&
+      lm.forceResetAt > (lastResetConsumedAtRef.current || 0) &&
+      (!lm.scoringHistory || lm.scoringHistory.length === 0) &&
+      (lm.liveBalls === 0 || lm.liveBalls === undefined)
     );
     const lmHistory = isResetTarget
       ? []
       : ((Array.isArray(lm.scoringHistory) && lm.scoringHistory.length > 0)
           ? lm.scoringHistory
-          : (Array.isArray(lm.liveState?.scoringHistory) ? lm.liveState.scoringHistory : (isCur && Array.isArray(scoringHistory) ? scoringHistory : [])));
+          : (Array.isArray(lm.liveState?.scoringHistory) && lm.liveState.scoringHistory.length > 0
+              ? lm.liveState.scoringHistory
+              : (isCur && Array.isArray(scoringHistory) ? scoringHistory : [])));
 
     const derivedLm = lmHistory.length > 0 ? deriveMatchStateFromDeliveries(lmHistory, lm) : null;
 
@@ -9475,37 +9507,33 @@ function CricketAddaMain() {
       : team1BatName;
 
     // Batting score resolution: 100% anchored to derived deliveries if available
-    const activeLiveRuns = isResetTarget
-      ? 0
-      : (derivedLm
-          ? (curInn === 2 ? derivedLm.innings2.runs : derivedLm.innings1.runs)
-          : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
-            ? reconciledScore.runs
-            : (lm.liveRuns ?? (curInn === 2 ? inn2?.runs : inn1?.runs) ?? 0)));
+    const activeLiveRuns = derivedLm
+      ? (curInn === 2 ? derivedLm.innings2.runs : derivedLm.innings1.runs)
+      : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
+        ? reconciledScore.runs
+        : (isResetTarget ? 0 : (lm.liveRuns ?? (curInn === 2 ? inn2?.runs : inn1?.runs) ?? 0)));
 
-    const activeLiveWickets = isResetTarget
-      ? 0
-      : (derivedLm
-          ? (curInn === 2 ? derivedLm.innings2.wickets : derivedLm.innings1.wickets)
-          : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
-            ? reconciledScore.wickets
-            : (lm.liveWickets ?? (curInn === 2 ? inn2?.wickets : inn1?.wickets) ?? 0)));
+    const activeLiveWickets = derivedLm
+      ? (curInn === 2 ? derivedLm.innings2.wickets : derivedLm.innings1.wickets)
+      : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
+        ? reconciledScore.wickets
+        : (isResetTarget ? 0 : (lm.liveWickets ?? (curInn === 2 ? inn2?.wickets : inn1?.wickets) ?? 0)));
 
-    const activeLiveOvers = isResetTarget
-      ? '0.0 Ov'
-      : (derivedLm
-          ? `${curInn === 2 ? derivedLm.innings2.overs : derivedLm.innings1.overs} Ov`
-          : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
-            ? `${reconciledScore.oversStr} Ov`
+    const activeLiveOvers = derivedLm
+      ? `${curInn === 2 ? derivedLm.innings2.overs : derivedLm.innings1.overs} Ov`
+      : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
+        ? `${reconciledScore.oversStr} Ov`
+        : (isResetTarget
+            ? '0.0 Ov'
             : (() => {
                 const p = String(curInn === 2 ? (inn2?.overs || '0.0') : (inn1?.overs || '0.0')).split('.');
                 const bls = (parseInt(p[0], 10) || 0) * 6 + (parseInt(p[1], 10) || 0);
                 return `${Math.floor(bls / 6)}.${bls % 6} Ov`;
               })()));
 
-    const inn1DispRuns = isResetTarget ? 0 : (derivedLm ? derivedLm.innings1.runs : (inn1?.runs ?? 0));
-    const inn1DispWkts = isResetTarget ? 0 : (derivedLm ? derivedLm.innings1.wickets : (inn1?.wickets ?? 0));
-    const inn1DispOvers = isResetTarget ? '0.0' : (derivedLm ? derivedLm.innings1.overs : (inn1?.overs ?? '0.0'));
+    const inn1DispRuns = derivedLm ? derivedLm.innings1.runs : (isResetTarget ? 0 : (inn1?.runs ?? 0));
+    const inn1DispWkts = derivedLm ? derivedLm.innings1.wickets : (isResetTarget ? 0 : (inn1?.wickets ?? 0));
+    const inn1DispOvers = derivedLm ? derivedLm.innings1.overs : (isResetTarget ? '0.0' : (inn1?.overs ?? '0.0'));
 
     let sA, ovA, sB, ovB;
     if (curInn === 1) {
@@ -10948,6 +10976,9 @@ function CricketAddaMain() {
         const cur = prev[activeMatchId] || {};
         const updatedMatch = {
           ...cur,
+          forceReset: false,
+          isReset: false,
+          forceResetAt: null,
           liveRuns: nextRuns,
           liveWickets: nextWkts,
           liveBalls: nextBalls,
@@ -10985,6 +11016,9 @@ function CricketAddaMain() {
           },
           liveState: {
             currentInnings,
+            forceReset: false,
+            isReset: false,
+            forceResetAt: null,
             liveRuns: nextRuns,
             liveWickets: nextWkts,
             liveBalls: nextBalls,
@@ -11012,6 +11046,9 @@ function CricketAddaMain() {
 
     // 10. Direct Instant Broadcast to Sync Server
     broadcastMatchState({
+      forceReset: false,
+      isReset: false,
+      forceResetAt: null,
       liveRuns: nextRuns,
       liveWickets: nextWkts,
       liveBalls: nextBalls,
@@ -12220,6 +12257,9 @@ function CricketAddaMain() {
         const oversFormatted = derivedActive.oversStr;
         const updatedMatch = {
           ...cur,
+          forceReset: false,
+          isReset: false,
+          forceResetAt: null,
           status: 'live',
           result: '',
           liveRuns: derivedActive.runs,
@@ -12251,6 +12291,9 @@ function CricketAddaMain() {
           },
           liveState: {
             currentInnings,
+            forceReset: false,
+            isReset: false,
+            forceResetAt: null,
             status: 'live',
             result: '',
             liveRuns: derivedActive.runs,
@@ -16286,12 +16329,14 @@ function CricketAddaMain() {
     // Fast-path: If user is the active official scorer on this device and ALREADY scoring this active match,
     // do NOT re-initialize or blow away the live in-memory scoring state UNLESS a reset was triggered!
     const isResetTarget = Boolean(
-      targetMatch.forceReset ||
-      targetMatch.isReset ||
-      (targetMatch.liveBalls === 0 && targetMatch.liveRuns === 0 && (!targetMatch.scoringHistory || targetMatch.scoringHistory.length === 0))
+      (targetMatch.forceReset || targetMatch.isReset) &&
+      targetMatch.forceResetAt &&
+      targetMatch.forceResetAt > (lastResetConsumedAtRef.current || 0) &&
+      (!targetMatch.scoringHistory || targetMatch.scoringHistory.length === 0) &&
+      (targetMatch.liveBalls === 0 || targetMatch.liveBalls === undefined)
     );
-    if (isResetTarget) {
-      lastResetConsumedAtRef.current = targetMatch.forceResetAt || Date.now();
+    if (isResetTarget && targetMatch.forceResetAt) {
+      lastResetConsumedAtRef.current = targetMatch.forceResetAt;
     }
     if (
       resolvedMatchId === activeMatchId &&
@@ -16319,6 +16364,9 @@ function CricketAddaMain() {
             ...(MATCH_DATABASE[resolvedMatchId] || {}),
             ...existing,
             ...targetMatch,
+            forceReset: false,
+            isReset: false,
+            forceResetAt: null,
             scoringHistory: [],
             liveRuns: 0,
             liveWickets: 0,
@@ -16331,6 +16379,9 @@ function CricketAddaMain() {
             firstInningsSummary: null,
             liveState: {
               ...(targetMatch.liveState || {}),
+              forceReset: false,
+              isReset: false,
+              forceResetAt: null,
               scoringHistory: [],
               liveRuns: 0,
               liveWickets: 0,
