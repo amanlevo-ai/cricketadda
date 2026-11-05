@@ -8722,6 +8722,122 @@ function CricketAddaMain() {
     }
   };
 
+  const handleResetCurrentMatchToZero = () => {
+    if (!activeMatchId) return;
+    Alert.alert(
+      '🔄 Reset Match to 0',
+      'Are you sure you want to reset this match to 0.0 overs (0 runs, 0 wickets)? All recorded balls for this match will be cleared so you can test scoring fresh from ball 1.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Reset to 0',
+          style: 'destructive',
+          onPress: () => {
+            const nowMs = Date.now();
+            setScoringHistory([]);
+            setLiveRuns(0);
+            setLiveWickets(0);
+            setLiveBalls(0);
+            setLiveThisOver([]);
+            setLiveBatters({});
+            setLiveBowlerStats({});
+            setLiveCommentaryList([]);
+            setFirstInningsSummary(null);
+            setCurrentInnings(1);
+            setScorecardInning(1);
+            setNeedsNewBowler(false);
+            setMatchDroppedCatches([]);
+            setMatchResultText('');
+
+            setMatchesDb(prev => {
+              const cur = prev?.[activeMatchId] || {};
+              const resetMatch = {
+                ...cur,
+                status: 'live',
+                result: '',
+                liveRuns: 0,
+                liveWickets: 0,
+                liveBalls: 0,
+                liveOvers: '0.0',
+                liveThisOver: [],
+                scoringHistory: [],
+                liveBatters: {},
+                liveBowlerStats: {},
+                liveCommentaryList: [],
+                firstInningsSummary: null,
+                innings1: {
+                  ...(cur.innings1 || {}),
+                  runs: 0,
+                  wickets: 0,
+                  overs: '0.0',
+                  balls: 0,
+                  batting: [],
+                  bowling: [],
+                  extras: '0 (b 0, lb 0, w 0, nb 0)',
+                  fallOfWickets: [],
+                },
+                innings2: {
+                  ...(cur.innings2 || {}),
+                  runs: 0,
+                  wickets: 0,
+                  overs: '0.0',
+                  balls: 0,
+                  batting: [],
+                  bowling: [],
+                  extras: '0 (b 0, lb 0, w 0, nb 0)',
+                  fallOfWickets: [],
+                },
+                liveState: {
+                  currentInnings: 1,
+                  liveRuns: 0,
+                  liveWickets: 0,
+                  liveBalls: 0,
+                  oversStr: '0.0',
+                  liveThisOver: [],
+                  scoringHistory: [],
+                  liveBatters: {},
+                  liveBowlerStats: {},
+                  liveCommentaryList: [],
+                },
+                forceReset: true,
+                isReset: true,
+                forceResetAt: nowMs,
+                lastUpdatedAt: nowMs,
+              };
+              const updatedDb = { ...(prev || {}), [activeMatchId]: resetMatch };
+              AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
+              return updatedDb;
+            });
+
+            broadcastMatchState({
+              forceReset: true,
+              isReset: true,
+              forceResetAt: nowMs,
+              status: 'live',
+              result: '',
+              liveRuns: 0,
+              liveWickets: 0,
+              liveBalls: 0,
+              liveOvers: '0.0',
+              liveThisOver: [],
+              scoringHistory: [],
+              liveBatters: {},
+              liveBowlerStats: {},
+              liveCommentaryList: [],
+              currentInnings: 1,
+              firstInningsSummary: null,
+              innings1: { runs: 0, wickets: 0, overs: '0.0', balls: 0 },
+              innings2: { runs: 0, wickets: 0, overs: '0.0', balls: 0 },
+            });
+
+            setScorerActionsModalVisible(false);
+            showAppToast('Match reset to 0/0 (0.0 ov)! Ready to test from ball 1.', '🔄');
+          },
+        },
+      ]
+    );
+  };
+
   // Live Cloud Sync: Continuous Real-Time Subscription via Firebase
   useEffect(() => {
     if (!isFirebaseConfigured() || !activeMatchId) return;
@@ -24811,7 +24927,30 @@ function CricketAddaMain() {
                   </View>
                 </TouchableOpacity>
 
-                {/* Option 5: Cancel Match */}
+                {/* Option 5: Reset Match to 0 */}
+                <TouchableOpacity
+                  onPress={handleResetCurrentMatchToZero}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingVertical: 11,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(234, 179, 8, 0.15)',
+                    marginBottom: 4,
+                    borderWidth: 1,
+                    borderColor: 'rgba(234, 179, 8, 0.4)',
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>🔄</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#fde047', fontSize: 13, fontWeight: '800' }}>Reset Match to 0</Text>
+                    <Text style={{ color: '#fef08a', fontSize: 11 }}>Clear balls & restart match scoring from 0.0</Text>
+                  </View>
+                </TouchableOpacity>
+
+                {/* Option 6: Cancel Match */}
                 <TouchableOpacity
                   onPress={() => {
                     setScorerActionsModalVisible(false);
