@@ -5998,6 +5998,16 @@ function CricketAddaMain() {
     return isUserScorerForMatch(currentMatch);
   }, [activeMatchId, matchesDb, match, isUserScorerForMatch]);
 
+  const activeMatchIdRef = useRef(activeMatchId);
+  useEffect(() => {
+    activeMatchIdRef.current = activeMatchId;
+  }, [activeMatchId]);
+
+  const isOfficialScorerRef = useRef(isOfficialScorer);
+  useEffect(() => {
+    isOfficialScorerRef.current = isOfficialScorer;
+  }, [isOfficialScorer]);
+
   const isMatchCreator = useMemo(() => {
     const targetMatch = activeMatchId ? (matchesDb[activeMatchId] || match || MATCH_DATABASE[activeMatchId]) : null;
     if (!targetMatch) return false;
@@ -7430,11 +7440,18 @@ function CricketAddaMain() {
               return;
             }
             // Guard active live match: if this device is the official scorer, never overwrite with generic cloud polling!
-            if (mId === activeMatchId && isOfficialScorer) {
-              next[mId] = existing;
-              return;
+            const curActiveId = activeMatchIdRef.current;
+            const curIsOfficial = isOfficialScorerRef.current;
+            const existingBalls = typeof existing.liveBalls === 'number' ? existing.liveBalls : (existing.scoringHistory?.length || 0);
+            const cloudBalls = typeof mData.liveBalls === 'number' ? mData.liveBalls : (mData.scoringHistory?.length || 0);
+
+            if (mId === curActiveId && curIsOfficial) {
+              if (!mData.isUndoAction && cloudBalls <= existingBalls) {
+                next[mId] = existing;
+                return;
+              }
             }
-            if (mId === activeMatchId && !mData.isUndoAction && typeof mData.liveBalls === 'number' && typeof existing.liveBalls === 'number' && mData.liveBalls < existing.liveBalls) {
+            if (!mData.isUndoAction && cloudBalls < existingBalls) {
               next[mId] = existing;
               return;
             }
@@ -9484,11 +9501,13 @@ function CricketAddaMain() {
     );
     const lmHistory = isResetTarget
       ? []
-      : ((Array.isArray(lm.scoringHistory) && lm.scoringHistory.length > 0)
-          ? lm.scoringHistory
-          : (Array.isArray(lm.liveState?.scoringHistory) && lm.liveState.scoringHistory.length > 0
-              ? lm.liveState.scoringHistory
-              : (isCur && Array.isArray(scoringHistory) ? scoringHistory : [])));
+      : ((isCur && Array.isArray(scoringHistory) && scoringHistory.length >= (lm.scoringHistory?.length || 0))
+          ? scoringHistory
+          : ((Array.isArray(lm.scoringHistory) && lm.scoringHistory.length > 0)
+              ? lm.scoringHistory
+              : (Array.isArray(lm.liveState?.scoringHistory) && lm.liveState.scoringHistory.length > 0
+                  ? lm.liveState.scoringHistory
+                  : (isCur && Array.isArray(scoringHistory) ? scoringHistory : []))));
 
     const derivedLm = lmHistory.length > 0 ? deriveMatchStateFromDeliveries(lmHistory, lm) : null;
 
@@ -9507,29 +9526,29 @@ function CricketAddaMain() {
       : team1BatName;
 
     // Batting score resolution: 100% anchored to derived deliveries if available
-    const activeLiveRuns = derivedLm
-      ? (curInn === 2 ? derivedLm.innings2.runs : derivedLm.innings1.runs)
-      : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
-        ? reconciledScore.runs
-        : (isResetTarget ? 0 : (lm.liveRuns ?? (curInn === 2 ? inn2?.runs : inn1?.runs) ?? 0)));
+    const activeLiveRuns = (isCur && (reconciledScore.balls > 0 || reconciledScore.runs > 0) && reconciledScore.balls >= (derivedLm?.activeScore?.balls || lm.liveBalls || 0))
+      ? reconciledScore.runs
+      : (derivedLm
+          ? (curInn === 2 ? derivedLm.innings2.runs : derivedLm.innings1.runs)
+          : (isResetTarget ? 0 : (lm.liveRuns ?? (curInn === 2 ? inn2?.runs : inn1?.runs) ?? 0)));
 
-    const activeLiveWickets = derivedLm
-      ? (curInn === 2 ? derivedLm.innings2.wickets : derivedLm.innings1.wickets)
-      : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
-        ? reconciledScore.wickets
-        : (isResetTarget ? 0 : (lm.liveWickets ?? (curInn === 2 ? inn2?.wickets : inn1?.wickets) ?? 0)));
+    const activeLiveWickets = (isCur && (reconciledScore.balls > 0 || reconciledScore.runs > 0) && reconciledScore.balls >= (derivedLm?.activeScore?.balls || lm.liveBalls || 0))
+      ? reconciledScore.wickets
+      : (derivedLm
+          ? (curInn === 2 ? derivedLm.innings2.wickets : derivedLm.innings1.wickets)
+          : (isResetTarget ? 0 : (lm.liveWickets ?? (curInn === 2 ? inn2?.wickets : inn1?.wickets) ?? 0)));
 
-    const activeLiveOvers = derivedLm
-      ? `${curInn === 2 ? derivedLm.innings2.overs : derivedLm.innings1.overs} Ov`
-      : (isCur && (reconciledScore.runs > 0 || reconciledScore.balls > 0)
-        ? `${reconciledScore.oversStr} Ov`
-        : (isResetTarget
-            ? '0.0 Ov'
-            : (() => {
-                const p = String(curInn === 2 ? (inn2?.overs || '0.0') : (inn1?.overs || '0.0')).split('.');
-                const bls = (parseInt(p[0], 10) || 0) * 6 + (parseInt(p[1], 10) || 0);
-                return `${Math.floor(bls / 6)}.${bls % 6} Ov`;
-              })()));
+    const activeLiveOvers = (isCur && (reconciledScore.balls > 0 || reconciledScore.runs > 0) && reconciledScore.balls >= (derivedLm?.activeScore?.balls || lm.liveBalls || 0))
+      ? `${reconciledScore.oversStr} Ov`
+      : (derivedLm
+          ? `${curInn === 2 ? derivedLm.innings2.overs : derivedLm.innings1.overs} Ov`
+          : (isResetTarget
+              ? '0.0 Ov'
+              : (() => {
+                  const p = String(curInn === 2 ? (inn2?.overs || '0.0') : (inn1?.overs || '0.0')).split('.');
+                  const bls = (parseInt(p[0], 10) || 0) * 6 + (parseInt(p[1], 10) || 0);
+                  return `${Math.floor(bls / 6)}.${bls % 6} Ov`;
+                })()));
 
     const inn1DispRuns = derivedLm ? derivedLm.innings1.runs : (isResetTarget ? 0 : (inn1?.runs ?? 0));
     const inn1DispWkts = derivedLm ? derivedLm.innings1.wickets : (isResetTarget ? 0 : (inn1?.wickets ?? 0));

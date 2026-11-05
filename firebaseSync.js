@@ -1069,20 +1069,30 @@ export function subscribeToFirebaseMatchesDb(onMatchesUpdate, intervalMs = 2500)
             if (lMatch && typeof lMatch === 'object' && !deletedSet.has(mId)) {
               const rawStatus = lMatch.status || matches[mId]?.status || 'live';
               const effectiveStatus = rawStatus === 'in_progress' ? 'live' : rawStatus;
+              const existingBalls = typeof matches[mId]?.liveBalls === 'number'
+                ? matches[mId].liveBalls
+                : (Array.isArray(matches[mId]?.scoringHistory) ? matches[mId].scoringHistory.length : 0);
+              const liveBalls = typeof lMatch.liveBalls === 'number'
+                ? lMatch.liveBalls
+                : (Array.isArray(lMatch.scoringHistory) ? lMatch.scoringHistory.length : 0);
+              const isUndoAction = Boolean(lMatch.isUndoAction || matches[mId]?.isUndoAction);
+              const preferDbState = !isUndoAction && existingBalls > liveBalls;
+
               matches[mId] = {
                 ...(matches[mId] || {}),
                 ...(lMatch.match || {}),
                 id: mId,
-                liveRuns: lMatch.liveRuns ?? matches[mId]?.liveRuns,
-                liveWickets: lMatch.liveWickets ?? matches[mId]?.liveWickets,
-                liveBalls: lMatch.liveBalls ?? matches[mId]?.liveBalls,
-                liveThisOver: lMatch.liveThisOver ?? matches[mId]?.liveThisOver,
+                liveRuns: preferDbState ? matches[mId]?.liveRuns : (lMatch.liveRuns ?? matches[mId]?.liveRuns),
+                liveWickets: preferDbState ? matches[mId]?.liveWickets : (lMatch.liveWickets ?? matches[mId]?.liveWickets),
+                liveBalls: preferDbState ? matches[mId]?.liveBalls : (lMatch.liveBalls ?? matches[mId]?.liveBalls),
+                liveOvers: preferDbState ? matches[mId]?.liveOvers : (lMatch.liveOvers ?? matches[mId]?.liveOvers),
+                liveThisOver: preferDbState ? matches[mId]?.liveThisOver : (lMatch.liveThisOver ?? matches[mId]?.liveThisOver),
                 activeScorer: lMatch.activeScorer ?? matches[mId]?.activeScorer,
-                currentInnings: lMatch.currentInnings ?? matches[mId]?.currentInnings,
+                currentInnings: preferDbState ? matches[mId]?.currentInnings : (lMatch.currentInnings ?? matches[mId]?.currentInnings),
                 firstInningsSummary: lMatch.firstInningsSummary ?? matches[mId]?.firstInningsSummary,
-                liveBatters: lMatch.liveBatters ?? matches[mId]?.liveBatters,
-                liveBowlerStats: lMatch.liveBowlerStats ?? matches[mId]?.liveBowlerStats,
-                scoringHistory: lMatch.scoringHistory ?? matches[mId]?.scoringHistory,
+                liveBatters: preferDbState ? matches[mId]?.liveBatters : (lMatch.liveBatters ?? matches[mId]?.liveBatters),
+                liveBowlerStats: preferDbState ? matches[mId]?.liveBowlerStats : (lMatch.liveBowlerStats ?? matches[mId]?.liveBowlerStats),
+                scoringHistory: preferDbState ? matches[mId]?.scoringHistory : (lMatch.scoringHistory ?? matches[mId]?.scoringHistory),
                 status: effectiveStatus,
               };
             }
@@ -1091,7 +1101,7 @@ export function subscribeToFirebaseMatchesDb(onMatchesUpdate, intervalMs = 2500)
       }
 
       if (!isActive) return;
-      const currentHash = JSON.stringify(Object.keys(matches).map(k => `${k}_${matches[k]?.liveRuns}_${matches[k]?.liveWickets}_${matches[k]?.status}`));
+      const currentHash = JSON.stringify(Object.keys(matches).map(k => `${k}_${matches[k]?.liveRuns}_${matches[k]?.liveWickets}_${matches[k]?.liveBalls}_${matches[k]?.status}`));
       if (currentHash !== lastHash) {
         lastHash = currentHash;
         if (typeof onMatchesUpdate === 'function') {
