@@ -7469,9 +7469,14 @@ function CricketAddaMain() {
               setLiveThisOver(mData.liveThisOver || []);
               setLiveBatters(mData.liveBatters || {});
               setLiveBowlerStats(mData.liveBowlerStats || {});
-              if (mData.currentStriker) setStriker(mData.currentStriker);
-              if (mData.currentNonStriker) setNonStriker(mData.currentNonStriker);
-              if (mData.currentBowler) setBowler(mData.currentBowler);
+              if (mData.currentStriker || mData.currentNonStriker || mData.currentBowler) {
+                setMatch(prev => ({
+                  ...prev,
+                  ...(mData.currentStriker ? { currentStriker: mData.currentStriker } : {}),
+                  ...(mData.currentNonStriker ? { currentNonStriker: mData.currentNonStriker } : {}),
+                  ...(mData.currentBowler ? { currentBowler: mData.currentBowler } : {}),
+                }));
+              }
             }
           }
         });
@@ -13065,8 +13070,11 @@ function CricketAddaMain() {
       nextStriker = nonStriker;
       nextNonStriker = striker;
     }
-    setStriker(nextStriker);
-    setNonStriker(nextNonStriker);
+    setMatch(prev => ({
+      ...prev,
+      currentStriker: nextStriker,
+      currentNonStriker: nextNonStriker,
+    }));
 
     // Generate real-time text commentary for dropped catch
     const dropCommEntry = {
