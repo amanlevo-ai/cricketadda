@@ -7462,20 +7462,31 @@ function CricketAddaMain() {
 
             // Synchronize active match screen instantly if this match is open
             if (mId === activeMatchIdRef.current) {
-              setScoringHistory(mData.scoringHistory || []);
-              setLiveRuns(mData.liveRuns ?? 0);
-              setLiveWickets(mData.liveWickets ?? 0);
-              setLiveBalls(mData.liveBalls ?? 0);
-              setLiveThisOver(mData.liveThisOver || []);
-              setLiveBatters(mData.liveBatters || {});
-              setLiveBowlerStats(mData.liveBowlerStats || {});
-              if (mData.currentStriker || mData.currentNonStriker || mData.currentBowler) {
-                setMatch(prev => ({
-                  ...prev,
-                  ...(mData.currentStriker ? { currentStriker: mData.currentStriker } : {}),
-                  ...(mData.currentNonStriker ? { currentNonStriker: mData.currentNonStriker } : {}),
-                  ...(mData.currentBowler ? { currentBowler: mData.currentBowler } : {}),
-                }));
+              const isSelfEcho = Boolean(
+                mData.senderClientId &&
+                clientIdRef?.current &&
+                mData.senderClientId === clientIdRef.current
+              );
+
+              // Scorer's own device: ignore delayed cloud echo on active screen to prevent "This Over" runs blinking/flickering!
+              if (isOfficialScorerRef.current && isSelfEcho) {
+                // Keep local optimistic state intact (no flicker)
+              } else if (!isOfficialScorerRef.current || (mData.senderClientId && mData.senderClientId !== clientIdRef?.current)) {
+                setScoringHistory(mData.scoringHistory || []);
+                setLiveRuns(mData.liveRuns ?? 0);
+                setLiveWickets(mData.liveWickets ?? 0);
+                setLiveBalls(mData.liveBalls ?? 0);
+                setLiveThisOver(mData.liveThisOver || []);
+                setLiveBatters(mData.liveBatters || {});
+                setLiveBowlerStats(mData.liveBowlerStats || {});
+                if (mData.currentStriker || mData.currentNonStriker || mData.currentBowler) {
+                  setMatch(prev => ({
+                    ...prev,
+                    ...(mData.currentStriker ? { currentStriker: mData.currentStriker } : {}),
+                    ...(mData.currentNonStriker ? { currentNonStriker: mData.currentNonStriker } : {}),
+                    ...(mData.currentBowler ? { currentBowler: mData.currentBowler } : {}),
+                  }));
+                }
               }
             }
           }
@@ -8764,6 +8775,7 @@ function CricketAddaMain() {
     const payloadRuns = customPayload.liveRuns !== undefined ? customPayload.liveRuns : liveRuns;
     const payloadWkts = customPayload.liveWickets !== undefined ? customPayload.liveWickets : liveWickets;
     const payloadOvers = customPayload.liveOvers || `${Math.floor(payloadBalls / 6)}.${payloadBalls % 6}`;
+    const payloadThisOver = customPayload.liveThisOver !== undefined ? customPayload.liveThisOver : liveThisOver;
     const payloadInnings = customPayload.currentInnings || currentInnings || 1;
     lastAppliedRemoteSyncRef.current = {
       timestamp: Date.now(),
@@ -8795,7 +8807,7 @@ function CricketAddaMain() {
       liveWickets: payloadWkts,
       liveBalls: payloadBalls,
       liveOvers: payloadOvers,
-      liveThisOver,
+      liveThisOver: payloadThisOver,
       activeScorer,
       currentInnings,
       firstInningsSummary,
@@ -8810,6 +8822,7 @@ function CricketAddaMain() {
         liveWickets: payloadWkts,
         liveBalls: payloadBalls,
         liveOvers: payloadOvers,
+        liveThisOver: payloadThisOver,
         creatorId: match?.creatorId || currentMatchInDb.creatorId || userProfile?.id,
         creatorDeviceId: match?.creatorDeviceId || currentMatchInDb.creatorDeviceId || clientIdRef?.current,
         creatorPhone: match?.creatorPhone || currentMatchInDb.creatorPhone || userProfile?.phone || authPhone || '',
@@ -11148,6 +11161,7 @@ function CricketAddaMain() {
         lastOverBowler: isOverEnd ? bowler : match.lastOverBowler,
         isOverEnd: Boolean(isOverEnd),
         status: (isSecondInningsFinished) ? 'completed' : 'live',
+        senderClientId: clientIdRef?.current || '',
         timestamp: Date.now(),
       };
 
