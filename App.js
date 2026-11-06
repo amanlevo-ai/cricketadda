@@ -7456,35 +7456,23 @@ function CricketAddaMain() {
               hasChanges = true;
               return;
             }
-            // Guard active live match: if this device is the official scorer, never overwrite with generic cloud polling!
-            const curActiveId = activeMatchIdRef.current;
-            const curIsOfficial = isOfficialScorerRef.current;
-            const existingBalls = typeof existing.liveBalls === 'number' ? existing.liveBalls : (existing.scoringHistory?.length || 0);
-            const cloudBalls = typeof mData.liveBalls === 'number' ? mData.liveBalls : (mData.scoringHistory?.length || 0);
-
-            if (mId === curActiveId && curIsOfficial) {
-              if (!mData.isUndoAction && cloudBalls <= existingBalls) {
-                next[mId] = existing;
-                return;
-              }
-            }
-            if (!mData.isUndoAction && cloudBalls < existingBalls) {
-              next[mId] = existing;
-              return;
-            }
-            if (
-              mData.liveRuns !== existing.liveRuns ||
-              mData.liveWickets !== existing.liveWickets ||
-              mData.liveBalls !== existing.liveBalls ||
-              mData.status !== existing.status ||
-              mData.activeScorer !== existing.activeScorer ||
-              mData.isScoringDelegated !== existing.isScoringDelegated ||
-              mData.scorerPhone !== existing.scorerPhone ||
-              (mData.liveBatters && Object.keys(mData.liveBatters).length > 0)
-            ) {
-              hasChanges = true;
-            }
+            // Accept Cloud RTDB state as Single Source of Truth
             next[mId] = { ...existing, ...mData };
+            hasChanges = true;
+
+            // Synchronize active match screen instantly if this match is open
+            if (mId === activeMatchIdRef.current) {
+              setScoringHistory(mData.scoringHistory || []);
+              setLiveRuns(mData.liveRuns ?? 0);
+              setLiveWickets(mData.liveWickets ?? 0);
+              setLiveBalls(mData.liveBalls ?? 0);
+              setLiveThisOver(mData.liveThisOver || []);
+              setLiveBatters(mData.liveBatters || {});
+              setLiveBowlerStats(mData.liveBowlerStats || {});
+              if (mData.currentStriker) setStriker(mData.currentStriker);
+              if (mData.currentNonStriker) setNonStriker(mData.currentNonStriker);
+              if (mData.currentBowler) setBowler(mData.currentBowler);
+            }
           }
         });
 
