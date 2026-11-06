@@ -322,8 +322,7 @@ function generateCommentaryFromHistory(history, match) {
 async function syncFromCloud(showNotification = false) {
   const startTime = performance.now();
   try {
-    const [matchesDbRes, matchesLiveRes, teamsRes, teamsIndexRes, usersRes, regPlayersRes, usersByEmailRes, scorerRequestsRes, deletedMatchesRes, deletedTeamsRes] = await Promise.allSettled([
-      fetch(`${CONFIG.FIREBASE_URL}/matches_db.json?t=${Date.now()}`),
+    const [matchesLiveRes, teamsRes, teamsIndexRes, usersRes, regPlayersRes, usersByEmailRes, scorerRequestsRes, deletedMatchesRes, deletedTeamsRes] = await Promise.allSettled([
       fetch(`${CONFIG.FIREBASE_URL}/matches.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/teams.json?t=${Date.now()}`),
       fetch(`${CONFIG.FIREBASE_URL}/teams_index.json?t=${Date.now()}`),
@@ -362,9 +361,9 @@ async function syncFromCloud(showNotification = false) {
       }
     }
 
-    // 1. Process Matches DB
-    if (matchesDbRes.status === 'fulfilled' && matchesDbRes.value.ok) {
-      const data = await matchesDbRes.value.json();
+    // 1. Process Matches (/matches node - Single Source of Truth)
+    if (matchesLiveRes.status === 'fulfilled' && matchesLiveRes.value.ok) {
+      const data = await matchesLiveRes.value.json();
       const rawDb = data && typeof data === 'object' ? data : {};
       const cleanDb = {};
       Object.entries(rawDb).forEach(([mId, m]) => {
@@ -373,55 +372,6 @@ async function syncFromCloud(showNotification = false) {
         }
       });
       state.matchesDb = cleanDb;
-    }
-
-    // 2. Process Live In-Flight Matches (/matches)
-    if (matchesLiveRes.status === 'fulfilled' && matchesLiveRes.value.ok) {
-      const liveData = await matchesLiveRes.value.json();
-      if (liveData && typeof liveData === 'object') {
-        Object.entries(liveData).forEach(([mId, lMatch]) => {
-          if (lMatch && typeof lMatch === 'object' && !deletedMatchesSet.has(mId)) {
-            if (!state.matchesDb[mId]) {
-              state.matchesDb[mId] = lMatch.match || lMatch;
-            } else {
-              // Merge in-flight live state without overwriting recent admin edits
-              const existing = state.matchesDb[mId];
-              const isRecentlyAdminEdited = existing.adminEditedAt && (Date.now() - existing.adminEditedAt < 6000);
-              const finalHist = lMatch.scoringHistory || lMatch.liveState?.scoringHistory || existing.scoringHistory || existing.liveState?.scoringHistory || [];
-              
-              state.matchesDb[mId] = {
-                ...existing,
-                ...(lMatch.match || {}),
-                liveRuns: isRecentlyAdminEdited ? existing.liveRuns : (lMatch.liveRuns ?? existing.liveRuns),
-                liveWickets: isRecentlyAdminEdited ? existing.liveWickets : (lMatch.liveWickets ?? existing.liveWickets),
-                liveBalls: isRecentlyAdminEdited ? existing.liveBalls : (lMatch.liveBalls ?? existing.liveBalls),
-                liveOvers: isRecentlyAdminEdited ? existing.liveOvers : (lMatch.liveOvers ?? existing.liveOvers),
-                liveThisOver: isRecentlyAdminEdited ? existing.liveThisOver : (lMatch.liveThisOver ?? existing.liveThisOver),
-                activeScorer: lMatch.activeScorer ?? existing.activeScorer,
-                currentInnings: lMatch.currentInnings ?? existing.currentInnings,
-                firstInningsSummary: isRecentlyAdminEdited ? existing.firstInningsSummary : (lMatch.firstInningsSummary ?? existing.firstInningsSummary),
-                innings1: isRecentlyAdminEdited ? existing.innings1 : (lMatch.innings1 || existing.innings1),
-                innings2: isRecentlyAdminEdited ? existing.innings2 : (lMatch.innings2 || existing.innings2),
-                liveBatters: isRecentlyAdminEdited ? existing.liveBatters : (lMatch.liveBatters || existing.liveBatters),
-                liveBowlerStats: isRecentlyAdminEdited ? existing.liveBowlerStats : (lMatch.liveBowlerStats || existing.liveBowlerStats),
-                scoringHistory: finalHist,
-                liveCommentaryList: isRecentlyAdminEdited ? (existing.liveCommentaryList || existing.liveState?.liveCommentaryList) : (lMatch.liveCommentaryList || existing.liveCommentaryList || existing.liveState?.liveCommentaryList || []),
-                liveState: {
-                  ...(existing.liveState || {}),
-                  ...(lMatch.liveState || {}),
-                  scoringHistory: finalHist,
-                  liveCommentaryList: isRecentlyAdminEdited ? (existing.liveCommentaryList || existing.liveState?.liveCommentaryList) : (lMatch.liveCommentaryList || existing.liveCommentaryList || existing.liveState?.liveCommentaryList || []),
-                  liveBatters: isRecentlyAdminEdited ? existing.liveBatters : (lMatch.liveBatters || existing.liveBatters),
-                  liveBowlerStats: isRecentlyAdminEdited ? existing.liveBowlerStats : (lMatch.liveBowlerStats || existing.liveBowlerStats),
-                  liveRuns: isRecentlyAdminEdited ? existing.liveRuns : (lMatch.liveRuns ?? existing.liveRuns),
-                  liveBalls: isRecentlyAdminEdited ? existing.liveBalls : (lMatch.liveBalls ?? existing.liveBalls),
-                  liveWickets: isRecentlyAdminEdited ? existing.liveWickets : (lMatch.liveWickets ?? existing.liveWickets),
-                }
-              };
-            }
-          }
-        });
-      }
     }
 
     // Normalize team names, flags, and titles across all matches to prevent 'undefined'
@@ -644,8 +594,8 @@ async function pushMatchToCloud(matchId, customMatchState = null) {
   };
 
   try {
-    // 1. Update /matches_db/${mId}
-    const resDb = await fetch(`${CONFIG.FIREBASE_URL}/matches_db/${mId}.json`, {
+    // 1. Update /matches/${mId}
+    const resDb = await fetch(`${CONFIG.FIREBASE_URL}/matches/${mId}.json`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(updatedMatch),
@@ -988,7 +938,7 @@ function setupEventListeners() {
     try {
       showToast('Preparing full database snapshot...', 'info');
       const [matchesRes, teamsRes, usersRes] = await Promise.allSettled([
-        fetch(`${CONFIG.FIREBASE_URL}/matches_db.json?t=${Date.now()}`),
+        fetch(`${CONFIG.FIREBASE_URL}/matches.json?t=${Date.now()}`),
         fetch(`${CONFIG.FIREBASE_URL}/teams.json?t=${Date.now()}`),
         fetch(`${CONFIG.FIREBASE_URL}/users.json?t=${Date.now()}`),
       ]);
@@ -1095,7 +1045,7 @@ function setupEventListeners() {
 
       // Handle Full Backup structure
       if (parsed.data && parsed.data.matches) {
-        await fetch(`${CONFIG.FIREBASE_URL}/matches_db.json`, {
+        await fetch(`${CONFIG.FIREBASE_URL}/matches.json`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(parsed.data.matches),
@@ -1103,7 +1053,7 @@ function setupEventListeners() {
         restoredMatches = Object.keys(parsed.data.matches).length;
       } else if (parsed.matchesDb || (typeof parsed === 'object' && !parsed.teams && !Array.isArray(parsed))) {
         const matchesToRestore = parsed.matchesDb || parsed;
-        await fetch(`${CONFIG.FIREBASE_URL}/matches_db.json`, {
+        await fetch(`${CONFIG.FIREBASE_URL}/matches.json`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(matchesToRestore),
@@ -1162,7 +1112,6 @@ function setupEventListeners() {
     const confirmPrompt = prompt('Type "WIPE" to confirm deleting all matches from database:');
     if (confirmPrompt === 'WIPE') {
       try {
-        await fetch(`${CONFIG.FIREBASE_URL}/matches_db.json`, { method: 'DELETE' });
         await fetch(`${CONFIG.FIREBASE_URL}/matches.json`, { method: 'DELETE' });
         state.matchesDb = {};
         state.activeMatchId = null;
@@ -3096,7 +3045,6 @@ function deleteMatchPrompt(matchId) {
     state.activeMatchId = Object.keys(state.matchesDb)[0] || null;
   }
   const id = String(matchId).trim();
-  fetch(`${CONFIG.FIREBASE_URL}/matches_db/${id}.json`, { method: 'DELETE' });
   fetch(`${CONFIG.FIREBASE_URL}/matches/${id}.json`, { method: 'DELETE' });
   fetch(`${CONFIG.FIREBASE_URL}/deleted_matches/${id}.json`, {
     method: 'PUT',

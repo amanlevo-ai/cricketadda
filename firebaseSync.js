@@ -1,11 +1,25 @@
 // ============================================================================
 // CRICKETADDA BULLETPROOF CLOUD DATABASE CLIENT (FIREBASE REALTIME DATABASE)
-// Zero external native SDK dependencies -> 100% crash-free on Android, iOS, & Web
+// Official modular Firebase SDK + Concurrency-Safe Atomic Transactions (runTransaction)
+// Keyed Deliveries storage (matches/{matchId}/balls/{pushId}) with Monotonic Seq
+// Single Source of Truth (/matches) + Unified State Derivation (cricketStateEngine)
 // Multi-device real-time sync across any phones over 4G/5G/Wi-Fi worldwide
-// Offline-first local caching + Automatic Cloud Sync Queue on Reconnect
 // ============================================================================
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { initializeApp, getApps } from 'firebase/app';
+import {
+  getDatabase,
+  ref,
+  onValue,
+  runTransaction,
+  push,
+  update,
+  remove,
+  get,
+  set,
+} from 'firebase/database';
+import { deriveMatchStateFromDeliveries } from './cricketStateEngine.js';
 
 export const DEFAULT_FIREBASE_CONFIG = {
   apiKey: "AIzaSyAisjW7FzpNvyzlR436lp6Gj2vPeLRYh3E",
@@ -19,6 +33,20 @@ export const DEFAULT_FIREBASE_CONFIG = {
 };
 
 let activeFirebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
+let firebaseAppInstance = null;
+let firebaseDbInstance = null;
+
+export function getFirebaseDb() {
+  if (firebaseDbInstance) return firebaseDbInstance;
+  const existingApps = getApps();
+  if (existingApps.length > 0) {
+    firebaseAppInstance = existingApps[0];
+  } else {
+    firebaseAppInstance = initializeApp(activeFirebaseConfig);
+  }
+  firebaseDbInstance = getDatabase(firebaseAppInstance);
+  return firebaseDbInstance;
+}
 
 // Cloud sync toggle (Enabled for real live database mode)
 export const ENABLE_CLOUD_SYNC = true;
@@ -36,6 +64,11 @@ export function isFirebaseConfigured() {
 export function initFirebase(customConfig = null) {
   if (customConfig) {
     activeFirebaseConfig = { ...activeFirebaseConfig, ...customConfig };
+  }
+  try {
+    getFirebaseDb();
+  } catch (e) {
+    console.warn('[FirebaseSync] Initialization warning:', e.message);
   }
   console.log('[FirebaseSync] 🟢 Live Firebase Cloud Database Active at', activeFirebaseConfig.databaseURL);
   return true;
@@ -76,7 +109,7 @@ export async function wipeAllFirebaseData() {
 }
 
 /**
- * Wipes matches, matches_db, teams, and resets career stats on cloud Firebase RTDB,
+ * Wipes matches, teams, and resets career stats on cloud Firebase RTDB,
  * while strictly PRESERVING all user accounts and profiles.
  */
 export async function wipeFirebaseMatchesTeamsAndStats() {
@@ -116,7 +149,6 @@ export async function wipeFirebaseMatchesTeamsAndStats() {
 
         await Promise.all([
       fetch(`${baseUrl}/matches.json`, { method: 'DELETE' }),
-      fetch(`${baseUrl}/matches_db.json`, { method: 'DELETE' }),
       fetch(`${baseUrl}/teams.json`, { method: 'DELETE' }),
       fetch(`${baseUrl}/teams_index.json`, { method: 'DELETE' }),
       fetch(`${baseUrl}/registered_players.json`, { method: 'DELETE' }),
@@ -278,7 +310,6 @@ export async function recordDeletedMatchTombstone(matchId) {
         body: JSON.stringify({ deletedAt: Date.now(), id }),
       }),
       fetch(`${baseUrl}/matches/${id}.json`, { method: 'DELETE' }),
-      fetch(`${baseUrl}/matches_db/${id}.json`, { method: 'DELETE' }),
     ]);
     return true;
   } catch (e) {
@@ -310,11 +341,265 @@ export async function recordDeletedTeamTombstone(teamId, teamName = null) {
 // DIRECT CLOUD SYNC METHODS (REST HTTP)
 // ============================================================================
 
+// ============================================================================
+// PURE MATCH STATE ENRICHMENT & SHARED DERIVATION ENGINE
+// Single source of truth calculation: NEVER store derived totals in database!
+// ============================================================================
+
+/**
+ * Enriches a raw match document from Firebase with 100% pure mathematically
+ * derived live score, batsman figures, bowler figures, overs, and result.
+ */
+export function enrichMatchWithDerivedState(rawMatch) {
+  if (!rawMatch || typeof rawMatch !== 'object') return rawMatch;
+
+  // 1. Gather all deliveries from keyed balls sub-node or fallback scoringHistory
+  let deliveries = [];
+  if (rawMatch.balls && typeof rawMatch.balls === 'object') {
+    deliveries = Object.values(rawMatch.balls);
+  } else if (Array.isArray(rawMatch.scoringHistory)) {
+    deliveries = [...rawMatch.scoringHistory];
+  }
+
+  // Sort chronologically by monotonic sequence or timestamp
+  deliveries.sort((a, b) => {
+    const seqA = Number(a?.seq !== undefined ? a.seq : (a?.deliveryIndex ?? 0));
+    const seqB = Number(b?.seq !== undefined ? b.seq : (b?.deliveryIndex ?? 0));
+    if (seqA !== seqB) return seqA - seqB;
+    return (Number(a?.timestamp) || 0) - (Number(b?.timestamp) || 0);
+  });
+
+  // 2. Pure state calculation via cricketStateEngine
+  const derived = deriveMatchStateFromDeliveries(deliveries, rawMatch);
+  const activeScore = derived.activeScore || {};
+
+  // 3. Return enriched match with computed figures (never storing derived totals to DB)
+  return {
+    ...rawMatch,
+    liveRuns: activeScore.runs,
+    liveWickets: activeScore.wickets,
+    liveBalls: activeScore.balls,
+    liveOvers: activeScore.oversStr,
+    liveThisOver: activeScore.thisOver,
+    crr: activeScore.crr,
+    currentStriker: rawMatch.currentStriker || activeScore.currentStriker,
+    currentNonStriker: rawMatch.currentNonStriker || activeScore.currentNonStriker,
+    currentBowler: rawMatch.currentBowler || activeScore.currentBowler,
+    lastOverBowler: rawMatch.lastOverBowler || activeScore.lastOverBowler,
+    liveBatters: activeScore.liveBatters,
+    liveBowlerStats: activeScore.liveBowlerStats,
+    scoringHistory: deliveries, // Normalized as sorted array for UI screens
+    innings1: {
+      ...(rawMatch.innings1 || {}),
+      ...derived.innings1,
+    },
+    innings2: {
+      ...(rawMatch.innings2 || {}),
+      ...derived.innings2,
+    },
+    equation: derived.equation || rawMatch.equation,
+    result: derived.matchResult || rawMatch.result,
+  };
+}
+
+/**
+ * Concurrency-safe atomic ball recording:
+ * Uses runTransaction on nextBallSeq to guarantee strict monotonic seq ordering.
+ * Stores ball under matches/{matchId}/balls/{pushId} (keyed child).
+ * Never stores derived totals in DB.
+ */
+export async function recordBallDeliveryAtomic(matchId, ballData) {
+  if (!isFirebaseConfigured() || !matchId) {
+    return { success: false, error: 'Firebase not configured or invalid matchId' };
+  }
+  const startTime = Date.now();
+  try {
+    const db = getFirebaseDb();
+    const id = String(matchId).trim();
+    const matchRef = ref(db, `matches/${id}`);
+    const seqRef = ref(db, `matches/${id}/nextBallSeq`);
+
+    // Step 1: Concurrency-safe monotonic sequence allocation via runTransaction
+    const txResult = await runTransaction(seqRef, (currentSeq) => {
+      const next = (typeof currentSeq === 'number' && currentSeq > 0) ? currentSeq : 1;
+      return next + 1;
+    });
+
+    if (!txResult.committed) {
+      throw new Error('Transaction aborted while generating ball sequence');
+    }
+
+    const assignedSeq = (txResult.snapshot.val() || 2) - 1;
+
+    // Step 2: Push keyed delivery under matches/{matchId}/balls/{pushId}
+    const ballsRef = ref(db, `matches/${id}/balls`);
+    const newBallRef = push(ballsRef);
+    const ballPushId = newBallRef.key;
+
+    const deliveryRecord = {
+      ...ballData,
+      id: ballPushId,
+      pushId: ballPushId,
+      seq: assignedSeq,
+      timestamp: Date.now(),
+    };
+
+    await set(newBallRef, deliveryRecord);
+
+    // Step 3: Concurrency-safe atomic metadata updates (NO derived totals stored!)
+    const metaUpdates = {
+      lastSyncedAt: Date.now(),
+      lastUpdatedAt: Date.now(),
+      isUndoAction: false,
+      currentInnings: Number(ballData.innings || 1),
+    };
+
+    if (ballData.nextStriker !== undefined) metaUpdates.currentStriker = ballData.nextStriker;
+    else if (ballData.striker !== undefined) metaUpdates.currentStriker = ballData.striker;
+
+    if (ballData.nextNonStriker !== undefined) metaUpdates.currentNonStriker = ballData.nextNonStriker;
+    else if (ballData.nonStriker !== undefined) metaUpdates.currentNonStriker = ballData.nonStriker;
+
+    if (ballData.nextBowler !== undefined) metaUpdates.currentBowler = ballData.nextBowler;
+    else if (ballData.bowler !== undefined) metaUpdates.currentBowler = ballData.bowler;
+
+    if (ballData.lastOverBowler !== undefined) metaUpdates.lastOverBowler = ballData.lastOverBowler;
+    if (ballData.status) metaUpdates.status = ballData.status;
+
+    await update(matchRef, metaUpdates);
+
+    console.log(`[FirebaseSync] 🟢 Ball seq #${assignedSeq} pushed to matches/${id}/balls/${ballPushId} in ${Date.now() - startTime}ms`);
+    return { success: true, seq: assignedSeq, pushId: ballPushId };
+  } catch (err) {
+    console.error('[FirebaseSync] ❌ Failed to record ball delivery:', err);
+    return { success: false, error: err.message || String(err) };
+  }
+}
+
+/**
+ * Concurrency-safe atomic delivery undo:
+ * Isolates delivery with highest seq, deletes it from matches/{matchId}/balls/{pushId},
+ * and decrements nextBallSeq via runTransaction.
+ */
+export async function undoLastBallDeliveryAtomic(matchId) {
+  if (!isFirebaseConfigured() || !matchId) {
+    return { success: false, error: 'Firebase not configured or invalid matchId' };
+  }
+  try {
+    const db = getFirebaseDb();
+    const id = String(matchId).trim();
+    const matchRef = ref(db, `matches/${id}`);
+    const ballsRef = ref(db, `matches/${id}/balls`);
+
+    const snapshot = await get(ballsRef);
+    if (!snapshot.exists()) {
+      return { success: false, error: 'No deliveries found in database to undo' };
+    }
+
+    const ballsMap = snapshot.val() || {};
+    const entries = Object.entries(ballsMap);
+    if (entries.length === 0) {
+      return { success: false, error: 'No deliveries recorded' };
+    }
+
+    // Sort descending by seq to isolate newest ball
+    entries.sort((a, b) => (Number(b[1].seq) || 0) - (Number(a[1].seq) || 0));
+    const [latestPushId, latestBall] = entries[0];
+    const removedSeq = Number(latestBall.seq) || 1;
+
+    // Delete the keyed delivery record
+    await remove(ref(db, `matches/${id}/balls/${latestPushId}`));
+
+    // Roll back sequence in nextBallSeq transactionally
+    const seqRef = ref(db, `matches/${id}/nextBallSeq`);
+    await runTransaction(seqRef, (cur) => {
+      if (typeof cur === 'number' && cur > removedSeq) {
+        return removedSeq;
+      }
+      return cur;
+    });
+
+    await update(matchRef, {
+      lastSyncedAt: Date.now(),
+      lastUpdatedAt: Date.now(),
+      isUndoAction: true,
+    });
+
+    console.log(`[FirebaseSync] 🟢 Undid delivery seq #${removedSeq} (${latestPushId}) on match ${id}`);
+    return { success: true, removedSeq, pushId: latestPushId };
+  } catch (err) {
+    console.error('[FirebaseSync] ❌ Failed to undo delivery:', err);
+    return { success: false, error: err.message || String(err) };
+  }
+}
+
+/**
+ * Concurrency-safe atomic scorer handover via runTransaction on activeScorer
+ */
+export async function transferScorerDutyAtomic(matchId, scorerData) {
+  if (!isFirebaseConfigured() || !matchId) {
+    return { success: false, error: 'Firebase not configured' };
+  }
+  try {
+    const db = getFirebaseDb();
+    const id = String(matchId).trim();
+    const scorerRef = ref(db, `matches/${id}/activeScorer`);
+
+    const txResult = await runTransaction(scorerRef, () => {
+      return {
+        ...scorerData,
+        assignedAt: Date.now(),
+      };
+    });
+
+    if (!txResult.committed) {
+      throw new Error('Scorer transfer transaction aborted');
+    }
+
+    await update(ref(db, `matches/${id}`), {
+      scorerId: scorerData.id || scorerData.scorerId || null,
+      scorerName: scorerData.name || scorerData.scorerName || 'Scorer',
+      scorerEmail: scorerData.email || scorerData.scorerEmail || null,
+      scorerPhone: scorerData.phone || scorerData.scorerPhone || null,
+      scorerDeviceId: scorerData.deviceId || scorerData.scorerDeviceId || null,
+      lastUpdatedAt: Date.now(),
+    });
+
+    console.log(`[FirebaseSync] 🟢 Scorer duty transferred to ${scorerData.name || 'new scorer'} on match ${id}`);
+    return { success: true, activeScorer: txResult.snapshot.val() };
+  } catch (err) {
+    console.error('[FirebaseSync] ❌ Failed to transfer scorer duty:', err);
+    return { success: false, error: err.message || String(err) };
+  }
+}
+
+/**
+ * Concurrency-safe atomic match metadata update (guarantees derived totals are never stored)
+ */
+export async function updateMatchMetaAtomic(matchId, updates) {
+  if (!isFirebaseConfigured() || !matchId || !updates) return false;
+  try {
+    const db = getFirebaseDb();
+    const id = String(matchId).trim();
+    const sanitizedUpdates = { ...updates, lastSyncedAt: Date.now() };
+    delete sanitizedUpdates.liveRuns;
+    delete sanitizedUpdates.liveBalls;
+    delete sanitizedUpdates.liveWickets;
+    delete sanitizedUpdates.liveOvers;
+    delete sanitizedUpdates.scoringHistory;
+    await update(ref(db, `matches/${id}`), sanitizedUpdates);
+    return true;
+  } catch (e) {
+    console.error('[FirebaseSync] ❌ updateMatchMetaAtomic error:', e);
+    return false;
+  }
+}
+
 export async function syncMatchToFirebaseDirect(matchId, matchState) {
   if (!isFirebaseConfigured() || !matchState) return false;
   try {
     const id = matchId || 'match_final_2026';
-    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const db = getFirebaseDb();
 
     // Never sync a match that has been marked as deleted
     const deletedMatches = await fetchFirebaseDeletedMatches();
@@ -323,26 +608,18 @@ export async function syncMatchToFirebaseDirect(matchId, matchState) {
       return false;
     }
 
-    const url = `${baseUrl}/matches/${id}.json`;
-    const payload = {
-      ...matchState,
-      lastSyncedAt: Date.now(),
-    };
-    const res = await fetch(url, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
+    // Strip derived totals so we NEVER overwrite pure source of truth
+    const payload = { ...matchState, lastSyncedAt: Date.now() };
+    delete payload.liveRuns;
+    delete payload.liveBalls;
+    delete payload.liveWickets;
+    delete payload.liveOvers;
+    delete payload.scoringHistory; // Deliveries live under /balls
 
-    // Also mirror into /matches_db/${id}.json for persistent historical and admin records
-    fetch(`${baseUrl}/matches_db/${id}.json`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    }).catch(() => {});
-
-    return res.ok;
+    await update(ref(db, `matches/${id}`), payload);
+    return true;
   } catch (err) {
+    console.error('[FirebaseSync] ❌ syncMatchToFirebaseDirect error:', err);
     return false;
   }
 }
@@ -350,25 +627,28 @@ export async function syncMatchToFirebaseDirect(matchId, matchState) {
 export async function syncMatchesDbToFirebaseDirect(matchesDb) {
   if (!isFirebaseConfigured() || !matchesDb) return false;
   try {
-    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
+    const db = getFirebaseDb();
     const deletedMatches = await fetchFirebaseDeletedMatches();
 
-    // Strip out any tombstoned / deleted matches
-    const sanitizedDb = {};
+    const updates = {};
     Object.entries(matchesDb).forEach(([mId, mData]) => {
       if (mData && !deletedMatches.has(mId)) {
-        sanitizedDb[mId] = mData;
+        const payload = { ...mData, lastSyncedAt: Date.now() };
+        delete payload.liveRuns;
+        delete payload.liveBalls;
+        delete payload.liveWickets;
+        delete payload.liveOvers;
+        delete payload.scoringHistory;
+        updates[`matches/${mId}`] = payload;
       }
     });
 
-    const url = `${baseUrl}/matches_db.json`;
-    const res = await fetch(url, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(sanitizedDb),
-    });
-    return res.ok;
+    if (Object.keys(updates).length > 0) {
+      await update(ref(db), updates);
+    }
+    return true;
   } catch (e) {
+    console.error('[FirebaseSync] ❌ syncMatchesDbToFirebaseDirect error:', e);
     return false;
   }
 }
@@ -705,101 +985,81 @@ export function startAutoSyncWorker(onStatusChange, onSyncComplete) {
 // ============================================================================
 
 /**
- * Fetches single match from Firebase
+ * Fetches single match from Firebase RTDB and enriches with pure derived state
  */
 export async function fetchFirebaseMatch(matchId) {
-  if (!isFirebaseConfigured()) return null;
+  if (!isFirebaseConfigured() || !matchId) return null;
   try {
-    const id = matchId || 'match_final_2026';
-    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const url = `${baseUrl}/matches/${id}.json`;
-    const res = await fetch(url);
-    if (res.ok) {
-      return await res.json();
-    }
-    return null;
+    const id = String(matchId).trim();
+    const db = getFirebaseDb();
+    const matchRef = ref(db, `matches/${id}`);
+    const snap = await get(matchRef);
+    if (!snap.exists()) return null;
+    const rawMatch = snap.val();
+    return enrichMatchWithDerivedState({ ...rawMatch, id });
   } catch (e) {
+    console.error(`[FirebaseSync] ❌ fetchFirebaseMatch(${matchId}) error:`, e);
     return null;
   }
 }
 
 /**
- * Subscribes to real-time updates for a specific match from Firebase via polling stream
+ * Subscribes to real-time updates for a specific match from Firebase using onValue()
  */
 export function subscribeToFirebaseMatch(matchId, onMatchUpdate) {
-  if (!isFirebaseConfigured()) return () => {};
-  let isActive = true;
-  let isFetching = false;
-  const id = matchId || 'match_final_2026';
-  const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-  const url = `${baseUrl}/matches/${id}.json`;
+  if (!isFirebaseConfigured() || !matchId) return () => {};
+  try {
+    const db = getFirebaseDb();
+    const id = String(matchId).trim();
+    const matchRef = ref(db, `matches/${id}`);
 
-  const fetchLatest = async () => {
-    if (!isActive || isFetching) return;
-    isFetching = true;
-    try {
-      const res = await fetch(`${url}?t=${Date.now()}`, {
-        headers: {
-          'Cache-Control': 'no-cache, no-store, must-revalidate',
-          'Pragma': 'no-cache',
-        },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data && typeof onMatchUpdate === 'function' && isActive) {
-          onMatchUpdate(data);
-        }
+    const unsubscribe = onValue(matchRef, async (snapshot) => {
+      if (!snapshot.exists()) return;
+      const rawMatch = snapshot.val();
+      if (!rawMatch || typeof rawMatch !== 'object') return;
+
+      const deletedMatches = await fetchFirebaseDeletedMatches();
+      if (deletedMatches.has(id)) return;
+
+      const enriched = enrichMatchWithDerivedState({ ...rawMatch, id });
+      if (typeof onMatchUpdate === 'function') {
+        onMatchUpdate(enriched);
       }
-    } catch (e) {
-    } finally {
-      isFetching = false;
-    }
-  };
+    }, (error) => {
+      console.error(`[FirebaseSync] ❌ onValue error on match ${id}:`, error);
+    });
 
-  fetchLatest();
-  const interval = setInterval(fetchLatest, 750);
-
-  return () => {
-    isActive = false;
-    clearInterval(interval);
-  };
+    return () => unsubscribe();
+  } catch (err) {
+    console.error('[FirebaseSync] ❌ subscribeToFirebaseMatch error:', err);
+    return () => {};
+  }
 }
 
 /**
- * Fetch matches database from Cloud
+ * Fetch matches database from Cloud (/matches node only - single source of truth)
  */
 export async function fetchFirebaseMatchesDb() {
   if (!isFirebaseConfigured()) return null;
   try {
-    const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-    const [dbRes, deletedRes] = await Promise.allSettled([
-      fetch(`${baseUrl}/matches_db.json?t=${Date.now()}`),
-      fetch(`${baseUrl}/deleted_matches.json?t=${Date.now()}`),
+    const db = getFirebaseDb();
+    const matchesRef = ref(db, 'matches');
+    const [snap, deletedMatches] = await Promise.all([
+      get(matchesRef),
+      fetchFirebaseDeletedMatches(),
     ]);
 
-    let deletedSet = new Set();
-    if (deletedRes.status === 'fulfilled' && deletedRes.value.ok) {
-      const delData = await deletedRes.value.json();
-      if (delData && typeof delData === 'object') {
-        deletedSet = new Set(Object.keys(delData).map(k => String(k).trim()));
+    if (!snap.exists()) return {};
+    const data = snap.val() || {};
+    const cleanMatches = {};
+    Object.entries(data).forEach(([mId, rawMatch]) => {
+      if (rawMatch && typeof rawMatch === 'object' && !deletedMatches.has(mId)) {
+        cleanMatches[mId] = enrichMatchWithDerivedState({ ...rawMatch, id: mId });
       }
-    }
-
-    if (dbRes.status === 'fulfilled' && dbRes.value.ok) {
-      const data = await dbRes.value.json();
-      if (data && typeof data === 'object') {
-        const cleanMatches = {};
-        Object.entries(data).forEach(([mId, m]) => {
-          if (m && !deletedSet.has(mId)) {
-            cleanMatches[mId] = m;
-          }
-        });
-        return cleanMatches;
-      }
-      return {};
-    }
-    return null;
+    });
+    return cleanMatches;
   } catch (e) {
+    console.error('[FirebaseSync] ❌ fetchFirebaseMatchesDb error:', e);
     return null;
   }
 }
@@ -1024,100 +1284,38 @@ export function subscribeToFirebaseUsers(onUsersUpdate, intervalMs = 3000) {
 }
 
 /**
- * Subscribes to real-time matches database updates
+ * Subscribes to real-time matches database updates directly from /matches
+ * Single Source of Truth via onValue() - 100% computed from delivery balls!
  */
-export function subscribeToFirebaseMatchesDb(onMatchesUpdate, intervalMs = 2500) {
+export function subscribeToFirebaseMatchesDb(onMatchesUpdate) {
   if (!isFirebaseConfigured()) return () => {};
-  let isActive = true;
-  let lastHash = '';
+  try {
+    const db = getFirebaseDb();
+    const matchesRef = ref(db, 'matches');
 
-  const checkMatches = async () => {
-    if (!isActive) return;
-    try {
-      const baseUrl = activeFirebaseConfig.databaseURL.replace(/\/$/, '');
-      const [dbRes, liveRes, deletedRes] = await Promise.allSettled([
-        fetch(`${baseUrl}/matches_db.json?t=${Date.now()}`),
-        fetch(`${baseUrl}/matches.json?t=${Date.now()}`),
-        fetch(`${baseUrl}/deleted_matches.json?t=${Date.now()}`),
-      ]);
+    const unsubscribe = onValue(matchesRef, async (snapshot) => {
+      const rawData = snapshot.val() || {};
+      const deletedMatches = await fetchFirebaseDeletedMatches();
 
-      let deletedSet = new Set();
-      if (deletedRes.status === 'fulfilled' && deletedRes.value.ok) {
-        const delData = await deletedRes.value.json();
-        if (delData && typeof delData === 'object') {
-          deletedSet = new Set(Object.keys(delData).map(k => String(k).trim()));
+      const enrichedDb = {};
+      Object.entries(rawData).forEach(([mId, rawMatch]) => {
+        if (rawMatch && typeof rawMatch === 'object' && !deletedMatches.has(mId)) {
+          enrichedDb[mId] = enrichMatchWithDerivedState({ ...rawMatch, id: mId });
         }
+      });
+
+      if (typeof onMatchesUpdate === 'function') {
+        onMatchesUpdate(enrichedDb);
       }
+    }, (error) => {
+      console.error('[FirebaseSync] ❌ onValue error on matches node:', error);
+    });
 
-      let matches = {};
-      if (dbRes.status === 'fulfilled' && dbRes.value.ok) {
-        const data = await dbRes.value.json();
-        if (data && typeof data === 'object') {
-          Object.entries(data).forEach(([mId, m]) => {
-            if (m && !deletedSet.has(mId)) {
-              const mStatus = m.status === 'in_progress' ? 'live' : (m.status || 'live');
-              matches[mId] = { ...m, status: mStatus };
-            }
-          });
-        }
-      }
-
-      if (liveRes.status === 'fulfilled' && liveRes.value.ok) {
-        const liveData = await liveRes.value.json();
-        if (liveData && typeof liveData === 'object') {
-          Object.entries(liveData).forEach(([mId, lMatch]) => {
-            if (lMatch && typeof lMatch === 'object' && !deletedSet.has(mId)) {
-              const rawStatus = lMatch.status || matches[mId]?.status || 'live';
-              const effectiveStatus = rawStatus === 'in_progress' ? 'live' : rawStatus;
-              const existingBalls = typeof matches[mId]?.liveBalls === 'number'
-                ? matches[mId].liveBalls
-                : (Array.isArray(matches[mId]?.scoringHistory) ? matches[mId].scoringHistory.length : 0);
-              const liveBalls = typeof lMatch.liveBalls === 'number'
-                ? lMatch.liveBalls
-                : (Array.isArray(lMatch.scoringHistory) ? lMatch.scoringHistory.length : 0);
-              const isUndoAction = Boolean(lMatch.isUndoAction || matches[mId]?.isUndoAction);
-              const preferDbState = !isUndoAction && existingBalls > liveBalls;
-
-              matches[mId] = {
-                ...(matches[mId] || {}),
-                ...(lMatch.match || {}),
-                id: mId,
-                liveRuns: preferDbState ? matches[mId]?.liveRuns : (lMatch.liveRuns ?? matches[mId]?.liveRuns),
-                liveWickets: preferDbState ? matches[mId]?.liveWickets : (lMatch.liveWickets ?? matches[mId]?.liveWickets),
-                liveBalls: preferDbState ? matches[mId]?.liveBalls : (lMatch.liveBalls ?? matches[mId]?.liveBalls),
-                liveOvers: preferDbState ? matches[mId]?.liveOvers : (lMatch.liveOvers ?? matches[mId]?.liveOvers),
-                liveThisOver: preferDbState ? matches[mId]?.liveThisOver : (lMatch.liveThisOver ?? matches[mId]?.liveThisOver),
-                activeScorer: lMatch.activeScorer ?? matches[mId]?.activeScorer,
-                currentInnings: preferDbState ? matches[mId]?.currentInnings : (lMatch.currentInnings ?? matches[mId]?.currentInnings),
-                firstInningsSummary: lMatch.firstInningsSummary ?? matches[mId]?.firstInningsSummary,
-                liveBatters: preferDbState ? matches[mId]?.liveBatters : (lMatch.liveBatters ?? matches[mId]?.liveBatters),
-                liveBowlerStats: preferDbState ? matches[mId]?.liveBowlerStats : (lMatch.liveBowlerStats ?? matches[mId]?.liveBowlerStats),
-                scoringHistory: preferDbState ? matches[mId]?.scoringHistory : (lMatch.scoringHistory ?? matches[mId]?.scoringHistory),
-                status: effectiveStatus,
-              };
-            }
-          });
-        }
-      }
-
-      if (!isActive) return;
-      const currentHash = JSON.stringify(Object.keys(matches).map(k => `${k}_${matches[k]?.liveRuns}_${matches[k]?.liveWickets}_${matches[k]?.liveBalls}_${matches[k]?.status}`));
-      if (currentHash !== lastHash) {
-        lastHash = currentHash;
-        if (typeof onMatchesUpdate === 'function') {
-          onMatchesUpdate(matches);
-        }
-      }
-    } catch (e) {}
-  };
-
-  checkMatches();
-  const intervalId = setInterval(checkMatches, intervalMs);
-
-  return () => {
-    isActive = false;
-    clearInterval(intervalId);
-  };
+    return () => unsubscribe();
+  } catch (err) {
+    console.error('[FirebaseSync] ❌ subscribeToFirebaseMatchesDb failure:', err);
+    return () => {};
+  }
 }
 
 /**

@@ -44,6 +44,10 @@ import {
   subscribeToFirebaseMatchesDb,
   syncMatchesDbToFirebase,
   fetchFirebaseMatchesDb,
+  recordBallDeliveryAtomic,
+  undoLastBallDeliveryAtomic,
+  transferScorerDutyAtomic,
+  enrichMatchWithDerivedState,
   syncTeamsToFirebase,
   syncSingleTeamToFirebase,
   fetchFirebaseTeams,
@@ -6796,9 +6800,11 @@ function CricketAddaMain() {
               }
               const candidateHistory = isMatchReset
                 ? []
-                : ((Array.isArray(mObj.liveState?.scoringHistory) && mObj.liveState.scoringHistory.length >= (mObj.scoringHistory?.length || 0))
-                    ? mObj.liveState.scoringHistory
-                    : (Array.isArray(mObj.scoringHistory) ? mObj.scoringHistory : (mObj.liveState?.scoringHistory || [])));
+                : (mObj.balls && typeof mObj.balls === 'object'
+                    ? Object.values(mObj.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0))
+                    : ((Array.isArray(mObj.liveState?.scoringHistory) && mObj.liveState.scoringHistory.length >= (mObj.scoringHistory?.length || 0))
+                        ? mObj.liveState.scoringHistory
+                        : (Array.isArray(mObj.scoringHistory) ? mObj.scoringHistory : (mObj.liveState?.scoringHistory || []))));
               setScoringHistory(candidateHistory);
 
               // UNIFIED DERIVATION ENGINE: Derive 100% of state from immutable ball event history
@@ -7173,26 +7179,37 @@ function CricketAddaMain() {
     }
   }, [isAuthenticated, activeTab]);
 
-  // AppState Listener: Check 30-day inactivity limit and update heartbeat on app foreground
+  // AppState Listener: Re-sync from Cloud RTDB on foreground & check 30-day inactivity limit
   useEffect(() => {
     const handleAppStateChange = async (nextAppState) => {
-      if (nextAppState === 'active' && isAuthenticated) {
-        const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
-        const storedLastActive = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
-        if (storedProfile) {
-          const lastActiveMs = storedLastActive ? parseInt(storedLastActive, 10) : Date.now();
-          const nowMs = Date.now();
-          if (!isNaN(lastActiveMs) && (nowMs - lastActiveMs > THIRTY_DAYS_MS)) {
-            // Inactive for 30+ days -> Automatically log out
-            await AsyncStorage.multiRemove([
-              STORAGE_KEYS.USER_PROFILE,
-              STORAGE_KEYS.LAST_ACTIVE_TIME,
-            ]);
-            setIsAuthenticated(false);
-            showAppToast('Session expired after 30 days of inactivity. Please sign in again.', '⏱️');
-          } else {
-            // Still active within 30 days -> Update timestamp
-            await AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(nowMs)).catch(() => {});
+      if (nextAppState === 'active') {
+        console.log('[AppState] 🟢 App foregrounded/resumed. Re-syncing matches from Cloud RTDB...');
+        fetchFirebaseMatchesDb().then(cloudMatches => {
+          if (cloudMatches && Object.keys(cloudMatches).length > 0) {
+            setMatchesDb(cloudMatches);
+          }
+        }).catch(err => {
+          console.warn('[AppState] Resume re-sync error:', err.message);
+        });
+
+        if (isAuthenticated) {
+          const storedProfile = await AsyncStorage.getItem(STORAGE_KEYS.USER_PROFILE);
+          const storedLastActive = await AsyncStorage.getItem(STORAGE_KEYS.LAST_ACTIVE_TIME);
+          if (storedProfile) {
+            const lastActiveMs = storedLastActive ? parseInt(storedLastActive, 10) : Date.now();
+            const nowMs = Date.now();
+            if (!isNaN(lastActiveMs) && (nowMs - lastActiveMs > THIRTY_DAYS_MS)) {
+              // Inactive for 30+ days -> Automatically log out
+              await AsyncStorage.multiRemove([
+                STORAGE_KEYS.USER_PROFILE,
+                STORAGE_KEYS.LAST_ACTIVE_TIME,
+              ]);
+              setIsAuthenticated(false);
+              showAppToast('Session expired after 30 days of inactivity. Please sign in again.', '⏱️');
+            } else {
+              // Still active within 30 days -> Update timestamp
+              await AsyncStorage.setItem(STORAGE_KEYS.LAST_ACTIVE_TIME, String(nowMs)).catch(() => {});
+            }
           }
         }
       }
@@ -11106,7 +11123,55 @@ function CricketAddaMain() {
       });
     }
 
-    // 10. Direct Instant Broadcast to Sync Server
+    // 10. Concurrency-Safe Atomic Delivery Dispatch to Firebase RTDB
+    if (activeMatchId && isFirebaseConfigured()) {
+      const deliveryPayload = {
+        deliveryIndex: nextBalls,
+        innings: currentInnings,
+        over: Math.floor(nextBalls / 6),
+        ball_no: (nextBalls % 6),
+        striker: striker,
+        nonStriker: nonStriker,
+        bowler: bowler,
+        runs: addedRuns,
+        addedRuns: addedRuns,
+        runsOffBat: batterRunsAdded,
+        extraType: extraType || 'none',
+        extraPenalty: extraPenalty || (extraType === 'wide' || extraType === 'noBall' ? 1 : 0),
+        nbRunType: nbRunType || null,
+        overthrowRuns: otRuns || 0,
+        isLegalDelivery: Boolean(isLegalDelivery),
+        ballSymbol: ballSymbol,
+        isWkt: Boolean(isWkt),
+        dismissedPlayerName: isWkt ? outBatterTarget : null,
+        dismissalType: isWkt ? (customDismissalType || dismissalType || 'bowled') : null,
+        dismissalDesc: isWkt ? computedDismissalDesc : null,
+        incomingBatter: isWkt ? incomingBatterName : null,
+        wicketFielderName: isWkt ? (wicketFielderName || wicketFielder) : null,
+        shotSector: shotSector || null,
+        nextStriker: nextStriker,
+        nextNonStriker: nextNonStriker,
+        nextBowler: isOverEnd ? '' : bowler,
+        lastOverBowler: isOverEnd ? bowler : match.lastOverBowler,
+        isOverEnd: Boolean(isOverEnd),
+        status: (isSecondInningsFinished) ? 'completed' : 'live',
+        timestamp: Date.now(),
+      };
+
+      recordBallDeliveryAtomic(activeMatchId, deliveryPayload).then(res => {
+        if (res && res.success) {
+          console.log(`[CloudRTDB] 🟢 Delivery seq #${res.seq} recorded atomically to matches/${activeMatchId}/balls/${res.pushId}`);
+        } else {
+          console.error('[CloudRTDB] ❌ Delivery write failed:', res?.error);
+          showAppToast('Cloud write failed: ' + (res?.error || 'Unknown error'), '⚠️', 'error');
+        }
+      }).catch(err => {
+        console.error('[CloudRTDB] ❌ Network error writing ball delivery:', err);
+        showAppToast('Network sync error: ' + (err?.message || 'Check connection'), '⚠️', 'error');
+      });
+    }
+
+    // 11. Local Broadcast
     broadcastMatchState({
       forceReset: false,
       isReset: false,
@@ -11715,9 +11780,20 @@ function CricketAddaMain() {
       setMatchesDb(prev => ({ ...prev, [activeMatchId]: updatedMatch }));
       AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...matchesDb, [activeMatchId]: updatedMatch })).catch(() => {});
 
-      // Direct cloud push to both /matches and /matches_db
+      // Concurrency-safe atomic scorer handover via runTransaction()
       if (isFirebaseConfigured()) {
-        syncMatchToFirebaseDirect(activeMatchId, updatedMatch).catch(() => {});
+        transferScorerDutyAtomic(activeMatchId, newScorerObj).then(res => {
+          if (res && res.success) {
+            console.log('[CloudRTDB] 🟢 Scorer duty transferred atomically via runTransaction()');
+            showAppToast(`Scoring transferred to ${playerName} 🤝`, '🤝', 'success');
+          } else {
+            console.error('[CloudRTDB] ❌ Scorer transfer failed:', res?.error);
+            showAppToast('Scorer transfer failed: ' + (res?.error || 'Unknown error'), '⚠️', 'error');
+          }
+        }).catch(err => {
+          console.error('[CloudRTDB] ❌ Network error transferring scorer:', err);
+          showAppToast('Transfer network error: ' + (err?.message || 'Check connection'), '⚠️', 'error');
+        });
       }
       setMyScoringMatchIds(prev => {
         const updated = (prev || []).filter(id => id !== activeMatchId);
@@ -12378,6 +12454,21 @@ function CricketAddaMain() {
         AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
         return updatedDb;
       });
+
+      // Concurrency-safe atomic undo on Cloud RTDB
+      if (activeMatchId && isFirebaseConfigured()) {
+        undoLastBallDeliveryAtomic(activeMatchId).then(res => {
+          if (res && res.success) {
+            console.log(`[CloudRTDB] 🟢 Ball delivery seq #${res.removedSeq} undone in RTDB`);
+          } else {
+            console.error('[CloudRTDB] ❌ Cloud undo failed:', res?.error);
+            showAppToast('Cloud undo failed: ' + (res?.error || 'Unknown error'), '⚠️', 'error');
+          }
+        }).catch(err => {
+          console.error('[CloudRTDB] ❌ Network error undoing ball:', err);
+          showAppToast('Network undo error: ' + (err?.message || 'Check connection'), '⚠️', 'error');
+        });
+      }
 
       // Broadcast undo state live to Cloud & PC Spectators
       broadcastMatchState({
@@ -13981,7 +14072,12 @@ function CricketAddaMain() {
     const maxOv = baseInning.maxOvers || targetMatch.overs || 20;
     const crr = balls > 0 ? ((runs / balls) * 6).toFixed(2) : '0.00';
 
-    const historyStack = isTargetActive && (scoringHistory || []).length > 0 ? scoringHistory : (mLive?.scoringHistory || targetMatch.scoringHistory || []);
+    const rawDeliveries = targetMatch.balls && typeof targetMatch.balls === 'object'
+      ? Object.values(targetMatch.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0))
+      : null;
+    const historyStack = isTargetActive && (scoringHistory || []).length > 0
+      ? scoringHistory
+      : (rawDeliveries || mLive?.scoringHistory || targetMatch.scoringHistory || []);
     const resolvedTeamName = baseInning.team || (inningNum === 1 ? targetMatch.teamA : targetMatch.teamB) || `Team ${inningNum}`;
     const resolvedFlag = baseInning.flag || (inningNum === 1 ? targetMatch.flagA : targetMatch.flagB) || '🏏';
     const resolvedLogoUri = baseInning.logoUri || baseInning.logo || (inningNum === 1 ? (targetMatch.logoA || targetMatch.team1Logo) : (targetMatch.logoB || targetMatch.team2Logo)) || resolveTeamLogo({ name: resolvedTeamName }, allAvailableMatchTeams, usersDb);

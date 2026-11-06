@@ -1,6 +1,20 @@
 {
   "rules": {
     ".read": true,
-    ".write": true
+    ".write": true,
+    "matches": {
+      ".indexOn": ["status", "lastSyncedAt", "creatorId"],
+      "$matchId": {
+        "balls": {
+          ".indexOn": ["seq", "innings", "timestamp"]
+        }
+      }
+    },
+    "teams": {
+      ".indexOn": ["name", "creatorId"]
+    },
+    "users": {
+      ".indexOn": ["phone", "email"]
+    }
   }
 }
