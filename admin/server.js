@@ -106,6 +106,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log('  🏏 CRICKETADDA PRO - WEB ADMIN PANEL IS LIVE');
   console.log(`  🔗 Local Access:    http://localhost:${PORT}`);
   console.log(`  🌐 Network Access:  http://127.0.0.1:${PORT}`);
-  console.log('  ⚡ Real-Time Cloud Sync: Firebase RTDB (cricketadda-live)');
+  console.log('  ⚡ Real-Time Cloud Sync: Firebase RTDB (cricketadda-live-97d27)');
   console.log('================================================================');
 });

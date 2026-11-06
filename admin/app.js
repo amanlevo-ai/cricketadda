@@ -4,7 +4,7 @@
 // ============================================================================
 
 const CONFIG = {
-  FIREBASE_URL: 'https://cricketadda-live-default-rtdb.firebaseio.com',
+  FIREBASE_URL: 'https://cricketadda-live-97d27-default-rtdb.firebaseio.com',
   POLL_INTERVAL_MS: 2500,
   APP_ID: 'CricketAdda_Web_Admin_v2',
 };

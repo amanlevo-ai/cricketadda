@@ -22,14 +22,14 @@ import {
 import { deriveMatchStateFromDeliveries } from './cricketStateEngine.js';
 
 export const DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "AIzaSyAisjW7FzpNvyzlR436lp6Gj2vPeLRYh3E",
-  authDomain: "cricketadda-live.firebaseapp.com",
-  databaseURL: "https://cricketadda-live-default-rtdb.firebaseio.com",
-  projectId: "cricketadda-live",
-  storageBucket: "cricketadda-live.firebasestorage.app",
-  messagingSenderId: "900717597444",
-  appId: "1:900717597444:web:96b90d37bf5b5610f23651",
-  measurementId: "G-RX7ZC53F98"
+  apiKey: "AIzaSyDgjX6NwwuOglIO1yIEdgeq-Tkxs0TqP_Q",
+  authDomain: "cricketadda-live-97d27.firebaseapp.com",
+  databaseURL: "https://cricketadda-live-97d27-default-rtdb.firebaseio.com",
+  projectId: "cricketadda-live-97d27",
+  storageBucket: "cricketadda-live-97d27.firebasestorage.app",
+  messagingSenderId: "438420450827",
+  appId: "1:438420450827:web:4c381c0d2046244f4c610e",
+  measurementId: "G-N5G00MKPZX"
 };
 
 let activeFirebaseConfig = { ...DEFAULT_FIREBASE_CONFIG };
