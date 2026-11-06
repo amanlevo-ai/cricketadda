@@ -7460,18 +7460,11 @@ function CricketAddaMain() {
             next[mId] = { ...existing, ...mData };
             hasChanges = true;
 
-            // Synchronize active match screen instantly if this match is open
+            // Synchronize active match screen instantly if this match is open AND this device is a spectator
             if (mId === activeMatchIdRef.current) {
-              const isSelfEcho = Boolean(
-                mData.senderClientId &&
-                clientIdRef?.current &&
-                mData.senderClientId === clientIdRef.current
-              );
-
-              // Scorer's own device: ignore delayed cloud echo on active screen to prevent "This Over" runs blinking/flickering!
-              if (isOfficialScorerRef.current && isSelfEcho) {
-                // Keep local optimistic state intact (no flicker)
-              } else if (!isOfficialScorerRef.current || (mData.senderClientId && mData.senderClientId !== clientIdRef?.current)) {
+              // CRITICAL: Official scorer's own device already has local memory state as the primary authority.
+              // Never overwrite the active scorer screen with delayed cloud snapshots to eliminate any flicker/blink!
+              if (!isOfficialScorerRef.current) {
                 setScoringHistory(mData.scoringHistory || []);
                 setLiveRuns(mData.liveRuns ?? 0);
                 setLiveWickets(mData.liveWickets ?? 0);
@@ -8992,15 +8985,6 @@ function CricketAddaMain() {
     if (!isFirebaseConfigured() || !activeMatchId) return;
     const unsubscribe = subscribeToFirebaseMatch(activeMatchId, cloudData => {
       if (!cloudData) return;
-      const isSelfEcho = Boolean(
-        cloudData.senderClientId &&
-        clientIdRef?.current &&
-        cloudData.senderClientId === clientIdRef.current
-      );
-      if (isOfficialScorer && isSelfEcho) {
-        // Scorer's own device: ignore delayed echo polling to prevent "show -> hide -> show" flickering!
-        return;
-      }
 
       const isExternalReset = Boolean(
         (cloudData.forceReset || cloudData.forceResetAt || cloudData.isReset) &&
@@ -9013,13 +8997,14 @@ function CricketAddaMain() {
         return;
       }
 
-      if (!isOfficialScorer) {
-        // Spectators / viewers apply all incoming remote updates
-        applyRemoteState(cloudData);
-      } else if (cloudData.senderClientId && cloudData.senderClientId !== clientIdRef?.current) {
-        // If scoring authority moved to a different remote device
-        applyRemoteState(cloudData);
+      // CRITICAL: If this device is the official scorer, NEVER overwrite local active scoring screen
+      // with delayed cloud updates while actively scoring! This completely eliminates all blinking / flickering!
+      if (isOfficialScorer) {
+        return;
       }
+
+      // Spectators / viewers apply all incoming remote updates
+      applyRemoteState(cloudData);
     });
     return () => {
       if (typeof unsubscribe === 'function') unsubscribe();

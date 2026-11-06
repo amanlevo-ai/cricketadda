@@ -452,6 +452,7 @@ export async function recordBallDeliveryAtomic(matchId, ballData) {
       lastUpdatedAt: Date.now(),
       isUndoAction: false,
       currentInnings: Number(ballData.innings || 1),
+      senderClientId: ballData.senderClientId || '',
     };
 
     if (ballData.nextStriker !== undefined) metaUpdates.currentStriker = ballData.nextStriker;
