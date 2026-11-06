@@ -446,10 +446,13 @@ export async function recordBallDeliveryAtomic(matchId, ballData) {
 
     await set(newBallRef, deliveryRecord);
 
+    const actionTime = ballData.actionTime || Date.now();
     // Step 3: Concurrency-safe atomic metadata updates (NO derived totals stored!)
     const metaUpdates = {
       lastSyncedAt: Date.now(),
-      lastUpdatedAt: Date.now(),
+      lastUpdatedAt: actionTime,
+      lastActionTimestamp: actionTime,
+      matchVersion: ballData.matchVersion || assignedSeq,
       isUndoAction: false,
       currentInnings: Number(ballData.innings || 1),
       senderClientId: ballData.senderClientId || '',
@@ -520,9 +523,11 @@ export async function undoLastBallDeliveryAtomic(matchId) {
       return cur;
     });
 
+    const undoTime = Date.now();
     await update(matchRef, {
-      lastSyncedAt: Date.now(),
-      lastUpdatedAt: Date.now(),
+      lastSyncedAt: undoTime,
+      lastUpdatedAt: undoTime,
+      lastActionTimestamp: undoTime,
       isUndoAction: true,
     });
 

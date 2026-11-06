@@ -4795,6 +4795,8 @@ function CricketAddaMain() {
   const lastCelebrationIdRef = useRef(null);
   const lastAppliedRemoteSyncRef = useRef({ timestamp: 0, balls: 0, innings: 1 });
   const lastResetConsumedAtRef = useRef(0);
+  const localMatchVersionRef = useRef(0);
+  const lastLocalActionTimeRef = useRef(0);
   const [syncConnected, setSyncConnected] = useState(false);
 
   const [matchFilter, setMatchFilter] = useState('all');
@@ -7466,16 +7468,31 @@ function CricketAddaMain() {
                 ? mData.scoringHistory
                 : (mData.balls && typeof mData.balls === 'object' ? Object.values(mData.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0)) : []);
               const cloudBallsCount = typeof mData.liveBalls === 'number' ? mData.liveBalls : cloudDeliveries.length;
-              const localBallsCount = (lastAppliedRemoteSyncRef.current?.balls || 0);
-
+              const cloudTime = Number(mData.lastActionTimestamp || mData.lastUpdatedAt || 0);
+              const cloudVersion = Number(mData.matchVersion || 0);
+              const localTime = Number(lastLocalActionTimeRef.current || 0);
+              const localVersion = Number(localMatchVersionRef.current || 0);
               const isUndoSignal = Boolean(mData.isUndoAction);
 
+              // RECONCILIATION ORDER:
               // 1. Spectators always accept authoritative cloud sync.
-              // 2. Official scorer accepts if cloud is strictly ahead OR if an explicit Undo occurred (isUndoAction),
-              //    NEVER when cloud is a stale/delayed echo packet (zero blink/flicker!).
-              const shouldSync = !isOfficialScorerRef.current || isUndoSignal || (cloudBallsCount > localBallsCount);
+              // 2. Official scorer accepts if:
+              //    - Cloud has a newer version or newer action timestamp (cloudTime > localTime + 300)
+              //    - Or Cloud is ahead in ball count (e.g. initial load / app reopened)
+              //    - Or an explicit Undo occurred (isUndoSignal)
+              //    NEVER drops into delayed same-action echoes (zero blink/flicker!).
+              const isCloudStrictlyNewer = Boolean(
+                (cloudVersion > 0 && localVersion > 0 && cloudVersion > localVersion) ||
+                (cloudTime > 0 && localTime > 0 && (cloudTime - localTime > 300)) ||
+                (!localTime && cloudTime > 0) ||
+                (cloudBallsCount > (lastAppliedRemoteSyncRef.current?.balls || 0))
+              );
+
+              const shouldSync = !isOfficialScorerRef.current || isCloudStrictlyNewer || isUndoSignal;
 
               if (shouldSync) {
+                if (cloudTime > localTime) lastLocalActionTimeRef.current = cloudTime;
+                if (cloudVersion > localVersion) localMatchVersionRef.current = cloudVersion;
                 setScoringHistory(cloudDeliveries);
                 setLiveRuns(mData.liveRuns ?? 0);
                 setLiveWickets(mData.liveWickets ?? 0);
@@ -8812,6 +8829,9 @@ function CricketAddaMain() {
       liveBalls: payloadBalls,
       liveOvers: payloadOvers,
       liveThisOver: payloadThisOver,
+      lastActionTimestamp: customPayload.lastActionTimestamp || lastLocalActionTimeRef.current || Date.now(),
+      matchVersion: customPayload.matchVersion || localMatchVersionRef.current || 0,
+      lastUpdatedAt: customPayload.lastUpdatedAt || lastLocalActionTimeRef.current || Date.now(),
       activeScorer,
       currentInnings,
       firstInningsSummary,
@@ -8827,6 +8847,9 @@ function CricketAddaMain() {
         liveBalls: payloadBalls,
         liveOvers: payloadOvers,
         liveThisOver: payloadThisOver,
+        lastActionTimestamp: customPayload.lastActionTimestamp || lastLocalActionTimeRef.current || Date.now(),
+        matchVersion: customPayload.matchVersion || localMatchVersionRef.current || 0,
+        lastUpdatedAt: customPayload.lastUpdatedAt || lastLocalActionTimeRef.current || Date.now(),
         creatorId: match?.creatorId || currentMatchInDb.creatorId || userProfile?.id,
         creatorDeviceId: match?.creatorDeviceId || currentMatchInDb.creatorDeviceId || clientIdRef?.current,
         creatorPhone: match?.creatorPhone || currentMatchInDb.creatorPhone || userProfile?.phone || authPhone || '',
@@ -9008,18 +9031,29 @@ function CricketAddaMain() {
         return;
       }
 
-      // Scorer accepts remote state ONLY if external reset OR cloud is ahead of local balls
       const cloudBallsCount = typeof cloudData.liveBalls === 'number'
         ? cloudData.liveBalls
         : (Array.isArray(cloudData.scoringHistory) ? cloudData.scoringHistory.length : (cloudData.balls ? Object.keys(cloudData.balls).length : 0));
-      const localBallsCount = (lastAppliedRemoteSyncRef.current?.balls || 0);
+      const cloudTime = Number(cloudData.lastActionTimestamp || cloudData.lastUpdatedAt || 0);
+      const cloudVersion = Number(cloudData.matchVersion || 0);
+      const localTime = Number(lastLocalActionTimeRef.current || 0);
+      const localVersion = Number(localMatchVersionRef.current || 0);
       const isUndoSignal = Boolean(cloudData.isUndoAction);
 
-      if (isOfficialScorer && !isUndoSignal && cloudBallsCount <= localBallsCount) {
+      const isCloudStrictlyNewer = Boolean(
+        (cloudVersion > 0 && localVersion > 0 && cloudVersion > localVersion) ||
+        (cloudTime > 0 && localTime > 0 && (cloudTime - localTime > 300)) ||
+        (!localTime && cloudTime > 0) ||
+        (cloudBallsCount > (lastAppliedRemoteSyncRef.current?.balls || 0))
+      );
+
+      if (isOfficialScorer && !isCloudStrictlyNewer && !isUndoSignal) {
         // Scorer's own device: ignore delayed echo packets to prevent blinking
         return;
       }
 
+      if (cloudTime > localTime) lastLocalActionTimeRef.current = cloudTime;
+      if (cloudVersion > localVersion) localMatchVersionRef.current = cloudVersion;
       // Spectators or when cloud is strictly ahead:
       applyRemoteState(cloudData);
     });
@@ -10597,9 +10631,15 @@ function CricketAddaMain() {
       else if (totalR > 0) batterSinglesAdded = totalR;
     }
 
+    const nowMs = Date.now();
+    localMatchVersionRef.current = (localMatchVersionRef.current || 0) + 1;
+    lastLocalActionTimeRef.current = nowMs;
+
     // 1. Construct immutable ball event
     const ballEvent = {
-      id: `ball_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
+      id: `ball_${nowMs}_${Math.random().toString(36).substr(2, 6)}`,
+      actionTime: nowMs,
+      matchVersion: localMatchVersionRef.current,
       match_id: activeMatchId,
       innings: currentInnings,
       over: Math.floor(reconciledScore.balls / 6),
@@ -11164,7 +11204,9 @@ function CricketAddaMain() {
         isOverEnd: Boolean(isOverEnd),
         status: (isSecondInningsFinished) ? 'completed' : 'live',
         senderClientId: clientIdRef?.current || '',
-        timestamp: Date.now(),
+        actionTime: nowMs,
+        matchVersion: localMatchVersionRef.current,
+        timestamp: nowMs,
       };
 
       recordBallDeliveryAtomic(activeMatchId, deliveryPayload).then(res => {
@@ -12398,6 +12440,10 @@ function CricketAddaMain() {
         : liveCommentaryList.filter(c => !c.id.includes('comm_inn1_end_') && !c.id.includes('comm_match_end_')).slice(1);
       setLiveCommentaryList(updatedComm);
 
+      const undoTime = Date.now();
+      localMatchVersionRef.current = (localMatchVersionRef.current || 0) + 1;
+      lastLocalActionTimeRef.current = undoTime;
+
       // Update persistent matches database with rolled-back state
       setMatchesDb(prev => {
         const cur = prev[activeMatchId] || {};
@@ -12414,6 +12460,9 @@ function CricketAddaMain() {
           liveBalls: derivedActive.balls,
           liveOvers: oversFormatted,
           liveThisOver: derivedActive.thisOver,
+          lastActionTimestamp: undoTime,
+          matchVersion: localMatchVersionRef.current,
+          lastUpdatedAt: undoTime,
           innings1: {
             ...(cur.innings1 || {}),
             runs: derivedMatch.innings1.runs,
