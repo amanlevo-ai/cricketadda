@@ -7460,15 +7460,24 @@ function CricketAddaMain() {
             next[mId] = { ...existing, ...mData };
             hasChanges = true;
 
-            // Synchronize active match screen instantly if this match is open AND this device is a spectator
+            // Synchronize active match screen instantly if this match is open
             if (mId === activeMatchIdRef.current) {
-              // CRITICAL: Official scorer's own device already has local memory state as the primary authority.
-              // Never overwrite the active scorer screen with delayed cloud snapshots to eliminate any flicker/blink!
-              if (!isOfficialScorerRef.current) {
-                setScoringHistory(mData.scoringHistory || []);
+              const cloudDeliveries = Array.isArray(mData.scoringHistory)
+                ? mData.scoringHistory
+                : (mData.balls && typeof mData.balls === 'object' ? Object.values(mData.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0)) : []);
+              const cloudBallsCount = typeof mData.liveBalls === 'number' ? mData.liveBalls : cloudDeliveries.length;
+              const localBallsCount = (lastAppliedRemoteSyncRef.current?.balls || 0);
+
+              // 1. Spectators always accept authoritative cloud sync.
+              // 2. Official scorer accepts if cloud is strictly ahead (e.g. app reopened / initial sync),
+              //    NEVER when cloud is equal or behind (drops delayed echoes, zero blink/flicker!).
+              const shouldSync = !isOfficialScorerRef.current || (cloudBallsCount > localBallsCount);
+
+              if (shouldSync) {
+                setScoringHistory(cloudDeliveries);
                 setLiveRuns(mData.liveRuns ?? 0);
                 setLiveWickets(mData.liveWickets ?? 0);
-                setLiveBalls(mData.liveBalls ?? 0);
+                setLiveBalls(cloudBallsCount);
                 setLiveThisOver(mData.liveThisOver || []);
                 setLiveBatters(mData.liveBatters || {});
                 setLiveBowlerStats(mData.liveBowlerStats || {});
@@ -8997,13 +9006,18 @@ function CricketAddaMain() {
         return;
       }
 
-      // CRITICAL: If this device is the official scorer, NEVER overwrite local active scoring screen
-      // with delayed cloud updates while actively scoring! This completely eliminates all blinking / flickering!
-      if (isOfficialScorer) {
+      // Scorer accepts remote state ONLY if external reset OR cloud is ahead of local balls
+      const cloudBallsCount = typeof cloudData.liveBalls === 'number'
+        ? cloudData.liveBalls
+        : (Array.isArray(cloudData.scoringHistory) ? cloudData.scoringHistory.length : (cloudData.balls ? Object.keys(cloudData.balls).length : 0));
+      const localBallsCount = (lastAppliedRemoteSyncRef.current?.balls || 0);
+
+      if (isOfficialScorer && cloudBallsCount <= localBallsCount) {
+        // Scorer's own device: ignore delayed echo packets to prevent blinking
         return;
       }
 
-      // Spectators / viewers apply all incoming remote updates
+      // Spectators or when cloud is strictly ahead:
       applyRemoteState(cloudData);
     });
     return () => {
@@ -16525,6 +16539,19 @@ function CricketAddaMain() {
       isOfficialScorer &&
       !isResetTarget
     ) {
+      const targetDeliveries = targetMatch.balls && typeof targetMatch.balls === 'object'
+        ? Object.values(targetMatch.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0))
+        : (Array.isArray(targetMatch.scoringHistory) ? targetMatch.scoringHistory : (targetMatch.liveState?.scoringHistory || []));
+      if (targetDeliveries.length > (scoringHistory || []).length) {
+        setScoringHistory(targetDeliveries);
+        const derived = deriveMatchStateFromDeliveries(targetDeliveries, targetMatch);
+        setLiveRuns(derived.activeScore.runs);
+        setLiveWickets(derived.activeScore.wickets);
+        setLiveBalls(derived.activeScore.balls);
+        setLiveThisOver(derived.activeScore.thisOver);
+        setLiveBatters(derived.activeScore.liveBatters);
+        setLiveBowlerStats(derived.activeScore.liveBowlerStats);
+      }
       setMatch(prev => ({ ...prev, id: resolvedMatchId }));
       navigateTo('scorer', resolvedMatchId);
       return;
@@ -16627,9 +16654,11 @@ function CricketAddaMain() {
     // 2. Synchronize active score & overs
     const candidateHistory = isResetTarget
       ? []
-      : ((Array.isArray(targetMatch.liveState?.scoringHistory) && targetMatch.liveState.scoringHistory.length >= (targetMatch.scoringHistory?.length || 0))
-          ? targetMatch.liveState.scoringHistory
-          : (Array.isArray(targetMatch.scoringHistory) ? targetMatch.scoringHistory : (targetMatch.liveState?.scoringHistory || [])));
+      : (targetMatch.balls && typeof targetMatch.balls === 'object'
+          ? Object.values(targetMatch.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0))
+          : ((Array.isArray(targetMatch.liveState?.scoringHistory) && targetMatch.liveState.scoringHistory.length >= (targetMatch.scoringHistory?.length || 0))
+              ? targetMatch.liveState.scoringHistory
+              : (Array.isArray(targetMatch.scoringHistory) ? targetMatch.scoringHistory : (targetMatch.liveState?.scoringHistory || []))));
     setScoringHistory(candidateHistory);
 
     // UNIFIED DERIVATION ENGINE: Derive complete state from ball events
