@@ -12602,14 +12602,21 @@ function CricketAddaMain() {
   };
 
   const closeChangeBowlerModal = () => {
-    setLiveThisOver([]);
+    // Only reset liveThisOver if an over actually completed; never reset on 0.0 or mid-over cancel
+    if (needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0)) {
+      setLiveThisOver([]);
+    }
     setChangeBowlerModalVisible(false);
     setCustomNextBowler('');
   };
 
   const confirmNewBowler = () => {
     const finalBowler = customNextBowler.trim() || nextBowler;
-    const lastOverBowler = match.lastOverBowler || match.previousBowler || bowler;
+    const hasCompletedAtLeastOneOver = liveBalls >= 6;
+    const isNewOverTransition = Boolean(needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0));
+    const actualLastOverBowler = hasCompletedAtLeastOneOver && isNewOverTransition
+      ? (match.lastOverBowler || match.previousBowler || lastOverStats?.bowler || '')
+      : '';
 
     if (!finalBowler) {
       showAppToast('Please select or enter the next bowler ⚾', '⚾', 'warning');
@@ -12623,15 +12630,15 @@ function CricketAddaMain() {
       return;
     }
 
-    if (finalBowler.toLowerCase() === lastOverBowler.toLowerCase() && (activeOppBowlers || []).length > 1) {
+    if (actualLastOverBowler && finalBowler.toLowerCase() === actualLastOverBowler.toLowerCase() && (activeOppBowlers || []).length > 1) {
       showAppToast(`${finalBowler} bowled the previous over. Consecutive overs not allowed 🚫`, '🚫', 'warning');
       return;
     }
 
     setMatch(prev => ({
       ...prev,
-      lastOverBowler: prev.lastOverBowler || prev.currentBowler || lastOverBowler,
-      previousBowler: prev.previousBowler || prev.currentBowler || lastOverBowler,
+      lastOverBowler: isNewOverTransition ? (prev.currentBowler || bowler || prev.lastOverBowler) : prev.lastOverBowler,
+      previousBowler: isNewOverTransition ? (prev.currentBowler || bowler || prev.previousBowler) : prev.previousBowler,
       currentBowler: finalBowler,
     }));
 
@@ -12641,7 +12648,9 @@ function CricketAddaMain() {
     }));
 
     setNeedsNewBowler(false);
-    setLiveThisOver([]);
+    if (isNewOverTransition) {
+      setLiveThisOver([]);
+    }
     setChangeBowlerModalVisible(false);
     setCustomNextBowler('');
 
@@ -12651,13 +12660,13 @@ function CricketAddaMain() {
         const updatedMatch = {
           ...cur,
           currentBowler: finalBowler,
-          lastOverBowler: cur.currentBowler || bowler,
-          previousBowler: cur.currentBowler || bowler,
-          liveThisOver: [],
+          lastOverBowler: isNewOverTransition ? (cur.currentBowler || bowler || cur.lastOverBowler) : cur.lastOverBowler,
+          previousBowler: isNewOverTransition ? (cur.currentBowler || bowler || cur.previousBowler) : cur.previousBowler,
+          ...(isNewOverTransition ? { liveThisOver: [] } : {}),
           liveState: {
             ...(cur.liveState || {}),
             currentBowler: finalBowler,
-            liveThisOver: [],
+            ...(isNewOverTransition ? { liveThisOver: [] } : {}),
             liveBowlerStats: {
               ...(cur.liveState?.liveBowlerStats || {}),
               [finalBowler]: cur.liveState?.liveBowlerStats?.[finalBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
@@ -12673,15 +12682,15 @@ function CricketAddaMain() {
 
     broadcastMatchState({
       currentBowler: finalBowler,
-      liveThisOver: [],
+      ...(isNewOverTransition ? { liveThisOver: [] } : {}),
       liveBowlerStats: {
         ...liveBowlerStats,
         [finalBowler]: liveBowlerStats[finalBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
       },
       match: {
         ...match,
-        lastOverBowler: match.currentBowler || bowler,
-        previousBowler: match.currentBowler || bowler,
+        lastOverBowler: isNewOverTransition ? (match.currentBowler || bowler || match.lastOverBowler) : match.lastOverBowler,
+        previousBowler: isNewOverTransition ? (match.currentBowler || bowler || match.previousBowler) : match.previousBowler,
         currentBowler: finalBowler,
       },
     });
@@ -24494,9 +24503,19 @@ function CricketAddaMain() {
               <View style={styles.photoPickerHeader}>
                 <View>
                   <Text style={[styles.photoPickerTitle, { color: '#38bdf8' }]}>
-                    {liveBalls === 0 ? '⚡ Select Opening Bowler (0.0 ov)' : `⚡ Over ${Math.floor(liveBalls / 6)} Completed (${oversStr} ov)`}
+                    {liveBalls === 0
+                      ? '⚡ Select Opening Bowler (0.0 ov)'
+                      : (needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0))
+                        ? `⚡ Over ${Math.floor(liveBalls / 6)} Completed (${oversStr} ov)`
+                        : `⚡ Change Bowler (${oversStr} ov)`}
                   </Text>
-                  <Text style={styles.photoPickerSub}>Select next bowler & confirm strike</Text>
+                  <Text style={styles.photoPickerSub}>
+                    {liveBalls === 0
+                      ? 'Choose bowler to bowl the 1st over'
+                      : (needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0))
+                        ? 'Select bowler for next over'
+                        : 'Select replacement bowler for this over'}
+                  </Text>
                 </View>
                 <TouchableOpacity style={styles.closeRoundBtn} onPress={closeChangeBowlerModal}>
                   <Text style={styles.closeRoundBtnText}>✕</Text>
@@ -24508,9 +24527,25 @@ function CricketAddaMain() {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.overRecapLabel}>CURRENT MATCH SCORE:</Text>
                   <Text style={styles.overRecapScore}>{liveRuns}/{liveWickets} <Text style={{ fontSize: 13, color: '#94a3b8' }}>({oversStr} ov • CRR: {crr})</Text></Text>
-                  <Text style={styles.overRecapPrevBowler}>
-                    Last Bowler: <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{lastOverStats?.bowler || match.lastOverBowler || match.previousBowler || bowler}</Text>{lastOverStats && lastOverStats.runs !== undefined ? ` • ${lastOverStats.runs} run${lastOverStats.runs === 1 ? '' : 's'} conceded${lastOverStats.wickets > 0 ? ` (${lastOverStats.wickets} wkt)` : ''}` : ''}
-                  </Text>
+                  {(() => {
+                    const hasCompletedAtLeastOneOver = liveBalls >= 6;
+                    const isNewOverTransition = Boolean(needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0));
+                    const actualLastOverBowler = hasCompletedAtLeastOneOver && isNewOverTransition
+                      ? (lastOverStats?.bowler || match.lastOverBowler || match.previousBowler || '')
+                      : '';
+                    if (actualLastOverBowler) {
+                      return (
+                        <Text style={styles.overRecapPrevBowler}>
+                          Last Bowler: <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{actualLastOverBowler}</Text>{lastOverStats && lastOverStats.runs !== undefined ? ` • ${lastOverStats.runs} run${lastOverStats.runs === 1 ? '' : 's'} conceded${lastOverStats.wickets > 0 ? ` (${lastOverStats.wickets} wkt)` : ''}` : ''}
+                        </Text>
+                      );
+                    }
+                    return (
+                      <Text style={styles.overRecapPrevBowler}>
+                        {liveBalls === 0 ? 'Match Inning Start • 1st Over' : `Current Bowler: `}{liveBalls === 0 ? '' : <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{bowler || 'Not selected'}</Text>}
+                      </Text>
+                    );
+                  })()}
                 </View>
               </View>
 
@@ -24542,8 +24577,12 @@ function CricketAddaMain() {
               </View>
               <View style={styles.grid2ColContainer}>
                 {activeOppBowlers.map((b, idx) => {
-                  const lastOverBowler = match.lastOverBowler || match.previousBowler || bowler;
-                  const isPrev = lastOverBowler.toLowerCase() === b.toLowerCase();
+                  const hasCompletedAtLeastOneOver = liveBalls >= 6;
+                  const isNewOverTransition = Boolean(needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0));
+                  const actualLastOverBowler = hasCompletedAtLeastOneOver && isNewOverTransition
+                    ? (match.lastOverBowler || match.previousBowler || lastOverStats?.bowler || '')
+                    : '';
+                  const isPrev = Boolean(actualLastOverBowler && actualLastOverBowler.toLowerCase() === b.toLowerCase());
                   const isSel = (!customNextBowler && nextBowler === b);
                   const bBalls = liveBowlerStats[b]?.balls || 0;
                   const bOversNum = Math.floor(bBalls / 6);
@@ -24608,7 +24647,9 @@ function CricketAddaMain() {
                   <Text style={styles.skipBtnText}>Cancel</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: '#38bdf8' }]} onPress={confirmNewBowler}>
-                  <Text style={[styles.confirmBtnText, { color: '#020617' }]}>Start Next Over ⚡</Text>
+                  <Text style={[styles.confirmBtnText, { color: '#020617' }]}>
+                    {liveBalls === 0 ? 'Confirm Opening Bowler ⚡' : (needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0)) ? 'Start Next Over ⚡' : 'Confirm Bowler ⚡'}
+                  </Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
