@@ -7468,10 +7468,12 @@ function CricketAddaMain() {
               const cloudBallsCount = typeof mData.liveBalls === 'number' ? mData.liveBalls : cloudDeliveries.length;
               const localBallsCount = (lastAppliedRemoteSyncRef.current?.balls || 0);
 
+              const isUndoSignal = Boolean(mData.isUndoAction);
+
               // 1. Spectators always accept authoritative cloud sync.
-              // 2. Official scorer accepts if cloud is strictly ahead (e.g. app reopened / initial sync),
-              //    NEVER when cloud is equal or behind (drops delayed echoes, zero blink/flicker!).
-              const shouldSync = !isOfficialScorerRef.current || (cloudBallsCount > localBallsCount);
+              // 2. Official scorer accepts if cloud is strictly ahead OR if an explicit Undo occurred (isUndoAction),
+              //    NEVER when cloud is a stale/delayed echo packet (zero blink/flicker!).
+              const shouldSync = !isOfficialScorerRef.current || isUndoSignal || (cloudBallsCount > localBallsCount);
 
               if (shouldSync) {
                 setScoringHistory(cloudDeliveries);
@@ -9011,8 +9013,9 @@ function CricketAddaMain() {
         ? cloudData.liveBalls
         : (Array.isArray(cloudData.scoringHistory) ? cloudData.scoringHistory.length : (cloudData.balls ? Object.keys(cloudData.balls).length : 0));
       const localBallsCount = (lastAppliedRemoteSyncRef.current?.balls || 0);
+      const isUndoSignal = Boolean(cloudData.isUndoAction);
 
-      if (isOfficialScorer && cloudBallsCount <= localBallsCount) {
+      if (isOfficialScorer && !isUndoSignal && cloudBallsCount <= localBallsCount) {
         // Scorer's own device: ignore delayed echo packets to prevent blinking
         return;
       }
