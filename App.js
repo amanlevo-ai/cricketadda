@@ -10345,6 +10345,107 @@ function CricketAddaMain() {
     }
   };
 
+  const formatSingleLineCommentary = ({
+    runs = 0,
+    extraType = null,
+    isWkt = false,
+    striker = '',
+    bowler = '',
+    shotSector = null,
+    dismissalType = null,
+    dismissedPlayer = null,
+    wicketFielder = null,
+    overthrowRuns = 0,
+  }) => {
+    const shotArea = shotSector ? (typeof shotSector === 'string' ? shotSector : (shotSector.name || shotSector.title || shotSector.label || shotSector.id || '')) : '';
+    const ot = Number(overthrowRuns) || 0;
+
+    // 1. Overthrow extras
+    if (ot > 0) {
+      if (extraType === 'wide') {
+        return `WIDE + ${runs + ot} runs, overthrow extras`;
+      }
+      if (extraType === 'noBall') {
+        return `NO BALL + ${runs + ot} runs${shotArea ? `, hit to ${shotArea}` : ''} (Free Hit)`;
+      }
+      if (extraType === 'bye') {
+        return `${runs + ot} byes, including overthrows`;
+      }
+      if (extraType === 'legBye') {
+        return `${runs + ot} leg byes, including overthrows`;
+      }
+      return `${runs + ot} runs, including ${ot} overthrow runs${shotArea ? ` to ${shotArea}` : ''}`;
+    }
+
+    // 2. Wickets
+    if (isWkt) {
+      const dType = (dismissalType || 'bowled').toLowerCase();
+      const outP = dismissedPlayer || striker || 'Batter';
+      const fld = wicketFielder ? String(wicketFielder).trim() : '';
+
+      if (dType === 'run_out') {
+        return fld ? `WICKET! Run out by ${fld}` : 'WICKET! Run out by direct hit';
+      }
+      if (dType === 'bowled') {
+        return 'WICKET! Clean bowled!';
+      }
+      if (dType === 'caught') {
+        if (shotArea) {
+          return fld ? `WICKET! Caught by ${fld} at ${shotArea}` : `WICKET! Caught at ${shotArea}`;
+        }
+        return fld ? `WICKET! Caught by ${fld}` : 'WICKET! Caught out';
+      }
+      if (dType === 'lbw') {
+        return 'WICKET! LBW, trapped in front';
+      }
+      if (dType === 'stumped') {
+        return fld ? `WICKET! Stumped by ${fld}` : 'WICKET! Stumped outside crease';
+      }
+      if (dType === 'hit_wicket') {
+        return 'WICKET! Hit wicket';
+      }
+      return `WICKET! ${outP} is out!`;
+    }
+
+    // 3. Extras
+    if (extraType === 'wide') {
+      return (runs || 0) > 0 ? `WIDE + ${runs} runs, sprayed down leg` : 'WIDE, sprayed down leg (+1 run)';
+    }
+    if (extraType === 'noBall') {
+      return shotArea ? `NO BALL, hit to ${shotArea} (Free Hit)` : 'NO BALL, overstepping crease (Free Hit)';
+    }
+    if (extraType === 'legBye') {
+      return shotArea ? `${runs} leg bye${runs > 1 ? 's' : ''}, off pads to ${shotArea}` : `${runs} leg bye${runs > 1 ? 's' : ''}, off the pads`;
+    }
+    if (extraType === 'bye') {
+      return shotArea ? `${runs} bye${runs > 1 ? 's' : ''}, beats keeper to ${shotArea}` : `${runs} bye${runs > 1 ? 's' : ''}, beats the keeper`;
+    }
+    if (extraType === 'penalty') {
+      return `PENALTY, +${runs} penalty runs awarded`;
+    }
+
+    // 4. Boundaries & Runs (Crisp 1-line format)
+    if (runs === 6) {
+      return shotArea ? `SIX! Smashed high over ${shotArea}` : 'SIX! Massive hit over the ropes';
+    }
+    if (runs === 4) {
+      return shotArea ? `FOUR! Cracking shot through ${shotArea}` : 'FOUR! Beautifully timed to the fence';
+    }
+    if (runs === 0) {
+      return shotArea ? `0 run, duck to ${shotArea}` : '0 run, good delivery';
+    }
+    if (runs === 1) {
+      return shotArea ? `1 run, driven to ${shotArea}` : '1 run, quick single taken';
+    }
+    if (runs === 2) {
+      return shotArea ? `2 runs, worked to ${shotArea}` : '2 runs, good running between wickets';
+    }
+    if (runs === 3) {
+      return shotArea ? `3 runs, placed towards ${shotArea}` : '3 runs, sharp running';
+    }
+    return shotArea ? `${runs} runs, hit towards ${shotArea}` : `${runs} runs taken`;
+  };
+
   const generateBallCommentary = (
     runs,
     extraType,
@@ -10366,172 +10467,62 @@ function CricketAddaMain() {
     const completedOversBeforeBall = Math.floor((effectiveBalls - 1) / 6);
     const ballInThisOver = ((effectiveBalls - 1) % 6) + 1;
     const ovStr = effectiveBalls > 0 ? `${completedOversBeforeBall}.${ballInThisOver}` : '0.1';
-    const shotAreaName = shotSector ? shotSector.name : null;
+    const shotAreaName = shotSector ? (typeof shotSector === 'string' ? shotSector : (shotSector.name || shotSector.title || shotSector.label || shotSector.id || '')) : null;
     const otRuns = Number(overthrowRuns) || 0;
     const totalDeliveryRuns = (runs || 0) + otRuns;
 
-    let badge = 'RUN';
-    let badgeType = 'run';
-    let text = '';
+    let badge = '0';
+    let badgeType = 'dot';
 
     if (otRuns > 0) {
       badgeType = 'overthrow';
-      if (extraType === 'wide') {
-        const pen = extraPenalty !== undefined && extraPenalty !== null ? extraPenalty : 1;
-        const totalW = pen + totalDeliveryRuns;
-        badge = `${totalW} Wd`;
-        text = `OVERTHROW! WIDE + ${totalDeliveryRuns} RUNS! ${currentBowler} sprays it wide, batters sprint through for ${runs} run${runs === 1 ? '' : 's'} + ${otRuns} overthrow extras (${totalW} runs total conceded)!`;
-      } else if (extraType === 'noBall') {
-        badge = `Nb+${runs}+${otRuns}`;
-        text = shotAreaName
-          ? `OVERTHROW! NO BALL + ${totalDeliveryRuns} RUNS! ${currentBowler} oversteps! ${currentStriker} hits towards ${shotAreaName} for ${runs} run${runs === 1 ? '' : 's'} + ${otRuns} overthrow runs (${1 + totalDeliveryRuns} runs total)! Free Hit follows!`
-          : `OVERTHROW! NO BALL + ${totalDeliveryRuns} RUNS! ${currentBowler} oversteps the crease! Batters take ${runs} run${runs === 1 ? '' : 's'} + ${otRuns} overthrow runs (${1 + totalDeliveryRuns} runs total)! Free Hit follows!`;
-      } else if (extraType === 'bye') {
-        badge = `${runs}+${otRuns} B`;
-        text = `OVERTHROW! ${runs} BYE + ${otRuns} OVERTHROW RUNS! Batters complete ${runs} bye${runs === 1 ? '' : 's'}, and a wayward throw gives away ${otRuns} overthrow runs (${totalDeliveryRuns} runs total)!`;
-      } else if (extraType === 'legBye') {
-        badge = `${runs}+${otRuns} Lb`;
-        text = `OVERTHROW! ${runs} LEG BYE + ${otRuns} OVERTHROW RUNS! Deflection off pads gives ${runs} leg bye${runs === 1 ? '' : 's'} + ${otRuns} overthrow runs (${totalDeliveryRuns} runs total)!`;
-      } else {
-        badge = `${runs}+${otRuns} OT`;
-        text = shotAreaName
-          ? `OVERTHROW! ${runs} run${runs === 1 ? '' : 's'} completed by running + ${otRuns} overthrow runs towards ${shotAreaName} (${totalDeliveryRuns} runs total)! Fielder's errant throw conceded bonus overthrows!`
-          : `OVERTHROW! ${runs} run${runs === 1 ? '' : 's'} completed by running + ${otRuns} overthrow runs (${totalDeliveryRuns} runs total)! Fielder misses the stumps and concedes extra runs!`;
-      }
+      badge = `${runs}+${otRuns} OT`;
     } else if (isWkt) {
       badge = 'W';
       badgeType = 'wkt';
-      const outType = dismissalTypeVal || 'bowled';
-      const outPlayer = dismissedPlayerName || currentStriker;
-      const fielder = wicketFielderName || 'the fielder';
-
-      if (outType === 'run_out') {
-        const runOutLines = [
-          `OUT! RUN OUT! Direct hit! ${outPlayer} calls for a quick run, but ${fielder} swoops in and hits the stumps with pinpoint precision! ${outPlayer} is out!`,
-          `OUT! RUN OUT! Mix-up between the batters! ${fielder} fires a bullet throw to the stumps, catching ${outPlayer} well short of the crease!`,
-          `OUT! RUN OUT! Sensational fielding by ${fielder}! Quick pickup, deadly throw, and ${outPlayer} departs!`,
-        ];
-        text = runOutLines[Math.floor(Math.random() * (runOutLines || []).length)];
-      } else if (outType === 'bowled') {
-        const bowledLines = [
-          `OUT! CLEAN BOWLED! Absolute beauty from ${currentBowler}! Speeds through the defense, uprooting the stumps to dismiss ${outPlayer}!`,
-          `OUT! BOWLED HIM! Fast, accurate delivery by ${currentBowler}, breaching the defense of ${outPlayer} and shattering the woodwork!`,
-          `OUT! KNOCKED HIM OVER! Unstoppable delivery from ${currentBowler}, crashing into the stumps! ${outPlayer} departs!`,
-        ];
-        text = bowledLines[Math.floor(Math.random() * (bowledLines || []).length)];
-      } else if (outType === 'caught') {
-        const caughtLines = shotAreaName ? [
-          `OUT! CAUGHT! ${outPlayer} tries to clear ${shotAreaName}, but ${fielder} settles underneath it and takes a calm catch off ${currentBowler}!`,
-          `OUT! CAUGHT at ${shotAreaName}! ${outPlayer} mistimes the lofted drive, straight into the safe hands of ${fielder}!`,
-          `OUT! GONE! Big breakthrough for ${currentBowler}! Spliced towards ${shotAreaName}, and ${fielder} holds on securely!`,
-        ] : [
-          `OUT! CAUGHT! ${outPlayer} goes for the big aerial shot, but ${fielder} takes a clean catch off ${currentBowler}!`,
-          `OUT! CAUGHT! Edged and taken! ${fielder} pouches a sharp catch to dismiss ${outPlayer} off ${currentBowler}!`,
-          `OUT! GONE! Spliced high into the air, and ${fielder} makes no mistake! Vital wicket for ${currentBowler}!`,
-        ];
-        text = caughtLines[Math.floor(Math.random() * (caughtLines || []).length)];
-      } else if (outType === 'lbw') {
-        const lbwLines = [
-          `OUT! LBW! Trapped right in front! ${currentBowler} angles it in sharply, strikes ${outPlayer} on the pads, and the umpire raises the finger!`,
-          `OUT! LBW! Huge appeal and given! Ball was sliding onto the stumps, hitting ${outPlayer} plumb in line!`,
-          `OUT! LBW! Rapid delivery from ${currentBowler}, beating ${outPlayer}'s inside edge to strike the front pad!`,
-        ];
-        text = lbwLines[Math.floor(Math.random() * (lbwLines || []).length)];
-      } else if (outType === 'stumped') {
-        const stumpedLines = [
-          `OUT! STUMPED! ${outPlayer} advances down the pitch, deceived in flight by ${currentBowler}, and ${fielder} whips off the bails in a flash!`,
-          `OUT! STUMPED! Lightning-fast hands behind the stumps from ${fielder}! ${outPlayer} is stranded outside the crease!`,
-        ];
-        text = stumpedLines[Math.floor(Math.random() * (stumpedLines || []).length)];
-      } else if (outType === 'hit_wicket') {
-        text = `OUT! HIT WICKET! Complete disbelief for ${outPlayer}, accidentally clipping the bails while playing the shot!`;
-      } else if (outType === 'obstructing') {
-        text = `OUT! Obstructing the field! ${outPlayer} is ruled out by the match umpires.`;
-      } else {
-        text = `OUT! Breakthrough for ${currentBowler}! ${outPlayer} is dismissed and walks back to the pavilion.`;
-      }
     } else if (extraType === 'wide') {
-      const penalty = extraPenalty !== undefined && extraPenalty !== null ? extraPenalty : 1;
-      const wRuns = penalty + (runs || 0);
-      badge = `Wd+${runs || 0}`;
+      badge = (runs || 0) > 0 ? `${runs + 1}Wd` : 'Wd';
       badgeType = 'wide';
-      text = (runs || 0) > 0
-        ? `WIDE + ${runs} RUNS! ${currentBowler} sprays it wide down the leg side, beating the keeper and conceding ${runs} extra runs (+${wRuns} runs total).`
-        : `WIDE! ${currentBowler} sprays it down the leg side, outside the tramline. Umpire signals wide (+${wRuns} run).`;
     } else if (extraType === 'noBall') {
-      badge = `Nb+${runs}`;
+      badge = (runs || 0) > 0 ? `Nb+${runs}` : 'Nb';
       badgeType = 'noBall';
-      text = shotAreaName
-        ? `NO BALL! ${currentBowler} oversteps the crease! ${currentStriker} hits towards ${shotAreaName} for ${runs} run${runs > 1 ? 's' : ''}, and a Free Hit follows!`
-        : `NO BALL! ${currentBowler} oversteps the crease! Batter scores ${runs} run${runs > 1 ? 's' : ''}, and a Free Hit follows!`;
     } else if (extraType === 'bye') {
       badge = `${runs} B`;
       badgeType = 'bye';
-      text = `BYE! Ball beats both batter and wicketkeeper, allowing ${runs} bye${runs > 1 ? 's' : ''} to be completed.`;
     } else if (extraType === 'legBye') {
       badge = `${runs} Lb`;
       badgeType = 'legBye';
-      text = shotAreaName
-        ? `LEG BYE! Delivery strikes the pad and deflects towards ${shotAreaName} for ${runs} leg bye${runs > 1 ? 's' : ''}.`
-        : `LEG BYE! Delivery strikes the pad and deflects into the gap for ${runs} leg bye${runs > 1 ? 's' : ''}.`;
     } else if (extraType === 'penalty') {
       badge = `${runs} Pen`;
       badgeType = 'penalty';
-      text = `PENALTY RUNS! Umpire awards +${runs} penalty runs to ${battingTeamName}.`;
     } else if (runs === 6) {
       badge = '6';
       badgeType = 'six';
-      const sixLines = shotAreaName ? [
-        `SIX! Out of the ground! ${currentStriker} launches ${currentBowler} high and handsome over ${shotAreaName} for a monstrous maximum!`,
-        `SIX! Immense power! Smoked cleanly over ${shotAreaName} into the second tier! Sensational batting by ${currentStriker}!`,
-        `SIX! Stand and deliver! Smashed high over ${shotAreaName}, sailing deep into the stands!`,
-      ] : [
-        `SIX! Out of the ground! ${currentStriker} steps out and launches ${currentBowler} high and handsome over the ropes!`,
-        `SIX! Monstrous hit! Pulled cleanly over deep square leg into the second tier! Pure authority from ${currentStriker}!`,
-        `SIX! Stand and deliver! Smashed straight back over the bowler's head for a sensational maximum!`,
-      ];
-      text = sixLines[Math.floor(Math.random() * (sixLines || []).length)];
     } else if (runs === 4) {
       badge = '4';
       badgeType = 'four';
-      const fourLines = shotAreaName ? [
-        `FOUR! Smashed away through ${shotAreaName}! Sublime timing from ${currentStriker}, finds the fence with pure elegance!`,
-        `FOUR! Pierces the gap! Short delivery from ${currentBowler}, cracked right through ${shotAreaName} for a boundary!`,
-        `FOUR! Glorious shot towards ${shotAreaName}! Outfield is lightning quick, no stopping that one!`,
-      ] : [
-        `FOUR! Sublime timing! ${currentStriker} leans into a textbook cover drive, rocketing across the outfield!`,
-        `FOUR! Slashed away! Short and wide from ${currentBowler}, cracked through backward point for a boundary!`,
-        `FOUR! Elegantly flicked through mid-wicket! Finds the gap with pinpoint accuracy!`,
-      ];
-      text = fourLines[Math.floor(Math.random() * (fourLines || []).length)];
-    } else if (runs === 0) {
-      badge = '0';
-      badgeType = 'dot';
-      const dotLines = shotAreaName ? [
-        `Defended solidly towards ${shotAreaName}, ${currentBowler} fields cleanly, no run taken.`,
-        `Pushed gently towards ${shotAreaName}, fielder moves swiftly across to stop the single.`,
-        `Tapped towards ${shotAreaName}, straight to the fielder on the bounce.`,
-      ] : [
-        `Good length on off stump, ${currentStriker} defends solidly back down the pitch to ${currentBowler}.`,
-        `Beaten! Good channel outside off, slight away shape, ${currentStriker} pushes and misses.`,
-        `Tapped gently towards backward point, fielder quickly gathers to deny any single.`,
-      ];
-      text = dotLines[Math.floor(Math.random() * (dotLines || []).length)];
-    } else {
+    } else if (runs > 0) {
       badge = String(runs);
       badgeType = 'run';
-      text = shotAreaName
-        ? runs === 1
-          ? `Knocked into the gap at ${shotAreaName}, ${currentStriker} hustles through for a sharp single.`
-          : `${runs} runs taken. Driven sweetly towards ${shotAreaName}, excellent placement and aggressive running between the wickets by ${currentStriker} and ${nonStriker}.`
-        : runs === 1
-          ? `Pitched up on middle, ${currentStriker} knocks it into the gap at mid-on and scrambles through for a single.`
-          : `${runs} runs taken. Worked into the deep with soft hands, sharp running between the wickets by ${currentStriker} and ${nonStriker}.`;
     }
+
+    const text = formatSingleLineCommentary({
+      runs,
+      extraType,
+      isWkt,
+      striker: currentStriker,
+      bowler: currentBowler,
+      shotSector,
+      dismissalType: dismissalTypeVal,
+      dismissedPlayer: dismissedPlayerName,
+      wicketFielder: wicketFielderName,
+      overthrowRuns: otRuns,
+    });
 
     const newBallEntry = {
       id: `comm_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
       overs: ovStr,
+      overStr: ovStr,
       bowler: currentBowler,
       batter: currentStriker,
       ballSymbol: badge,
@@ -10548,7 +10539,7 @@ function CricketAddaMain() {
         id: `comm_over_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
         isOverEnd: true,
         overNum,
-        overSummary: `End of Over ${overNum} • Match Score: ${nextScore.runs}/${nextScore.wickets} (CRR: ${((nextScore.runs / (currentBalls + 1)) * 6).toFixed(2)})`,
+        overSummary: `End of Over ${overNum} • Match Score: ${nextScore.runs}/${nextScore.wickets}`,
       };
       return [overEndEntry, newBallEntry];
     }
@@ -13378,16 +13369,22 @@ function CricketAddaMain() {
   const deriveCommentaryFromDeliveries = (deliveries, matchObj) => {
     if (!Array.isArray(deliveries) || deliveries.length === 0) return [];
 
-    // 1. Calculate cricket over notations forward in chronological order (0.1, 0.2, ... 0.6, 1.1, ...)
     let legalBallsCount = 0;
-    const forwardList = deliveries.map((d, i) => {
+    let runningRuns = 0;
+    let runningWkts = 0;
+    const forwardList = [];
+
+    deliveries.forEach((d, i) => {
       const runs = Number(d.runs ?? d.addedRuns ?? 0);
       const isWkt = Boolean(d.isWicket || d.isWkt || d.wicket);
       const extra = d.extraType;
       const isLegal = d.isLegalDelivery !== false && extra !== 'wide' && extra !== 'noBall' && extra !== 'penalty';
 
+      runningRuns += runs;
+      if (isWkt) runningWkts += 1;
+
       const completedOvers = Math.floor(legalBallsCount / 6);
-      const ballInOver = (legalBallsCount % 6) + 1; // Always 1, 2, 3, 4, 5, 6 (NEVER 0!)
+      const ballInOver = (legalBallsCount % 6) + 1;
       const calculatedOverStr = `${completedOvers}.${ballInOver}`;
 
       if (isLegal) {
@@ -13395,49 +13392,74 @@ function CricketAddaMain() {
       }
 
       let badgeType = 'dot';
-      if (isWkt) badgeType = 'wkt';
-      else if (runs >= 6) badgeType = 'six';
-      else if (runs === 4) badgeType = 'four';
-      else if (extra === 'wide') badgeType = 'wide';
-      else if (extra === 'noBall') badgeType = 'noBall';
-      else if (runs > 0) badgeType = 'run';
-
-      let text = d.commentary || d.text || '';
-      if (!text) {
-        if (isWkt) {
-          text = `WICKET! ${d.batter || d.striker || 'Batter'} is OUT!`;
-        } else if (runs === 4) {
-          text = `${d.batter || d.striker || 'Batter'} hits a superb FOUR!`;
-        } else if (runs === 6) {
-          text = `${d.batter || d.striker || 'Batter'} smashes a massive SIX!`;
-        } else if (extra === 'wide') {
-          text = `Wide, ${runs > 0 ? `${runs + 1} runs added.` : '1 run added.'}`;
-        } else if (extra === 'noBall') {
-          text = `No Ball bowled by ${d.bowler || 'bowler'}.`;
-        } else if (runs === 0) {
-          text = `${d.bowler || 'Bowler'} to ${d.batter || d.striker || 'batter'}, no run.`;
-        } else {
-          text = `${d.batter || d.striker || 'Batter'} takes ${runs} run${runs > 1 ? 's' : ''}.`;
-        }
+      let badge = '0';
+      if (isWkt) {
+        badgeType = 'wkt';
+        badge = 'W';
+      } else if (runs >= 6) {
+        badgeType = 'six';
+        badge = '6';
+      } else if (runs === 4) {
+        badgeType = 'four';
+        badge = '4';
+      } else if (extra === 'wide') {
+        badgeType = 'wide';
+        badge = runs > 0 ? `${runs + 1}Wd` : 'Wd';
+      } else if (extra === 'noBall') {
+        badgeType = 'noBall';
+        badge = runs > 0 ? `Nb+${runs}` : 'Nb';
+      } else if (extra === 'bye' || extra === 'legBye') {
+        badgeType = extra;
+        badge = `${runs} ${extra === 'bye' ? 'B' : 'Lb'}`;
+      } else if (runs > 0) {
+        badgeType = 'run';
+        badge = String(runs);
       }
+
+      const singleLineText = formatSingleLineCommentary({
+        runs,
+        extraType: extra,
+        isWkt,
+        striker: d.striker || d.batter,
+        bowler: d.bowler,
+        shotSector: d.shotSector,
+        dismissalType: d.dismissalType || d.actualDismissal || d.dismissal,
+        dismissedPlayer: d.dismissedPlayerName || d.dismissedPlayer,
+        wicketFielder: d.wicketFielderName || d.wicketFielder,
+        overthrowRuns: d.overthrowRuns,
+      });
 
       const overStr = (d.overs && !d.overs.endsWith('.0'))
         ? d.overs
         : (d.over !== undefined && d.ball_no ? `${d.over}.${d.ball_no}` : calculatedOverStr);
 
-      return {
+      forwardList.push({
         id: d.id || `ball_${i}`,
         overStr,
+        overs: overStr,
         runs,
         badgeType,
-        ballSymbol: d.ballSymbol || (isWkt ? 'W' : extra === 'wide' ? (runs > 0 ? `Wd+${runs}` : 'Wd') : String(runs)),
-        text,
+        ballSymbol: d.ballSymbol || badge,
+        text: singleLineText,
         isWkt,
         extraType: extra,
-      };
+        bowler: d.bowler,
+        batter: d.striker || d.batter,
+      });
+
+      // Insert clean over-end milestone after 6 legal deliveries
+      if (isLegal && legalBallsCount % 6 === 0) {
+        const overNum = legalBallsCount / 6;
+        forwardList.push({
+          id: `over_end_${overNum}_${i}`,
+          isOverEnd: true,
+          overNum,
+          overSummary: `End of Over ${overNum} • ${runningRuns}/${runningWkts}`,
+        });
+      }
     });
 
-    // 2. Reverse list so latest ball is at the very top (newest first)!
+    // Reverse list so latest ball is at the very top (newest first)!
     return forwardList.reverse();
   };
 
@@ -20138,6 +20160,31 @@ function CricketAddaMain() {
                           }
 
                           return commentaryItems.map((item, idx) => {
+                            if (item.isOverEnd) {
+                              return (
+                                <View
+                                  key={`v_comm_ov_${item.id || idx}`}
+                                  style={{
+                                    backgroundColor: '#0a2540',
+                                    borderRadius: 8,
+                                    borderWidth: 1,
+                                    borderColor: '#0284c7',
+                                    paddingVertical: 6,
+                                    paddingHorizontal: 10,
+                                    marginVertical: 3,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                  }}
+                                >
+                                  <Text style={{ fontSize: 12 }}>🏁</Text>
+                                  <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '800' }}>
+                                    {item.overSummary || `End of Over ${item.overNum}`}
+                                  </Text>
+                                </View>
+                              );
+                            }
+
                             const rawSym = String(item.ballSymbol || '0');
                             const symUpper = rawSym.toUpperCase();
                             const isW = symUpper.includes('W') && !symUpper.includes('WD');
@@ -20193,8 +20240,8 @@ function CricketAddaMain() {
                                   </Text>
                                 </View>
 
-                                {/* Formatted commentary text (1pt bigger) */}
-                                <Text style={{ color: '#ffffff', fontSize: 13, flex: 1, lineHeight: 17 }}>
+                                {/* Formatted 1-line commentary text */}
+                                <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '600', flex: 1 }} numberOfLines={1} ellipsizeMode="tail">
                                   {renderFormattedCommentary(item.text)}
                                 </Text>
                               </View>
@@ -26506,15 +26553,26 @@ function CricketAddaMain() {
               showsVerticalScrollIndicator={true}
               contentContainerStyle={{ gap: 6, paddingVertical: 4 }}
             >
-              {(liveCommentaryList || []).length === 0 ? (
-                <View style={{ padding: 24, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 24, marginBottom: 6 }}>🏏</Text>
-                  <Text style={{ color: '#94a3b8', fontSize: 12.5, textAlign: 'center' }}>
-                    Ready for first ball! Start scoring to see live commentary.
-                  </Text>
-                </View>
-              ) : (
-                liveCommentaryList.map((item, idx) => {
+              {(() => {
+                const activeDeliveries = (scoringHistory && scoringHistory.length > 0)
+                  ? scoringHistory
+                  : (currentMatchData?.liveState?.scoringHistory || currentMatchData?.scoringHistory || []);
+                const commList = (activeDeliveries && activeDeliveries.length > 0)
+                  ? deriveCommentaryFromDeliveries(activeDeliveries, currentMatchData)
+                  : (liveCommentaryList || []);
+
+                if (commList.length === 0) {
+                  return (
+                    <View style={{ padding: 24, alignItems: 'center' }}>
+                      <Text style={{ fontSize: 24, marginBottom: 6 }}>🏏</Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 12.5, textAlign: 'center' }}>
+                        Ready for first ball! Start scoring to see live commentary.
+                      </Text>
+                    </View>
+                  );
+                }
+
+                return commList.map((item, idx) => {
                   if (item.isOverEnd) {
                     const isStart = item.overNum === 0 || item.isMatchStart;
                     return (
@@ -26527,27 +26585,12 @@ function CricketAddaMain() {
                         paddingHorizontal: 12,
                         marginBottom: 4,
                       }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: (item.battersText || item.bowlerText || item.overSummary) ? 3 : 0 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Text style={{ fontSize: 12 }}>{isStart ? '🚀' : '🏁'}</Text>
                           <Text style={{ color: isStart ? '#c7d2fe' : '#38bdf8', fontSize: 12, fontWeight: '900' }}>
-                            {item.headerTitle || (isStart ? '1ST INNINGS COMMENCES' : `OVER ${item.overNum} COMPLETED`)}
+                            {item.overSummary || item.headerTitle || `OVER ${item.overNum} COMPLETED`}
                           </Text>
                         </View>
-                        {item.battersText && (
-                          <Text style={{ color: isStart ? '#a5b4fc' : '#cbd5e1', fontSize: 11, fontWeight: '600', lineHeight: 16 }}>
-                            🏏 {item.battersText}
-                          </Text>
-                        )}
-                        {item.bowlerText && (
-                          <Text style={{ color: isStart ? '#818cf8' : '#94a3b8', fontSize: 11, fontWeight: '600', marginTop: 2 }}>
-                            ⚾ {item.bowlerText}
-                          </Text>
-                        )}
-                        {!item.battersText && !item.bowlerText && item.overSummary && (
-                          <Text style={{ color: '#cbd5e1', fontSize: 11, fontWeight: '600' }}>
-                            {item.overSummary}
-                          </Text>
-                        )}
                       </View>
                     );
                   }
@@ -26571,7 +26614,7 @@ function CricketAddaMain() {
                   else if (item.extraType === 'bye') ballBadgeText = `${item.runs}B`;
                   else if (item.extraType === 'legBye') ballBadgeText = `${item.runs}Lb`;
 
-                  const ballOvStr = item.overStr || (item.over !== undefined && item.ball !== undefined ? `${item.over}.${item.ball}` : '');
+                  const ballOvStr = item.overStr || item.overs || (item.over !== undefined && item.ball !== undefined ? `${item.over}.${item.ball}` : '');
 
                   return (
                     <View
@@ -26588,33 +26631,46 @@ function CricketAddaMain() {
                         gap: 8,
                       }}
                     >
-                      {Boolean(ballOvStr) && (
-                        <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800', marginRight: 2 }}>
-                          {ballOvStr}
+                      {/* Over pill (e.g. 0.1, 0.2) */}
+                      <View style={{
+                        backgroundColor: '#0a2540',
+                        borderWidth: 1,
+                        borderColor: '#0284c7',
+                        borderRadius: 5,
+                        paddingHorizontal: 6,
+                        paddingVertical: 2,
+                        minWidth: 36,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '800' }}>
+                          {ballOvStr || `${item.over || 0}.${item.ball || 1}`}
                         </Text>
-                      )}
+                      </View>
 
+                      {/* Ball Symbol Capsule (e.g. 0, 1, 4, 6, W, Wd) */}
                       <View style={{
                         minWidth: 26,
-                        height: 26,
-                        paddingHorizontal: 3,
+                        height: 24,
+                        paddingHorizontal: 4,
                         borderRadius: 5,
                         backgroundColor: badgeBg,
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}>
-                        <Text style={{ color: badgeColor, fontSize: 10.5, fontWeight: '900', textAlign: 'center' }}>
+                        <Text style={{ color: badgeColor, fontSize: 11, fontWeight: '900', textAlign: 'center' }}>
                           {ballBadgeText}
                         </Text>
                       </View>
 
-                      <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '600', flex: 1 }} numberOfLines={2}>
-                        {item.text || `Ball bowled by ${item.bowler || 'bowler'}`}
+                      {/* Clean 1-Line Commentary Text */}
+                      <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '600', flex: 1 }} numberOfLines={1} ellipsizeMode="tail">
+                        {item.text || `${item.runs || 0} run${item.runs === 1 ? '' : 's'}`}
                       </Text>
                     </View>
                   );
-                })
-              )}
+                });
+              })()}
             </ScrollView>
           </View>
         </View>
