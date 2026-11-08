@@ -4777,7 +4777,7 @@ let isSplashDismissedInSession = false;
 
 function CricketAddaMain() {
   const insets = useSafeAreaInsets();
-  const statusBarHeight = Platform.OS === 'android' ? Math.min(StatusBar.currentHeight || 24, 24) : (insets.top || 20);
+  const statusBarHeight = Platform.OS === 'android' ? Math.min(StatusBar.currentHeight || 27, 27) : (insets.top || 20);
   const topInset = Math.max(statusBarHeight, insets.top || 20);
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 16);
   const safeModalCardMaxHeight = Math.max(300, height - topInset - bottomInset - 32);
@@ -34631,7 +34631,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 12,
-    paddingTop: 1,
+    paddingTop: 3,
     paddingBottom: 3,
     backgroundColor: '#090d16',
     borderBottomWidth: 1,
