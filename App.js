@@ -4910,12 +4910,8 @@ function CricketAddaMain() {
         showAppToast('Aapka app already latest version par hai!', '✅', 'success');
       }
     } catch (err) {
-      const errMsg = String(err?.message || err || '');
-      if (errMsg.includes('checkForUpdateAsync') || errMsg.includes('rejected') || errMsg.includes('ERR_UPDATES_DISABLED')) {
-        showAppToast('Pehli baar naya APK install karna padega to enable OTA updates', 'ℹ️', 'info');
-      } else {
-        showAppToast('Update check failed: ' + errMsg, '⚠️', 'warning');
-      }
+      const errMsg = String(err?.message || err || 'Network error');
+      showAppToast(errMsg.length > 70 ? errMsg.slice(0, 70) + '...' : errMsg, '⚠️', 'warning');
     } finally {
       setIsCheckingUpdate(false);
     }
