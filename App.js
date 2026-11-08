@@ -14470,12 +14470,30 @@ function CricketAddaMain() {
     const battingList = scorecardInning === 1 ? inn1Batting : inn2Batting;
     const bowlingList = scorecardInning === 1 ? inn1Bowling : inn2Bowling;
 
-    // Resolve bowling team name for current displayed inning
+    // Resolve team logos, flags, and names for current displayed inning
     const team1Name = currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Team 1';
     const team2Name = currentMatchData.innings2?.team || (currentMatchData.teamA === team1Name ? currentMatchData.teamB : currentMatchData.teamA) || match?.teamB || 'Team 2';
+    const team1Flag = currentMatchData.innings1?.flag || currentMatchData.flagA || match?.flagA || '🦁';
+    const team2Flag = currentMatchData.innings2?.flag || currentMatchData.flagB || match?.flagB || '⚔️';
+    const team1Logo = currentMatchData.innings1?.logoUri || currentMatchData.innings1?.logo || currentMatchData.logoA || resolveTeamLogo({ name: team1Name }, allAvailableMatchTeams, usersDb);
+    const team2Logo = currentMatchData.innings2?.logoUri || currentMatchData.innings2?.logo || currentMatchData.logoB || resolveTeamLogo({ name: team2Name }, allAvailableMatchTeams, usersDb);
+    const team1Short = getTeamShortName(team1Name, team1Flag);
+    const team2Short = getTeamShortName(team2Name, team2Flag);
+
+    const battingTeamNameResolved = activeInningData?.team || (scorecardInning === 1 ? team1Name : team2Name);
     const bowlingTeamNameResolved = scorecardInning === 1
       ? (currentMatchData.innings2?.team || (currentMatchData.teamA === (inn1ScorecardData?.team || team1Name) ? currentMatchData.teamB : currentMatchData.teamA) || match?.teamB || 'Bowling Team')
       : (currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Bowling Team');
+
+    const isBattingTeam1 = battingTeamNameResolved?.toLowerCase()?.trim() === team1Name?.toLowerCase()?.trim();
+    const battingTeamLogoResolved = isBattingTeam1 ? team1Logo : team2Logo;
+    const battingTeamFlagResolved = isBattingTeam1 ? team1Flag : team2Flag;
+    const battingTeamShortResolved = isBattingTeam1 ? team1Short : team2Short;
+
+    const isBowlingTeam1 = bowlingTeamNameResolved?.toLowerCase()?.trim() === team1Name?.toLowerCase()?.trim();
+    const bowlingTeamLogoResolved = isBowlingTeam1 ? team1Logo : team2Logo;
+    const bowlingTeamFlagResolved = isBowlingTeam1 ? team1Flag : team2Flag;
+    const bowlingTeamShortResolved = isBowlingTeam1 ? team1Short : team2Short;
 
     // Extras breakdown calculation
     let extrasTotal = 0;
@@ -14503,10 +14521,41 @@ function CricketAddaMain() {
       ? fowList.map(f => `${f.runs ?? f.score ?? 0}/${f.wkt ?? f.wicket ?? 1} (${f.player || f.batter || 'Batter'}, ${f.overs || f.over || ''} ov)`).join(', ')
       : 'No wickets yet';
 
-    // Yet to Bat squad players calculation
-    const currentBattingSquad = scorecardInning === 1
-      ? (currentMatchData?.team1Squad || currentMatchData?.innings1?.battingSquad || currentMatchData?.innings1?.batting || activeBattingSquad || [])
-      : (currentMatchData?.team2Squad || currentMatchData?.innings2?.battingSquad || currentMatchData?.innings2?.batting || activeOppBowlers || []);
+    // Robust squad resolution for Yet to Bat calculation
+    const resolveSquadForTeam = (tName, innNum) => {
+      if (!tName) return [];
+      const clean = String(tName).toLowerCase().trim();
+
+      // 1. Direct squad properties
+      if (innNum === 1 && Array.isArray(currentMatchData?.team1Squad) && currentMatchData.team1Squad.length > 0) return currentMatchData.team1Squad;
+      if (innNum === 2 && Array.isArray(currentMatchData?.team2Squad) && currentMatchData.team2Squad.length > 0) return currentMatchData.team2Squad;
+      if (currentMatchData?.innings1?.team?.toLowerCase()?.trim() === clean && Array.isArray(currentMatchData?.innings1?.battingSquad) && currentMatchData.innings1.battingSquad.length > 0) return currentMatchData.innings1.battingSquad;
+      if (currentMatchData?.innings2?.team?.toLowerCase()?.trim() === clean && Array.isArray(currentMatchData?.innings2?.battingSquad) && currentMatchData.innings2.battingSquad.length > 0) return currentMatchData.innings2.battingSquad;
+
+      // 2. Playing XI
+      const isTeamA = (currentMatchData?.teamA?.toLowerCase()?.trim() === clean || currentMatchData?.myTeam?.toLowerCase()?.trim() === clean);
+      if (isTeamA && Array.isArray(currentMatchData?.myPlayingXI) && currentMatchData.myPlayingXI.length > 0) return currentMatchData.myPlayingXI;
+      const isTeamB = (currentMatchData?.teamB?.toLowerCase()?.trim() === clean || currentMatchData?.opponentTeam?.toLowerCase()?.trim() === clean);
+      if (isTeamB && Array.isArray(currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI) && (currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI).length > 0) {
+        return currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI;
+      }
+
+      // 3. Registered teams & allAvailableMatchTeams
+      const foundReg = (registeredTeams || []).find(t => t?.name && t.name.toLowerCase().trim() === clean) || (allAvailableMatchTeams || []).find(t => t?.name && t.name.toLowerCase().trim() === clean);
+      if (foundReg && Array.isArray(foundReg.squad) && foundReg.squad.length > 0) return foundReg.squad;
+
+      // 4. Match draft squads
+      if (isTeamA && Array.isArray(matchDraft?.myPlayingXI) && matchDraft.myPlayingXI.length > 0) return matchDraft.myPlayingXI;
+      if (isTeamB && Array.isArray(matchDraft?.opponentPlayingXI) && matchDraft.opponentPlayingXI.length > 0) return matchDraft.opponentPlayingXI;
+
+      // 5. Active squads
+      if (battingTeamName && battingTeamName.toLowerCase().trim() === clean && Array.isArray(activeBattingSquad) && activeBattingSquad.length > 0) return activeBattingSquad;
+      if (bowlingTeamName && bowlingTeamName.toLowerCase().trim() === clean && Array.isArray(activeOppBowlers) && activeOppBowlers.length > 0) return activeOppBowlers;
+
+      return [];
+    };
+
+    const currentBattingSquad = resolveSquadForTeam(battingTeamNameResolved, scorecardInning);
 
     const battedPlayerNames = new Set(
       (battingList || []).map(b => String(typeof b === 'object' ? b.name : b || '').toLowerCase().trim())
@@ -14516,7 +14565,14 @@ function CricketAddaMain() {
       .map(p => String(typeof p === 'object' ? p.name : p || '').trim())
       .filter(pName => pName && !battedPlayerNames.has(pName.toLowerCase()));
 
-    const yetToBatText = yetToBatList.length > 0 ? yetToBatList.join(', ') : 'All players have batted.';
+    let yetToBatText = '';
+    if (yetToBatList.length > 0) {
+      yetToBatText = yetToBatList.join(', ');
+    } else if (battingList.length >= 10 || (activeInningData?.wickets || 0) >= 10) {
+      yetToBatText = 'All players have batted.';
+    } else {
+      yetToBatText = 'Remaining squad members yet to bat.';
+    }
 
     return (
       <View style={{ gap: 8 }}>
@@ -14561,7 +14617,7 @@ function CricketAddaMain() {
           </TouchableOpacity>
         </View>
 
-        {/* 1. BATTING CARD (MATCHING SCREENSHOT) */}
+        {/* 1. BATTING CARD (WITH TEAM LOGO HEADER) */}
         <View style={{
           backgroundColor: '#071526',
           borderRadius: 12,
@@ -14573,17 +14629,25 @@ function CricketAddaMain() {
           <View style={{
             backgroundColor: '#0a213a',
             paddingHorizontal: 10,
-            paddingVertical: 8,
+            paddingVertical: 7,
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
             borderBottomWidth: 1,
             borderBottomColor: '#1e3a5f',
           }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={{ fontSize: 13 }}>✏️</Text>
-              <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
-                {activeInningData?.team || 'Team'} – Batting
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
+              <TeamFlagBadge
+                flag={battingTeamFlagResolved}
+                logo={battingTeamLogoResolved}
+                shortName={battingTeamShortResolved}
+                fullName={battingTeamNameResolved}
+                isBatting={true}
+                theme={currentTheme}
+                size="sm"
+              />
+              <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900', flex: 1 }} numberOfLines={1}>
+                {battingTeamNameResolved} – Batting
               </Text>
             </View>
             <Text style={{ color: '#facc15', fontSize: 13.5, fontWeight: '900' }}>
@@ -14696,7 +14760,7 @@ function CricketAddaMain() {
           </Text>
         </View>
 
-        {/* 3. BOWLING CARD (MATCHING SCREENSHOT) */}
+        {/* 3. BOWLING CARD (WITH TEAM LOGO HEADER) */}
         <View style={{
           backgroundColor: '#071526',
           borderRadius: 12,
@@ -14708,15 +14772,23 @@ function CricketAddaMain() {
           <View style={{
             backgroundColor: '#0a213a',
             paddingHorizontal: 10,
-            paddingVertical: 8,
+            paddingVertical: 7,
             flexDirection: 'row',
             alignItems: 'center',
-            gap: 6,
+            gap: 7,
             borderBottomWidth: 1,
             borderBottomColor: '#1e3a5f',
           }}>
-            <Text style={{ fontSize: 13 }}>⚾</Text>
-            <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
+            <TeamFlagBadge
+              flag={bowlingTeamFlagResolved}
+              logo={bowlingTeamLogoResolved}
+              shortName={bowlingTeamShortResolved}
+              fullName={bowlingTeamNameResolved}
+              isBatting={false}
+              theme={currentTheme}
+              size="sm"
+            />
+            <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900', flex: 1 }} numberOfLines={1}>
               {bowlingTeamNameResolved} – Bowling
             </Text>
           </View>
@@ -14757,7 +14829,7 @@ function CricketAddaMain() {
           )}
         </View>
 
-        {/* 4. YET TO BAT CARD (MATCHING SCREENSHOT) */}
+        {/* 4. YET TO BAT CARD (WITH TEAM LOGO HEADER) */}
         <View style={{
           backgroundColor: '#071526',
           borderRadius: 10,
@@ -14771,16 +14843,24 @@ function CricketAddaMain() {
             style={{
               backgroundColor: '#0a213a',
               paddingHorizontal: 10,
-              paddingVertical: 8,
+              paddingVertical: 7,
               flexDirection: 'row',
               justifyContent: 'space-between',
               alignItems: 'center',
             }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={{ fontSize: 13 }}>👥</Text>
-              <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>
-                {activeInningData?.team || 'Team'} – Yet to Bat
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
+              <TeamFlagBadge
+                flag={battingTeamFlagResolved}
+                logo={battingTeamLogoResolved}
+                shortName={battingTeamShortResolved}
+                fullName={battingTeamNameResolved}
+                isBatting={true}
+                theme={currentTheme}
+                size="sm"
+              />
+              <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800', flex: 1 }} numberOfLines={1}>
+                {battingTeamNameResolved} – Yet to Bat
               </Text>
             </View>
             <Text style={{ color: '#94a3b8', fontSize: 12 }}>
@@ -19677,10 +19757,9 @@ function CricketAddaMain() {
                   return (
                     <View style={{
                       flexDirection: 'row',
-                      gap: 6,
+                      gap: 5,
                       marginBottom: 5,
-                      alignItems: 'stretch',
-                      position: 'relative',
+                      alignItems: 'center',
                     }}>
                       {/* Left: Active Batting Team Card (with glowing blue border) */}
                       <View style={{
@@ -19716,29 +19795,19 @@ function CricketAddaMain() {
                         </View>
                       </View>
 
-                      {/* Center VS Diamond Badge */}
+                      {/* Center VS Diamond Badge (Inline, clean separation) */}
                       <View style={{
-                        position: 'absolute',
-                        left: '50%',
-                        top: '50%',
-                        marginLeft: -15,
-                        marginTop: -15,
-                        width: 30,
-                        height: 30,
-                        borderRadius: 15,
+                        width: 26,
+                        height: 26,
+                        borderRadius: 13,
                         backgroundColor: '#0a1d37',
                         borderWidth: 1.5,
                         borderColor: '#0284c7',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        zIndex: 10,
-                        elevation: 6,
-                        shadowColor: '#000000',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.5,
-                        shadowRadius: 3,
+                        flexShrink: 0,
                       }}>
-                        <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900', letterSpacing: 0.5 }}>VS</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>VS</Text>
                       </View>
 
                       {/* Right: Bowling Team Card (with dark reddish border) */}
@@ -21314,139 +21383,166 @@ function CricketAddaMain() {
           </ScrollView>
         ) : (
           <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
-            <TouchableOpacity
-              style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-              onPress={goBack}
-            >
-              <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>
-                {navHistory[navHistory.length - 2] === 'scorer' ? '← Back to Scorer' : '← Back'}
-              </Text>
-            </TouchableOpacity>
+            {/* Header Row: Back (<) | Team vs Team 🔴 LIVE | Three Dots Menu (⋮) */}
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 6,
+              marginBottom: 5,
+              marginTop: 4,
+              width: '100%',
+            }}>
+              {/* 1. Back Button (Solid Black Background, White Icon) */}
+              <TouchableOpacity
+                onPress={goBack}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: '#000000',
+                  borderWidth: 1,
+                  borderColor: '#1e3a5f',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Go back"
+              >
+                <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: -2 }}>‹</Text>
+              </TouchableOpacity>
 
-            {/* Quick Match Carousel Switcher */}
-          <Text style={[styles.switcherHeaderTitle, currentTheme.isLight && { color: '#64748b' }]}>🏏 SWITCH MATCH SCORECARD:</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.matchSwitcherScroll}>
-            {Object.keys(matchesDb || {}).map(id => {
-              const m = matchesDb[id];
-              const isSelected = m.id === activeMatchId;
-              return (
-                <TouchableOpacity
-                  key={m.id}
-                  style={[styles.matchSwitchPill, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, isSelected && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.matchSwitchPillActive)]}
-                  onPress={() => {
-                    setActiveMatchId(m.id);
-                    setScorecardInning(1);
-                  }}
-                >
-                  <Text style={[styles.matchSwitchText, currentTheme.isLight && { color: '#475569' }, isSelected && (currentTheme.isLight ? { color: '#ffffff' } : styles.matchSwitchTextActive)]}>
-                    {m.status === 'live' ? '🔴 ' : '📋 '} {m.teamA} vs {m.teamB}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </ScrollView>
-
-          <View style={[styles.scHeaderCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}>
-            <Text style={[styles.scTournText, currentTheme.isLight && { color: '#64748b' }]}>{currentMatchData.tournament}</Text>
-            <Text style={[styles.scTitleText, currentTheme.isLight && { color: '#0f172a' }]}>{currentMatchData.title}</Text>
-            <Text style={[styles.scVenueText, currentTheme.isLight && { color: '#64748b' }]}>📍 {currentMatchData.venue}</Text>
-            {currentMatchData.result && (
-              <View style={styles.scResultBanner}>
-                <Text style={styles.scResultBannerText}>🏆 {currentMatchData.result}</Text>
-              </View>
-            )}
-            {currentMatchData.pom && (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                <PlayerAvatar name={currentMatchData.pom.split(' ')[0]} size={22} borderColor="#eab308" />
-                <Text style={[styles.scPomText, currentTheme.isLight && { color: '#475569' }]}>Player of the Match: <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#fff', fontWeight: 'bold' }}>{currentMatchData.pom}</Text></Text>
-              </View>
-            )}
-            <Text style={[styles.scTossText, currentTheme.isLight && { color: '#64748b' }]}>🪙 {currentMatchData.toss}</Text>
-          </View>
-
-          {/* TWO TEAM CARDS SIDE-BY-SIDE (MATCHING VIEWER BROADCAST DESIGN) */}
-          {(() => {
-            const team1Name = currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Team 1';
-            const team2Name = currentMatchData.innings2?.team || (currentMatchData.teamA === team1Name ? currentMatchData.teamB : currentMatchData.teamA) || match?.teamB || 'Team 2';
-            const team1Flag = currentMatchData.innings1?.flag || currentMatchData.flagA || match?.flagA || '🦁';
-            const team2Flag = currentMatchData.innings2?.flag || currentMatchData.flagB || match?.flagB || '⚔️';
-            const team1Logo = currentMatchData.innings1?.logoUri || currentMatchData.innings1?.logo || currentMatchData.logoA || resolveTeamLogo({ name: team1Name }, allAvailableMatchTeams, usersDb);
-            const team2Logo = currentMatchData.innings2?.logoUri || currentMatchData.innings2?.logo || currentMatchData.logoB || resolveTeamLogo({ name: team2Name }, allAvailableMatchTeams, usersDb);
-            const team1Short = getTeamShortName(team1Name, team1Flag);
-            const team2Short = getTeamShortName(team2Name, team2Flag);
-
-            const isTeam1Batting = (currentInnings === 1);
-
-            return (
+              {/* 2. Live Match Box with Team vs Team (Height 36px Equal to < Button) */}
               <View style={{
+                flex: 1,
+                height: 36,
+                backgroundColor: '#071526',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: '#1e3a5f',
+                paddingHorizontal: 8,
                 flexDirection: 'row',
-                gap: 6,
-                marginTop: 6,
-                marginBottom: 6,
-                alignItems: 'stretch',
-                position: 'relative',
+                alignItems: 'center',
+                justifyContent: 'space-between',
               }}>
-                {/* Left: Team 1 Card (with glowing blue border) */}
-                <View style={{
+                <Text style={{
+                  color: '#ffffff',
+                  fontSize: 12.5,
+                  fontWeight: '900',
+                  letterSpacing: 0.3,
+                  textTransform: 'uppercase',
                   flex: 1,
-                  backgroundColor: '#071a2e',
-                  borderRadius: 11,
-                  borderWidth: 1.5,
-                  borderColor: '#0284c7',
-                  padding: 8,
+                  marginRight: 6,
+                }} numberOfLines={1}>
+                  {battingTeamName && bowlingTeamName ? `${battingTeamName} vs ${bowlingTeamName}` : (currentMatchData?.title || 'LIVE MATCH')}
+                </Text>
+                
+                <View style={{
+                  backgroundColor: '#dc2626',
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 6,
+                  gap: 4,
+                  paddingHorizontal: 6,
+                  paddingVertical: 2,
+                  borderRadius: 4,
                 }}>
-                  <TeamFlagBadge
-                    flag={team1Flag}
-                    logo={team1Logo}
-                    shortName={team1Short}
-                    fullName={team1Name}
-                    isBatting={isTeam1Batting}
-                    theme={currentTheme}
-                    size="sm"
-                  />
-                  <View style={{ flex: 1, justifyContent: 'center' }}>
-                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
-                      {team1Name}
-                    </Text>
-                    <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: 1 }}>
-                      {inn1ScorecardData?.runs ?? 0}/{inn1ScorecardData?.wickets ?? 0}
-                    </Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>
-                      ({inn1ScorecardData?.overs || '0.0'} Ov)
-                    </Text>
-                  </View>
+                  <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ffffff' }} />
+                  <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900', letterSpacing: 0.5 }}>
+                    LIVE
+                  </Text>
                 </View>
+              </View>
 
-                {/* Center VS Diamond Badge */}
-                <View style={{
-                  position: 'absolute',
-                  left: '50%',
-                  top: '50%',
-                  marginLeft: -15,
-                  marginTop: -15,
-                  width: 30,
-                  height: 30,
-                  borderRadius: 15,
-                  backgroundColor: '#0a1d37',
-                  borderWidth: 1.5,
-                  borderColor: '#0284c7',
-                  alignItems: 'center',
+              {/* 3. Match Options Menu Button (Three Dots ⋮) */}
+              <TouchableOpacity
+                onPress={() => setScorerActionsModalVisible(true)}
+                style={{
+                  width: 36,
+                  height: 36,
+                  borderRadius: 8,
+                  backgroundColor: '#000000',
+                  borderWidth: 1,
+                  borderColor: '#1e3a5f',
                   justifyContent: 'center',
-                  zIndex: 10,
-                  elevation: 6,
-                  shadowColor: '#000000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.5,
-                  shadowRadius: 3,
-                }}>
-                  <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900', letterSpacing: 0.5 }}>VS</Text>
-                </View>
+                  alignItems: 'center',
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Match options"
+              >
+                <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900' }}>⋮</Text>
+              </TouchableOpacity>
+            </View>
 
-                {/* Right: Team 2 Card (with dark reddish border) */}
+            {/* TWO TEAM CARDS SIDE-BY-SIDE (CLEAN INLINE VS BADGE - ZERO OVERLAY) */}
+            {(() => {
+              const team1Name = currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Team 1';
+              const team2Name = currentMatchData.innings2?.team || (currentMatchData.teamA === team1Name ? currentMatchData.teamB : currentMatchData.teamA) || match?.teamB || 'Team 2';
+              const team1Flag = currentMatchData.innings1?.flag || currentMatchData.flagA || match?.flagA || '🦁';
+              const team2Flag = currentMatchData.innings2?.flag || currentMatchData.flagB || match?.flagB || '⚔️';
+              const team1Logo = currentMatchData.innings1?.logoUri || currentMatchData.innings1?.logo || currentMatchData.logoA || resolveTeamLogo({ name: team1Name }, allAvailableMatchTeams, usersDb);
+              const team2Logo = currentMatchData.innings2?.logoUri || currentMatchData.innings2?.logo || currentMatchData.logoB || resolveTeamLogo({ name: team2Name }, allAvailableMatchTeams, usersDb);
+              const team1Short = getTeamShortName(team1Name, team1Flag);
+              const team2Short = getTeamShortName(team2Name, team2Flag);
+
+              const isTeam1Batting = (currentInnings === 1);
+
+              return (
+                <View style={{
+                  flexDirection: 'row',
+                  gap: 5,
+                  marginTop: 4,
+                  marginBottom: 6,
+                  alignItems: 'center',
+                }}>
+                  {/* Left: Team 1 Card */}
+                  <View style={{
+                    flex: 1,
+                    backgroundColor: '#071a2e',
+                    borderRadius: 11,
+                    borderWidth: 1.5,
+                    borderColor: '#0284c7',
+                    padding: 8,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}>
+                    <TeamFlagBadge
+                      flag={team1Flag}
+                      logo={team1Logo}
+                      shortName={team1Short}
+                      fullName={team1Name}
+                      isBatting={isTeam1Batting}
+                      theme={currentTheme}
+                      size="sm"
+                    />
+                    <View style={{ flex: 1, justifyContent: 'center' }}>
+                      <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                        {team1Name}
+                      </Text>
+                      <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: 1 }}>
+                        {inn1ScorecardData?.runs ?? 0}/{inn1ScorecardData?.wickets ?? 0}
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>
+                        ({inn1ScorecardData?.overs || '0.0'} Ov)
+                      </Text>
+                    </View>
+                  </View>
+
+                  {/* Center VS Diamond Badge (Inline, clean separation) */}
+                  <View style={{
+                    width: 26,
+                    height: 26,
+                    borderRadius: 13,
+                    backgroundColor: '#0a1d37',
+                    borderWidth: 1.5,
+                    borderColor: '#0284c7',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}>
+                    <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900', letterSpacing: 0.5 }}>VS</Text>
+                  </View>
+
+                  {/* Right: Team 2 Card */}
                 <View style={{
                   flex: 1,
                   backgroundColor: '#260a10',
