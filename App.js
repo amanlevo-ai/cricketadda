@@ -4777,7 +4777,8 @@ let isSplashDismissedInSession = false;
 
 function CricketAddaMain() {
   const insets = useSafeAreaInsets();
-  const topInset = Platform.OS === 'android' ? (StatusBar.currentHeight || insets.top || 24) : Math.max(insets.top, 20);
+  const statusBarHeight = Platform.OS === 'android' ? Math.min(StatusBar.currentHeight || 24, 24) : (insets.top || 20);
+  const topInset = Math.max(statusBarHeight, insets.top || 20);
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 16);
   const safeModalCardMaxHeight = Math.max(300, height - topInset - bottomInset - 32);
   const [showSplash, setShowSplash] = useState(!isSplashDismissedInSession);
@@ -17698,7 +17699,7 @@ function CricketAddaMain() {
         hidden={false}
       />
       {isAuthenticated && (
-        <View style={{ height: topInset, backgroundColor: currentTheme.headerBg, width: '100%' }} />
+        <View style={{ height: statusBarHeight, backgroundColor: currentTheme.headerBg, width: '100%' }} />
       )}
 
       {isSessionRestoring ? (
@@ -19322,13 +19323,14 @@ function CricketAddaMain() {
           {/* Professional stadium dark overlay for crisp text contrast and broadcast depth */}
           <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2, 11, 20, 0.65)' }} />
 
-          <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 4, paddingBottom: Math.max(12, bottomInset + 8) }}>
+          <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 2, paddingBottom: Math.max(12, bottomInset + 8) }}>
             {/* Header Row: Back (Solid Black) | Team vs Team (Equal 36px Height) | Options (Solid Black) */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              marginBottom: 4,
+              marginBottom: 3,
+              marginTop: 1,
               width: '100%',
             }}>
               {/* 1. Back Button (Solid Black Background, White Icon) */}
@@ -21403,14 +21405,14 @@ function CricketAddaMain() {
             </View>
           </ScrollView>
         ) : (
-          <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
+          <ScrollView style={[styles.mainContent, { paddingHorizontal: 10, paddingTop: 2 }]} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
             {/* Header Row: Back (<) | Team vs Team 🔴 LIVE | Three Dots Menu (⋮) */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              marginBottom: 5,
-              marginTop: 4,
+              marginBottom: 3,
+              marginTop: 1,
               width: '100%',
             }}>
               {/* 1. Back Button (Solid Black Background, White Icon) */}
@@ -34628,14 +34630,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 5,
+    paddingHorizontal: 12,
+    paddingTop: 1,
+    paddingBottom: 3,
     backgroundColor: '#090d16',
     borderBottomWidth: 1,
     borderBottomColor: '#1e293b',
   },
-  navBrand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  logoImg: { width: 30, height: 30 },
+  navBrand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  logoImg: { width: 28, height: 28 },
   brandTitle: { color: '#fff', fontSize: 16, fontWeight: '900' },
   brandSub: { color: '#94a3b8', fontSize: 10.5, fontWeight: '600', marginTop: 1 },
   emptyScorecardContainer: {
