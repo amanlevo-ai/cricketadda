@@ -4777,7 +4777,7 @@ let isSplashDismissedInSession = false;
 
 function CricketAddaMain() {
   const insets = useSafeAreaInsets();
-  const statusBarHeight = Platform.OS === 'android' ? Math.min(StatusBar.currentHeight || 27, 27) : (insets.top || 20);
+  const statusBarHeight = Platform.OS === 'android' ? Math.min(StatusBar.currentHeight || 29, 29) : (insets.top || 20);
   const topInset = Math.max(statusBarHeight, insets.top || 20);
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 16);
   const safeModalCardMaxHeight = Math.max(300, height - topInset - bottomInset - 32);
@@ -18279,7 +18279,7 @@ function CricketAddaMain() {
           {/* Top Universal Navbar (Identical Across All Main Screens As Requested) */}
           <View style={[styles.navBar, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder }]}>
             <TouchableOpacity style={styles.navBrand} onPress={() => navigateTo('matches')} activeOpacity={0.8}>
-              <Image source={require('./assets/header-logo.png')} style={styles.logoImg} resizeMode="contain" />
+              <Image source={require('./assets/icon.png')} style={styles.logoImg} resizeMode="cover" />
               <View>
                 <Text style={[styles.brandTitle, currentTheme.isLight && { color: '#0f172a' }]}>
                   CricketAdda
@@ -34637,8 +34637,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#1e293b',
   },
-  navBrand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  logoImg: { width: 28, height: 28 },
+  navBrand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logoImg: { width: 30, height: 30, borderRadius: 15 },
   brandTitle: { color: '#fff', fontSize: 16, fontWeight: '900' },
   brandSub: { color: '#94a3b8', fontSize: 10.5, fontWeight: '600', marginTop: 1 },
   emptyScorecardContainer: {
