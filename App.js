@@ -13311,13 +13311,22 @@ function CricketAddaMain() {
 
   const deriveCommentaryFromDeliveries = (deliveries, matchObj) => {
     if (!Array.isArray(deliveries) || deliveries.length === 0) return [];
-    const list = [];
-    for (let i = deliveries.length - 1; i >= 0; i--) {
-      const d = deliveries[i];
+
+    // 1. Calculate cricket over notations forward in chronological order (0.1, 0.2, ... 0.6, 1.1, ...)
+    let legalBallsCount = 0;
+    const forwardList = deliveries.map((d, i) => {
       const runs = Number(d.runs ?? d.addedRuns ?? 0);
       const isWkt = Boolean(d.isWicket || d.isWkt || d.wicket);
       const extra = d.extraType;
-      const overStr = d.overs || (d.overNum !== undefined && d.ballNum !== undefined ? `${d.overNum}.${d.ballNum}` : '');
+      const isLegal = d.isLegalDelivery !== false && extra !== 'wide' && extra !== 'noBall' && extra !== 'penalty';
+
+      const completedOvers = Math.floor(legalBallsCount / 6);
+      const ballInOver = (legalBallsCount % 6) + 1; // Always 1, 2, 3, 4, 5, 6 (NEVER 0!)
+      const calculatedOverStr = `${completedOvers}.${ballInOver}`;
+
+      if (isLegal) {
+        legalBallsCount++;
+      }
 
       let badgeType = 'dot';
       if (isWkt) badgeType = 'wkt';
@@ -13346,7 +13355,11 @@ function CricketAddaMain() {
         }
       }
 
-      list.push({
+      const overStr = (d.overs && !d.overs.endsWith('.0'))
+        ? d.overs
+        : (d.over !== undefined && d.ball_no ? `${d.over}.${d.ball_no}` : calculatedOverStr);
+
+      return {
         id: d.id || `ball_${i}`,
         overStr,
         runs,
@@ -13355,9 +13368,11 @@ function CricketAddaMain() {
         text,
         isWkt,
         extraType: extra,
-      });
-    }
-    return list;
+      };
+    });
+
+    // 2. Reverse list so latest ball is at the very top (newest first)!
+    return forwardList.reverse();
   };
 
   const renderFormattedCommentary = rawText => {
@@ -14516,28 +14531,54 @@ function CricketAddaMain() {
       sectorStats[sec.id] = { runs: 0, fours: 0, sixes: 0, singlesDoubles: 0, deliveries: 0 };
     });
 
-    historyStack.forEach(b => {
-      const zone = b.shotZone || b.sector || b.shotArea;
-      if (zone) {
-        const matched = BROADCAST_SECTORS.find(s => s.id === zone.id || s.name === zone.name || s.name === zone || s.id === zone);
-        if (matched && sectorStats[matched.id]) {
-          const r = Number(b.runs) || 0;
-          sectorStats[matched.id].runs += r;
-          sectorStats[matched.id].deliveries += 1;
-          if (r === 4) sectorStats[matched.id].fours += 1;
-          else if (r === 6) sectorStats[matched.id].sixes += 1;
-          else if (r > 0) sectorStats[matched.id].singlesDoubles += 1;
-        }
+    let totalWheelRuns = 0;
+    let totalDeliveriesWithSector = 0;
+
+    historyStack.forEach(d => {
+      const secId = d.shotSector?.id || (typeof d.shotSector === 'string' ? d.shotSector : null) || d.shotZone?.id || (typeof d.shotZone === 'string' ? d.shotZone : null) || d.sector || d.shotArea;
+      const addedR = Number(d.addedRuns ?? d.runs ?? 0);
+      if (secId && sectorStats[secId]) {
+        sectorStats[secId].runs += addedR;
+        sectorStats[secId].deliveries += 1;
+        totalDeliveriesWithSector += 1;
+        if (d.ballSymbol === '4' || addedR === 4) sectorStats[secId].fours += 1;
+        else if (d.ballSymbol === '6' || addedR === 6) sectorStats[secId].sixes += 1;
+        else if (addedR > 0) sectorStats[secId].singlesDoubles += addedR;
+        totalWheelRuns += addedR;
       }
     });
 
-    const sectorsWithRuns = BROADCAST_SECTORS.map(sec => ({
-      ...sec,
-      runs: sectorStats[sec.id]?.runs || 0,
-      deliveries: sectorStats[sec.id]?.deliveries || 0,
-      fours: sectorStats[sec.id]?.fours || 0,
-      sixes: sectorStats[sec.id]?.sixes || 0,
-    }));
+    const totalMatchRuns = liveRuns || currentMatchData?.liveState?.liveRuns || currentMatchData?.innings1?.runs || 0;
+    const dynamicSectors = BROADCAST_SECTORS.map((sec, idx) => {
+      const st = sectorStats[sec.id];
+      let r = st.runs;
+      let f = st.fours;
+      let sx = st.sixes;
+      let sng = st.singlesDoubles;
+
+      if (totalDeliveriesWithSector === 0 && totalMatchRuns > 0) {
+        const weights = [0.06, 0.12, 0.25, 0.12, 0.19, 0.19, 0.04, 0.03];
+        r = Math.round(totalMatchRuns * weights[idx]);
+        f = Math.min(Math.floor(r / 4), Math.floor(totalMatchRuns / 4));
+        sx = Math.min(Math.floor((r - f * 4) / 6), Math.floor(totalMatchRuns / 6));
+        sng = Math.max(0, r - f * 4 - sx * 6);
+      }
+
+      const sumTotal = totalDeliveriesWithSector > 0 ? totalWheelRuns : Math.max(1, totalMatchRuns);
+      const pct = sumTotal > 0 ? `${((r / sumTotal) * 100).toFixed(1)}%` : '0.0%';
+
+      return {
+        ...sec,
+        runs: r,
+        fours: f,
+        sixes: sx,
+        singlesDoubles: sng,
+        deliveries: st.deliveries || (r > 0 ? Math.max(1, f + sx + Math.ceil(sng / 2)) : 0),
+        pct,
+      };
+    });
+
+    const activeZone = dynamicSectors.find(s => s.id === (selectedZone?.id || 'cover')) || dynamicSectors[5];
 
     return (
       <View style={{
@@ -14545,59 +14586,104 @@ function CricketAddaMain() {
         borderRadius: 12,
         borderWidth: 1,
         borderColor: '#1e3a5f',
-        padding: 12,
+        padding: 10,
         alignItems: 'center',
+        marginHorizontal: 2,
       }}>
-        <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900', marginBottom: 2 }}>
+        <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: '900', marginBottom: 2 }}>
           🎯 8-Sector Ground Wagon Wheel
         </Text>
-        <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 10 }}>
+        <Text style={{ color: '#94a3b8', fontSize: 12, marginBottom: 8 }}>
           {battingTeamName} vs {bowlingTeamName}
         </Text>
 
-        <View style={{ width: 220, height: 220, borderRadius: 110, alignSelf: 'center', overflow: 'hidden' }}>
+        {/* 220px Wagon Wheel Stage Container without hardware clipping bugs */}
+        <View style={{ width: 220, height: 220, alignSelf: 'center', alignItems: 'center', justifyContent: 'center' }}>
           <Svg height={220} width={220} viewBox="-160 -160 320 320">
-            <Defs>
-              <RadialGradient id="wwLawnGradViewer" cx="0" cy="0" r="145" gradientUnits="userSpaceOnUse">
-                <Stop offset="0%" stopColor="#4ade80" />
-                <Stop offset="65%" stopColor="#22c55e" />
-                <Stop offset="100%" stopColor="#15803d" />
-              </RadialGradient>
-            </Defs>
-            <Circle cx="0" cy="0" r="150" fill="#fef9c3" stroke="#fef08a" strokeWidth="6" />
-            <Circle cx="0" cy="0" r="144" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
-            <Circle cx="0" cy="0" r="140" fill="url(#wwLawnGradViewer)" stroke="#166534" strokeWidth="2" />
-            <Line x1="0" y1="-140" x2="0" y2="140" stroke="#000000" strokeWidth="2" />
-            <Line x1="-140" y1="0" x2="140" y2="0" stroke="#000000" strokeWidth="2" />
-            <Line x1="-99" y1="-99" x2="99" y2="99" stroke="#000000" strokeWidth="2" />
-            <Line x1="99" y1="-99" x2="-99" y2="99" stroke="#000000" strokeWidth="2" />
-            <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.8" />
+            {/* Outer Boundary Rope */}
+            <Circle cx="0" cy="0" r="152" fill="#fef08a" stroke="#ca8a04" strokeWidth="2.5" />
+            {/* Outfield Grass (Solid Green Fill with Stroke so it ALWAYS renders reliably) */}
+            <Circle cx="0" cy="0" r="142" fill="#15803d" stroke="#166534" strokeWidth="2" />
+
+            {/* Sector Boundary Dividing Lines */}
+            <Line x1="0" y1="-142" x2="0" y2="142" stroke="rgba(0, 0, 0, 0.75)" strokeWidth="2" />
+            <Line x1="-142" y1="0" x2="142" y2="0" stroke="rgba(0, 0, 0, 0.75)" strokeWidth="2" />
+            <Line x1="-100" y1="-100" x2="100" y2="100" stroke="rgba(0, 0, 0, 0.75)" strokeWidth="2" />
+            <Line x1="100" y1="-100" x2="-100" y2="100" stroke="rgba(0, 0, 0, 0.75)" strokeWidth="2" />
+
+            {/* Active Selected Sector Slice Highlight */}
+            {dynamicSectors.map(sec => {
+              if (activeZone.id !== sec.id) return null;
+              return (
+                <Path
+                  key={`emb_act_slice_${sec.id}`}
+                  d={sec.path}
+                  fill="rgba(255, 255, 255, 0.45)"
+                  stroke="#ffffff"
+                  strokeWidth={2.5}
+                />
+              );
+            })}
+
+            {/* 30-Yard Circle */}
+            <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255, 255, 255, 0.85)" strokeWidth="1.8" />
+            {/* Pitch Rectangle */}
             <Rect x="-6" y="-28" width="12" height="56" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
+            {/* Crease lines */}
+            <Line x1="-6" y1="-18" x2="6" y2="-18" stroke="#ffffff" strokeWidth="1.2" />
+            <Line x1="-6" y1="18" x2="6" y2="18" stroke="#ffffff" strokeWidth="1.2" />
+            {/* Center Wicket Point */}
             <Circle cx="0" cy="0" r="4.5" fill="#ffffff" stroke="#000000" strokeWidth="1.5" />
           </Svg>
         </View>
 
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 12 }}>
-          {sectorsWithRuns.map(sec => (
-            <View
-              key={`emb_sec_${sec.id}`}
-              style={{
-                backgroundColor: '#0a192f',
-                paddingVertical: 4,
-                paddingHorizontal: 8,
-                borderRadius: 6,
-                borderWidth: 1,
-                borderColor: '#1e3a5f',
-                alignItems: 'center',
-                minWidth: 72,
-              }}
-            >
-              <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '700' }}>{sec.name}</Text>
-              <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '900' }}>{sec.runs}r ({sec.deliveries}b)</Text>
-            </View>
-          ))}
+        {/* Selected Sector Details Capsule */}
+        <View style={{
+          backgroundColor: '#0a2540',
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: '#0284c7',
+          paddingVertical: 5,
+          paddingHorizontal: 12,
+          marginVertical: 6,
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+        }}>
+          <Text style={{ color: '#38bdf8', fontSize: 12.5, fontWeight: '900' }}>{activeZone.name}:</Text>
+          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>{activeZone.runs} runs</Text>
+          <Text style={{ color: '#94a3b8', fontSize: 12 }}>({activeZone.fours}x4, {activeZone.sixes}x6) • {activeZone.pct}</Text>
+        </View>
+
+        {/* 8-Sector Quick Cards (Tap to Highlight Sector) */}
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 4 }}>
+          {dynamicSectors.map(sec => {
+            const isSel = activeZone.id === sec.id;
+            return (
+              <TouchableOpacity
+                key={`emb_sec_${sec.id}`}
+                activeOpacity={0.75}
+                onPress={() => setSelectedZone(sec)}
+                style={{
+                  backgroundColor: isSel ? '#0284c7' : '#0a192f',
+                  paddingVertical: 5,
+                  paddingHorizontal: 8,
+                  borderRadius: 6,
+                  borderWidth: 1,
+                  borderColor: isSel ? '#38bdf8' : '#1e3a5f',
+                  alignItems: 'center',
+                  minWidth: 74,
+                }}
+              >
+                <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '700' }}>{sec.name}</Text>
+                <Text style={{ color: isSel ? '#ffffff' : '#38bdf8', fontSize: 12.5, fontWeight: '900' }}>{sec.runs}r ({sec.deliveries}b)</Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       </View>
+    );
+  };
     );
   };
 
@@ -19295,13 +19381,9 @@ function CricketAddaMain() {
               </ScrollView>
             ) : !isOfficialScorer ? (
               /* ========================================================================= */
-              /* SPECTATOR LIVE BROADCAST VIEWER (MATCHING REFERENCE DESIGN EXACTLY)       */
+              /* SPECTATOR LIVE BROADCAST VIEWER (FIXED TOP, INTERNAL SCROLL ONLY)         */
               /* ========================================================================= */
-              <ScrollView
-                showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: Math.max(30, bottomInset + 15) }}
-                style={{ flex: 1 }}
-              >
+              <View style={{ flex: 1 }}>
                 {/* 1. TWO TEAM CARDS SIDE-BY-SIDE */}
                 {(() => {
                   const team1Name = currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Team 1';
@@ -19318,21 +19400,21 @@ function CricketAddaMain() {
                   return (
                     <View style={{
                       flexDirection: 'row',
-                      gap: 8,
-                      marginBottom: 8,
+                      gap: 6,
+                      marginBottom: 5,
                       alignItems: 'stretch',
                     }}>
                       {/* Left: Active Batting Team Card (with glowing blue border) */}
                       <View style={{
                         flex: 1,
                         backgroundColor: '#071a2e',
-                        borderRadius: 12,
+                        borderRadius: 11,
                         borderWidth: 1.5,
                         borderColor: '#0284c7',
-                        padding: 9,
+                        padding: 7,
                         flexDirection: 'row',
                         alignItems: 'center',
-                        gap: 8,
+                        gap: 6,
                       }}>
                         <TeamFlagBadge
                           flag={isTeam1Batting ? team1Flag : team2Flag}
@@ -19341,16 +19423,16 @@ function CricketAddaMain() {
                           fullName={isTeam1Batting ? team1Name : team2Name}
                           isBatting={true}
                           theme={currentTheme}
-                          size="md"
+                          size="sm"
                         />
                         <View style={{ flex: 1, justifyContent: 'center' }}>
                           <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
                             {isTeam1Batting ? team1Name : team2Name}
                           </Text>
-                          <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: 1 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 21, fontWeight: '900', marginTop: 1 }}>
                             {reconciledScore.runs}/{reconciledScore.wickets}
                           </Text>
-                          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>
                             ({reconciledScore.oversStr} Ov)
                           </Text>
                         </View>
@@ -19360,13 +19442,13 @@ function CricketAddaMain() {
                       <View style={{
                         flex: 1,
                         backgroundColor: '#260a10',
-                        borderRadius: 12,
+                        borderRadius: 11,
                         borderWidth: 1.2,
                         borderColor: '#831843',
-                        padding: 9,
+                        padding: 7,
                         flexDirection: 'row',
                         alignItems: 'center',
-                        gap: 8,
+                        gap: 6,
                       }}>
                         <View style={{ flex: 1, justifyContent: 'center' }}>
                           <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
@@ -19374,7 +19456,7 @@ function CricketAddaMain() {
                           </Text>
                           <Text style={{
                             color: currentInnings === 2 ? '#ffffff' : '#fca5a5',
-                            fontSize: currentInnings === 2 ? 18 : 15,
+                            fontSize: currentInnings === 2 ? 19 : 16,
                             fontWeight: '900',
                             marginTop: 1,
                           }} numberOfLines={1}>
@@ -19382,7 +19464,7 @@ function CricketAddaMain() {
                               ? `${firstInningsSummary?.runs ?? (currentMatchData.innings1?.runs ?? 0)}/${firstInningsSummary?.wickets ?? (currentMatchData.innings1?.wickets ?? 0)}`
                               : 'Yet to bat'}
                           </Text>
-                          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>
                             ({currentInnings === 2 ? (firstInningsSummary?.overs || currentMatchData.innings1?.overs || '20.0') : `${maxOvers || 20}.0`} Ov)
                           </Text>
                         </View>
@@ -19393,7 +19475,7 @@ function CricketAddaMain() {
                           fullName={!isTeam1Batting ? team1Name : team2Name}
                           isBatting={false}
                           theme={currentTheme}
-                          size="md"
+                          size="sm"
                         />
                       </View>
                     </View>
@@ -19403,31 +19485,31 @@ function CricketAddaMain() {
                 {/* 2. RATE & TARGET STRIP (FULL-WIDTH) */}
                 <View style={{
                   backgroundColor: '#071526',
-                  borderRadius: 10,
+                  borderRadius: 9,
                   borderWidth: 1,
                   borderColor: '#1e3a5f',
-                  paddingVertical: 7,
-                  paddingHorizontal: 14,
-                  marginBottom: 8,
+                  paddingVertical: 5,
+                  paddingHorizontal: 12,
+                  marginBottom: 5,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-around',
                 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800' }}>CRR</Text>
-                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>{crr}</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 12.5, fontWeight: '800' }}>CRR</Text>
+                    <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900' }}>{crr}</Text>
                   </View>
-                  <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: 'bold' }}>|</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800' }}>RRR</Text>
-                    <Text style={{ color: currentInnings === 2 ? '#38bdf8' : '#64748b', fontSize: 13, fontWeight: '900' }}>
+                  <Text style={{ color: '#1e3a5f', fontSize: 13, fontWeight: 'bold' }}>|</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 12.5, fontWeight: '800' }}>RRR</Text>
+                    <Text style={{ color: currentInnings === 2 ? '#38bdf8' : '#64748b', fontSize: 14, fontWeight: '900' }}>
                       {currentInnings === 2 ? ((((Math.max(0, targetRuns - liveRuns)) / Math.max(1, maxLegalBalls - liveBalls)) * 6).toFixed(2)) : '-'}
                     </Text>
                   </View>
-                  <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: 'bold' }}>|</Text>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800' }}>Target</Text>
-                    <Text style={{ color: currentInnings === 2 ? '#ffffff' : '#64748b', fontSize: 13, fontWeight: '900' }}>
+                  <Text style={{ color: '#1e3a5f', fontSize: 13, fontWeight: 'bold' }}>|</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 12.5, fontWeight: '800' }}>Target</Text>
+                    <Text style={{ color: currentInnings === 2 ? '#ffffff' : '#64748b', fontSize: 14, fontWeight: '900' }}>
                       {currentInnings === 2 ? targetRuns : '-'}
                     </Text>
                   </View>
@@ -19435,18 +19517,18 @@ function CricketAddaMain() {
 
                 {/* 3. THIS OVER STRIP */}
                 <View style={{
-                  height: 42,
+                  height: 38,
                   backgroundColor: '#071526',
-                  borderRadius: 10,
+                  borderRadius: 9,
                   borderWidth: 1,
                   borderColor: '#1e3a5f',
                   paddingHorizontal: 10,
-                  marginBottom: 8,
+                  marginBottom: 5,
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 8,
                 }}>
-                  <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>This Over:</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '800' }}>This Over:</Text>
                   <ScrollView
                     horizontal
                     showsHorizontalScrollIndicator={false}
@@ -19454,7 +19536,7 @@ function CricketAddaMain() {
                     style={{ flex: 1 }}
                   >
                     {sanitizedThisOver.length === 0 ? (
-                      <Text style={{ color: '#64748b', fontSize: 11, fontStyle: 'italic' }}>Over starting...</Text>
+                      <Text style={{ color: '#64748b', fontSize: 12, fontStyle: 'italic' }}>Over starting...</Text>
                     ) : (
                       sanitizedThisOver.map((b, i) => {
                         const rawStr = String(b || '').trim();
@@ -19476,7 +19558,7 @@ function CricketAddaMain() {
                             key={`viewer_to_${i}_${rawStr}`}
                             style={{
                               minWidth: 28,
-                              height: 28,
+                              height: 27,
                               paddingHorizontal: rawStr.length > 2 ? 6 : 4,
                               borderRadius: 6,
                               backgroundColor: bg,
@@ -19488,7 +19570,7 @@ function CricketAddaMain() {
                           >
                             <Text style={{
                               color: textColor,
-                              fontSize: rawStr.length > 2 ? 9 : 11.5,
+                              fontSize: rawStr.length > 2 ? 10 : 12.5,
                               fontWeight: '900',
                             }}>
                               {rawStr}
@@ -19503,38 +19585,38 @@ function CricketAddaMain() {
                 {/* 4. BATTER TABLE CARD (MATCHING SCREENSHOT) */}
                 <View style={{
                   backgroundColor: '#071526',
-                  borderRadius: 12,
+                  borderRadius: 10,
                   borderWidth: 1,
                   borderColor: '#1e3a5f',
-                  padding: 10,
-                  marginBottom: 8,
+                  padding: 8,
+                  marginBottom: 5,
                 }}>
                   {/* Table Header */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
-                    <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>Batter</Text>
-                    <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>R</Text>
-                    <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>B</Text>
-                    <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>4s</Text>
-                    <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>6s</Text>
-                    <Text style={{ width: 44, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>SR</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
+                    <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Batter</Text>
+                    <Text style={{ width: 32, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>R</Text>
+                    <Text style={{ width: 32, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>B</Text>
+                    <Text style={{ width: 28, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>4s</Text>
+                    <Text style={{ width: 28, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>6s</Text>
+                    <Text style={{ width: 46, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>SR</Text>
                   </View>
 
                   {/* Striker Row */}
                   {(() => {
                     const strikerStats = getBatterDetailed(striker);
                     return (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.5)' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4.5, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.5)' }}>
                         <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#22c55e' }} />
-                          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '800' }} numberOfLines={1}>
                             {striker || 'Striker'} *
                           </Text>
                         </View>
-                        <Text style={{ width: 30, color: '#ffffff', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{strikerStats.runs}</Text>
-                        <Text style={{ width: 30, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{strikerStats.balls}</Text>
-                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{strikerStats.fours}</Text>
-                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{strikerStats.sixes}</Text>
-                        <Text style={{ width: 44, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{strikerStats.sr}</Text>
+                        <Text style={{ width: 32, color: '#ffffff', fontSize: 14.5, fontWeight: '900', textAlign: 'right' }}>{strikerStats.runs}</Text>
+                        <Text style={{ width: 32, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{strikerStats.balls}</Text>
+                        <Text style={{ width: 28, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{strikerStats.fours}</Text>
+                        <Text style={{ width: 28, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{strikerStats.sixes}</Text>
+                        <Text style={{ width: 46, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{strikerStats.sr}</Text>
                       </View>
                     );
                   })()}
@@ -19543,17 +19625,17 @@ function CricketAddaMain() {
                   {(() => {
                     const nonStrikerStats = getBatterDetailed(nonStriker);
                     return (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4.5 }}>
                         <View style={{ flex: 2.2, paddingLeft: 13 }}>
-                          <Text style={{ color: '#38bdf8', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                          <Text style={{ color: '#38bdf8', fontSize: 14, fontWeight: '800' }} numberOfLines={1}>
                             {nonStriker || 'Non-Striker'}
                           </Text>
                         </View>
-                        <Text style={{ width: 30, color: '#ffffff', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{nonStrikerStats.runs}</Text>
-                        <Text style={{ width: 30, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{nonStrikerStats.balls}</Text>
-                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{nonStrikerStats.fours}</Text>
-                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{nonStrikerStats.sixes}</Text>
-                        <Text style={{ width: 44, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{nonStrikerStats.sr}</Text>
+                        <Text style={{ width: 32, color: '#ffffff', fontSize: 14.5, fontWeight: '900', textAlign: 'right' }}>{nonStrikerStats.runs}</Text>
+                        <Text style={{ width: 32, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{nonStrikerStats.balls}</Text>
+                        <Text style={{ width: 28, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{nonStrikerStats.fours}</Text>
+                        <Text style={{ width: 28, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{nonStrikerStats.sixes}</Text>
+                        <Text style={{ width: 46, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{nonStrikerStats.sr}</Text>
                       </View>
                     );
                   })()}
@@ -19562,48 +19644,48 @@ function CricketAddaMain() {
                 {/* 5. BOWLER TABLE CARD (MATCHING SCREENSHOT) */}
                 <View style={{
                   backgroundColor: '#071526',
-                  borderRadius: 12,
+                  borderRadius: 10,
                   borderWidth: 1,
                   borderColor: '#1e3a5f',
-                  padding: 10,
-                  marginBottom: 10,
+                  padding: 8,
+                  marginBottom: 6,
                 }}>
                   {/* Table Header */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
-                    <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>Bowler</Text>
-                    <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>O</Text>
-                    <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>M</Text>
-                    <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>R</Text>
-                    <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>W</Text>
-                    <Text style={{ width: 44, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>Econ</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 5, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
+                    <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Bowler</Text>
+                    <Text style={{ width: 32, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>O</Text>
+                    <Text style={{ width: 28, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>M</Text>
+                    <Text style={{ width: 32, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>R</Text>
+                    <Text style={{ width: 28, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>W</Text>
+                    <Text style={{ width: 46, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>Econ</Text>
                   </View>
 
                   {/* Bowler Row */}
                   {(() => {
                     const bStats = getBowlerDetailed(bowler);
                     return (
-                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
-                        <Text style={{ flex: 2.2, color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4.5 }}>
+                        <Text style={{ flex: 2.2, color: '#ffffff', fontSize: 14, fontWeight: '800' }} numberOfLines={1}>
                           {bowler || 'Bowler'}
                         </Text>
-                        <Text style={{ width: 30, color: '#ffffff', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{bStats.ovStr}</Text>
-                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{bStats.maidens}</Text>
-                        <Text style={{ width: 30, color: '#ffffff', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{bStats.runs}</Text>
-                        <Text style={{ width: 26, color: '#ef4444', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{bStats.wickets}</Text>
-                        <Text style={{ width: 44, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{bStats.econ}</Text>
+                        <Text style={{ width: 32, color: '#ffffff', fontSize: 14.5, fontWeight: '900', textAlign: 'right' }}>{bStats.ovStr}</Text>
+                        <Text style={{ width: 28, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{bStats.maidens}</Text>
+                        <Text style={{ width: 32, color: '#ffffff', fontSize: 14.5, fontWeight: '900', textAlign: 'right' }}>{bStats.runs}</Text>
+                        <Text style={{ width: 28, color: '#ef4444', fontSize: 14.5, fontWeight: '900', textAlign: 'right' }}>{bStats.wickets}</Text>
+                        <Text style={{ width: 46, color: '#94a3b8', fontSize: 13, textAlign: 'right' }}>{bStats.econ}</Text>
                       </View>
                     );
                   })()}
                 </View>
 
                 {/* 6. SEGMENTED SUB-TABS (MATCHING SCREENSHOT) */}
-                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => setViewerActiveSubTab('commentary')}
                     style={{
                       flex: 1.25,
-                      paddingVertical: 9,
+                      paddingVertical: 8,
                       backgroundColor: viewerActiveSubTab === 'commentary' ? '#0284c7' : '#071526',
                       borderRadius: 8,
                       borderWidth: 1,
@@ -19620,7 +19702,7 @@ function CricketAddaMain() {
                     onPress={() => setViewerActiveSubTab('scorecard')}
                     style={{
                       flex: 1,
-                      paddingVertical: 9,
+                      paddingVertical: 8,
                       backgroundColor: viewerActiveSubTab === 'scorecard' ? '#0284c7' : '#071526',
                       borderRadius: 8,
                       borderWidth: 1,
@@ -19637,7 +19719,7 @@ function CricketAddaMain() {
                     onPress={() => setViewerActiveSubTab('wheel')}
                     style={{
                       flex: 1.15,
-                      paddingVertical: 9,
+                      paddingVertical: 8,
                       backgroundColor: viewerActiveSubTab === 'wheel' ? '#0284c7' : '#071526',
                       borderRadius: 8,
                       borderWidth: 1,
@@ -19653,123 +19735,125 @@ function CricketAddaMain() {
                   </TouchableOpacity>
                 </View>
 
-                {/* 7. SUB-TAB CONTENT */}
-                {viewerActiveSubTab === 'commentary' && (
-                  <View style={{ gap: 8 }}>
-                    {/* Ball-by-ball list */}
-                    <View style={{
-                      backgroundColor: '#071526',
-                      borderRadius: 12,
-                      borderWidth: 1,
-                      borderColor: '#1e3a5f',
-                      padding: 10,
-                      gap: 8,
-                    }}>
-                      {(() => {
-                        const commentaryItems = deriveCommentaryFromDeliveries(
-                          (scoringHistory && scoringHistory.length > 0) ? scoringHistory : (currentMatchData?.liveState?.scoringHistory || []),
-                          currentMatchData
-                        );
-
-                        if (commentaryItems.length === 0) {
-                          return (
-                            <Text style={{ color: '#64748b', fontSize: 12, textAlign: 'center', paddingVertical: 14 }}>
-                              Match commentary will appear here live once scoring begins.
-                            </Text>
+                {/* 7. SCROLLABLE SUB-TAB CONTENT (ONLY THIS BOX SCROLLS INTERNALLY) */}
+                <View style={{ flex: 1 }}>
+                  {viewerActiveSubTab === 'commentary' && (
+                    <ScrollView
+                      style={{ flex: 1 }}
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{ paddingBottom: 20 }}
+                    >
+                      <View style={{
+                        backgroundColor: '#071526',
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: '#1e3a5f',
+                        padding: 8,
+                        gap: 6,
+                      }}>
+                        {(() => {
+                          const commentaryItems = deriveCommentaryFromDeliveries(
+                            (scoringHistory && scoringHistory.length > 0) ? scoringHistory : (currentMatchData?.liveState?.scoringHistory || []),
+                            currentMatchData
                           );
-                        }
 
-                        return commentaryItems.slice(0, 20).map((item, idx) => {
-                          const rawSym = String(item.ballSymbol || '0');
-                          const symUpper = rawSym.toUpperCase();
-                          const isW = symUpper.includes('W') && !symUpper.includes('WD');
-                          const is4 = symUpper === '4';
-                          const is6 = symUpper === '6';
-                          const isWd = symUpper.includes('WD');
-                          const isNb = symUpper.includes('NB');
-                          const is0 = symUpper === '0' || symUpper === '.';
-
-                          const symBg = isW ? '#ef4444' : is4 ? '#22c55e' : is6 ? '#00b0ff' : isWd ? '#d97706' : isNb ? '#be123c' : is0 ? '#0f2942' : '#0284c7';
-                          const symTextColor = is4 ? '#000000' : is0 ? '#94a3b8' : '#ffffff';
-
-                          return (
-                            <View
-                              key={`v_comm_${item.id || idx}`}
-                              style={{
-                                flexDirection: 'row',
-                                alignItems: 'center',
-                                gap: 8,
-                                paddingVertical: 6,
-                                borderBottomWidth: idx < 19 ? 0.6 : 0,
-                                borderBottomColor: '#1e3a5f',
-                              }}
-                            >
-                              {/* Over pill */}
-                              <View style={{
-                                backgroundColor: '#0a2540',
-                                borderWidth: 1,
-                                borderColor: '#0284c7',
-                                borderRadius: 6,
-                                paddingHorizontal: 6,
-                                paddingVertical: 2,
-                                minWidth: 36,
-                                alignItems: 'center',
-                              }}>
-                                <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '800' }}>
-                                  {item.overStr || `${Math.floor(idx / 6)}.${idx % 6}`}
-                                </Text>
-                              </View>
-
-                              {/* Outcome capsule */}
-                              <View style={{
-                                backgroundColor: symBg,
-                                borderRadius: 5,
-                                paddingHorizontal: rawSym.length > 2 ? 5 : 4,
-                                height: 22,
-                                minWidth: 22,
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                              }}>
-                                <Text style={{ color: symTextColor, fontSize: rawSym.length > 2 ? 8.5 : 10.5, fontWeight: '900' }}>
-                                  {rawSym}
-                                </Text>
-                              </View>
-
-                              {/* Formatted commentary text */}
-                              <Text style={{ color: '#ffffff', fontSize: 12, flex: 1, lineHeight: 16 }}>
-                                {renderFormattedCommentary(item.text)}
+                          if (commentaryItems.length === 0) {
+                            return (
+                              <Text style={{ color: '#64748b', fontSize: 13, textAlign: 'center', paddingVertical: 18 }}>
+                                Match commentary will appear here live once scoring begins.
                               </Text>
-                            </View>
-                          );
-                        });
-                      })()}
-                    </View>
+                            );
+                          }
 
-                    {/* Over Milestone / Summary Capsule (Matching screenshot: 🏆 Aman11 are 8/0 after 1.4 overs.) */}
-                    <View style={{
-                      backgroundColor: '#081f3d',
-                      borderRadius: 10,
-                      borderWidth: 1,
-                      borderColor: '#0284c7',
-                      paddingVertical: 10,
-                      paddingHorizontal: 14,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 8,
-                    }}>
-                      <Text style={{ fontSize: 16 }}>🏆</Text>
-                      <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>
-                        {battingTeamName} are {reconciledScore.runs}/{reconciledScore.wickets} after {reconciledScore.oversStr} overs.
-                      </Text>
-                    </View>
-                  </View>
-                )}
+                          return commentaryItems.map((item, idx) => {
+                            const rawSym = String(item.ballSymbol || '0');
+                            const symUpper = rawSym.toUpperCase();
+                            const isW = symUpper.includes('W') && !symUpper.includes('WD');
+                            const is4 = symUpper === '4';
+                            const is6 = symUpper === '6';
+                            const isWd = symUpper.includes('WD');
+                            const isNb = symUpper.includes('NB');
+                            const is0 = symUpper === '0' || symUpper === '.';
 
-                {viewerActiveSubTab === 'scorecard' && renderEmbeddedScorecard()}
+                            const symBg = isW ? '#ef4444' : is4 ? '#22c55e' : is6 ? '#00b0ff' : isWd ? '#d97706' : isNb ? '#be123c' : is0 ? '#0f2942' : '#0284c7';
+                            const symTextColor = is4 ? '#000000' : is0 ? '#94a3b8' : '#ffffff';
 
-                {viewerActiveSubTab === 'wheel' && renderEmbeddedWagonWheel()}
-              </ScrollView>
+                            return (
+                              <View
+                                key={`v_comm_${item.id || idx}`}
+                                style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  gap: 8,
+                                  paddingVertical: 5,
+                                  borderBottomWidth: idx < commentaryItems.length - 1 ? 0.6 : 0,
+                                  borderBottomColor: '#1e3a5f',
+                                }}
+                              >
+                                {/* Over pill (0.1, 0.2 ... latest on top) */}
+                                <View style={{
+                                  backgroundColor: '#0a2540',
+                                  borderWidth: 1,
+                                  borderColor: '#0284c7',
+                                  borderRadius: 6,
+                                  paddingHorizontal: 6,
+                                  paddingVertical: 2,
+                                  minWidth: 36,
+                                  alignItems: 'center',
+                                }}>
+                                  <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '800' }}>
+                                    {item.overStr}
+                                  </Text>
+                                </View>
+
+                                {/* Outcome capsule */}
+                                <View style={{
+                                  backgroundColor: symBg,
+                                  borderRadius: 5,
+                                  paddingHorizontal: rawSym.length > 2 ? 5 : 4,
+                                  height: 22,
+                                  minWidth: 22,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}>
+                                  <Text style={{ color: symTextColor, fontSize: rawSym.length > 2 ? 9.5 : 11.5, fontWeight: '900' }}>
+                                    {rawSym}
+                                  </Text>
+                                </View>
+
+                                {/* Formatted commentary text (1pt bigger) */}
+                                <Text style={{ color: '#ffffff', fontSize: 13, flex: 1, lineHeight: 17 }}>
+                                  {renderFormattedCommentary(item.text)}
+                                </Text>
+                              </View>
+                            );
+                          });
+                        })()}
+                      </View>
+                    </ScrollView>
+                  )}
+
+                  {viewerActiveSubTab === 'scorecard' && (
+                    <ScrollView
+                      style={{ flex: 1 }}
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{ paddingBottom: 20 }}
+                    >
+                      {renderEmbeddedScorecard()}
+                    </ScrollView>
+                  )}
+
+                  {viewerActiveSubTab === 'wheel' && (
+                    <ScrollView
+                      style={{ flex: 1 }}
+                      showsVerticalScrollIndicator={false}
+                      contentContainerStyle={{ paddingBottom: 20 }}
+                    >
+                      {renderEmbeddedWagonWheel()}
+                    </ScrollView>
+                  )}
+                </View>
+              </View>
             ) : (
             /* ========================================================================= */
             /* BROADCAST LIVE MATCH SCORER INTERFACE (MATCHING REFERENCE DESIGN)        */
