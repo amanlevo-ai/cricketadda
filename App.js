@@ -5916,7 +5916,6 @@ function CricketAddaMain() {
     if (viewerSimulated) return false;
 
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
-    const uName = (userProfile?.name || authName || '').toLowerCase().trim();
     const uPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const uId = userProfile?.id;
     const myDeviceId = clientIdRef?.current || '';
@@ -5941,14 +5940,6 @@ function CricketAddaMain() {
     ).toLowerCase().trim();
 
     const assignedId = targetMatch.scorerId || matchObj.scorerId || targetMatch.activeScorer?.id || matchObj.activeScorer?.id;
-    const assignedName = (
-      targetMatch.scorerName ||
-      matchObj.scorerName ||
-      targetMatch.activeScorer?.name ||
-      matchObj.activeScorer?.name ||
-      ''
-    ).toLowerCase().trim();
-
     const assignedDeviceId = targetMatch.scorerDeviceId || matchObj.scorerDeviceId || targetMatch.activeScorer?.deviceId || matchObj.activeScorer?.deviceId;
 
     // Match creator credentials
@@ -5956,7 +5947,22 @@ function CricketAddaMain() {
     const creatorEmail = (targetMatch.creatorEmail || matchObj.creatorEmail || '').toLowerCase().trim();
     const creatorId = targetMatch.creatorId || matchObj.creatorId;
     const creatorDeviceId = targetMatch.creatorDeviceId || matchObj.creatorDeviceId;
-    const creatorName = (targetMatch.creatorName || matchObj.creatorName || '').toLowerCase().trim();
+
+    // Check authoritative creator identity match
+    const isCurrentUserCreator = Boolean(
+      (creatorId && uId && String(creatorId) === String(uId)) ||
+      (creatorPhone && uPhone && creatorPhone === uPhone) ||
+      (creatorEmail && uEmail && creatorEmail === uEmail) ||
+      (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId)
+    );
+
+    // Check authoritative assigned scorer identity match
+    const isCurrentUserAssignedScorer = Boolean(
+      (assignedId && uId && String(assignedId) === String(uId)) ||
+      (assignedPhone && uPhone && assignedPhone === uPhone) ||
+      (assignedEmail && uEmail && assignedEmail === uEmail) ||
+      (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId)
+    );
 
     // Check if scoring duty is currently delegated away from creator to someone else
     const isDelegated = Boolean(
@@ -5966,37 +5972,46 @@ function CricketAddaMain() {
 
     if (isDelegated) {
       // If delegated, ONLY the designated delegated user can score!
-      if (assignedPhone && uPhone && assignedPhone === uPhone) return true;
-      if (assignedEmail && uEmail && assignedEmail === uEmail) return true;
-      if (assignedId && uId && assignedId === uId) return true;
-      if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
-      if (assignedName && uName && assignedName === uName && uName !== 'match creator' && uName !== 'official scorer') return true;
-      return false;
+      return isCurrentUserAssignedScorer;
     }
 
     // --- NON-DELEGATED MATCH (CREATOR / OFFICIAL SCORER OWNS SCORING RIGHTS) ---
-    // 1. Permanent Cross-Device Account Match (Highest Priority: User ID, Phone, Email, Name):
-    // If the phone dies during scoring, logging in from any other device with this same account restores full scoring rights immediately!
-    if (creatorId && uId && String(creatorId) === String(uId)) return true;
-    if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
-    if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
-    if (creatorName && uName && creatorName === uName && uName !== 'match creator' && uName !== 'player') return true;
+    // If either creator identity or assigned scorer identity matches the current user/device:
+    if (isCurrentUserCreator || isCurrentUserAssignedScorer) {
+      return true;
+    }
 
-    // 2. Explicit Local Match Ownership (Match created on this device or registered in myScoringMatchIds):
+    // If the match has ANY authoritative owner identity registered and the current user did NOT match,
+    // this user is strictly a Spectator (read-only). Never grant scoring permissions!
+    const hasAuthoritativeOwner = Boolean(
+      creatorId || creatorPhone || creatorEmail || creatorDeviceId ||
+      assignedId || assignedPhone || assignedEmail || assignedDeviceId
+    );
+    if (hasAuthoritativeOwner) {
+      return false;
+    }
+
+    // Fallback ONLY for legacy or offline guest matches with zero creator credentials:
     if (
-      (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) ||
-      (targetMatch.createdByMe && !targetMatch.isJoinedAsSpectator && !targetMatch.isSpectating)
+      targetMatch.createdByMe &&
+      !targetMatch.isJoinedAsSpectator &&
+      !targetMatch.isSpectating
     ) {
       return true;
     }
 
-    // 3. Physical Device ID Fallback (Only for offline/guest matches created on this phone before account login):
-    if (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) return true;
-    if (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) return true;
+    if (
+      Array.isArray(myScoringMatchIds) &&
+      (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId))) &&
+      !targetMatch.isJoinedAsSpectator &&
+      !targetMatch.isSpectating
+    ) {
+      return true;
+    }
 
     // Any other device or viewer is strictly a Spectator (read-only):
     return false;
-  }, [userProfile, authEmail, authPhone, authName, activeScorer, viewerSimulated, myScoringMatchIds, matchesDb]);
+  }, [userProfile, authEmail, authPhone, activeScorer, viewerSimulated, myScoringMatchIds]);
 
   const isOfficialScorer = useMemo(() => {
     const currentMatch = activeMatchId ? (matchesDb[activeMatchId] || match || MATCH_DATABASE[activeMatchId]) : null;
@@ -6021,31 +6036,31 @@ function CricketAddaMain() {
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
     const uPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const uId = userProfile?.id;
-    const uName = (userProfile?.name || authName || '').toLowerCase().trim();
     const myDeviceId = clientIdRef?.current || '';
 
     const creatorPhone = String(targetMatch.creatorPhone || matchObj.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const creatorEmail = (targetMatch.creatorEmail || matchObj.creatorEmail || '').toLowerCase().trim();
     const creatorId = targetMatch.creatorId || matchObj.creatorId;
-    const creatorName = (targetMatch.creatorName || matchObj.creatorName || '').toLowerCase().trim();
     const creatorDeviceId = targetMatch.creatorDeviceId || matchObj.creatorDeviceId;
 
-    // 1. Account Identity (User ID, Phone Number, Email, Name)
+    // 1. Account Identity (User ID, Phone Number, Email, Device ID)
     if (creatorId && uId && String(creatorId) === String(uId)) return true;
     if (creatorPhone && uPhone && creatorPhone === uPhone) return true;
     if (creatorEmail && uEmail && creatorEmail === uEmail) return true;
-    if (creatorName && uName && creatorName === uName && uName !== 'match creator' && uName !== 'player') return true;
-
-    // 2. Explicit Local Match Ownership
-    if (
-      (Array.isArray(myScoringMatchIds) && (myScoringMatchIds.includes(targetMatch.id) || (targetMatch.activeMatchId && myScoringMatchIds.includes(targetMatch.activeMatchId)))) ||
-      (targetMatch.createdByMe && !targetMatch.isJoinedAsSpectator && !targetMatch.isSpectating)
-    ) return true;
-
-    // 3. Device Fallback
     if (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) return true;
+
+    // If authoritative creator exists and didn't match, false!
+    if (creatorId || creatorPhone || creatorEmail || creatorDeviceId) {
+      return false;
+    }
+
+    // 2. Explicit Local Match Ownership fallback for guest/offline matches without creator info
+    if (targetMatch.createdByMe && !targetMatch.isJoinedAsSpectator && !targetMatch.isSpectating) {
+      return true;
+    }
+
     return false;
-  }, [activeMatchId, matchesDb, userProfile, authEmail, authPhone, authName, match, myScoringMatchIds]);
+  }, [activeMatchId, matchesDb, userProfile, authEmail, authPhone, match]);
 
   const isMatchInAuditMode = useMemo(() => {
     const curMatch = (activeMatchId && matchesDb[activeMatchId]) || match;
@@ -6631,8 +6646,10 @@ function CricketAddaMain() {
             const parsedFast = JSON.parse(fastRawMatches);
             if (parsedFast && typeof parsedFast === 'object' && Object.keys(parsedFast).length > 0) {
               setMatchesDb(parsedFast);
-              const fastLocalIds = Object.keys(parsedFast).filter(id => !parsedFast[id]?.isJoinedAsSpectator);
-              setMyScoringMatchIds(prev => Array.from(new Set([...(prev || []), ...fastLocalIds])));
+              const fastLocalIds = Object.keys(parsedFast).filter(id => parsedFast[id]?.createdByMe === true);
+              if (fastLocalIds.length > 0) {
+                setMyScoringMatchIds(prev => Array.from(new Set([...(prev || []), ...fastLocalIds])));
+              }
             }
           }
         } catch (_) {}
@@ -6902,7 +6919,7 @@ function CricketAddaMain() {
               if (Array.isArray(ps)) parsedScoring = ps;
             } catch (e) {}
           }
-          const localMatchIds = Object.keys(existingMatches).filter(id => !existingMatches[id]?.isJoinedAsSpectator);
+          const localMatchIds = Object.keys(existingMatches).filter(id => existingMatches[id]?.createdByMe === true);
           const combinedScoringIds = Array.from(new Set([...parsedScoring, ...localMatchIds]));
           setMyScoringMatchIds(combinedScoringIds);
           AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(combinedScoringIds)).catch(() => {});
@@ -7264,8 +7281,8 @@ function CricketAddaMain() {
   useEffect(() => {
     if (activeTab === 'scorer' && activeMatchId && !isOfficialScorer && match?.id !== activeMatchId) {
       const targetMatch = matchesDb?.[activeMatchId] || MATCH_DATABASE[activeMatchId];
-      if (targetMatch && typeof handleScoreMatchPress === 'function') {
-        handleScoreMatchPress(activeMatchId);
+      if (targetMatch) {
+        setMatch(targetMatch);
       }
     }
   }, [activeTab, activeMatchId, isOfficialScorer, match?.id, matchesDb]);
@@ -16574,6 +16591,14 @@ function CricketAddaMain() {
     if (!targetMatch) return;
     const resolvedMatchId = targetMatch.id || matchId;
 
+    // SECURITY / ROLE GUARD: Verify if user has scoring rights for this match!
+    const canScore = isUserScorerForMatch(targetMatch);
+    if (!canScore) {
+      // Non-scorer / spectator -> route to read-only scorecard viewer!
+      openMatchScorecard(resolvedMatchId);
+      return;
+    }
+
     // Fast-path: If user is the active official scorer on this device and ALREADY scoring this active match,
     // do NOT re-initialize or blow away the live in-memory scoring state UNLESS a reset was triggered!
     const isResetTarget = Boolean(
@@ -16610,7 +16635,7 @@ function CricketAddaMain() {
     }
 
     setActiveMatchId(resolvedMatchId);
-    if (matchesDb?.[resolvedMatchId] && !targetMatch.isJoinedAsSpectator && !targetMatch.isSpectating) {
+    if (canScore && matchesDb?.[resolvedMatchId] && !targetMatch.isJoinedAsSpectator && !targetMatch.isSpectating) {
       setMyScoringMatchIds(prev => {
         if (Array.isArray(prev) && prev.includes(resolvedMatchId)) return prev;
         const updated = [...(prev || []), resolvedMatchId];
@@ -17604,7 +17629,15 @@ function CricketAddaMain() {
 
               <TouchableOpacity
                 style={styles.dashViewLiveBtn}
-                onPress={() => handleScoreMatchPress(allLiveMatchesList[liveCarouselIndex]?.id)}
+                onPress={() => {
+                  const m = allLiveMatchesList[liveCarouselIndex];
+                  if (!m) return;
+                  if (isUserScorerForMatch(m)) {
+                    handleScoreMatchPress(m.id);
+                  } else {
+                    openMatchScorecard(m.id);
+                  }
+                }}
                 activeOpacity={0.8}
               >
                 <Text style={styles.dashViewLiveBtnText}>View Live ❯</Text>
@@ -17633,7 +17666,13 @@ function CricketAddaMain() {
                   <TouchableOpacity
                     key={liveData.id || `live_${idx}`}
                     activeOpacity={0.88}
-                    onPress={() => handleScoreMatchPress(m.id || liveData.id)}
+                    onPress={() => {
+                      if (isUserScorerForMatch(m)) {
+                        handleScoreMatchPress(m.id || liveData.id);
+                      } else {
+                        openMatchScorecard(m.id || liveData.id);
+                      }
+                    }}
                     style={{ width: width - 20, paddingHorizontal: 12, paddingBottom: 6 }}
                   >
                     {/* Tournament & Venue */}
