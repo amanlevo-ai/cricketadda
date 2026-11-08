@@ -30,6 +30,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-cont
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { useVideoPlayer, VideoView } from 'expo-video';
 import { useEventListener } from 'expo';
+import * as Updates from 'expo-updates';
 import jsQR from 'jsqr';
 import * as QRCodeModule from 'qrcode';
 import QRCodeDefault from 'qrcode';
@@ -4879,6 +4880,61 @@ function CricketAddaMain() {
   const [newTeamPlayerName, setNewTeamPlayerName] = useState('');
   const [newTeamPlayerRole, setNewTeamPlayerRole] = useState('BAT');
   const [newTeamPlayerPhone, setNewTeamPlayerPhone] = useState('');
+
+  // Over-The-Air (OTA) Updates State & Handlers
+  const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
+
+  const handleManualCheckUpdate = async () => {
+    if (__DEV__ || !Updates.isEnabled) {
+      showAppToast('Updates are active in standalone APK builds', 'ℹ️', 'info');
+      return;
+    }
+    setIsCheckingUpdate(true);
+    try {
+      const update = await Updates.checkForUpdateAsync();
+      if (update.isAvailable) {
+        await Updates.fetchUpdateAsync();
+        Alert.alert(
+          '🚀 Naya Update Download Ho Gaya!',
+          'App ka latest version download ho gaya hai. Abhi restart karke apply karein?',
+          [
+            { text: 'Baad Mein', style: 'cancel' },
+            { text: 'Abhi Restart Karein', onPress: () => Updates.reloadAsync() },
+          ]
+        );
+      } else {
+        showAppToast('Aapka app already latest version par hai!', '✅', 'success');
+      }
+    } catch (err) {
+      showAppToast('Update check failed: ' + (err?.message || 'Network issue'), '⚠️', 'warning');
+    } finally {
+      setIsCheckingUpdate(false);
+    }
+  };
+
+  useEffect(() => {
+    async function checkAutoOTAUpdate() {
+      if (__DEV__ || !Updates.isEnabled) return;
+      try {
+        const update = await Updates.checkForUpdateAsync();
+        if (update.isAvailable) {
+          await Updates.fetchUpdateAsync();
+          Alert.alert(
+            '🚀 Naya Update Available!',
+            'CricketAdda ka naya version download ho gaya hai. Naye features dekhne ke liye restart karein?',
+            [
+              { text: 'Baad Mein', style: 'cancel' },
+              { text: 'Abhi Restart Karein', onPress: () => Updates.reloadAsync() },
+            ]
+          );
+        }
+      } catch (err) {
+        // Silently ignore network or offline check failures
+      }
+    }
+    const timer = setTimeout(checkAutoOTAUpdate, 3500);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Universal In-App Toast Notification State (Non-intrusive alert replacement)
   const [appToast, setAppToast] = useState(null);
@@ -22448,6 +22504,32 @@ function CricketAddaMain() {
               <Text style={{ fontSize: 15 }}>ℹ️</Text>
               <Text style={{ color: currentTheme.primaryText || '#ffffff', fontSize: 13, fontWeight: '900' }}>
                 View App & Developer Info
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                borderColor: currentTheme.primary,
+                borderWidth: 1,
+                borderRadius: 8,
+                paddingVertical: 11,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 8,
+                marginTop: 8,
+              }}
+              disabled={isCheckingUpdate}
+              onPress={handleManualCheckUpdate}
+            >
+              {isCheckingUpdate ? (
+                <ActivityIndicator size="small" color={currentTheme.primary} />
+              ) : (
+                <Text style={{ fontSize: 15 }}>🔄</Text>
+              )}
+              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 13, fontWeight: '900' }}>
+                {isCheckingUpdate ? 'Checking for updates...' : 'Check for Updates (OTA)'}
               </Text>
             </TouchableOpacity>
           </View>

@@ -62,6 +62,14 @@
       "favicon": "./assets/icon.png",
       "bundler": "metro"
     },
+    "updates": {
+      "url": "https://u.expo.dev/878baa83-1414-4e7c-8495-6dd4edfa33bf",
+      "fallbackToCacheTimeout": 0,
+      "checkAutomatically": "ON_LOAD"
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "extra": {
       "eas": {
         "projectId": "878baa83-1414-4e7c-8495-6dd4edfa33bf"
