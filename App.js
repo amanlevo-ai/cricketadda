@@ -20311,15 +20311,15 @@ function CricketAddaMain() {
                         size="sm"
                       />
                       <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                           {team1Name}
                         </Text>
-                        <Text style={{ color: isTeam1Batting ? '#ffffff' : '#93c5fd', fontSize: 17, fontWeight: '900', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
+                        <Text style={{ color: isTeam1Batting ? '#ffffff' : '#93c5fd', fontSize: 19, fontWeight: '900', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
                           {isTeam1Batting
                             ? `${reconciledScore.runs}/${reconciledScore.wickets}`
                             : `${firstInningsSummary?.runs ?? (currentMatchData.innings1?.runs ?? 0)}/${firstInningsSummary?.wickets ?? (currentMatchData.innings1?.wickets ?? 0)}`}
                         </Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }} numberOfLines={1}>
+                        <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>
                           {isTeam1Batting
                             ? `(${reconciledScore.oversStr} ov)`
                             : `(${firstInningsSummary?.overs || currentMatchData.innings1?.overs || '20.0'} ov)`}
@@ -20341,18 +20341,18 @@ function CricketAddaMain() {
                       justifyContent: 'center',
                     }}>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>CRR:</Text>
-                        <Text style={{ color: '#00e676', fontSize: 12, fontWeight: '900' }}>{crr}</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800' }}>CRR:</Text>
+                        <Text style={{ color: '#00e676', fontSize: 12.5, fontWeight: '900' }}>{crr}</Text>
                       </View>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>RRR:</Text>
-                        <Text style={{ color: currentInnings === 2 ? '#38bdf8' : '#64748b', fontSize: 11.5, fontWeight: '900' }}>
+                        <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800' }}>RRR:</Text>
+                        <Text style={{ color: currentInnings === 2 ? '#38bdf8' : '#64748b', fontSize: 12, fontWeight: '900' }}>
                           {currentInnings === 2 ? ((((Math.max(0, targetRuns - liveRuns)) / Math.max(1, maxLegalBalls - liveBalls)) * 6).toFixed(2)) : '-'}
                         </Text>
                       </View>
                       <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 3 }}>
-                        <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>Target:</Text>
-                        <Text style={{ color: currentInnings === 2 ? '#ffffff' : '#64748b', fontSize: 11.5, fontWeight: '900' }}>
+                        <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800' }}>Target:</Text>
+                        <Text style={{ color: currentInnings === 2 ? '#ffffff' : '#64748b', fontSize: 12, fontWeight: '900' }}>
                           {currentInnings === 2 ? targetRuns : '-'}
                         </Text>
                       </View>
@@ -20378,15 +20378,15 @@ function CricketAddaMain() {
                       }}
                     >
                       <View style={{ flex: 1, justifyContent: 'center' }}>
-                        <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8}>
                           {team2Name}
                         </Text>
-                        <Text style={{ color: isTeam2Batting ? '#ffffff' : '#fca5a5', fontSize: 17, fontWeight: '900', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
+                        <Text style={{ color: isTeam2Batting ? '#ffffff' : '#fca5a5', fontSize: 19, fontWeight: '900', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
                           {isTeam2Batting
                             ? `${reconciledScore.runs}/${reconciledScore.wickets}`
                             : 'Yet to bat'}
                         </Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }} numberOfLines={1}>
+                        <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '700' }} numberOfLines={1}>
                           {isTeam2Batting
                             ? `(${reconciledScore.oversStr} ov)`
                             : `(${maxOvers || 20}.0 ov)`}
