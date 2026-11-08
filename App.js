@@ -4885,8 +4885,12 @@ function CricketAddaMain() {
   const [isCheckingUpdate, setIsCheckingUpdate] = useState(false);
 
   const handleManualCheckUpdate = async () => {
-    if (__DEV__ || !Updates.isEnabled) {
+    if (__DEV__) {
       showAppToast('Updates are active in standalone APK builds', 'ℹ️', 'info');
+      return;
+    }
+    if (!Updates.isEnabled) {
+      showAppToast('OTA update new APK install karne ke baad activate hoga', 'ℹ️', 'info');
       return;
     }
     setIsCheckingUpdate(true);
@@ -4906,7 +4910,12 @@ function CricketAddaMain() {
         showAppToast('Aapka app already latest version par hai!', '✅', 'success');
       }
     } catch (err) {
-      showAppToast('Update check failed: ' + (err?.message || 'Network issue'), '⚠️', 'warning');
+      const errMsg = String(err?.message || err || '');
+      if (errMsg.includes('checkForUpdateAsync') || errMsg.includes('rejected') || errMsg.includes('ERR_UPDATES_DISABLED')) {
+        showAppToast('Pehli baar naya APK install karna padega to enable OTA updates', 'ℹ️', 'info');
+      } else {
+        showAppToast('Update check failed: ' + errMsg, '⚠️', 'warning');
+      }
     } finally {
       setIsCheckingUpdate(false);
     }
