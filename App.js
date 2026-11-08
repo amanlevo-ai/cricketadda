@@ -4777,7 +4777,7 @@ let isSplashDismissedInSession = false;
 
 function CricketAddaMain() {
   const insets = useSafeAreaInsets();
-  const topInset = Math.max(insets.top, Platform.OS === 'android' ? (StatusBar.currentHeight || 40) : 44);
+  const topInset = Platform.OS === 'android' ? (StatusBar.currentHeight || insets.top || 24) : Math.max(insets.top, 20);
   const bottomInset = Math.max(insets.bottom, Platform.OS === 'android' ? 24 : 16);
   const safeModalCardMaxHeight = Math.max(300, height - topInset - bottomInset - 32);
   const [showSplash, setShowSplash] = useState(!isSplashDismissedInSession);
@@ -14548,32 +14548,32 @@ function CricketAddaMain() {
       if (!tName) return [];
       const clean = String(tName).toLowerCase().trim();
 
-      // 1. Direct squad properties
-      if (innNum === 1 && Array.isArray(currentMatchData?.team1Squad) && currentMatchData.team1Squad.length > 0) return currentMatchData.team1Squad;
-      if (innNum === 2 && Array.isArray(currentMatchData?.team2Squad) && currentMatchData.team2Squad.length > 0) return currentMatchData.team2Squad;
-      if (currentMatchData?.innings1?.team?.toLowerCase()?.trim() === clean && Array.isArray(currentMatchData?.innings1?.battingSquad) && currentMatchData.innings1.battingSquad.length > 0) return currentMatchData.innings1.battingSquad;
-      if (currentMatchData?.innings2?.team?.toLowerCase()?.trim() === clean && Array.isArray(currentMatchData?.innings2?.battingSquad) && currentMatchData.innings2.battingSquad.length > 0) return currentMatchData.innings2.battingSquad;
+      const candidates = [];
+      const isTeamA = (currentMatchData?.teamA?.toLowerCase()?.trim() === clean || currentMatchData?.myTeam?.toLowerCase()?.trim() === clean || (innNum === 1 && currentMatchData?.innings1?.team?.toLowerCase()?.trim() === clean));
+      const isTeamB = (currentMatchData?.teamB?.toLowerCase()?.trim() === clean || currentMatchData?.opponentTeam?.toLowerCase()?.trim() === clean || (innNum === 2 && currentMatchData?.innings2?.team?.toLowerCase()?.trim() === clean));
 
-      // 2. Playing XI
-      const isTeamA = (currentMatchData?.teamA?.toLowerCase()?.trim() === clean || currentMatchData?.myTeam?.toLowerCase()?.trim() === clean);
-      if (isTeamA && Array.isArray(currentMatchData?.myPlayingXI) && currentMatchData.myPlayingXI.length > 0) return currentMatchData.myPlayingXI;
-      const isTeamB = (currentMatchData?.teamB?.toLowerCase()?.trim() === clean || currentMatchData?.opponentTeam?.toLowerCase()?.trim() === clean);
+      if (isTeamA && Array.isArray(currentMatchData?.myPlayingXI) && currentMatchData.myPlayingXI.length > 0) candidates.push(currentMatchData.myPlayingXI);
       if (isTeamB && Array.isArray(currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI) && (currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI).length > 0) {
-        return currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI;
+        candidates.push(currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI);
       }
+      if (innNum === 1 && Array.isArray(currentMatchData?.team1Squad) && currentMatchData.team1Squad.length > 0) candidates.push(currentMatchData.team1Squad);
+      if (innNum === 2 && Array.isArray(currentMatchData?.team2Squad) && currentMatchData.team2Squad.length > 0) candidates.push(currentMatchData.team2Squad);
+      if (currentMatchData?.innings1?.team?.toLowerCase()?.trim() === clean && Array.isArray(currentMatchData?.innings1?.battingSquad) && currentMatchData.innings1.battingSquad.length > 0) candidates.push(currentMatchData.innings1.battingSquad);
+      if (currentMatchData?.innings2?.team?.toLowerCase()?.trim() === clean && Array.isArray(currentMatchData?.innings2?.battingSquad) && currentMatchData.innings2.battingSquad.length > 0) candidates.push(currentMatchData.innings2.battingSquad);
 
-      // 3. Registered teams & allAvailableMatchTeams
       const foundReg = (registeredTeams || []).find(t => t?.name && t.name.toLowerCase().trim() === clean) || (allAvailableMatchTeams || []).find(t => t?.name && t.name.toLowerCase().trim() === clean);
-      if (foundReg && Array.isArray(foundReg.squad) && foundReg.squad.length > 0) return foundReg.squad;
+      if (foundReg && Array.isArray(foundReg.squad) && foundReg.squad.length > 0) candidates.push(foundReg.squad);
 
-      // 4. Match draft squads
-      if (isTeamA && Array.isArray(matchDraft?.myPlayingXI) && matchDraft.myPlayingXI.length > 0) return matchDraft.myPlayingXI;
-      if (isTeamB && Array.isArray(matchDraft?.opponentPlayingXI) && matchDraft.opponentPlayingXI.length > 0) return matchDraft.opponentPlayingXI;
+      if (isTeamA && Array.isArray(matchDraft?.myPlayingXI) && matchDraft.myPlayingXI.length > 0) candidates.push(matchDraft.myPlayingXI);
+      if (isTeamB && Array.isArray(matchDraft?.opponentPlayingXI) && matchDraft.opponentPlayingXI.length > 0) candidates.push(matchDraft.opponentPlayingXI);
 
-      // 5. Active squads
-      if (battingTeamName && battingTeamName.toLowerCase().trim() === clean && Array.isArray(activeBattingSquad) && activeBattingSquad.length > 0) return activeBattingSquad;
-      if (bowlingTeamName && bowlingTeamName.toLowerCase().trim() === clean && Array.isArray(activeOppBowlers) && activeOppBowlers.length > 0) return activeOppBowlers;
+      if (battingTeamName && battingTeamName.toLowerCase().trim() === clean && Array.isArray(activeBattingSquad) && activeBattingSquad.length > 0) candidates.push(activeBattingSquad);
+      if (bowlingTeamName && bowlingTeamName.toLowerCase().trim() === clean && Array.isArray(activeOppBowlers) && activeOppBowlers.length > 0) candidates.push(activeOppBowlers);
 
+      if (candidates.length > 0) {
+        candidates.sort((a, b) => b.length - a.length);
+        return candidates[0];
+      }
       return [];
     };
 
@@ -14687,42 +14687,77 @@ function CricketAddaMain() {
             <Text style={{ width: 46, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>SR</Text>
           </View>
 
-          {/* Batter List Rows */}
-          {battingList.length === 0 ? (
+          {/* Batter List Rows (Full Playing 11 + Player Photos) */}
+          {battingList.length === 0 && yetToBatList.length === 0 ? (
             <Text style={{ color: '#64748b', fontSize: 12.5, paddingVertical: 10, textAlign: 'center' }}>Yet to bat</Text>
           ) : (
-            battingList.map((b, i) => {
-              const isStriker = b.name === striker;
-              const canClick = Number(b.balls || 0) > 0 || Number(b.runs || 0) > 0;
-              return (
-                <TouchableOpacity
-                  key={`sc_bat_${i}`}
-                  activeOpacity={0.7}
-                  disabled={!canClick}
-                  onPress={() => openBatterDetailsModal(b, activeInningData?.team)}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.4)' }}
-                >
-                  <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                    {isStriker && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e' }} />}
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ color: b.isNotOut ? '#ffffff' : '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
-                        {b.name} {b.isNotOut ? '*' : ''}
-                      </Text>
-                      {b.dismissal ? (
-                        <Text style={{ color: '#94a3b8', fontSize: 10 }} numberOfLines={1}>
-                          {b.dismissal}
+            <>
+              {battingList.map((b, i) => {
+                const isStriker = b.name === striker;
+                const canClick = Number(b.balls || 0) > 0 || Number(b.runs || 0) > 0;
+                return (
+                  <TouchableOpacity
+                    key={`sc_bat_${i}`}
+                    activeOpacity={0.7}
+                    disabled={!canClick}
+                    onPress={() => openBatterDetailsModal(b, activeInningData?.team)}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.4)' }}
+                  >
+                    <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <PlayerAvatar name={b.name} size={22} customUri={getPlayerAvatarUri(b.name)} />
+                      {isStriker && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e' }} />}
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                          {b.name} {b.isNotOut ? '*' : ''}
                         </Text>
-                      ) : null}
+                        {b.dismissal ? (
+                          <Text style={{ color: '#94a3b8', fontSize: 10 }} numberOfLines={1}>
+                            {b.dismissal}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                    <Text style={{ width: 32, color: '#ffffff', fontSize: 14, fontWeight: '900', textAlign: 'right' }}>{b.runs}</Text>
+                    <Text style={{ width: 32, color: '#94a3b8', fontSize: 12.5, textAlign: 'right' }}>{b.balls}</Text>
+                    <Text style={{ width: 28, color: '#94a3b8', fontSize: 12.5, textAlign: 'right' }}>{b.fours || 0}</Text>
+                    <Text style={{ width: 28, color: '#94a3b8', fontSize: 12.5, textAlign: 'right' }}>{b.sixes || 0}</Text>
+                    <Text style={{ width: 46, color: '#94a3b8', fontSize: 12.5, textAlign: 'right' }}>{b.sr || '0.0'}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+
+              {/* Batting Team Playing 11 (Players Yet to Bat with Photos & Status) */}
+              {yetToBatList.map((pName, idx) => (
+                <View
+                  key={`sc_yet_${idx}`}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    paddingHorizontal: 8,
+                    paddingVertical: 5,
+                    borderBottomWidth: 0.5,
+                    borderBottomColor: 'rgba(30, 58, 95, 0.4)',
+                  }}
+                >
+                  <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <PlayerAvatar name={pName} size={22} customUri={getPlayerAvatarUri(pName)} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: '#cbd5e1', fontSize: 13, fontWeight: '700' }} numberOfLines={1}>
+                        {pName}
+                      </Text>
+                      <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600' }} numberOfLines={1}>
+                        Yet to bat
+                      </Text>
                     </View>
                   </View>
-                  <Text style={{ width: 32, color: '#ffffff', fontSize: 14, fontWeight: '900', textAlign: 'right' }}>{b.runs}</Text>
-                  <Text style={{ width: 32, color: '#94a3b8', fontSize: 12.5, textAlign: 'right' }}>{b.balls}</Text>
-                  <Text style={{ width: 28, color: '#94a3b8', fontSize: 12.5, textAlign: 'right' }}>{b.fours || 0}</Text>
-                  <Text style={{ width: 28, color: '#94a3b8', fontSize: 12.5, textAlign: 'right' }}>{b.sixes || 0}</Text>
-                  <Text style={{ width: 46, color: '#94a3b8', fontSize: 12.5, textAlign: 'right' }}>{b.sr || '0.0'}</Text>
-                </TouchableOpacity>
-              );
-            })
+                  <Text style={{ width: 32, color: '#64748b', fontSize: 13, textAlign: 'right' }}>-</Text>
+                  <Text style={{ width: 32, color: '#64748b', fontSize: 12, textAlign: 'right' }}>-</Text>
+                  <Text style={{ width: 28, color: '#64748b', fontSize: 12, textAlign: 'right' }}>-</Text>
+                  <Text style={{ width: 28, color: '#64748b', fontSize: 12, textAlign: 'right' }}>-</Text>
+                  <Text style={{ width: 46, color: '#64748b', fontSize: 12, textAlign: 'right' }}>-</Text>
+                </View>
+              ))}
+            </>
           )}
 
           {/* Extras Row */}
@@ -14839,7 +14874,10 @@ function CricketAddaMain() {
                   onPress={() => openBowlerDetailsModal(bw, activeInningData?.team)}
                   style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.4)' }}
                 >
-                  <Text style={{ flex: 2.2, color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>{bw.name}</Text>
+                  <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <PlayerAvatar name={bw.name} size={22} customUri={getPlayerAvatarUri(bw.name)} />
+                    <Text style={{ flex: 1, color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>{bw.name}</Text>
+                  </View>
                   <Text style={{ width: 32, color: '#ffffff', fontSize: 14, fontWeight: '900', textAlign: 'right' }}>{bw.overs}</Text>
                   <Text style={{ width: 28, color: '#94a3b8', fontSize: 12.5, textAlign: 'right' }}>{bw.maidens || 0}</Text>
                   <Text style={{ width: 32, color: '#ffffff', fontSize: 14, fontWeight: '900', textAlign: 'right' }}>{bw.runs}</Text>
@@ -20057,39 +20095,19 @@ function CricketAddaMain() {
 
                   <TouchableOpacity
                     activeOpacity={0.8}
-                    onPress={() => setViewerActiveSubTab('scorecard')}
+                    onPress={() => openMatchScorecard(activeMatchId)}
                     style={{
                       flex: 1,
                       paddingVertical: 8,
-                      backgroundColor: viewerActiveSubTab === 'scorecard' ? '#0284c7' : '#071526',
+                      backgroundColor: '#071526',
                       borderRadius: 8,
                       borderWidth: 1,
-                      borderColor: viewerActiveSubTab === 'scorecard' ? '#38bdf8' : '#1e3a5f',
+                      borderColor: '#1e3a5f',
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: viewerActiveSubTab === 'scorecard' ? '#ffffff' : '#94a3b8', fontSize: 12.5, fontWeight: '800' }}>Scorecard</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => setViewerActiveSubTab('wheel')}
-                    style={{
-                      flex: 1.15,
-                      paddingVertical: 8,
-                      backgroundColor: viewerActiveSubTab === 'wheel' ? '#0284c7' : '#071526',
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: viewerActiveSubTab === 'wheel' ? '#38bdf8' : '#1e3a5f',
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 4,
-                    }}
-                  >
-                    <Text style={{ fontSize: 13 }}>🎯</Text>
-                    <Text style={{ color: viewerActiveSubTab === 'wheel' ? '#ffffff' : '#94a3b8', fontSize: 12.5, fontWeight: '800' }}>Wagon Wheel</Text>
+                    <Text style={{ color: '#38bdf8', fontSize: 12.5, fontWeight: '800' }}>📋 Full Scorecard ↗</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -20226,15 +20244,7 @@ function CricketAddaMain() {
                     </ScrollView>
                   )}
 
-                  {viewerActiveSubTab === 'wheel' && (
-                    <ScrollView
-                      style={{ flex: 1 }}
-                      showsVerticalScrollIndicator={false}
-                      contentContainerStyle={{ paddingBottom: 20 }}
-                    >
-                      {renderEmbeddedWagonWheel()}
-                    </ScrollView>
-                  )}
+
                 </View>
               </View>
             ) : (
@@ -22670,15 +22680,14 @@ function CricketAddaMain() {
             <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />
           </TouchableOpacity>
 
-          {/* 2. Scorecard */}
+          {/* 2. Scorecard (Opens Dedicated Window As Requested) */}
           <TouchableOpacity
             style={styles.bottomNavTab}
-            onPress={() => setViewerActiveSubTab('scorecard')}
+            onPress={() => openMatchScorecard(activeMatchId)}
             activeOpacity={0.8}
           >
-            <Text style={[styles.bottomNavIcon, viewerActiveSubTab === 'scorecard' && { color: '#0284c7' }]}>📅</Text>
-            <Text style={[styles.bottomNavLabel, viewerActiveSubTab === 'scorecard' ? { color: '#0284c7', fontWeight: '900' } : { color: '#94a3b8' }]}>Scorecard</Text>
-            {viewerActiveSubTab === 'scorecard' && <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />}
+            <Text style={[styles.bottomNavIcon, { color: '#94a3b8' }]}>📋</Text>
+            <Text style={[styles.bottomNavLabel, { color: '#94a3b8', fontWeight: '900' }]}>Scorecard</Text>
           </TouchableOpacity>
 
           {/* 3. Commentary */}
@@ -22692,18 +22701,7 @@ function CricketAddaMain() {
             {viewerActiveSubTab === 'commentary' && <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />}
           </TouchableOpacity>
 
-          {/* 4. Wagon Wheel */}
-          <TouchableOpacity
-            style={styles.bottomNavTab}
-            onPress={() => setViewerActiveSubTab('wheel')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.bottomNavIcon, viewerActiveSubTab === 'wheel' && { color: '#0284c7' }]}>🎯</Text>
-            <Text style={[styles.bottomNavLabel, viewerActiveSubTab === 'wheel' ? { color: '#0284c7', fontWeight: '900' } : { color: '#94a3b8' }]}>Wagon Wheel</Text>
-            {viewerActiveSubTab === 'wheel' && <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />}
-          </TouchableOpacity>
-
-          {/* 5. Info */}
+          {/* 4. Info */}
           <TouchableOpacity
             style={styles.bottomNavTab}
             onPress={() => setScorerActionsModalVisible(true)}
@@ -26712,77 +26710,81 @@ function CricketAddaMain() {
               </View>
             </TouchableOpacity>
 
-            {/* Option 2: Wagon Wheel */}
-            <TouchableOpacity
-              onPress={() => {
-                setScorerActionsModalVisible(false);
-                openMatchWagonWheel(activeMatchId);
-              }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-                paddingVertical: 11,
-                paddingHorizontal: 12,
-                borderRadius: 10,
-                backgroundColor: 'rgba(30, 58, 95, 0.3)',
-                marginBottom: 8,
-                borderWidth: 1,
-                borderColor: '#1e3a5f',
-              }}
-            >
-              <Text style={{ fontSize: 18 }}>🎯</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Full Wagon Wheel Ground</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11 }}>View 8-sector shot directions & zones</Text>
-              </View>
-            </TouchableOpacity>
+            {/* Option 2: Wagon Wheel & Auto Wheel (Official Scorer Only) */}
+            {isOfficialScorer && (
+              <>
+                <TouchableOpacity
+                  onPress={() => {
+                    setScorerActionsModalVisible(false);
+                    openMatchWagonWheel(activeMatchId);
+                  }}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 12,
+                    paddingVertical: 11,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: 'rgba(30, 58, 95, 0.3)',
+                    marginBottom: 8,
+                    borderWidth: 1,
+                    borderColor: '#1e3a5f',
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>🎯</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Full Wagon Wheel Ground</Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 11 }}>View 8-sector shot directions & zones</Text>
+                  </View>
+                </TouchableOpacity>
 
-            {/* Auto Wagon Wheel Prompt Toggle Switch */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={toggleAutoWheel}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                paddingVertical: 10,
-                paddingHorizontal: 12,
-                borderRadius: 10,
-                backgroundColor: autoWheel ? 'rgba(16, 185, 129, 0.16)' : 'rgba(30, 58, 95, 0.3)',
-                marginBottom: 8,
-                borderWidth: 1.5,
-                borderColor: autoWheel ? '#10b981' : '#1e3a5f',
-              }}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, marginRight: 8 }}>
-                <Text style={{ fontSize: 18 }}>⚙️</Text>
-                <View style={{ flex: 1 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Auto Wagon Wheel</Text>
-                    <View style={{
-                      backgroundColor: autoWheel ? '#10b981' : '#475569',
-                      paddingHorizontal: 5,
-                      paddingVertical: 1.5,
-                      borderRadius: 4,
-                    }}>
-                      <Text style={{ color: autoWheel ? '#022c22' : '#cbd5e1', fontSize: 9.5, fontWeight: '900' }}>
-                        {autoWheel ? 'ON' : 'OFF'}
+                {/* Auto Wagon Wheel Prompt Toggle Switch */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={toggleAutoWheel}
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    borderRadius: 10,
+                    backgroundColor: autoWheel ? 'rgba(16, 185, 129, 0.16)' : 'rgba(30, 58, 95, 0.3)',
+                    marginBottom: 8,
+                    borderWidth: 1.5,
+                    borderColor: autoWheel ? '#10b981' : '#1e3a5f',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, marginRight: 8 }}>
+                    <Text style={{ fontSize: 18 }}>⚙️</Text>
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Auto Wagon Wheel</Text>
+                        <View style={{
+                          backgroundColor: autoWheel ? '#10b981' : '#475569',
+                          paddingHorizontal: 5,
+                          paddingVertical: 1.5,
+                          borderRadius: 4,
+                        }}>
+                          <Text style={{ color: autoWheel ? '#022c22' : '#cbd5e1', fontSize: 9.5, fontWeight: '900' }}>
+                            {autoWheel ? 'ON' : 'OFF'}
+                          </Text>
+                        </View>
+                      </View>
+                      <Text style={{ color: autoWheel ? '#6ee7b7' : '#94a3b8', fontSize: 11, marginTop: 1 }}>
+                        {autoWheel ? (wheelTriggerMode === 'boundaries' ? 'Active for 4s & 6s Boundaries only' : 'Active for all runs (0-6)') : 'Direct scoring without shot direction popup'}
                       </Text>
                     </View>
                   </View>
-                  <Text style={{ color: autoWheel ? '#6ee7b7' : '#94a3b8', fontSize: 11, marginTop: 1 }}>
-                    {autoWheel ? (wheelTriggerMode === 'boundaries' ? 'Active for 4s & 6s Boundaries only' : 'Active for all runs (0-6)') : 'Direct scoring without shot direction popup'}
-                  </Text>
-                </View>
-              </View>
-              <Switch
-                value={autoWheel}
-                onValueChange={toggleAutoWheel}
-                trackColor={{ false: '#334155', true: '#059669' }}
-                thumbColor={autoWheel ? '#10b981' : '#94a3b8'}
-              />
-            </TouchableOpacity>
+                  <Switch
+                    value={autoWheel}
+                    onValueChange={toggleAutoWheel}
+                    trackColor={{ false: '#334155', true: '#059669' }}
+                    thumbColor={autoWheel ? '#10b981' : '#94a3b8'}
+                  />
+                </TouchableOpacity>
+              </>
+            )}
 
             {/* Scorer-Specific Options */}
             {isOfficialScorer && (
@@ -34627,13 +34629,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 10,
+    paddingVertical: 5,
     backgroundColor: '#090d16',
     borderBottomWidth: 1,
     borderBottomColor: '#1e293b',
   },
-  navBrand: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  logoImg: { width: 36, height: 36 },
+  navBrand: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  logoImg: { width: 30, height: 30 },
   brandTitle: { color: '#fff', fontSize: 16, fontWeight: '900' },
   brandSub: { color: '#94a3b8', fontSize: 10.5, fontWeight: '600', marginTop: 1 },
   emptyScorecardContainer: {
