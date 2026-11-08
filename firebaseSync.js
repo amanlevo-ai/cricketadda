@@ -469,6 +469,11 @@ export async function recordBallDeliveryAtomic(matchId, ballData) {
 
     if (ballData.lastOverBowler !== undefined) metaUpdates.lastOverBowler = ballData.lastOverBowler;
     if (ballData.status) metaUpdates.status = ballData.status;
+    if (ballData.celebrationEvent) {
+      metaUpdates.celebrationEvent = ballData.celebrationEvent;
+    } else {
+      metaUpdates.celebrationEvent = null;
+    }
 
     await update(matchRef, metaUpdates);
 
@@ -529,6 +534,7 @@ export async function undoLastBallDeliveryAtomic(matchId) {
       lastUpdatedAt: undoTime,
       lastActionTimestamp: undoTime,
       isUndoAction: true,
+      celebrationEvent: null,
     });
 
     console.log(`[FirebaseSync] 🟢 Undid delivery seq #${removedSeq} (${latestPushId}) on match ${id}`);

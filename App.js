@@ -4795,6 +4795,8 @@ function CricketAddaMain() {
   const inn1ScorecardDataRef = useRef(null);
   const inn2ScorecardDataRef = useRef(null);
   const lastCelebrationIdRef = useRef(null);
+  const lastCelebrationDeliveryIdRef = useRef(null);
+  const hasInitializedViewerSyncRef = useRef(false);
   const lastAppliedRemoteSyncRef = useRef({ timestamp: 0, balls: 0, innings: 1 });
   const lastResetConsumedAtRef = useRef(0);
   const localMatchVersionRef = useRef(0);
@@ -8163,82 +8165,85 @@ function CricketAddaMain() {
   };
 
   const triggerCelebration = (type, playerName, runsOrWktVal, forceShow = false, teamFlag = null, teamName = null) => {
-    // 1. NEVER trigger celebration for the person who is scoring
-    if (isOfficialScorer) {
+    // 1. NEVER trigger celebration for the person who is actively scoring (unless forceShow is true for testing/preview)
+    if (isOfficialScorer && !forceShow) {
       return;
     }
 
     // 2. ONLY show celebration if viewer is actively watching the match screen (Scorer/Live, Scorecard, Wagon Wheel)
-    // NEVER show when viewer is on Home/Dashboard ('matches'), Profile, Settings, Teams, or Stats
+    // NEVER show when viewer is on Home/Dashboard ('matches'), Profile, Settings, or Teams
     const currentTab = activeTabRef.current || activeTab;
-    if (currentTab !== 'scorer' && currentTab !== 'scorecard' && currentTab !== 'wheel') {
+    if (!forceShow && currentTab !== 'scorer' && currentTab !== 'scorecard' && currentTab !== 'wheel' && currentTab !== 'live') {
       return;
     }
 
-    const list = CELEBRATION_MESSAGES[type] || CELEBRATION_MESSAGES.wicket || CELEBRATION_MESSAGES.six;
-    const randomMsg = list[Math.floor(Math.random() * (list || []).length)];
+    const normType = (type === 'noBall' || type === 'nb' || type === 'NB') ? 'no_ball' : (type || 'six');
+    const list = CELEBRATION_MESSAGES[normType] || CELEBRATION_MESSAGES[type] || CELEBRATION_MESSAGES.wicket || CELEBRATION_MESSAGES.six;
+    const randomMsg = (Array.isArray(list) && list.length > 0)
+      ? list[Math.floor(Math.random() * list.length)]
+      : { title: 'CELEBRATION!', sub: 'Unbelievable cricket moment!', emoji: '⚡', tag: 'MOMENT' };
 
     let mainColor = '#f59e0b';
     let glowColor = '#fbbf24';
     let bgGradient = ['#4c1d95', '#1e1b4b'];
 
-    if (type === 'century') {
+    if (normType === 'century') {
       mainColor = '#eab308';
       glowColor = '#fde047';
       bgGradient = ['#713f12', '#3f1a04'];
-    } else if (type === 'five_wicket_haul') {
+    } else if (normType === 'five_wicket_haul') {
       mainColor = '#dc2626';
       glowColor = '#f87171';
       bgGradient = ['#7f1d1d', '#450a0a'];
-    } else if (type === 'fifty') {
+    } else if (normType === 'fifty') {
       mainColor = '#10b981';
       glowColor = '#34d399';
       bgGradient = ['#064e3b', '#022c22'];
-    } else if (type === 'three_wicket_haul') {
+    } else if (normType === 'three_wicket_haul') {
       mainColor = '#8b5cf6';
       glowColor = '#c084fc';
       bgGradient = ['#4c1d95', '#2e1065'];
-    } else if (type.startsWith('four') || type === 'four') {
+    } else if (normType.startsWith('four') || normType === 'four') {
       mainColor = '#10b981';
       glowColor = '#34d399';
       bgGradient = ['#064e3b', '#06201a'];
-    } else if (type === 'six_helicopter') {
+    } else if (normType === 'six_helicopter') {
       mainColor = '#a855f7';
       glowColor = '#c084fc';
       bgGradient = ['#581c87', '#2e1065'];
-    } else if (type === 'six_straight') {
+    } else if (normType === 'six_straight') {
       mainColor = '#6366f1';
       glowColor = '#818cf8';
       bgGradient = ['#312e81', '#1e1b4b'];
-    } else if (type === 'six_ramp') {
+    } else if (normType === 'six_ramp') {
       mainColor = '#ec4899';
       glowColor = '#f472b6';
       bgGradient = ['#831843', '#500724'];
-    } else if (type.startsWith('six') || type === 'six') {
+    } else if (normType.startsWith('six') || normType === 'six') {
       mainColor = '#f59e0b';
       glowColor = '#fbbf24';
       bgGradient = ['#4c1d95', '#1e1b4b'];
-    } else if (type === 'bowled') {
+    } else if (normType === 'bowled') {
       mainColor = '#ef4444';
       glowColor = '#f87171';
       bgGradient = ['#7f1d1d', '#1f0707'];
-    } else if (type === 'caught') {
+    } else if (normType === 'caught') {
       mainColor = '#0284c7';
       glowColor = '#38bdf8';
       bgGradient = ['#0c4a6e', '#082f49'];
-    } else if (type === 'lbw') {
+    } else if (normType === 'lbw') {
       mainColor = '#d97706';
       glowColor = '#fbbf24';
       bgGradient = ['#78350f', '#451a03'];
-    } else if (type === 'run_out' || type === 'stumped') {
+    } else if (normType === 'run_out' || normType === 'stumped') {
       mainColor = '#dc2626';
       glowColor = '#f87171';
       bgGradient = ['#450a0a', '#1e0505'];
-    } else if (type === 'hit_wicket' || type === 'wicket') {
+    } else if (normType === 'hit_wicket' || normType === 'wicket') {
       mainColor = '#ef4444';
       glowColor = '#f87171';
       bgGradient = ['#7f1d1d', '#2b0707'];
-    } else if (type === 'no_ball' || type === 'noBall') {
+    } else if (normType === 'no_ball') {
       mainColor = '#f97316';
       glowColor = '#fb923c';
       bgGradient = ['#7c2d12', '#431407'];
@@ -8257,19 +8262,19 @@ function CricketAddaMain() {
     // 1. Sensory Haptic Vibration feedback on viewer mobile device
     if (Vibration && typeof Vibration.vibrate === 'function') {
       try {
-        if (type === 'century') {
+        if (normType === 'century') {
           Vibration.vibrate([0, 200, 70, 200, 70, 350]);
-        } else if (type === 'five_wicket_haul') {
+        } else if (normType === 'five_wicket_haul') {
           Vibration.vibrate([0, 250, 80, 250, 80, 400]);
-        } else if (type === 'fifty') {
+        } else if (normType === 'fifty') {
           Vibration.vibrate([0, 160, 60, 220]);
-        } else if (type === 'three_wicket_haul') {
+        } else if (normType === 'three_wicket_haul') {
           Vibration.vibrate([0, 180, 70, 250]);
-        } else if (type.startsWith('six') || type === 'six') {
+        } else if (normType.startsWith('six') || normType === 'six') {
           Vibration.vibrate([0, 150, 60, 150, 60, 200]);
-        } else if (type.startsWith('four') || type === 'four') {
+        } else if (normType.startsWith('four') || normType === 'four') {
           Vibration.vibrate([0, 100, 50, 120]);
-        } else if (type === 'no_ball' || type === 'noBall') {
+        } else if (normType === 'no_ball') {
           Vibration.vibrate([0, 80, 50, 80, 50, 150]);
         } else {
           // Wickets
@@ -8279,22 +8284,23 @@ function CricketAddaMain() {
     }
 
     // 2. Play realistic stadium clapping and crowd cheering sound
-    playCelebrationAudio(type);
+    playCelebrationAudio(normType);
 
     setCelebrationData({
       visible: true,
-      type,
+      type: normType,
       title: randomMsg.title,
       sub: randomMsg.sub,
       emoji: randomMsg.emoji,
       tag: randomMsg.tag,
-      player: playerName || (type === 'six' || type === 'four' ? striker : bowler),
-      runsOrWkt: runsOrWktVal || (type === 'six' ? '6' : type === 'four' ? '4' : 'W'),
+      player: playerName || (normType === 'no_ball' ? striker : (normType.startsWith('six') || normType.startsWith('four') ? striker : bowler)),
+      runsOrWkt: runsOrWktVal || (normType.startsWith('six') ? '6' : normType.startsWith('four') ? '4' : normType === 'no_ball' ? 'FREE HIT' : 'W'),
       teamFlag: teamFlag || battingTeamFlag,
       teamName: teamName || battingTeamName,
       mainColor,
       glowColor,
       bgGradient,
+      forceShow: Boolean(forceShow),
     });
 
     celebrationEntranceAnim.setValue(0);
@@ -8843,18 +8849,78 @@ function CricketAddaMain() {
       setMatchesDb(d.matchesDb);
     }
 
-    // Live celebration effect for remote viewers (never for the scorer who submitted the ball)
+    // Live celebration effect for remote viewers (4s, 6s, Wickets, No Balls & Milestones)
     const isSelfSender = Boolean(d.senderClientId && d.senderClientId === clientIdRef?.current);
-    if (!isSelfSender && !isOfficialScorer && d.celebrationEvent && d.celebrationEvent.id && d.celebrationEvent.id !== lastCelebrationIdRef?.current) {
-      if (lastCelebrationIdRef) lastCelebrationIdRef.current = d.celebrationEvent.id;
-      triggerCelebration(
-        d.celebrationEvent.type,
-        d.celebrationEvent.player,
-        d.celebrationEvent.runs,
-        true,
-        d.celebrationEvent.teamFlag || d.battingTeamFlag,
-        d.celebrationEvent.teamName || d.battingTeamName
-      );
+    if ((!isSelfSender || viewerSimulated) && !isOfficialScorer) {
+      // 1. Direct celebrationEvent payload from scorer or cloud sync
+      if (d.celebrationEvent && d.celebrationEvent.id && d.celebrationEvent.id !== lastCelebrationIdRef?.current) {
+        if (lastCelebrationIdRef) lastCelebrationIdRef.current = d.celebrationEvent.id;
+        const cType = (d.celebrationEvent.type === 'noBall' || d.celebrationEvent.type === 'nb' || d.celebrationEvent.type === 'NB')
+          ? 'no_ball'
+          : d.celebrationEvent.type;
+        triggerCelebration(
+          cType,
+          d.celebrationEvent.player,
+          d.celebrationEvent.runs,
+          true,
+          d.celebrationEvent.teamFlag || d.battingTeamFlag,
+          d.celebrationEvent.teamName || d.battingTeamName
+        );
+      } else {
+        // 2. Resilient Ball-by-Ball Delivery Stream Detection (4s, 6s, Wickets, No Balls)
+        const deliveries = Array.isArray(d.scoringHistory) && d.scoringHistory.length > 0
+          ? d.scoringHistory
+          : (d.balls && typeof d.balls === 'object' ? Object.values(d.balls) : []);
+
+        if (deliveries.length > 0) {
+          const latestBall = deliveries[deliveries.length - 1];
+          const ballKey = latestBall?.id || latestBall?.pushId || (latestBall?.seq !== undefined ? `${latestBall.seq}_${latestBall.timestamp}` : null) || `${d.activeMatchId || 'live'}_${deliveries.length}`;
+
+          if (ballKey && ballKey !== lastCelebrationDeliveryIdRef?.current) {
+            if (lastCelebrationDeliveryIdRef) lastCelebrationDeliveryIdRef.current = ballKey;
+
+            // Only fire if initial sync was established (prevents old balls from popping when viewing scorecard cold)
+            if (hasInitializedViewerSyncRef?.current) {
+              const runsVal = Number(latestBall.runsOffBat !== undefined ? latestBall.runsOffBat : (latestBall.runs || 0));
+              const isWkt = Boolean(latestBall.isWkt || latestBall.ballSymbol === 'W' || String(latestBall.ballSymbol || '').includes('W'));
+              const isNoBall = Boolean(
+                latestBall.extraType === 'noBall' ||
+                latestBall.extraType === 'nb' ||
+                latestBall.extraType === 'no_ball' ||
+                String(latestBall.ballSymbol || '').toLowerCase().includes('nb') ||
+                latestBall.nbRunType
+              );
+              const batterName = latestBall.striker || d.currentStriker || striker || 'Batter';
+              const outName = latestBall.dismissedPlayerName || batterName;
+
+              if (runsVal === 6 && !isWkt) {
+                const sixType = latestBall.shotSector?.id === 'mid_wicket'
+                  ? 'six_helicopter'
+                  : ['long_on', 'long_off'].includes(latestBall.shotSector?.id)
+                  ? 'six_straight'
+                  : ['fine_leg', 'third_man'].includes(latestBall.shotSector?.id)
+                  ? 'six_ramp'
+                  : 'six';
+                triggerCelebration(sixType, batterName, '6', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
+              } else if (runsVal === 4 && !isWkt) {
+                const fourType = ['cover', 'long_off', 'long_on'].includes(latestBall.shotSector?.id)
+                  ? 'four_drive'
+                  : ['mid_wicket', 'square_leg'].includes(latestBall.shotSector?.id)
+                  ? 'four_pull'
+                  : 'four';
+                triggerCelebration(fourType, batterName, '4', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
+              } else if (isWkt) {
+                const wktType = latestBall.dismissalType || 'bowled';
+                triggerCelebration(wktType, outName, 'OUT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
+              } else if (isNoBall) {
+                triggerCelebration('no_ball', batterName, 'FREE HIT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
+              }
+            } else {
+              if (hasInitializedViewerSyncRef) hasInitializedViewerSyncRef.current = true;
+            }
+          }
+        }
+      }
     }
 
     setTimeout(() => {
@@ -9097,6 +9163,8 @@ function CricketAddaMain() {
 
   // Live Cloud Sync: Continuous Real-Time Subscription via Firebase
   useEffect(() => {
+    hasInitializedViewerSyncRef.current = false;
+    lastCelebrationDeliveryIdRef.current = null;
     if (!isFirebaseConfigured() || !activeMatchId) return;
     const unsubscribe = subscribeToFirebaseMatch(activeMatchId, cloudData => {
       if (!cloudData) return;
@@ -10922,7 +10990,7 @@ function CricketAddaMain() {
       celebrationEvent = { id: Date.now(), type: actualDismissal, player: dismissedName, runs: 'OUT', teamFlag: battingTeamFlag, teamName: battingTeamName };
     }
     // 8. No Ball / Free Hit
-    else if (extraType === 'noBall') {
+    else if (extraType === 'noBall' || extraType === 'nb' || extraType === 'no_ball') {
       celebrationEvent = { id: Date.now(), type: 'no_ball', player: striker, runs: 'FREE HIT', teamFlag: battingTeamFlag, teamName: battingTeamName };
     }
 
@@ -11276,6 +11344,7 @@ function CricketAddaMain() {
         isOverEnd: Boolean(isOverEnd),
         status: (isSecondInningsFinished) ? 'completed' : 'live',
         senderClientId: clientIdRef?.current || '',
+        celebrationEvent: celebrationEvent || null,
         actionTime: nowMs,
         matchVersion: localMatchVersionRef.current,
         timestamp: nowMs,
@@ -26712,6 +26781,93 @@ function CricketAddaMain() {
               </View>
             </TouchableOpacity>
 
+            {/* Quick Live Celebration Test Bar (6, 4, OUT, NB) */}
+            <View style={{
+              flexDirection: 'row',
+              gap: 6,
+              marginBottom: 8,
+            }}>
+              <TouchableOpacity
+                onPress={() => {
+                  setScorerActionsModalVisible(false);
+                  setTimeout(() => {
+                    triggerCelebration('six', striker || 'Amanlevo', '6', true);
+                  }, 200);
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 7,
+                  backgroundColor: 'rgba(245, 158, 11, 0.18)',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: 'rgba(245, 158, 11, 0.4)',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#fbbf24', fontSize: 11, fontWeight: '900' }}>🚀 6</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setScorerActionsModalVisible(false);
+                  setTimeout(() => {
+                    triggerCelebration('four', striker || 'Amanlevo', '4', true);
+                  }, 200);
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 7,
+                  backgroundColor: 'rgba(16, 185, 129, 0.18)',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: 'rgba(16, 185, 129, 0.4)',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#34d399', fontSize: 11, fontWeight: '900' }}>💥 4</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setScorerActionsModalVisible(false);
+                  setTimeout(() => {
+                    triggerCelebration('bowled', striker || 'Amanlevo', 'OUT', true);
+                  }, 200);
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 7,
+                  backgroundColor: 'rgba(239, 68, 68, 0.18)',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: 'rgba(239, 68, 68, 0.4)',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#f87171', fontSize: 11, fontWeight: '900' }}>🔥 OUT</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {
+                  setScorerActionsModalVisible(false);
+                  setTimeout(() => {
+                    triggerCelebration('no_ball', striker || 'Amanlevo', 'FREE HIT', true);
+                  }, 200);
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 7,
+                  backgroundColor: 'rgba(249, 115, 22, 0.18)',
+                  borderRadius: 8,
+                  borderWidth: 1,
+                  borderColor: 'rgba(249, 115, 22, 0.4)',
+                  alignItems: 'center',
+                }}
+              >
+                <Text style={{ color: '#fb923c', fontSize: 11, fontWeight: '900' }}>🚨 NB</Text>
+              </TouchableOpacity>
+            </View>
+
             {/* Option 2: Wagon Wheel & Auto Wheel (Official Scorer Only) */}
             {isOfficialScorer && (
               <>
@@ -31830,7 +31986,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* ATTRACTIVE CELEBRATION POPUP (REMOTE VIEWERS & SPECTATORS ONLY) */}
       {/* ========================================================================= */}
-      <Modal visible={Boolean(celebrationData.visible && !isOfficialScorer && (activeTab === 'scorer' || activeTab === 'scorecard' || activeTab === 'wheel'))} transparent animationType="none" statusBarTranslucent={true} onRequestClose={dismissCelebration}>
+      <Modal visible={Boolean(celebrationData.visible && (!isOfficialScorer || celebrationData.forceShow || viewerSimulated) && (activeTab === 'scorer' || activeTab === 'scorecard' || activeTab === 'wheel' || activeTab === 'live'))} transparent animationType="none" statusBarTranslucent={true} onRequestClose={dismissCelebration}>
         <TouchableOpacity activeOpacity={1} style={[styles.celebrationBackdrop, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]} onPress={dismissCelebration}>
           <Animated.View
             style={[
@@ -31905,7 +32061,7 @@ function CricketAddaMain() {
               ]}
             />
 
-            {/* Dynamic Visual: Dismissal Graphic (Ball hitting stumps/catch/lbw) on Wickets vs. 3D Spinning Leather Ball on 4s & 6s */}
+            {/* Dynamic Visual: Dismissal Graphic on Wickets vs. 3D Spinning Leather Ball on 4s, 6s & No Balls */}
             {celebrationData.runsOrWkt === 'W' || celebrationData.runsOrWkt === 'OUT' || ['bowled', 'caught', 'lbw', 'run_out', 'stumped', 'hit_wicket', 'wicket'].includes(celebrationData.type) ? (
               <View style={{ alignItems: 'center', justifyContent: 'center', marginVertical: 4 }}>
                 <CelebrationGraphicView
@@ -31914,6 +32070,39 @@ function CricketAddaMain() {
                   spinAnim={ballSpinAnim}
                   glowAnim={glowPulseAnim}
                 />
+              </View>
+            ) : celebrationData.type === 'no_ball' || celebrationData.type === 'noBall' || celebrationData.type === 'nb' || celebrationData.type === 'NB' ? (
+              <View style={{ alignItems: 'center', justifyContent: 'center', marginVertical: 4 }}>
+                <Animated.View
+                  style={{
+                    transform: [
+                      {
+                        rotate: ballSpinAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '360deg'],
+                        }),
+                      },
+                    ],
+                  }}
+                >
+                  <RealisticCricketLeatherBall size={105} />
+                </Animated.View>
+                <View style={{
+                  position: 'absolute',
+                  backgroundColor: '#dc2626',
+                  paddingHorizontal: 12,
+                  paddingVertical: 3,
+                  borderRadius: 14,
+                  borderWidth: 2,
+                  borderColor: '#ffffff',
+                  shadowColor: '#ef4444',
+                  shadowOpacity: 0.9,
+                  shadowRadius: 8,
+                  elevation: 10,
+                  bottom: -6,
+                }}>
+                  <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 13, letterSpacing: 1.2 }}>NO BALL</Text>
+                </View>
               </View>
             ) : (
               <Animated.View
@@ -31972,7 +32161,7 @@ function CricketAddaMain() {
                   ? '🖐️ 5-WICKET FIFER! 🏆'
                   : celebrationData.type === 'three_wicket_haul'
                   ? '🎯 3-WICKET HAUL! 🔥'
-                  : celebrationData.type === 'no_ball' || celebrationData.type === 'noBall'
+                  : celebrationData.type === 'no_ball' || celebrationData.type === 'noBall' || celebrationData.type === 'nb' || celebrationData.type === 'NB'
                   ? '🚨 NO BALL • FREE HIT! 🚨'
                   : celebrationData.runsOrWkt === '6'
                   ? '💥 6 • MAXIMUM! 💥'
@@ -31995,7 +32184,9 @@ function CricketAddaMain() {
               />
               <PlayerAvatar name={celebrationData.player} size={24} borderColor={celebrationData.glowColor} />
               <Text style={styles.cleanPlayerTagText}>
-                <Text style={{ fontWeight: '900', color: '#ffffff' }}>{celebrationData.teamName || battingTeamName}</Text> • {celebrationData.runsOrWkt === '6' || celebrationData.runsOrWkt === '4'
+                <Text style={{ fontWeight: '900', color: '#ffffff' }}>{celebrationData.teamName || battingTeamName}</Text> • {celebrationData.type === 'no_ball' || celebrationData.type === 'noBall' || celebrationData.type === 'nb' || celebrationData.type === 'NB'
+                  ? `Free Hit for ${celebrationData.player}`
+                  : celebrationData.runsOrWkt === '6' || celebrationData.runsOrWkt === '4'
                   ? `Hit by ${celebrationData.player}`
                   : `Dismissal: ${celebrationData.player}`}
               </Text>
