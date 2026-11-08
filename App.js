@@ -14715,63 +14715,6 @@ function CricketAddaMain() {
             </View>
           )}
         </View>
-
-        {/* 5. MATCH SUMMARY CARD (MATCHING SCREENSHOT) */}
-        <View style={{
-          backgroundColor: '#071526',
-          borderRadius: 10,
-          borderWidth: 1,
-          borderColor: '#1e3a5f',
-          padding: 10,
-        }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <Text style={{ fontSize: 14 }}>📊</Text>
-            <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>Match Summary</Text>
-          </View>
-
-          <View style={{ flexDirection: 'row', gap: 8, alignItems: 'center' }}>
-            {/* Team 1 Mini Box */}
-            <View style={{
-              flex: 1,
-              backgroundColor: '#071a2e',
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: '#0284c7',
-              paddingVertical: 8,
-              paddingHorizontal: 10,
-              alignItems: 'center',
-            }}>
-              <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800' }} numberOfLines={1}>
-                {team1Name}
-              </Text>
-              <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', marginTop: 2 }}>
-                {firstInningsSummary ? `${firstInningsSummary.runs}/${firstInningsSummary.wickets} (${firstInningsSummary.overs} Ov)` : `${inn1ScorecardData?.runs || 0}/${inn1ScorecardData?.wickets || 0} (${inn1ScorecardData?.overs || '0.0'} Ov)`}
-              </Text>
-            </View>
-
-            {/* Vertical Divider */}
-            <View style={{ width: 1, height: 34, backgroundColor: '#1e3a5f' }} />
-
-            {/* Team 2 Mini Box */}
-            <View style={{
-              flex: 1,
-              backgroundColor: '#260a10',
-              borderRadius: 8,
-              borderWidth: 1,
-              borderColor: '#831843',
-              paddingVertical: 8,
-              paddingHorizontal: 10,
-              alignItems: 'center',
-            }}>
-              <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800' }} numberOfLines={1}>
-                {team2Name}
-              </Text>
-              <Text style={{ color: currentInnings === 2 ? '#ffffff' : '#fca5a5', fontSize: 15, fontWeight: '900', marginTop: 2 }}>
-                {currentInnings === 2 ? `${inn2ScorecardData?.runs || 0}/${inn2ScorecardData?.wickets || 0} (${inn2ScorecardData?.overs || '0.0'} Ov)` : 'Yet to bat'}
-              </Text>
-            </View>
-          </View>
-        </View>
       </View>
     );
   };
