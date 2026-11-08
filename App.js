@@ -14684,8 +14684,6 @@ function CricketAddaMain() {
       </View>
     );
   };
-    );
-  };
 
   // -------------------------------------------------------------
   // PHASE 1: MATCH SETUP & DRAFT MANAGEMENT
