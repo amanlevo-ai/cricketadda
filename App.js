@@ -18237,64 +18237,40 @@ function CricketAddaMain() {
         </ImageBackground>
       ) : (
         <>
-          {/* Top Navbar */}
-          {activeTab === 'matches' ? (
-            <View style={[styles.dashHeaderBar, { backgroundColor: 'rgba(3, 9, 20, 0.95)', borderBottomColor: '#0a192f' }]}>
-              {/* Left: User Profile */}
+          {/* Top Universal Navbar (Identical Across All Main Screens As Requested) */}
+          <View style={[styles.navBar, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder }]}>
+            <TouchableOpacity style={styles.navBrand} onPress={() => navigateTo('matches')} activeOpacity={0.8}>
+              <Image source={require('./assets/header-logo.png')} style={styles.logoImg} resizeMode="contain" />
+              <View>
+                <Text style={[styles.brandTitle, currentTheme.isLight && { color: '#0f172a' }]}>
+                  CricketAdda
+                </Text>
+              </View>
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <TouchableOpacity
-                style={styles.dashUserProfile}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6,
+                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                  borderWidth: 1,
+                  paddingVertical: 4,
+                  paddingHorizontal: 8,
+                  borderRadius: 20,
+                }}
                 onPress={() => navigateTo('profile')}
                 activeOpacity={0.8}
               >
-                <PlayerAvatar name={userProfile.name || 'Amandeep Singh'} size={38} customUri={userProfile.avatarUri} borderColor="#00e676" />
-                <View style={{ marginLeft: 8, justifyContent: 'center' }}>
-                  <Text style={styles.dashUserName} numberOfLines={1}>
-                    {userProfile.name || 'Amandeep Singh'}
-                  </Text>
-                  <Text style={styles.dashUserMeta} numberOfLines={1}>
-                    {userProfile.jersey ? (String(userProfile.jersey).startsWith('#') ? userProfile.jersey : `#${userProfile.jersey}`) : '#07'} • {userProfile.battingStyle || 'Right Hand Batter'}
-                  </Text>
-                </View>
+                <PlayerAvatar name={userProfile.name || 'User'} size={24} customUri={userProfile.avatarUri} />
+                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 11, fontWeight: '700', maxWidth: 80 }} numberOfLines={1}>
+                  {userProfile.name ? userProfile.name.split(' ')[0] : 'Profile'}
+                </Text>
               </TouchableOpacity>
-
-              {/* Right: Small CricketAdda Logo Shifted to Right */}
-              <TouchableOpacity onPress={() => setShowSplash(true)} activeOpacity={0.85} style={styles.dashHeaderLogoRight}>
-                <Image source={require('./assets/header-logo.png')} style={styles.dashHeaderLogoSmall} resizeMode="contain" />
-              </TouchableOpacity>
-            </View>) : activeTab === 'scorer' ? null : (
-            <View style={[styles.navBar, { backgroundColor: currentTheme.headerBg, borderBottomColor: currentTheme.navBorder }]}>
-              <TouchableOpacity style={styles.navBrand} onPress={() => navigateTo('matches')}>
-                <Image source={require('./assets/header-logo.png')} style={styles.logoImg} resizeMode="contain" />
-                <View>
-                  <Text style={[styles.brandTitle, currentTheme.isLight && { color: '#0f172a' }]}>
-                    CricketAdda
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <TouchableOpacity
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                    backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                    borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
-                    borderWidth: 1,
-                    paddingVertical: 4,
-                    paddingHorizontal: 8,
-                    borderRadius: 20,
-                  }}
-                  onPress={() => navigateTo('profile')}
-                >
-                  <PlayerAvatar name={userProfile.name || 'User'} size={24} customUri={userProfile.avatarUri} />
-                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 11, fontWeight: '700', maxWidth: 80 }} numberOfLines={1}>
-                    {userProfile.name ? userProfile.name.split(' ')[0] : 'Profile'}
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </View>
-          )}
+          </View>
 
       {/* ========================================================================= */}
       {/* 2.1 MATCHES HUB SCREEN */}
@@ -19309,24 +19285,12 @@ function CricketAddaMain() {
           <View style={{ ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(2, 11, 20, 0.65)' }} />
 
           <View style={{ flex: 1, paddingHorizontal: 10, paddingTop: 4, paddingBottom: Math.max(12, bottomInset + 8) }}>
-            {/* ========================================================================= */}
-            {/* TOP LOGO + COMPACT BROADCAST HEADER                                       */}
-            {/* ========================================================================= */}
-            {/* Top Logo (45px Height - 5px Bigger) */}
-            <View style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 2 }}>
-              <Image
-                source={require('./assets/cricketadda-wizard-logo.png')}
-                style={{ width: 116, height: 45 }}
-                resizeMode="contain"
-              />
-            </View>
-
             {/* Header Row: Back (Solid Black) | Team vs Team (Equal 36px Height) | Options (Solid Black) */}
             <View style={{
               flexDirection: 'row',
               alignItems: 'center',
               gap: 6,
-              marginBottom: 2.5,
+              marginBottom: 4,
               width: '100%',
             }}>
               {/* 1. Back Button (Solid Black Background, White Icon) */}
