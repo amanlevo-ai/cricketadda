@@ -4978,6 +4978,7 @@ function CricketAddaMain() {
   const [activeMatchId, setActiveMatchId] = useState(null);
   const [scorecardInning, setScorecardInning] = useState(1);
   const [scorecardTab, setScorecardTab] = useState('scorecard'); // 'scorecard' | 'mvp'
+  const [viewerActiveSubTab, setViewerActiveSubTab] = useState('commentary'); // 'commentary' | 'scorecard' | 'wheel'
   const [mvpInfoModalVisible, setMvpInfoModalVisible] = useState(false);
   const currentMatchData = (activeMatchId && (matchesDb?.[activeMatchId] || MATCH_DATABASE?.[activeMatchId]))
     || (matchesDb && matchesDb[activeMatchId])
@@ -13308,6 +13309,123 @@ function CricketAddaMain() {
     navigateTo('wheel', matchId || activeMatchId);
   };
 
+  const deriveCommentaryFromDeliveries = (deliveries, matchObj) => {
+    if (!Array.isArray(deliveries) || deliveries.length === 0) return [];
+    const list = [];
+    for (let i = deliveries.length - 1; i >= 0; i--) {
+      const d = deliveries[i];
+      const runs = Number(d.runs ?? d.addedRuns ?? 0);
+      const isWkt = Boolean(d.isWicket || d.isWkt || d.wicket);
+      const extra = d.extraType;
+      const overStr = d.overs || (d.overNum !== undefined && d.ballNum !== undefined ? `${d.overNum}.${d.ballNum}` : '');
+
+      let badgeType = 'dot';
+      if (isWkt) badgeType = 'wkt';
+      else if (runs >= 6) badgeType = 'six';
+      else if (runs === 4) badgeType = 'four';
+      else if (extra === 'wide') badgeType = 'wide';
+      else if (extra === 'noBall') badgeType = 'noBall';
+      else if (runs > 0) badgeType = 'run';
+
+      let text = d.commentary || d.text || '';
+      if (!text) {
+        if (isWkt) {
+          text = `WICKET! ${d.batter || d.striker || 'Batter'} is OUT!`;
+        } else if (runs === 4) {
+          text = `${d.batter || d.striker || 'Batter'} hits a superb FOUR!`;
+        } else if (runs === 6) {
+          text = `${d.batter || d.striker || 'Batter'} smashes a massive SIX!`;
+        } else if (extra === 'wide') {
+          text = `Wide, ${runs > 0 ? `${runs + 1} runs added.` : '1 run added.'}`;
+        } else if (extra === 'noBall') {
+          text = `No Ball bowled by ${d.bowler || 'bowler'}.`;
+        } else if (runs === 0) {
+          text = `${d.bowler || 'Bowler'} to ${d.batter || d.striker || 'batter'}, no run.`;
+        } else {
+          text = `${d.batter || d.striker || 'Batter'} takes ${runs} run${runs > 1 ? 's' : ''}.`;
+        }
+      }
+
+      list.push({
+        id: d.id || `ball_${i}`,
+        overStr,
+        runs,
+        badgeType,
+        ballSymbol: d.ballSymbol || (isWkt ? 'W' : extra === 'wide' ? (runs > 0 ? `Wd+${runs}` : 'Wd') : String(runs)),
+        text,
+        isWkt,
+        extraType: extra,
+      });
+    }
+    return list;
+  };
+
+  const renderFormattedCommentary = rawText => {
+    if (!rawText) return '';
+    const str = String(rawText);
+    const parts = str.split(/(FOUR!|SIX!|WICKET!|OUT!|Wide)/g);
+    if (parts.length <= 1) return str;
+    return parts.map((part, i) => {
+      if (part === 'FOUR!') {
+        return <Text key={`fp_${i}`} style={{ color: '#00e676', fontWeight: '900' }}>{part}</Text>;
+      }
+      if (part === 'SIX!') {
+        return <Text key={`fp_${i}`} style={{ color: '#00b0ff', fontWeight: '900' }}>{part}</Text>;
+      }
+      if (part === 'WICKET!' || part === 'OUT!') {
+        return <Text key={`fp_${i}`} style={{ color: '#ef4444', fontWeight: '900' }}>{part}</Text>;
+      }
+      if (part === 'Wide') {
+        return <Text key={`fp_${i}`} style={{ color: '#f59e0b', fontWeight: '900' }}>{part}</Text>;
+      }
+      return <Text key={`fp_${i}`} style={{ color: '#ffffff' }}>{part}</Text>;
+    });
+  };
+
+  const openLiveMatchViewer = (matchId, defaultSubTab = 'commentary') => {
+    if (!matchId) return;
+    const targetMatch = matchesDb?.[matchId] || allLiveMatchesList.find(m => m.id === matchId) || MATCH_DATABASE[matchId] || match;
+    if (!targetMatch) return;
+    const resolvedMatchId = targetMatch.id || matchId;
+
+    setActiveMatchId(resolvedMatchId);
+    setViewerActiveSubTab(defaultSubTab);
+    setMatch(prev => ({
+      ...(MATCH_DATABASE[resolvedMatchId] || {}),
+      ...(prev || {}),
+      ...targetMatch,
+      id: resolvedMatchId,
+    }));
+
+    const targetDeliveries = targetMatch.balls && typeof targetMatch.balls === 'object'
+      ? Object.values(targetMatch.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0))
+      : (Array.isArray(targetMatch.scoringHistory) ? targetMatch.scoringHistory : (targetMatch.liveState?.scoringHistory || []));
+
+    if (targetDeliveries.length > 0) {
+      setScoringHistory(targetDeliveries);
+      const derived = deriveMatchStateFromDeliveries(targetDeliveries, targetMatch);
+      setLiveRuns(derived.activeScore.runs);
+      setLiveWickets(derived.activeScore.wickets);
+      setLiveBalls(derived.activeScore.balls);
+      setLiveThisOver(derived.activeScore.thisOver);
+      setLiveBatters(derived.activeScore.liveBatters);
+      setLiveBowlerStats(derived.activeScore.liveBowlerStats);
+    } else {
+      setLiveRuns(targetMatch.liveRuns ?? targetMatch.liveState?.liveRuns ?? 0);
+      setLiveWickets(targetMatch.liveWickets ?? targetMatch.liveState?.liveWickets ?? 0);
+      setLiveBalls(targetMatch.liveBalls ?? targetMatch.liveState?.liveBalls ?? 0);
+      setLiveThisOver(targetMatch.liveThisOver ?? targetMatch.liveState?.liveThisOver ?? []);
+      setLiveBatters(targetMatch.liveBatters ?? targetMatch.liveState?.liveBatters ?? {});
+      setLiveBowlerStats(targetMatch.liveBowlerStats ?? targetMatch.liveState?.liveBowlerStats ?? {});
+    }
+
+    if (Array.isArray(targetMatch.liveCommentaryList)) {
+      setLiveCommentaryList(targetMatch.liveCommentaryList);
+    }
+
+    navigateTo('scorer', resolvedMatchId);
+  };
+
   const handleConfirmCancelMatch = () => {
     const selectedObj = CANCEL_MATCH_REASONS.find(r => r.id === selectedCancelReasonId) || CANCEL_MATCH_REASONS[0];
     const baseReason = selectedCancelReasonId === 'custom_reason'
@@ -14262,6 +14380,226 @@ function CricketAddaMain() {
   inn1ScorecardDataRef.current = inn1ScorecardData;
   inn2ScorecardDataRef.current = inn2ScorecardData;
   const activeInningData = scorecardInning === 1 ? inn1ScorecardData : inn2ScorecardData;
+
+  const renderEmbeddedScorecard = () => {
+    const inn1Batting = (inn1ScorecardData?.batting || []);
+    const inn1Bowling = (inn1ScorecardData?.bowling || []);
+    const inn2Batting = (inn2ScorecardData?.batting || []);
+    const inn2Bowling = (inn2ScorecardData?.bowling || []);
+    const battingList = scorecardInning === 1 ? inn1Batting : inn2Batting;
+    const bowlingList = scorecardInning === 1 ? inn1Bowling : inn2Bowling;
+
+    return (
+      <View style={{ gap: 8 }}>
+        {/* Inning Toggle Buttons */}
+        <View style={{ flexDirection: 'row', gap: 6, marginBottom: 2 }}>
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: 7,
+              paddingHorizontal: 8,
+              backgroundColor: scorecardInning === 1 ? '#0284c7' : '#071526',
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: scorecardInning === 1 ? '#38bdf8' : '#1e3a5f',
+              alignItems: 'center',
+            }}
+            onPress={() => setScorecardInning(1)}
+            activeOpacity={0.8}
+          >
+            <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }}>
+              {inn1ScorecardData?.team || '1st Innings'} ({inn1ScorecardData?.runs || 0}/{inn1ScorecardData?.wickets || 0})
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={{
+              flex: 1,
+              paddingVertical: 7,
+              paddingHorizontal: 8,
+              backgroundColor: scorecardInning === 2 ? '#0284c7' : '#071526',
+              borderRadius: 8,
+              borderWidth: 1,
+              borderColor: scorecardInning === 2 ? '#38bdf8' : '#1e3a5f',
+              alignItems: 'center',
+            }}
+            onPress={() => setScorecardInning(2)}
+            activeOpacity={0.8}
+          >
+            <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }}>
+              {inn2ScorecardData?.team || '2nd Innings'} ({inn2ScorecardData?.runs || 0}/{inn2ScorecardData?.wickets || 0})
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Batting Table */}
+        <View style={{
+          backgroundColor: '#071526',
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: '#1e3a5f',
+          padding: 8,
+        }}>
+          <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1e3a5f', paddingBottom: 4, marginBottom: 4 }}>
+            <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>BATTER</Text>
+            <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>R</Text>
+            <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>B</Text>
+            <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>4s</Text>
+            <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>6s</Text>
+            <Text style={{ width: 42, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>SR</Text>
+          </View>
+          {battingList.length === 0 ? (
+            <Text style={{ color: '#64748b', fontSize: 12, paddingVertical: 8, textAlign: 'center' }}>Yet to bat</Text>
+          ) : (
+            battingList.map((b, i) => (
+              <View key={`sc_bat_${i}`} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.4)' }}>
+                <View style={{ flex: 2.2 }}>
+                  <Text style={{ color: b.isNotOut ? '#10b981' : '#ffffff', fontSize: 12, fontWeight: '800' }} numberOfLines={1}>
+                    {b.name} {b.isNotOut ? '*' : ''}
+                  </Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 9.5 }} numberOfLines={1}>
+                    {b.dismissal || (b.isNotOut ? 'not out' : '')}
+                  </Text>
+                </View>
+                <Text style={{ width: 30, color: '#ffffff', fontSize: 12.5, fontWeight: '900', textAlign: 'right' }}>{b.runs}</Text>
+                <Text style={{ width: 30, color: '#94a3b8', fontSize: 11.5, textAlign: 'right' }}>{b.balls}</Text>
+                <Text style={{ width: 26, color: '#94a3b8', fontSize: 11.5, textAlign: 'right' }}>{b.fours || 0}</Text>
+                <Text style={{ width: 26, color: '#94a3b8', fontSize: 11.5, textAlign: 'right' }}>{b.sixes || 0}</Text>
+                <Text style={{ width: 42, color: '#94a3b8', fontSize: 11.5, textAlign: 'right' }}>{b.sr || '0.0'}</Text>
+              </View>
+            ))
+          )}
+        </View>
+
+        {/* Bowling Table */}
+        <View style={{
+          backgroundColor: '#071526',
+          borderRadius: 10,
+          borderWidth: 1,
+          borderColor: '#1e3a5f',
+          padding: 8,
+        }}>
+          <View style={{ flexDirection: 'row', borderBottomWidth: 1, borderBottomColor: '#1e3a5f', paddingBottom: 4, marginBottom: 4 }}>
+            <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>BOWLER</Text>
+            <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>O</Text>
+            <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>M</Text>
+            <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>R</Text>
+            <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>W</Text>
+            <Text style={{ width: 42, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>ECON</Text>
+          </View>
+          {bowlingList.length === 0 ? (
+            <Text style={{ color: '#64748b', fontSize: 12, paddingVertical: 8, textAlign: 'center' }}>Yet to bowl</Text>
+          ) : (
+            bowlingList.map((bw, i) => (
+              <View key={`sc_bowl_${i}`} style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 4, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.4)' }}>
+                <Text style={{ flex: 2.2, color: '#ffffff', fontSize: 12, fontWeight: '800' }} numberOfLines={1}>{bw.name}</Text>
+                <Text style={{ width: 30, color: '#ffffff', fontSize: 12.5, fontWeight: '900', textAlign: 'right' }}>{bw.overs}</Text>
+                <Text style={{ width: 26, color: '#94a3b8', fontSize: 11.5, textAlign: 'right' }}>{bw.maidens || 0}</Text>
+                <Text style={{ width: 30, color: '#94a3b8', fontSize: 11.5, textAlign: 'right' }}>{bw.runs}</Text>
+                <Text style={{ width: 26, color: '#ef4444', fontSize: 12.5, fontWeight: '900', textAlign: 'right' }}>{bw.wickets}</Text>
+                <Text style={{ width: 42, color: '#94a3b8', fontSize: 11.5, textAlign: 'right' }}>{bw.econ || '0.00'}</Text>
+              </View>
+            ))
+          )}
+        </View>
+      </View>
+    );
+  };
+
+  const renderEmbeddedWagonWheel = () => {
+    const historyStack = (activeMatchId === currentMatchData?.id && (scoringHistory || []).length > 0)
+      ? scoringHistory
+      : (currentMatchData?.liveState?.scoringHistory || currentMatchData?.scoringHistory || []);
+
+    const sectorStats = {};
+    BROADCAST_SECTORS.forEach(sec => {
+      sectorStats[sec.id] = { runs: 0, fours: 0, sixes: 0, singlesDoubles: 0, deliveries: 0 };
+    });
+
+    historyStack.forEach(b => {
+      const zone = b.shotZone || b.sector || b.shotArea;
+      if (zone) {
+        const matched = BROADCAST_SECTORS.find(s => s.id === zone.id || s.name === zone.name || s.name === zone || s.id === zone);
+        if (matched && sectorStats[matched.id]) {
+          const r = Number(b.runs) || 0;
+          sectorStats[matched.id].runs += r;
+          sectorStats[matched.id].deliveries += 1;
+          if (r === 4) sectorStats[matched.id].fours += 1;
+          else if (r === 6) sectorStats[matched.id].sixes += 1;
+          else if (r > 0) sectorStats[matched.id].singlesDoubles += 1;
+        }
+      }
+    });
+
+    const sectorsWithRuns = BROADCAST_SECTORS.map(sec => ({
+      ...sec,
+      runs: sectorStats[sec.id]?.runs || 0,
+      deliveries: sectorStats[sec.id]?.deliveries || 0,
+      fours: sectorStats[sec.id]?.fours || 0,
+      sixes: sectorStats[sec.id]?.sixes || 0,
+    }));
+
+    return (
+      <View style={{
+        backgroundColor: '#071526',
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#1e3a5f',
+        padding: 12,
+        alignItems: 'center',
+      }}>
+        <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900', marginBottom: 2 }}>
+          🎯 8-Sector Ground Wagon Wheel
+        </Text>
+        <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 10 }}>
+          {battingTeamName} vs {bowlingTeamName}
+        </Text>
+
+        <View style={{ width: 220, height: 220, borderRadius: 110, alignSelf: 'center', overflow: 'hidden' }}>
+          <Svg height={220} width={220} viewBox="-160 -160 320 320">
+            <Defs>
+              <RadialGradient id="wwLawnGradViewer" cx="0" cy="0" r="145" gradientUnits="userSpaceOnUse">
+                <Stop offset="0%" stopColor="#4ade80" />
+                <Stop offset="65%" stopColor="#22c55e" />
+                <Stop offset="100%" stopColor="#15803d" />
+              </RadialGradient>
+            </Defs>
+            <Circle cx="0" cy="0" r="150" fill="#fef9c3" stroke="#fef08a" strokeWidth="6" />
+            <Circle cx="0" cy="0" r="144" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
+            <Circle cx="0" cy="0" r="140" fill="url(#wwLawnGradViewer)" stroke="#166534" strokeWidth="2" />
+            <Line x1="0" y1="-140" x2="0" y2="140" stroke="#000000" strokeWidth="2" />
+            <Line x1="-140" y1="0" x2="140" y2="0" stroke="#000000" strokeWidth="2" />
+            <Line x1="-99" y1="-99" x2="99" y2="99" stroke="#000000" strokeWidth="2" />
+            <Line x1="99" y1="-99" x2="-99" y2="99" stroke="#000000" strokeWidth="2" />
+            <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.8" />
+            <Rect x="-6" y="-28" width="12" height="56" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
+            <Circle cx="0" cy="0" r="4.5" fill="#ffffff" stroke="#000000" strokeWidth="1.5" />
+          </Svg>
+        </View>
+
+        <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, justifyContent: 'center', marginTop: 12 }}>
+          {sectorsWithRuns.map(sec => (
+            <View
+              key={`emb_sec_${sec.id}`}
+              style={{
+                backgroundColor: '#0a192f',
+                paddingVertical: 4,
+                paddingHorizontal: 8,
+                borderRadius: 6,
+                borderWidth: 1,
+                borderColor: '#1e3a5f',
+                alignItems: 'center',
+                minWidth: 72,
+              }}
+            >
+              <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '700' }}>{sec.name}</Text>
+              <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '900' }}>{sec.runs}r ({sec.deliveries}b)</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  };
 
   // -------------------------------------------------------------
   // PHASE 1: MATCH SETUP & DRAFT MANAGEMENT
@@ -16594,8 +16932,8 @@ function CricketAddaMain() {
     // SECURITY / ROLE GUARD: Verify if user has scoring rights for this match!
     const canScore = isUserScorerForMatch(targetMatch);
     if (!canScore) {
-      // Non-scorer / spectator -> route to read-only scorecard viewer!
-      openMatchScorecard(resolvedMatchId);
+      // Non-scorer / spectator -> route to broadcast live match viewer screen!
+      openLiveMatchViewer(resolvedMatchId);
       return;
     }
 
@@ -17635,7 +17973,7 @@ function CricketAddaMain() {
                   if (isUserScorerForMatch(m)) {
                     handleScoreMatchPress(m.id);
                   } else {
-                    openMatchScorecard(m.id);
+                    openLiveMatchViewer(m.id);
                   }
                 }}
                 activeOpacity={0.8}
@@ -17670,7 +18008,7 @@ function CricketAddaMain() {
                       if (isUserScorerForMatch(m)) {
                         handleScoreMatchPress(m.id || liveData.id);
                       } else {
-                        openMatchScorecard(m.id || liveData.id);
+                        openLiveMatchViewer(m.id || liveData.id);
                       }
                     }}
                     style={{ width: width - 20, paddingHorizontal: 12, paddingBottom: 6 }}
@@ -18954,6 +19292,483 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
             </View>
+              </ScrollView>
+            ) : !isOfficialScorer ? (
+              /* ========================================================================= */
+              /* SPECTATOR LIVE BROADCAST VIEWER (MATCHING REFERENCE DESIGN EXACTLY)       */
+              /* ========================================================================= */
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: Math.max(30, bottomInset + 15) }}
+                style={{ flex: 1 }}
+              >
+                {/* 1. TWO TEAM CARDS SIDE-BY-SIDE */}
+                {(() => {
+                  const team1Name = currentMatchData.innings1?.team || currentMatchData.teamA || match?.teamA || 'Team 1';
+                  const team2Name = currentMatchData.innings2?.team || (currentMatchData.teamA === team1Name ? currentMatchData.teamB : currentMatchData.teamA) || match?.teamB || 'Team 2';
+                  const team1Flag = currentMatchData.innings1?.flag || currentMatchData.flagA || match?.flagA || '🦁';
+                  const team2Flag = currentMatchData.innings2?.flag || currentMatchData.flagB || match?.flagB || '⚔️';
+                  const team1Logo = (currentInnings === 1 ? battingTeamLogo : bowlingTeamLogo) || currentMatchData.innings1?.logoUri || currentMatchData.logoA;
+                  const team2Logo = (currentInnings === 2 ? battingTeamLogo : bowlingTeamLogo) || currentMatchData.innings2?.logoUri || currentMatchData.logoB;
+                  const team1Short = getTeamShortName(team1Name, team1Flag);
+                  const team2Short = getTeamShortName(team2Name, team2Flag);
+
+                  const isTeam1Batting = currentInnings === 1;
+
+                  return (
+                    <View style={{
+                      flexDirection: 'row',
+                      gap: 8,
+                      marginBottom: 8,
+                      alignItems: 'stretch',
+                    }}>
+                      {/* Left: Active Batting Team Card (with glowing blue border) */}
+                      <View style={{
+                        flex: 1,
+                        backgroundColor: '#071a2e',
+                        borderRadius: 12,
+                        borderWidth: 1.5,
+                        borderColor: '#0284c7',
+                        padding: 9,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}>
+                        <TeamFlagBadge
+                          flag={isTeam1Batting ? team1Flag : team2Flag}
+                          logo={isTeam1Batting ? team1Logo : team2Logo}
+                          shortName={isTeam1Batting ? team1Short : team2Short}
+                          fullName={isTeam1Batting ? team1Name : team2Name}
+                          isBatting={true}
+                          theme={currentTheme}
+                          size="md"
+                        />
+                        <View style={{ flex: 1, justifyContent: 'center' }}>
+                          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                            {isTeam1Batting ? team1Name : team2Name}
+                          </Text>
+                          <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: 1 }}>
+                            {reconciledScore.runs}/{reconciledScore.wickets}
+                          </Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>
+                            ({reconciledScore.oversStr} Ov)
+                          </Text>
+                        </View>
+                      </View>
+
+                      {/* Right: Bowling Team Card (with dark reddish border) */}
+                      <View style={{
+                        flex: 1,
+                        backgroundColor: '#260a10',
+                        borderRadius: 12,
+                        borderWidth: 1.2,
+                        borderColor: '#831843',
+                        padding: 9,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 8,
+                      }}>
+                        <View style={{ flex: 1, justifyContent: 'center' }}>
+                          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                            {!isTeam1Batting ? team1Name : team2Name}
+                          </Text>
+                          <Text style={{
+                            color: currentInnings === 2 ? '#ffffff' : '#fca5a5',
+                            fontSize: currentInnings === 2 ? 18 : 15,
+                            fontWeight: '900',
+                            marginTop: 1,
+                          }} numberOfLines={1}>
+                            {currentInnings === 2
+                              ? `${firstInningsSummary?.runs ?? (currentMatchData.innings1?.runs ?? 0)}/${firstInningsSummary?.wickets ?? (currentMatchData.innings1?.wickets ?? 0)}`
+                              : 'Yet to bat'}
+                          </Text>
+                          <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>
+                            ({currentInnings === 2 ? (firstInningsSummary?.overs || currentMatchData.innings1?.overs || '20.0') : `${maxOvers || 20}.0`} Ov)
+                          </Text>
+                        </View>
+                        <TeamFlagBadge
+                          flag={!isTeam1Batting ? team1Flag : team2Flag}
+                          logo={!isTeam1Batting ? team1Logo : team2Logo}
+                          shortName={!isTeam1Batting ? team1Short : team2Short}
+                          fullName={!isTeam1Batting ? team1Name : team2Name}
+                          isBatting={false}
+                          theme={currentTheme}
+                          size="md"
+                        />
+                      </View>
+                    </View>
+                  );
+                })()}
+
+                {/* 2. RATE & TARGET STRIP (FULL-WIDTH) */}
+                <View style={{
+                  backgroundColor: '#071526',
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: '#1e3a5f',
+                  paddingVertical: 7,
+                  paddingHorizontal: 14,
+                  marginBottom: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-around',
+                }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800' }}>CRR</Text>
+                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>{crr}</Text>
+                  </View>
+                  <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: 'bold' }}>|</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800' }}>RRR</Text>
+                    <Text style={{ color: currentInnings === 2 ? '#38bdf8' : '#64748b', fontSize: 13, fontWeight: '900' }}>
+                      {currentInnings === 2 ? ((((Math.max(0, targetRuns - liveRuns)) / Math.max(1, maxLegalBalls - liveBalls)) * 6).toFixed(2)) : '-'}
+                    </Text>
+                  </View>
+                  <Text style={{ color: '#1e3a5f', fontSize: 14, fontWeight: 'bold' }}>|</Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800' }}>Target</Text>
+                    <Text style={{ color: currentInnings === 2 ? '#ffffff' : '#64748b', fontSize: 13, fontWeight: '900' }}>
+                      {currentInnings === 2 ? targetRuns : '-'}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 3. THIS OVER STRIP */}
+                <View style={{
+                  height: 42,
+                  backgroundColor: '#071526',
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: '#1e3a5f',
+                  paddingHorizontal: 10,
+                  marginBottom: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>This Over:</Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ alignItems: 'center', gap: 6 }}
+                    style={{ flex: 1 }}
+                  >
+                    {sanitizedThisOver.length === 0 ? (
+                      <Text style={{ color: '#64748b', fontSize: 11, fontStyle: 'italic' }}>Over starting...</Text>
+                    ) : (
+                      sanitizedThisOver.map((b, i) => {
+                        const rawStr = String(b || '').trim();
+                        const str = rawStr.toUpperCase();
+                        const isWkt = str.includes('W') && !str.includes('WD');
+                        const isFour = str === '4';
+                        const isSix = str === '6';
+                        const isWd = str.includes('WD');
+                        const isNb = str.includes('NB');
+                        const isDot = str === '0' || str === '.';
+
+                        const bg = isWkt ? '#ef4444' : isFour ? '#22c55e' : isSix ? '#00b0ff' : isWd ? '#d97706' : isNb ? '#be123c' : isDot ? '#0f2942' : '#0284c7';
+                        const borderColor = isDot ? '#1e3a5f' : isWd ? '#b45309' : isNb ? '#9f1239' : 'transparent';
+                        const borderWidth = (isDot || isWd || isNb) ? 1 : 0;
+                        const textColor = isFour ? '#000000' : isDot ? '#94a3b8' : '#ffffff';
+
+                        return (
+                          <View
+                            key={`viewer_to_${i}_${rawStr}`}
+                            style={{
+                              minWidth: 28,
+                              height: 28,
+                              paddingHorizontal: rawStr.length > 2 ? 6 : 4,
+                              borderRadius: 6,
+                              backgroundColor: bg,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              borderWidth,
+                              borderColor,
+                            }}
+                          >
+                            <Text style={{
+                              color: textColor,
+                              fontSize: rawStr.length > 2 ? 9 : 11.5,
+                              fontWeight: '900',
+                            }}>
+                              {rawStr}
+                            </Text>
+                          </View>
+                        );
+                      })
+                    )}
+                  </ScrollView>
+                </View>
+
+                {/* 4. BATTER TABLE CARD (MATCHING SCREENSHOT) */}
+                <View style={{
+                  backgroundColor: '#071526',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: '#1e3a5f',
+                  padding: 10,
+                  marginBottom: 8,
+                }}>
+                  {/* Table Header */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
+                    <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>Batter</Text>
+                    <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>R</Text>
+                    <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>B</Text>
+                    <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>4s</Text>
+                    <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>6s</Text>
+                    <Text style={{ width: 44, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>SR</Text>
+                  </View>
+
+                  {/* Striker Row */}
+                  {(() => {
+                    const strikerStats = getBatterDetailed(striker);
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.5)' }}>
+                        <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                          <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#22c55e' }} />
+                          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                            {striker || 'Striker'} *
+                          </Text>
+                        </View>
+                        <Text style={{ width: 30, color: '#ffffff', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{strikerStats.runs}</Text>
+                        <Text style={{ width: 30, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{strikerStats.balls}</Text>
+                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{strikerStats.fours}</Text>
+                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{strikerStats.sixes}</Text>
+                        <Text style={{ width: 44, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{strikerStats.sr}</Text>
+                      </View>
+                    );
+                  })()}
+
+                  {/* Non-Striker Row */}
+                  {(() => {
+                    const nonStrikerStats = getBatterDetailed(nonStriker);
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
+                        <View style={{ flex: 2.2, paddingLeft: 13 }}>
+                          <Text style={{ color: '#38bdf8', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                            {nonStriker || 'Non-Striker'}
+                          </Text>
+                        </View>
+                        <Text style={{ width: 30, color: '#ffffff', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{nonStrikerStats.runs}</Text>
+                        <Text style={{ width: 30, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{nonStrikerStats.balls}</Text>
+                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{nonStrikerStats.fours}</Text>
+                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{nonStrikerStats.sixes}</Text>
+                        <Text style={{ width: 44, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{nonStrikerStats.sr}</Text>
+                      </View>
+                    );
+                  })()}
+                </View>
+
+                {/* 5. BOWLER TABLE CARD (MATCHING SCREENSHOT) */}
+                <View style={{
+                  backgroundColor: '#071526',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: '#1e3a5f',
+                  padding: 10,
+                  marginBottom: 10,
+                }}>
+                  {/* Table Header */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
+                    <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>Bowler</Text>
+                    <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>O</Text>
+                    <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>M</Text>
+                    <Text style={{ width: 30, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>R</Text>
+                    <Text style={{ width: 26, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>W</Text>
+                    <Text style={{ width: 44, color: '#94a3b8', fontSize: 11, fontWeight: '700', textAlign: 'right' }}>Econ</Text>
+                  </View>
+
+                  {/* Bowler Row */}
+                  {(() => {
+                    const bStats = getBowlerDetailed(bowler);
+                    return (
+                      <View style={{ flexDirection: 'row', alignItems: 'center', paddingVertical: 6 }}>
+                        <Text style={{ flex: 2.2, color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
+                          {bowler || 'Bowler'}
+                        </Text>
+                        <Text style={{ width: 30, color: '#ffffff', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{bStats.ovStr}</Text>
+                        <Text style={{ width: 26, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{bStats.maidens}</Text>
+                        <Text style={{ width: 30, color: '#ffffff', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{bStats.runs}</Text>
+                        <Text style={{ width: 26, color: '#ef4444', fontSize: 13.5, fontWeight: '900', textAlign: 'right' }}>{bStats.wickets}</Text>
+                        <Text style={{ width: 44, color: '#94a3b8', fontSize: 12, textAlign: 'right' }}>{bStats.econ}</Text>
+                      </View>
+                    );
+                  })()}
+                </View>
+
+                {/* 6. SEGMENTED SUB-TABS (MATCHING SCREENSHOT) */}
+                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setViewerActiveSubTab('commentary')}
+                    style={{
+                      flex: 1.25,
+                      paddingVertical: 9,
+                      backgroundColor: viewerActiveSubTab === 'commentary' ? '#0284c7' : '#071526',
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: viewerActiveSubTab === 'commentary' ? '#38bdf8' : '#1e3a5f',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800' }}>Live Commentary</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setViewerActiveSubTab('scorecard')}
+                    style={{
+                      flex: 1,
+                      paddingVertical: 9,
+                      backgroundColor: viewerActiveSubTab === 'scorecard' ? '#0284c7' : '#071526',
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: viewerActiveSubTab === 'scorecard' ? '#38bdf8' : '#1e3a5f',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ color: viewerActiveSubTab === 'scorecard' ? '#ffffff' : '#94a3b8', fontSize: 12.5, fontWeight: '800' }}>Scorecard</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setViewerActiveSubTab('wheel')}
+                    style={{
+                      flex: 1.15,
+                      paddingVertical: 9,
+                      backgroundColor: viewerActiveSubTab === 'wheel' ? '#0284c7' : '#071526',
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: viewerActiveSubTab === 'wheel' ? '#38bdf8' : '#1e3a5f',
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 4,
+                    }}
+                  >
+                    <Text style={{ fontSize: 13 }}>🎯</Text>
+                    <Text style={{ color: viewerActiveSubTab === 'wheel' ? '#ffffff' : '#94a3b8', fontSize: 12.5, fontWeight: '800' }}>Wagon Wheel</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* 7. SUB-TAB CONTENT */}
+                {viewerActiveSubTab === 'commentary' && (
+                  <View style={{ gap: 8 }}>
+                    {/* Ball-by-ball list */}
+                    <View style={{
+                      backgroundColor: '#071526',
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: '#1e3a5f',
+                      padding: 10,
+                      gap: 8,
+                    }}>
+                      {(() => {
+                        const commentaryItems = deriveCommentaryFromDeliveries(
+                          (scoringHistory && scoringHistory.length > 0) ? scoringHistory : (currentMatchData?.liveState?.scoringHistory || []),
+                          currentMatchData
+                        );
+
+                        if (commentaryItems.length === 0) {
+                          return (
+                            <Text style={{ color: '#64748b', fontSize: 12, textAlign: 'center', paddingVertical: 14 }}>
+                              Match commentary will appear here live once scoring begins.
+                            </Text>
+                          );
+                        }
+
+                        return commentaryItems.slice(0, 20).map((item, idx) => {
+                          const rawSym = String(item.ballSymbol || '0');
+                          const symUpper = rawSym.toUpperCase();
+                          const isW = symUpper.includes('W') && !symUpper.includes('WD');
+                          const is4 = symUpper === '4';
+                          const is6 = symUpper === '6';
+                          const isWd = symUpper.includes('WD');
+                          const isNb = symUpper.includes('NB');
+                          const is0 = symUpper === '0' || symUpper === '.';
+
+                          const symBg = isW ? '#ef4444' : is4 ? '#22c55e' : is6 ? '#00b0ff' : isWd ? '#d97706' : isNb ? '#be123c' : is0 ? '#0f2942' : '#0284c7';
+                          const symTextColor = is4 ? '#000000' : is0 ? '#94a3b8' : '#ffffff';
+
+                          return (
+                            <View
+                              key={`v_comm_${item.id || idx}`}
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 8,
+                                paddingVertical: 6,
+                                borderBottomWidth: idx < 19 ? 0.6 : 0,
+                                borderBottomColor: '#1e3a5f',
+                              }}
+                            >
+                              {/* Over pill */}
+                              <View style={{
+                                backgroundColor: '#0a2540',
+                                borderWidth: 1,
+                                borderColor: '#0284c7',
+                                borderRadius: 6,
+                                paddingHorizontal: 6,
+                                paddingVertical: 2,
+                                minWidth: 36,
+                                alignItems: 'center',
+                              }}>
+                                <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '800' }}>
+                                  {item.overStr || `${Math.floor(idx / 6)}.${idx % 6}`}
+                                </Text>
+                              </View>
+
+                              {/* Outcome capsule */}
+                              <View style={{
+                                backgroundColor: symBg,
+                                borderRadius: 5,
+                                paddingHorizontal: rawSym.length > 2 ? 5 : 4,
+                                height: 22,
+                                minWidth: 22,
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}>
+                                <Text style={{ color: symTextColor, fontSize: rawSym.length > 2 ? 8.5 : 10.5, fontWeight: '900' }}>
+                                  {rawSym}
+                                </Text>
+                              </View>
+
+                              {/* Formatted commentary text */}
+                              <Text style={{ color: '#ffffff', fontSize: 12, flex: 1, lineHeight: 16 }}>
+                                {renderFormattedCommentary(item.text)}
+                              </Text>
+                            </View>
+                          );
+                        });
+                      })()}
+                    </View>
+
+                    {/* Over Milestone / Summary Capsule (Matching screenshot: 🏆 Aman11 are 8/0 after 1.4 overs.) */}
+                    <View style={{
+                      backgroundColor: '#081f3d',
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: '#0284c7',
+                      paddingVertical: 10,
+                      paddingHorizontal: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                    }}>
+                      <Text style={{ fontSize: 16 }}>🏆</Text>
+                      <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>
+                        {battingTeamName} are {reconciledScore.runs}/{reconciledScore.wickets} after {reconciledScore.oversStr} overs.
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {viewerActiveSubTab === 'scorecard' && renderEmbeddedScorecard()}
+
+                {viewerActiveSubTab === 'wheel' && renderEmbeddedWagonWheel()}
               </ScrollView>
             ) : (
             /* ========================================================================= */
@@ -21343,8 +22158,66 @@ function CricketAddaMain() {
       )}
 
       {/* ========================================================================= */}
-      {/* NATIVE BOTTOM NAVIGATION BAR (MATCHING MOCKUP) */}
+      {/* NATIVE BOTTOM NAVIGATION BAR (MATCHING MOCKUP & VIEWER DESIGN)            */}
       {/* ========================================================================= */}
+      {activeTab === 'scorer' && !isOfficialScorer ? (
+        /* SPECTATOR VIEWER BOTTOM NAVIGATION (MATCHING SCREENSHOT) */
+        <View style={[styles.bottomNavBar, { backgroundColor: '#020617', borderTopColor: '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
+          {/* 1. Live */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => setViewerActiveSubTab('commentary')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bottomNavIcon, { color: '#0284c7' }]}>🏠</Text>
+            <Text style={[styles.bottomNavLabel, { color: '#0284c7', fontWeight: '900' }]}>Live</Text>
+            <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />
+          </TouchableOpacity>
+
+          {/* 2. Scorecard */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => setViewerActiveSubTab('scorecard')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bottomNavIcon, viewerActiveSubTab === 'scorecard' && { color: '#0284c7' }]}>📅</Text>
+            <Text style={[styles.bottomNavLabel, viewerActiveSubTab === 'scorecard' ? { color: '#0284c7', fontWeight: '900' } : { color: '#94a3b8' }]}>Scorecard</Text>
+            {viewerActiveSubTab === 'scorecard' && <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />}
+          </TouchableOpacity>
+
+          {/* 3. Commentary */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => setViewerActiveSubTab('commentary')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bottomNavIcon, viewerActiveSubTab === 'commentary' && { color: '#0284c7' }]}>💬</Text>
+            <Text style={[styles.bottomNavLabel, viewerActiveSubTab === 'commentary' ? { color: '#0284c7', fontWeight: '900' } : { color: '#94a3b8' }]}>Commentary</Text>
+            {viewerActiveSubTab === 'commentary' && <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />}
+          </TouchableOpacity>
+
+          {/* 4. Wagon Wheel */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => setViewerActiveSubTab('wheel')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bottomNavIcon, viewerActiveSubTab === 'wheel' && { color: '#0284c7' }]}>🎯</Text>
+            <Text style={[styles.bottomNavLabel, viewerActiveSubTab === 'wheel' ? { color: '#0284c7', fontWeight: '900' } : { color: '#94a3b8' }]}>Wagon Wheel</Text>
+            {viewerActiveSubTab === 'wheel' && <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />}
+          </TouchableOpacity>
+
+          {/* 5. Info */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => setScorerActionsModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.bottomNavIcon}>ℹ️</Text>
+            <Text style={[styles.bottomNavLabel, { color: '#94a3b8' }]}>Info</Text>
+          </TouchableOpacity>
+        </View>
+      ) : (
       <View style={[styles.bottomNavBar, { backgroundColor: '#020617', borderTopColor: '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
         {/* 1. Home */}
         <TouchableOpacity
@@ -21407,6 +22280,7 @@ function CricketAddaMain() {
           {(activeTab === 'settings' || activeTab === 'profile') && <View style={styles.bottomNavActiveBar} />}
         </TouchableOpacity>
       </View>
+      )}
 
       {/* JOIN MATCH WITH CODE MODAL */}
       <Modal visible={joinMatchModalVisible} transparent animationType="fade">
