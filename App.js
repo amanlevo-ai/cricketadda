@@ -4796,6 +4796,7 @@ function CricketAddaMain() {
   const inn2ScorecardDataRef = useRef(null);
   const lastCelebrationIdRef = useRef(null);
   const lastCelebrationDeliveryIdRef = useRef(null);
+  const lastDeliveriesCountRef = useRef(0);
   const hasInitializedViewerSyncRef = useRef(false);
   const lastAppliedRemoteSyncRef = useRef({ timestamp: 0, balls: 0, innings: 1 });
   const lastResetConsumedAtRef = useRef(0);
@@ -8851,7 +8852,22 @@ function CricketAddaMain() {
 
     // Live celebration effect for remote viewers (4s, 6s, Wickets, No Balls & Milestones)
     const isSelfSender = Boolean(d.senderClientId && d.senderClientId === clientIdRef?.current);
-    if ((!isSelfSender || viewerSimulated) && !isOfficialScorer) {
+
+    // CRITICAL UNDO/RESET PROTECTION: On undo or reset, immediately dismiss and NEVER trigger any celebration!
+    if (d.isUndoAction || d.isReset || d.forceReset) {
+      dismissCelebration();
+      const currentDeliveries = Array.isArray(d.scoringHistory)
+        ? d.scoringHistory
+        : (d.balls && typeof d.balls === 'object' ? Object.values(d.balls) : []);
+      lastDeliveriesCountRef.current = currentDeliveries.length;
+      if (currentDeliveries.length > 0) {
+        const lastRem = currentDeliveries[currentDeliveries.length - 1];
+        lastCelebrationDeliveryIdRef.current = lastRem?.id || lastRem?.pushId || (lastRem?.seq !== undefined ? `${lastRem.seq}_${lastRem.timestamp}` : null) || `${d.activeMatchId || 'live'}_${currentDeliveries.length}`;
+      } else {
+        lastCelebrationDeliveryIdRef.current = null;
+      }
+      lastCelebrationIdRef.current = null;
+    } else if ((!isSelfSender || viewerSimulated) && !isOfficialScorer) {
       // 1. Direct celebrationEvent payload from scorer or cloud sync
       if (d.celebrationEvent && d.celebrationEvent.id && d.celebrationEvent.id !== lastCelebrationIdRef?.current) {
         if (lastCelebrationIdRef) lastCelebrationIdRef.current = d.celebrationEvent.id;
@@ -8872,12 +8888,27 @@ function CricketAddaMain() {
           ? d.scoringHistory
           : (d.balls && typeof d.balls === 'object' ? Object.values(d.balls) : []);
 
-        if (deliveries.length > 0) {
-          const latestBall = deliveries[deliveries.length - 1];
-          const ballKey = latestBall?.id || latestBall?.pushId || (latestBall?.seq !== undefined ? `${latestBall.seq}_${latestBall.timestamp}` : null) || `${d.activeMatchId || 'live'}_${deliveries.length}`;
+        const prevCount = lastDeliveriesCountRef.current || 0;
+        const curCount = deliveries.length;
 
-          if (ballKey && ballKey !== lastCelebrationDeliveryIdRef?.current) {
-            if (lastCelebrationDeliveryIdRef) lastCelebrationDeliveryIdRef.current = ballKey;
+        // If delivery count DECREASED: an undo or deletion occurred -> suppress celebration completely!
+        if (curCount < prevCount) {
+          lastDeliveriesCountRef.current = curCount;
+          if (curCount > 0) {
+            const lastRem = deliveries[curCount - 1];
+            lastCelebrationDeliveryIdRef.current = lastRem?.id || lastRem?.pushId || (lastRem?.seq !== undefined ? `${lastRem.seq}_${lastRem.timestamp}` : null) || `${d.activeMatchId || 'live'}_${curCount}`;
+          } else {
+            lastCelebrationDeliveryIdRef.current = null;
+          }
+          dismissCelebration();
+        } else if (curCount > 0) {
+          const latestBall = deliveries[curCount - 1];
+          const ballKey = latestBall?.id || latestBall?.pushId || (latestBall?.seq !== undefined ? `${latestBall.seq}_${latestBall.timestamp}` : null) || `${d.activeMatchId || 'live'}_${curCount}`;
+
+          // ONLY trigger celebration if a genuinely NEW ball was ADDED (curCount > prevCount)
+          if (curCount > prevCount && ballKey && ballKey !== lastCelebrationDeliveryIdRef?.current) {
+            lastCelebrationDeliveryIdRef.current = ballKey;
+            lastDeliveriesCountRef.current = curCount;
 
             // Only fire if initial sync was established (prevents old balls from popping when viewing scorecard cold)
             if (hasInitializedViewerSyncRef?.current) {
@@ -8918,6 +8949,9 @@ function CricketAddaMain() {
             } else {
               if (hasInitializedViewerSyncRef) hasInitializedViewerSyncRef.current = true;
             }
+          } else {
+            lastDeliveriesCountRef.current = curCount;
+            if (ballKey) lastCelebrationDeliveryIdRef.current = ballKey;
           }
         }
       }
@@ -9165,6 +9199,7 @@ function CricketAddaMain() {
   useEffect(() => {
     hasInitializedViewerSyncRef.current = false;
     lastCelebrationDeliveryIdRef.current = null;
+    lastDeliveriesCountRef.current = 0;
     if (!isFirebaseConfigured() || !activeMatchId) return;
     const unsubscribe = subscribeToFirebaseMatch(activeMatchId, cloudData => {
       if (!cloudData) return;
@@ -12454,7 +12489,8 @@ function CricketAddaMain() {
       }
     }
 
-    // Dismiss any completion modals if open
+    // Dismiss any celebration or completion modals if open
+    dismissCelebration();
     setInningsBreakModalVisible(false);
     setMatchCompletedModalVisible(false);
 
@@ -12497,6 +12533,7 @@ function CricketAddaMain() {
   const executeConfirmedUndo = () => {
     try {
       setUndoConfirmModalVisible(false);
+      dismissCelebration();
       const lastAction = undoPendingAction;
       setUndoPendingAction(null);
 
@@ -12504,6 +12541,14 @@ function CricketAddaMain() {
 
     if (!lastAction.isFallback && scoringHistory && (scoringHistory || []).length > 0) {
       const remainingHistory = scoringHistory.slice(0, -1);
+      lastDeliveriesCountRef.current = remainingHistory.length;
+      lastCelebrationIdRef.current = null;
+      if (remainingHistory.length > 0) {
+        const lastRem = remainingHistory[remainingHistory.length - 1];
+        lastCelebrationDeliveryIdRef.current = lastRem?.id || lastRem?.pushId || (lastRem?.seq !== undefined ? `${lastRem.seq}_${lastRem.timestamp}` : null) || `${activeMatchId}_${remainingHistory.length}`;
+      } else {
+        lastCelebrationDeliveryIdRef.current = null;
+      }
 
       const matchMeta = {
         currentInnings,
@@ -12672,6 +12717,7 @@ function CricketAddaMain() {
       // Broadcast undo state live to Cloud & PC Spectators
       broadcastMatchState({
         isUndoAction: true,
+        celebrationEvent: null,
         status: 'live',
         result: '',
         liveRuns: derivedActive.runs,
@@ -12749,6 +12795,7 @@ function CricketAddaMain() {
 
       broadcastMatchState({
         isUndoAction: true,
+        celebrationEvent: null,
         status: 'live',
         result: '',
         liveRuns: nextR,
