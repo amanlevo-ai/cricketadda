@@ -16625,10 +16625,21 @@ function CricketAddaMain() {
   // Helper to derive real Matches, Win, Loss & Match List directly from matchesDb (no synthetic/fake stats)
   const getTeamRealRecord = (team) => {
     if (!team) return { played: 0, won: 0, lost: 0, tied: 0, matches: [] };
-    const tName = (team.name || '').toLowerCase().trim();
-    const tClean = tName.replace(/[^a-z0-9\s._-]/g, '').trim();
+    const normSpace = s => String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+    const normAlpha = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const tName = normSpace(team.name);
+    const tClean = tName.replace(/[^a-z0-9\s._-]/g, '').replace(/\s+/g, ' ').trim();
+    const tAlpha = normAlpha(team.name);
     const tId = team.id;
     if (!tName && !tId) return { played: 0, won: 0, lost: 0, tied: 0, matches: [] };
+
+    const isSameTeam = (candidate) => {
+      if (!candidate) return false;
+      const cSpace = normSpace(candidate);
+      if (tName && cSpace === tName) return true;
+      const cAlpha = normAlpha(candidate);
+      return Boolean(tAlpha && tAlpha.length >= 2 && cAlpha === tAlpha);
+    };
 
     let played = 0;
     let won = 0;
@@ -16638,16 +16649,15 @@ function CricketAddaMain() {
     const seenIds = new Set();
 
     const evaluateOutcome = (resultStr, winnerStr, mAName, mBName, inn1, inn2, statusStr) => {
-      const wLower = String(winnerStr || '').toLowerCase().trim();
-      const rLower = String(resultStr || '').toLowerCase().trim();
-      const statusLower = String(statusStr || '').toLowerCase().trim();
+      const wLower = normSpace(winnerStr);
+      const rLower = normSpace(resultStr);
+      const statusLower = normSpace(statusStr);
       const isFinished = statusLower === 'completed' || statusLower === 'finished' || Boolean(wLower) || Boolean(rLower);
       if (!isFinished) return null;
 
       if (wLower) {
         if (wLower.includes('tie') || wLower.includes('draw') || wLower.includes('no result')) return 'tie';
-        const wClean = wLower.replace(/[^a-z0-9\s._-]/g, '').trim();
-        if ((tClean && (wClean === tClean || wLower === tName)) || (tId && winnerStr === tId)) return 'win';
+        if (isSameTeam(winnerStr) || (tId && winnerStr === tId)) return 'win';
         return 'loss';
       }
 
@@ -16656,26 +16666,26 @@ function CricketAddaMain() {
           return 'tie';
         }
         if (rLower.includes(' won')) {
-          const winnerChunk = rLower.split(' won')[0].replace(/[^a-z0-9\s._-]/g, '').trim();
-          const aLow = (mAName || '').toLowerCase().trim();
-          const bLow = (mBName || '').toLowerCase().trim();
-          const oppRaw = (aLow === tName) ? bLow : aLow;
-          const oppClean = oppRaw.replace(/[^a-z0-9\s._-]/g, '').trim();
-          if (tClean && (winnerChunk === tClean || (tClean.length >= 2 && winnerChunk.endsWith(tClean)))) {
+          const winnerChunk = rLower.split(' won')[0].replace(/[^a-z0-9\s._-]/g, '').replace(/\s+/g, ' ').trim();
+          const winnerAlpha = normAlpha(winnerChunk);
+          const oppRaw = isSameTeam(mAName) ? mBName : mAName;
+          const oppClean = normSpace(oppRaw).replace(/[^a-z0-9\s._-]/g, '').replace(/\s+/g, ' ').trim();
+          const oppAlpha = normAlpha(oppClean);
+          if ((tClean && (winnerChunk === tClean || (tClean.length >= 2 && winnerChunk.endsWith(tClean)))) || (tAlpha && tAlpha.length >= 2 && (winnerAlpha === tAlpha || winnerAlpha.endsWith(tAlpha)))) {
             return 'win';
           }
-          if (oppClean && (winnerChunk === oppClean || (oppClean.length >= 2 && winnerChunk.endsWith(oppClean)))) {
+          if ((oppClean && (winnerChunk === oppClean || (oppClean.length >= 2 && winnerChunk.endsWith(oppClean)))) || (oppAlpha && oppAlpha.length >= 2 && (winnerAlpha === oppAlpha || winnerAlpha.endsWith(oppAlpha)))) {
             return 'loss';
           }
         }
       }
 
       if ((statusLower === 'completed' || statusLower === 'finished') && inn1 && inn2 && typeof inn1.runs === 'number' && typeof inn2.runs === 'number') {
-        const i1Team = (inn1.team || mAName || '').toLowerCase().trim();
-        const i2Team = (inn2.team || mBName || '').toLowerCase().trim();
+        const i1Team = inn1.team || mAName || '';
+        const i2Team = inn2.team || mBName || '';
         if (inn1.runs === inn2.runs) return 'tie';
-        if (i1Team === tName) return inn1.runs > inn2.runs ? 'win' : 'loss';
-        if (i2Team === tName) return inn2.runs > inn1.runs ? 'win' : 'loss';
+        if (isSameTeam(i1Team)) return inn1.runs > inn2.runs ? 'win' : 'loss';
+        if (isSameTeam(i2Team)) return inn2.runs > inn1.runs ? 'win' : 'loss';
       }
 
       return null;
@@ -16685,21 +16695,24 @@ function CricketAddaMain() {
       Object.entries(matchesDb || {}).forEach(([mKey, m]) => {
         if (!m) return;
         const mId = m.id || mKey;
-        const mA = (m.teamA || '').toLowerCase().trim();
-        const mB = (m.teamB || '').toLowerCase().trim();
-        const mInn1 = (m.innings1?.team || '').toLowerCase().trim();
-        const mInn2 = (m.innings2?.team || '').toLowerCase().trim();
-        const participates = (tName && (mA === tName || mB === tName || mInn1 === tName || mInn2 === tName))
+        const mA = m.teamA || m.match?.teamA || '';
+        const mB = m.teamB || m.match?.teamB || '';
+        const mInn1 = m.innings1?.team || '';
+        const mInn2 = m.innings2?.team || '';
+        const participates = isSameTeam(mA) || isSameTeam(mB) || isSameTeam(mInn1) || isSameTeam(mInn2)
           || (tId && (m.teamAId === tId || m.teamBId === tId));
 
         if (participates) {
           seenIds.add(String(mId));
           played++;
-          const outcome = evaluateOutcome(m.result, m.winner, m.teamA || m.innings1?.team, m.teamB || m.innings2?.team, m.innings1, m.innings2, m.status);
+          const mRes = m.result || m.match?.result || m.liveState?.result || '';
+          const mWin = m.winner || m.match?.winner || '';
+          const mStat = m.status || m.match?.status || m.liveState?.status || '';
+          const outcome = evaluateOutcome(mRes, mWin, mA || mInn1, mB || mInn2, m.innings1, m.innings2, mStat);
           if (outcome === 'win') won++;
           else if (outcome === 'loss') lost++;
           else if (outcome === 'tie') tied++;
-          matchedList.push({ ...m, id: mId, _teamOutcome: outcome });
+          matchedList.push({ ...m, id: mId, result: mRes, status: mStat, _teamOutcome: outcome });
         }
       });
     }
@@ -16709,9 +16722,7 @@ function CricketAddaMain() {
         if (!h) return;
         const hId = h.matchId || h.id;
         if (hId && seenIds.has(String(hId))) return;
-        const myT = (h.myTeam || '').toLowerCase().trim();
-        const oppT = (h.oppTeam || '').toLowerCase().trim();
-        if (tName && (myT === tName || oppT === tName)) {
+        if (isSameTeam(h.myTeam) || isSameTeam(h.oppTeam)) {
           played++;
           const outcome = evaluateOutcome(h.result, h.winner, h.myTeam, h.oppTeam, null, null, 'completed');
           if (outcome === 'win') won++;
@@ -18954,87 +18965,70 @@ function CricketAddaMain() {
         }
 
         return (
-          <ImageBackground
-            source={require('./assets/login-bg.jpg')}
-            style={{ flex: 1 }}
-            resizeMode="cover"
-          >
-            <View style={{ flex: 1, backgroundColor: 'rgba(3, 10, 22, 0.90)' }}>
-              <ScrollView
-                style={styles.mainContentNoPad}
-                contentContainerStyle={{ paddingBottom: bottomInset + 95 }}
-                showsVerticalScrollIndicator={false}
-              >
-                {/* 1. TOP STADIUM HERO HEADER ("My Teams" centered + compact + Create button) */}
-                <ImageBackground
-                  source={require('./assets/hero-banner.jpg')}
-                  style={{ width: '100%' }}
-                  imageStyle={{ opacity: 0.42 }}
-                  resizeMode="cover"
-                >
-                  <View style={{
-                    backgroundColor: 'rgba(3, 11, 24, 0.72)',
-                    paddingTop: 12,
-                    paddingBottom: 14,
-                    paddingHorizontal: 14,
-                    alignItems: 'center',
-                    borderBottomWidth: 1,
-                    borderBottomColor: 'rgba(56, 189, 248, 0.14)',
-                  }}>
-                    {/* Compact Create Team pill on top-right */}
-                    <TouchableOpacity
-                      onPress={() => openNewTeamModal('teamA')}
-                      activeOpacity={0.85}
-                      style={{
-                        position: 'absolute',
-                        right: 12,
-                        top: 11,
-                        backgroundColor: 'rgba(2, 132, 199, 0.88)',
-                        borderColor: '#38bdf8',
-                        borderWidth: 1,
-                        borderRadius: 16,
-                        paddingHorizontal: 10,
-                        paddingVertical: 4.5,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        gap: 4,
-                        shadowColor: '#38bdf8',
-                        shadowOffset: { width: 0, height: 0 },
-                        shadowOpacity: 0.45,
-                        shadowRadius: 6,
-                        elevation: 4,
-                        zIndex: 5,
-                      }}
-                    >
-                      <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>＋</Text>
-                      <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }}>Create</Text>
-                    </TouchableOpacity>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                      <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-                        <Path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="#ffffff" />
-                      </Svg>
-                      <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', letterSpacing: 0.3 }}>
-                        My Teams
-                      </Text>
-                    </View>
-                    <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '600', marginTop: 3, textAlign: 'center' }}>
-                      Teams you created and teams you play for
-                    </Text>
-                  </View>
-                </ImageBackground>
-
-                <View style={{ paddingHorizontal: 12, paddingTop: 10 }}>
-                  {/* 2. 3-SEGMENT CAPSULE FILTER BAR (All Teams | My Teams | Playing For) */}
-                  <View style={{
-                    flexDirection: 'row',
-                    backgroundColor: 'rgba(7, 20, 38, 0.92)',
-                    borderRadius: 12,
+          <View style={{ flex: 1, backgroundColor: currentTheme.bg }}>
+            <ScrollView
+              style={styles.mainContentNoPad}
+              contentContainerStyle={{ paddingBottom: bottomInset + 95 }}
+              showsVerticalScrollIndicator={false}
+            >
+              {/* 1. TOP HEADER BANNER (Matching app dark theme across all pages) */}
+              <View style={{
+                backgroundColor: currentTheme.isLight ? '#ffffff' : '#071526',
+                paddingTop: 12,
+                paddingBottom: 12,
+                paddingHorizontal: 14,
+                alignItems: 'center',
+                borderBottomWidth: 1,
+                borderBottomColor: currentTheme.isLight ? '#e2e8f0' : '#1e3a5f',
+              }}>
+                {/* Compact Create Team pill on top-right */}
+                <TouchableOpacity
+                  onPress={() => openNewTeamModal('teamA')}
+                  activeOpacity={0.85}
+                  style={{
+                    position: 'absolute',
+                    right: 12,
+                    top: 11,
+                    backgroundColor: '#0284c7',
+                    borderColor: '#38bdf8',
                     borderWidth: 1,
-                    borderColor: '#1e3a5f',
-                    padding: 3,
-                    marginBottom: 10,
-                  }}>
+                    borderRadius: 16,
+                    paddingHorizontal: 10,
+                    paddingVertical: 4.5,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    zIndex: 5,
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>＋</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }}>Create</Text>
+                </TouchableOpacity>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                  <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                    <Path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill={currentTheme.isLight ? '#0f172a' : '#ffffff'} />
+                  </Svg>
+                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 19, fontWeight: '900', letterSpacing: 0.3 }}>
+                    My Teams
+                  </Text>
+                </View>
+                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11.5, fontWeight: '600', marginTop: 2, textAlign: 'center' }}>
+                  Teams you created and teams you play for
+                </Text>
+              </View>
+
+              <View style={{ paddingHorizontal: 12, paddingTop: 10 }}>
+                {/* 2. 3-SEGMENT CAPSULE FILTER BAR (All Teams | My Teams | Playing For) */}
+                <View style={{
+                  flexDirection: 'row',
+                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#071526',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e3a5f',
+                  padding: 3,
+                  marginBottom: 10,
+                }}>
                     {/* Tab 1: All Teams */}
                     <TouchableOpacity
                       activeOpacity={0.85}
@@ -19286,35 +19280,28 @@ function CricketAddaMain() {
                         <View
                           key={`team_card_${t.id}`}
                           style={{
-                            backgroundColor: isOwner ? 'rgba(8, 30, 56, 0.94)' : 'rgba(7, 19, 38, 0.90)',
-                            borderColor: isOwner ? '#38bdf8' : '#1e3a5f',
+                            backgroundColor: currentTheme.isLight ? '#ffffff' : '#071526',
+                            borderColor: isOwner ? '#38bdf8' : (currentTheme.isLight ? '#cbd5e1' : '#1e3a5f'),
                             borderWidth: isOwner ? 1.5 : 1,
                             borderRadius: 14,
                             paddingVertical: 10,
                             paddingHorizontal: 11,
                             marginBottom: 10,
-                            ...(isOwner ? {
-                              shadowColor: '#38bdf8',
-                              shadowOffset: { width: 0, height: 0 },
-                              shadowOpacity: 0.42,
-                              shadowRadius: 8,
-                              elevation: 5,
-                            } : {}),
                           }}
                         >
-                          {/* Main Broadcast Horizontal Team Card Row */}
+                          {/* Top Row: Crest + Name & Captain + 3-Dot Menu */}
                           <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            {/* Left: Large Team Shield/Crest (Tap opens new window) */}
+                            {/* Left: Team Shield/Crest (Tap opens new window) */}
                             <TouchableOpacity
                               activeOpacity={0.8}
                               onPress={() => setSelectedTeamDetail(t)}
                               style={{
-                                width: 62,
-                                height: 62,
+                                width: 54,
+                                height: 54,
                                 borderRadius: 10,
-                                backgroundColor: '#04101f',
+                                backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#04101f',
                                 borderWidth: 1,
-                                borderColor: isOwner ? 'rgba(56, 189, 248, 0.35)' : '#1e3a5f',
+                                borderColor: isOwner ? 'rgba(56, 189, 248, 0.35)' : (currentTheme.isLight ? '#e2e8f0' : '#1e3a5f'),
                                 justifyContent: 'center',
                                 alignItems: 'center',
                                 overflow: 'hidden',
@@ -19324,21 +19311,20 @@ function CricketAddaMain() {
                                 team={t}
                                 allTeams={registeredTeams}
                                 allUsers={usersDb}
-                                style={{ width: 60, height: 60 }}
-                                flagStyle={{ fontSize: 32 }}
+                                style={{ width: 52, height: 52 }}
+                                flagStyle={{ fontSize: 28 }}
                                 fallbackFlag={t.flag || '🦁'}
                               />
                             </TouchableOpacity>
 
-                            {/* Middle: Team Name + Badge, Captain, Real Matches / Win / Loss */}
+                            {/* Middle: Team Name + Badge & Captain (Full remaining width!) */}
                             <TouchableOpacity
                               activeOpacity={0.8}
                               onPress={() => setSelectedTeamDetail(t)}
-                              style={{ flex: 1, marginLeft: 11, marginRight: 6 }}
+                              style={{ flex: 1, marginLeft: 11, marginRight: 4 }}
                             >
-                              {/* Title + Ownership Pill */}
                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                                <Text style={{ fontSize: 16, fontWeight: '900', color: '#ffffff', flexShrink: 1 }} numberOfLines={1}>
+                                <Text style={{ fontSize: 16, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff', flexShrink: 1 }} numberOfLines={1}>
                                   {t.name}
                                 </Text>
 
@@ -19393,82 +19379,114 @@ function CricketAddaMain() {
                               {/* Captain Line */}
                               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 5 }}>
                                 <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
-                                  <Path d="M12 5C7.58 5 4 7.69 4 11c0 1.47.69 2.82 1.84 3.86L4 17h16l-1.84-2.14C19.31 13.82 20 12.47 20 11c0-3.31-3.58-6-8-6zm-6 13v2h12v-2H6z" fill="#e2e8f0" />
+                                  <Path d="M12 5C7.58 5 4 7.69 4 11c0 1.47.69 2.82 1.84 3.86L4 17h16l-1.84-2.14C19.31 13.82 20 12.47 20 11c0-3.31-3.58-6-8-6zm-6 13v2h12v-2H6z" fill={currentTheme.isLight ? '#475569' : '#e2e8f0'} />
                                 </Svg>
-                                <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '600', flex: 1 }} numberOfLines={1}>
-                                  Captain: <Text style={{ color: '#f8fafc', fontWeight: '700' }}>{captainDisplay}</Text>
-                                </Text>
-                              </View>
-
-                              {/* Matches / Win / Loss Line (Real Database Connected) */}
-                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                                <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
-                                  <Path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z" fill="#38bdf8" />
-                                </Svg>
-                                <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '700', flex: 1 }} numberOfLines={1}>
-                                  Matches: <Text style={{ color: '#ffffff', fontWeight: '900' }}>{teamRecord.played}</Text>
-                                  <Text style={{ color: '#64748b' }}>  •  </Text>
-                                  Win: <Text style={{ color: '#4ade80', fontWeight: '900' }}>{teamRecord.won}</Text>
-                                  <Text style={{ color: '#64748b' }}>  •  </Text>
-                                  Loss: <Text style={{ color: '#f87171', fontWeight: '900' }}>{teamRecord.lost}</Text>
+                                <Text style={{ color: currentTheme.isLight ? '#475569' : '#cbd5e1', fontSize: 12, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+                                  Captain: <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontWeight: '700' }}>{captainDisplay}</Text>
                                 </Text>
                               </View>
                             </TouchableOpacity>
 
-                            {/* Right: Top ⋮ Menu & Bottom Edit / View Button */}
-                            <View style={{ alignItems: 'flex-end', justifyContent: 'space-between', minHeight: 62 }}>
-                              <TouchableOpacity
-                                onPress={() => setTeamActionMenuTeam(t)}
-                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                                style={{ paddingHorizontal: 4, paddingVertical: 2 }}
-                              >
-                                <Text style={{ color: '#cbd5e1', fontSize: 17, fontWeight: '900', lineHeight: 18 }}>⋮</Text>
-                              </TouchableOpacity>
+                            {/* Top-Right 3-dot Menu */}
+                            <TouchableOpacity
+                              onPress={() => setTeamActionMenuTeam(t)}
+                              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                              style={{ paddingHorizontal: 4, paddingVertical: 4, alignSelf: 'flex-start' }}
+                            >
+                              <Text style={{ color: currentTheme.isLight ? '#64748b' : '#cbd5e1', fontSize: 17, fontWeight: '900', lineHeight: 18 }}>⋮</Text>
+                            </TouchableOpacity>
+                          </View>
 
-                              <TouchableOpacity
-                                activeOpacity={0.85}
-                                onPress={() => isOwner ? openNewTeamModal('teamA', '', t) : setSelectedTeamDetail(t)}
-                                style={isOwner ? {
-                                  backgroundColor: '#0284c7',
-                                  borderColor: '#38bdf8',
-                                  borderWidth: 1,
-                                  borderRadius: 8,
-                                  paddingHorizontal: 13,
-                                  paddingVertical: 5.5,
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                  shadowColor: '#38bdf8',
-                                  shadowOffset: { width: 0, height: 0 },
-                                  shadowOpacity: 0.45,
-                                  shadowRadius: 6,
-                                  elevation: 4,
-                                } : {
-                                  backgroundColor: '#0f2544',
-                                  borderColor: '#3b5978',
-                                  borderWidth: 1,
-                                  borderRadius: 8,
-                                  paddingHorizontal: 12,
-                                  paddingVertical: 5.5,
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                }}
-                              >
-                                {isOwner ? (
-                                  <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-                                    <Path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#ffffff" />
-                                  </Svg>
-                                ) : (
-                                  <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
-                                    <Path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8a3 3 0 100 6 3 3 0 000-6z" fill="#ffffff" />
-                                  </Svg>
-                                )}
-                                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800' }}>
-                                  {isOwner ? 'Edit' : 'View'}
+                          {/* Dedicated Bottom Strip: Real Matches / Win / Loss Pills (Left) + Edit/View Button (Right) */}
+                          <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            marginTop: 9,
+                            paddingTop: 8,
+                            borderTopWidth: 1,
+                            borderTopColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.75)',
+                            gap: 8,
+                          }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, flexWrap: 'wrap' }}>
+                              <View style={{
+                                backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#04101f',
+                                borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e3a5f',
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                paddingHorizontal: 7,
+                                paddingVertical: 3,
+                              }}>
+                                <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '700' }}>
+                                  M: <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#38bdf8', fontWeight: '900' }}>{teamRecord.played}</Text>
                                 </Text>
-                              </TouchableOpacity>
+                              </View>
+
+                              <View style={{
+                                backgroundColor: 'rgba(34, 197, 94, 0.14)',
+                                borderColor: 'rgba(34, 197, 94, 0.45)',
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                paddingHorizontal: 7,
+                                paddingVertical: 3,
+                              }}>
+                                <Text style={{ color: '#4ade80', fontSize: 11, fontWeight: '800' }}>
+                                  Win: {teamRecord.won}
+                                </Text>
+                              </View>
+
+                              <View style={{
+                                backgroundColor: 'rgba(239, 68, 68, 0.14)',
+                                borderColor: 'rgba(239, 68, 68, 0.45)',
+                                borderWidth: 1,
+                                borderRadius: 6,
+                                paddingHorizontal: 7,
+                                paddingVertical: 3,
+                              }}>
+                                <Text style={{ color: '#f87171', fontSize: 11, fontWeight: '800' }}>
+                                  Loss: {teamRecord.lost}
+                                </Text>
+                              </View>
                             </View>
+
+                            <TouchableOpacity
+                              activeOpacity={0.85}
+                              onPress={() => isOwner ? openNewTeamModal('teamA', '', t) : setSelectedTeamDetail(t)}
+                              style={isOwner ? {
+                                backgroundColor: '#0284c7',
+                                borderColor: '#38bdf8',
+                                borderWidth: 1,
+                                borderRadius: 8,
+                                paddingHorizontal: 12,
+                                paddingVertical: 5,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 5,
+                              } : {
+                                backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#0f2544',
+                                borderColor: currentTheme.isLight ? '#cbd5e1' : '#3b5978',
+                                borderWidth: 1,
+                                borderRadius: 8,
+                                paddingHorizontal: 11,
+                                paddingVertical: 5,
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 5,
+                              }}
+                            >
+                              {isOwner ? (
+                                <Svg width={11.5} height={11.5} viewBox="0 0 24 24" fill="none">
+                                  <Path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#ffffff" />
+                                </Svg>
+                              ) : (
+                                <Svg width={12.5} height={12.5} viewBox="0 0 24 24" fill="none">
+                                  <Path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8a3 3 0 100 6 3 3 0 000-6z" fill={currentTheme.isLight ? '#0f172a' : '#ffffff'} />
+                                </Svg>
+                              )}
+                              <Text style={{ color: isOwner ? '#ffffff' : (currentTheme.isLight ? '#0f172a' : '#ffffff'), fontSize: 11.5, fontWeight: '800' }}>
+                                {isOwner ? 'Edit' : 'View'}
+                              </Text>
+                            </TouchableOpacity>
                           </View>
                         </View>
                       );
@@ -19646,13 +19664,8 @@ function CricketAddaMain() {
                   const dCaptain = String(rawCapName).replace(/\s*\([^)]*\)/g, '').trim() || 'Not Assigned';
 
                   return (
-                    <ImageBackground
-                      source={require('./assets/login-bg.jpg')}
-                      style={{ flex: 1, backgroundColor: '#030a16' }}
-                      resizeMode="cover"
-                    >
-                      <View style={{ flex: 1, backgroundColor: 'rgba(3, 10, 22, 0.94)', paddingTop: topInset }}>
-                        {/* Window Top Bar */}
+                    <View style={{ flex: 1, backgroundColor: currentTheme.bg, paddingTop: topInset }}>
+                      {/* Window Top Bar */}
                         <View style={{
                           flexDirection: 'row',
                           alignItems: 'center',
@@ -19991,12 +20004,10 @@ function CricketAddaMain() {
                           )}
                         </ScrollView>
                       </View>
-                    </ImageBackground>
                   );
                 })()}
               </Modal>
             </View>
-          </ImageBackground>
         );
       })()}
 
