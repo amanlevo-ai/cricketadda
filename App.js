@@ -2267,6 +2267,8 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
 
     const bowlerOversRunsMap = {};
     let mMatchCatches = 0;
+    let mMatchRunOuts = 0;
+    let mMatchStumpings = 0;
 
     rawDeliveries.forEach(d => {
       if (!d) return;
@@ -2315,9 +2317,11 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
           mMatchCatches++;
         } else if (fType === 'runOut') {
           totalRunOuts++;
+          mMatchRunOuts++;
           if (String(d.dismissalDesc || '').toLowerCase().includes('direct')) totalDirectHits++;
         } else if (fType === 'stumped') {
           totalStumpings++;
+          mMatchStumpings++;
         }
       }
     });
@@ -2372,20 +2376,29 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
     const isDuckMatch = bRuns === 0 && bBalls > 0 && !bNotOut;
     const duckLabel = bBalls === 1 ? '🦆 Golden Duck' : bBalls === 2 ? '🦆 Silver Duck' : '🦆 Duck';
 
-    const bSr = bBalls > 0 ? ((bRuns / bBalls) * 100).toFixed(1) : '0.00';
+    const bSr = bBalls > 0 ? ((bRuns / bBalls) * 100).toFixed(1) : '0.0';
     const wEcon = wBalls > 0 ? ((wRuns / wBalls) * 6).toFixed(2) : '0.00';
+    const teamAName = m.teamA || m.innings1?.team || 'Team A';
+    const teamBName = m.teamB || m.innings2?.team || 'Team B';
+    const didBat = Boolean(userBat && (bBalls > 0 || bRuns > 0 || !bNotOut));
+    const didBowl = Boolean(wBalls > 0 || wWkts > 0);
+    const totalFieldChancesMatch = mMatchCatches + mMatchRunOuts + mMatchStumpings + matchDrops;
 
     historyList.push({
       id: m.id || `hist_${Date.now()}_${Math.random()}`,
       matchId: m.id,
-      title: m.title || `${m.teamA || m.innings1?.team || 'Team A'} vs ${m.teamB || m.innings2?.team || 'Team B'}`,
+      teamA: teamAName,
+      teamB: teamBName,
+      title: m.title || `${teamAName} vs ${teamBName}`,
       tournament: m.tournament || 'Cricket Adda',
       venue: m.venue || 'PCA Stadium',
       date: m.dateTime || m.date || 'Today',
       status: m.status || 'completed',
-      matchOutcome: m.result || (m.status === 'live' ? `🔴 LIVE: ${m.teamA || m.innings1?.team || 'Team 1'} ${m.innings1?.runs || 0}/${m.innings1?.wickets || 0} (${m.innings1?.overs || '0.0'} ov)` : 'Match Concluded'),
+      teamResultText: m.result || (m.status === 'live' ? 'In Progress' : 'Match Concluded'),
+      matchOutcome: m.result || (m.status === 'live' ? `🔴 LIVE: ${teamAName} ${m.innings1?.runs || 0}/${m.innings1?.wickets || 0} (${m.innings1?.overs || '0.0'} ov)` : 'Match Concluded'),
       userBatting: {
         name: userBat?.name || userProf?.name || 'Batter',
+        didBat,
         runs: bRuns,
         balls: bBalls,
         fours: bFours,
@@ -2396,6 +2409,7 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
       },
       userBowling: {
         name: userBowl?.name || userProf?.name || 'Bowler',
+        didBowl,
         wickets: wWkts,
         runs: wRuns,
         overs: wOvers,
@@ -2403,9 +2417,15 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
         dots: wDots,
       },
       userFielding: {
+        catches: mMatchCatches,
+        runOuts: mMatchRunOuts,
+        stumpings: mMatchStumpings,
+        drops: matchDrops,
+        chances: totalFieldChancesMatch,
         desc: `${mMatchCatches} Catches${matchDrops > 0 ? ` • ${matchDrops} Drops` : ''}`,
       },
       isPotm,
+      potmName: m.potm || (isPotm ? (userBat?.name || userProf?.name || 'You') : ''),
       potmBadge: '🌟 Player of the Match',
       isDuckMatch,
       duckLabel,
@@ -8858,6 +8878,9 @@ function CricketAddaMain() {
     }
     if (statsFilter === 'bowling') {
       return list.filter(h => (h?.userBowling?.overs && h?.userBowling?.overs !== '0.0') || (h?.userBowling?.wickets || 0) > 0);
+    }
+    if (statsFilter === 'fielding') {
+      return list.filter(h => (h?.userFielding?.chances || 0) > 0);
     }
     if (statsFilter === 'dots') {
       return list.filter(h => (h?.userBatting?.dots || 0) > 0 || (h?.userBowling?.dots || 0) > 0 || h?.isDuckMatch);
@@ -23693,167 +23716,437 @@ function CricketAddaMain() {
                 )}
 
                 {/* ======================= TAB 4: CAREER & HISTORY ======================= */}
-                {statsSubTab === 'career' && (
-                  <View>
-                    {/* Career Summary Strip */}
-                    <View style={{
-                      backgroundColor: currentTheme.isLight ? '#f0f9ff' : '#081d38',
-                      borderColor: '#38bdf8',
-                      borderWidth: 1.3,
-                      borderRadius: 14,
-                      paddingVertical: 12,
-                      paddingHorizontal: 10,
-                      marginBottom: 10,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                    }}>
-                      {[
-                        { label: 'Matches', val: fmtStat(ov.matchesPlayed), col: '#38bdf8' },
-                        { label: 'Wins', val: fmtStat(ov.wins), col: '#4ade80' },
-                        { label: 'Win Rate', val: ov.winRate || '0%', col: txtPrimary },
-                        { label: 'POTM', val: fmtStat(ov.potmCount), col: '#facc15' },
-                      ].map((k, kIdx) => (
-                        <View
-                          key={k.label}
-                          style={{
-                            flex: 1,
-                            alignItems: 'center',
-                            borderRightWidth: kIdx < 3 ? 1 : 0,
-                            borderRightColor: dividerCol,
-                          }}
-                        >
-                          <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700' }}>{k.label}</Text>
-                          <Text style={{ color: k.col, fontSize: 18, fontWeight: '900', marginTop: 3 }}>{k.val}</Text>
-                        </View>
-                      ))}
-                    </View>
+                {statsSubTab === 'career' && (() => {
+                  const allHist = activeUserCareerData.matchHistoryList || [];
+                  const batHistCount = allHist.filter(h => (h.userBatting?.balls || 0) > 0 || (h.userBatting?.runs || 0) > 0).length;
+                  const bowlHistCount = allHist.filter(h => (h.userBowling?.overs && h.userBowling.overs !== '0.0') || (h.userBowling?.wickets || 0) > 0).length;
+                  const fieldHistCount = allHist.filter(h => (h.userFielding?.chances || 0) > 0).length;
+                  const dotsHistCount = allHist.filter(h => (h.userBatting?.dots || 0) > 0 || (h.userBowling?.dots || 0) > 0 || h.isDuckMatch).length;
+                  const getShieldTag = (name) => {
+                    const parts = String(name || 'TM').trim().split(/\s+/);
+                    if (parts.length >= 2) {
+                      const second = parts[1].replace(/[^A-Za-z0-9]/g, '');
+                      return (parts[0][0] + second.slice(0, 2)).toUpperCase();
+                    }
+                    return String(name || 'TM').replace(/[^A-Za-z0-9]/g, '').slice(0, 3).toUpperCase() || 'TM';
+                  };
 
-
-                    {/* Match History Filters */}
-                    <View style={[styles.filterPillsRow, { marginTop: 2 }]}>
-                      <TouchableOpacity
-                        style={[styles.filterPill, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, statsFilter === 'all' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)]}
-                        onPress={() => setStatsFilter('all')}
-                      >
-                        <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, statsFilter === 'all' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                          All ({(activeUserCareerData.matchHistoryList || []).length})
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.filterPill, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, statsFilter === 'batting' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)]}
-                        onPress={() => setStatsFilter('batting')}
-                      >
-                        <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, statsFilter === 'batting' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                          🏏 Batting ({(activeUserCareerData.matchHistoryList || []).filter(h => (h.userBatting?.balls || 0) > 0 || (h.userBatting?.runs || 0) > 0).length})
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.filterPill, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, statsFilter === 'bowling' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)]}
-                        onPress={() => setStatsFilter('bowling')}
-                      >
-                        <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, statsFilter === 'bowling' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                          🎯 Wickets ({(activeUserCareerData.matchHistoryList || []).filter(h => (h.userBowling?.overs && h.userBowling.overs !== '0.0') || (h.userBowling?.wickets || 0) > 0).length})
-                        </Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={[styles.filterPill, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, statsFilter === 'dots' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)]}
-                        onPress={() => setStatsFilter('dots')}
-                      >
-                        <Text style={[styles.filterPillText, currentTheme.isLight && { color: '#475569' }, statsFilter === 'dots' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)]}>
-                          ⚪ Dots/Ducks ({(activeUserCareerData.matchHistoryList || []).filter(h => (h.userBatting?.dots || 0) > 0 || (h.userBowling?.dots || 0) > 0 || h.isDuckMatch).length})
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-
-                    <Text style={[styles.sectionHeading, { color: txtPrimary, marginVertical: 10 }]}>📜 Match-by-Match History & Scores</Text>
-
-                    {(!filteredMatchHistoryList || (filteredMatchHistoryList || []).length === 0) ? (
-                      <View style={[styles.historyCard, currentTheme.isLight ? { backgroundColor: '#ffffff', borderColor: '#cbd5e1' } : { backgroundColor: cardBg, borderColor: cardBorder }, { alignItems: 'center', paddingVertical: 22, paddingHorizontal: 16 }]}>
-                        <Text style={{ fontSize: 34, marginBottom: 8 }}>🏏</Text>
-                        <Text style={{ fontSize: 15.5, fontWeight: '900', color: txtPrimary, marginBottom: 6 }}>
-                          {statsFilter === 'all' ? 'No Matches Recorded Yet' : `No ${statsFilter} matches found`}
-                        </Text>
-                        <Text style={{ fontSize: 12, color: txtMuted, textAlign: 'center', lineHeight: 18, marginBottom: 12 }}>
-                          {statsFilter === 'all'
-                            ? 'Once you participate in or score live matches, your personal batting scores, bowling spells, dots, and match scorecards will appear here.'
-                            : 'Try selecting the "All" filter to view your complete match history.'}
-                        </Text>
-                        <TouchableOpacity
-                          style={{ backgroundColor: '#0284c7', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 }}
-                          onPress={() => statsFilter === 'all' ? navigateTo('matches') : setStatsFilter('all')}
-                        >
-                          <Text style={{ color: '#ffffff', fontWeight: 'bold', fontSize: 12 }}>
-                            {statsFilter === 'all' ? '🏏 Start / View Matches' : 'View All Matches'}
-                          </Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      filteredMatchHistoryList.map(h => (
-                        <View key={h.id} style={[styles.historyCard, currentTheme.isLight ? { backgroundColor: '#ffffff', borderColor: '#cbd5e1' } : { backgroundColor: cardBg, borderColor: cardBorder }]}>
-                          <View style={styles.recentTopRow}>
-                            <Text style={[styles.recentTournText, { color: txtMuted }]}>{h.tournament}</Text>
-                            <Text style={[styles.recentDateText, { color: txtMuted }]}>{h.date}</Text>
-                          </View>
-
-                          <Text style={[styles.historyMatchTitle, { color: txtPrimary }]}>{h.title}</Text>
-                          <Text style={[styles.recentVenueText, { color: txtMuted }]}>📍 {h.venue} • {h.matchOutcome}</Text>
-
-                          <View style={[styles.contributionBox, currentTheme.isLight ? { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' } : { backgroundColor: '#04101f', borderColor: '#1e3a5f' }]}>
-                            {(statsFilter === 'all' || statsFilter === 'batting') && (
-                              <View style={styles.contribRow}>
-                                <Text style={[styles.contribIcon, { color: txtMuted }]}>🏏 Batting ({h.userBatting?.name || 'Batter'}):</Text>
-                                <Text style={[styles.contribValue, { color: txtPrimary }]}>
-                                  <Text style={{ color: '#4ade80', fontWeight: '900' }}>{h.userBatting?.runs || 0}{h.userBatting?.notOut ? '*' : ''}</Text> ({h.userBatting?.balls || 0}b) • {h.userBatting?.fours || 0}x4 {h.userBatting?.sixes || 0}x6 • SR: {h.userBatting?.sr || '0.0'}
-                                </Text>
-                              </View>
-                            )}
-
-                            {(statsFilter === 'all' || statsFilter === 'bowling') && (
-                              <View style={styles.contribRow}>
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                                  <RealisticCricketLeatherBall size={12} />
-                                  <Text style={[styles.contribIcon, { color: txtMuted }]}>Bowling ({h.userBowling?.name || 'Bowler'}):</Text>
-                                </View>
-                                <Text style={[styles.contribValue, { color: txtPrimary }]}>
-                                  <Text style={{ color: '#38bdf8', fontWeight: '900' }}>{h.userBowling?.wickets || 0}/{h.userBowling?.runs || 0}</Text> ({h.userBowling?.overs || '0.0'} ov) • Econ: {h.userBowling?.econ || '0.00'}
-                                </Text>
-                              </View>
-                            )}
-
-                            {(statsFilter === 'all' || statsFilter === 'dots') && (
-                              <View style={styles.contribRow}>
-                                <Text style={[styles.contribIcon, { color: '#38bdf8' }]}>⚪ Dots Log:</Text>
-                                <Text style={[styles.contribValue, { color: txtPrimary }]}>
-                                  {h.userBatting?.dots || 0} Batting Dots faced • {h.userBowling?.dots || 0} Bowling Dots bowled
-                                </Text>
-                              </View>
-                            )}
-                          </View>
-
-                          {h.isDuckMatch && (
-                            <View style={[styles.potmRibbon, { backgroundColor: '#7f1d1d' }]}>
-                              <Text style={[styles.potmRibbonText, { color: '#fecaca' }]}>{h.duckLabel}</Text>
-                            </View>
-                          )}
-
-                          {h.isPotm && (
-                            <View style={styles.potmRibbon}>
-                              <Text style={styles.potmRibbonText}>{h.potmBadge}</Text>
-                            </View>
-                          )}
-
-                          <TouchableOpacity
-                            style={[styles.historyScorecardLink, currentTheme.isLight ? { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' } : { backgroundColor: '#04101f', borderColor: '#1e3a5f' }]}
-                            onPress={() => openMatchScorecard(h.matchId)}
+                  return (
+                    <View>
+                      {/* Career Summary Banner */}
+                      <View style={{
+                        backgroundColor: currentTheme.isLight ? '#f0f9ff' : '#071526',
+                        borderColor: '#0ea5e9',
+                        borderWidth: 1.5,
+                        borderRadius: 14,
+                        paddingVertical: 11,
+                        paddingHorizontal: 8,
+                        marginBottom: 10,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        shadowColor: '#0ea5e9',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: currentTheme.isLight ? 0.12 : 0.35,
+                        shadowRadius: 8,
+                        elevation: 4,
+                      }}>
+                        {[
+                          { label: 'Matches', val: fmtStat(ov.matchesPlayed), col: txtPrimary, icon: 'users' },
+                          { label: 'Wins', val: fmtStat(ov.wins), col: '#22c55e', icon: 'trophy' },
+                          { label: 'Win Rate', val: ov.winRate || '0%', col: txtPrimary, icon: 'chart' },
+                          { label: 'POTM', val: fmtStat(ov.potmCount), col: '#facc15', icon: 'medal' },
+                        ].map((k, kIdx) => (
+                          <View
+                            key={k.label}
+                            style={{
+                              flex: 1,
+                              alignItems: 'center',
+                              borderRightWidth: kIdx < 3 ? 1 : 0,
+                              borderRightColor: dividerCol,
+                              paddingHorizontal: 4,
+                            }}
                           >
-                            <Text style={[styles.historyScorecardLinkText, { color: '#38bdf8' }]}>View Match Scorecard & Wagon Wheel →</Text>
+                            {k.icon === 'users' && (
+                              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                                <Path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5s-3 1.34-3 3 1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="#cbd5e1" />
+                              </Svg>
+                            )}
+                            {k.icon === 'trophy' && (
+                              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                                <Path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z" fill="#facc15" stroke="#b45309" strokeWidth="0.8" />
+                              </Svg>
+                            )}
+                            {k.icon === 'chart' && (
+                              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                                <Path d="M4 20h3v-6H4v6zm6 0h3v-9h-3v9zm6 0h3V7h-3v13z" fill="#cbd5e1" />
+                                <Path d="M5 12l5-4 4 2 6-5" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                              </Svg>
+                            )}
+                            {k.icon === 'medal' && (
+                              <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
+                                <Circle cx="12" cy="9" r="5.5" stroke="#cbd5e1" strokeWidth="1.6" fill="rgba(56, 189, 248, 0.16)" />
+                                <Path d="M12 6.5l.9 1.8 2 .3-1.45 1.4.35 2-1.8-.95-1.8.95.35-2L9.1 8.6l2-.3z" fill="#e2e8f0" />
+                                <Path d="M9 14.5L7.5 21l4.5-2 4.5 2-1.5-6.5" stroke="#cbd5e1" strokeWidth="1.5" strokeLinejoin="round" />
+                              </Svg>
+                            )}
+                            <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700', marginTop: 3 }}>{k.label}</Text>
+                            <Text style={{ color: k.col, fontSize: 20, fontWeight: '900', marginTop: 1 }}>{k.val}</Text>
+                          </View>
+                        ))}
+                      </View>
+
+                      {/* Career Filter Pills */}
+                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
+                        {[
+                          { key: 'all', label: `All (${allHist.length})`, icon: 'all' },
+                          { key: 'batting', label: `Batting (${batHistCount})`, icon: 'bat' },
+                          { key: 'bowling', label: `Wickets (${bowlHistCount})`, icon: 'ball' },
+                          { key: 'fielding', label: `Fielding (${fieldHistCount})`, icon: 'glove' },
+                          { key: 'dots', label: `Dots/Ducks (${dotsHistCount})`, icon: 'dot' },
+                        ].map(pill => {
+                          const active = statsFilter === pill.key;
+                          return (
+                            <TouchableOpacity
+                              key={pill.key}
+                              activeOpacity={0.85}
+                              onPress={() => setStatsFilter(pill.key)}
+                              style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                gap: 5,
+                                paddingHorizontal: 11,
+                                paddingVertical: 6.5,
+                                borderRadius: 20,
+                                backgroundColor: active ? '#0284c7' : cardBg,
+                                borderWidth: 1.2,
+                                borderColor: active ? '#38bdf8' : cardBorder,
+                                shadowColor: active ? '#38bdf8' : 'transparent',
+                                shadowOffset: { width: 0, height: 0 },
+                                shadowOpacity: active ? 0.55 : 0,
+                                shadowRadius: 6,
+                                elevation: active ? 4 : 0,
+                              }}
+                            >
+                              {pill.icon === 'bat' && <RealisticCricketBatIcon size={12} gripColor="#facc15" />}
+                              {pill.icon === 'ball' && <RealisticCricketLeatherBall size={12} />}
+                              {pill.icon === 'glove' && <RealisticFieldingGloveIcon size={12} />}
+                              {pill.icon === 'dot' && (
+                                <Svg width={12} height={12} viewBox="0 0 16 16">
+                                  <Circle cx="8" cy="8" r="6" fill={active ? '#ffffff' : '#e2e8f0'} stroke="#94a3b8" strokeWidth="1" />
+                                </Svg>
+                              )}
+                              <Text
+                                style={{
+                                  color: active ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#e2e8f0'),
+                                  fontSize: 11.5,
+                                  fontWeight: active ? '900' : '700',
+                                }}
+                              >
+                                {pill.label}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+
+                      {/* Section Header: Match-by-Match History (N) */}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 9, paddingHorizontal: 2 }}>
+                        <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
+                          <Path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1s-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" fill="#fde68a" />
+                        </Svg>
+                        <Text style={{ color: txtPrimary, fontSize: 15, fontWeight: '900' }}>
+                          Match-by-Match History ({(filteredMatchHistoryList || []).length})
+                        </Text>
+                      </View>
+
+                      {(!filteredMatchHistoryList || (filteredMatchHistoryList || []).length === 0) ? (
+                        <View style={{
+                          backgroundColor: cardBg,
+                          borderColor: cardBorder,
+                          borderWidth: 1,
+                          borderRadius: 14,
+                          alignItems: 'center',
+                          paddingVertical: 22,
+                          paddingHorizontal: 16,
+                        }}>
+                          <Text style={{ fontSize: 32, marginBottom: 8 }}>🏏</Text>
+                          <Text style={{ fontSize: 15, fontWeight: '900', color: txtPrimary, marginBottom: 5 }}>
+                            {statsFilter === 'all' ? 'No Matches Recorded Yet' : `No ${statsFilter} matches found`}
+                          </Text>
+                          <Text style={{ fontSize: 12, color: txtMuted, textAlign: 'center', lineHeight: 18, marginBottom: 12 }}>
+                            {statsFilter === 'all'
+                              ? 'Once you play or score matches, your batting scores, bowling spells, fielding plays, and match scorecards will appear here.'
+                              : 'Select "All" to view your complete match history.'}
+                          </Text>
+                          <TouchableOpacity
+                            style={{ backgroundColor: '#0284c7', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10 }}
+                            onPress={() => statsFilter === 'all' ? navigateTo('matches') : setStatsFilter('all')}
+                          >
+                            <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 12 }}>
+                              {statsFilter === 'all' ? '🏏 View Matches' : 'Show All Matches'}
+                            </Text>
                           </TouchableOpacity>
                         </View>
-                      ))
-                    )}
+                      ) : (
+                        filteredMatchHistoryList.map(h => {
+                          const isLive = h.status === 'live';
+                          const teamAText = h.teamA || (h.title ? h.title.split(/\s+vs\s+/i)[0] : 'Team A');
+                          const teamBText = h.teamB || (h.title && h.title.includes('vs') ? h.title.split(/\s+vs\s+/i)[1] : 'Team B');
+                          const didBat = Boolean(h.userBatting?.didBat);
+                          const isNotOut = Boolean(h.userBatting?.notOut);
+                          const batScoreLabel = didBat
+                            ? `${h.userBatting?.runs || 0}${isNotOut ? '*' : ''} (${h.userBatting?.balls || 0}b)`
+                            : 'DNB';
 
-                  </View>
-                )}
+                          return (
+                            <TouchableOpacity
+                              key={h.id}
+                              activeOpacity={0.86}
+                              onPress={() => openMatchScorecard(h.matchId)}
+                              style={{
+                                backgroundColor: cardBg,
+                                borderColor: isLive ? '#0ea5e9' : cardBorder,
+                                borderWidth: 1.3,
+                                borderRadius: 14,
+                                paddingHorizontal: 11,
+                                paddingVertical: 10,
+                                marginBottom: 10,
+                                shadowColor: '#0ea5e9',
+                                shadowOffset: { width: 0, height: 0 },
+                                shadowOpacity: currentTheme.isLight ? 0.08 : 0.25,
+                                shadowRadius: 7,
+                                elevation: 3,
+                              }}
+                            >
+                              {/* Top Row: Tournament Badge + Date + Live/Done Status */}
+                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 6 }}>
+                                <View style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0b2545',
+                                  borderColor: '#0ea5e9',
+                                  borderWidth: 1,
+                                  borderRadius: 7,
+                                  paddingHorizontal: 8,
+                                  paddingVertical: 3,
+                                  maxWidth: '58%',
+                                }}>
+                                  <Text style={{ fontSize: 10.5 }}>🏆</Text>
+                                  <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#38bdf8', fontSize: 9.5, fontWeight: '900', letterSpacing: 0.4 }} numberOfLines={1}>
+                                    {String(h.tournament || 'CRICKET ADDA').toUpperCase()}
+                                  </Text>
+                                </View>
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                  <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '600' }} numberOfLines={1}>
+                                    {h.date}
+                                  </Text>
+                                  {isLive ? (
+                                    <View style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      gap: 4,
+                                      backgroundColor: '#dc2626',
+                                      borderRadius: 6,
+                                      paddingHorizontal: 7,
+                                      paddingVertical: 2.5,
+                                    }}>
+                                      <View style={{ width: 5, height: 5, borderRadius: 3, backgroundColor: '#ffffff' }} />
+                                      <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>LIVE</Text>
+                                    </View>
+                                  ) : (
+                                    <View style={{
+                                      backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#0f233c',
+                                      borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e3a5f',
+                                      borderWidth: 1,
+                                      borderRadius: 6,
+                                      paddingHorizontal: 7,
+                                      paddingVertical: 2,
+                                    }}>
+                                      <Text style={{ color: txtMuted, fontSize: 9, fontWeight: '800' }}>DONE</Text>
+                                    </View>
+                                  )}
+                                </View>
+                              </View>
+
+                              {/* Middle Row: Team A vs Team B + Venue + Chevron */}
+                              <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                paddingBottom: 8,
+                                borderBottomWidth: 0.7,
+                                borderBottomColor: dividerCol,
+                                gap: 6,
+                              }}>
+                                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                                  <View style={{
+                                    backgroundColor: '#0c2340',
+                                    borderColor: '#38bdf8',
+                                    borderWidth: 1,
+                                    borderRadius: 6,
+                                    paddingHorizontal: 5,
+                                    paddingVertical: 2.5,
+                                  }}>
+                                    <Text style={{ color: '#f8fafc', fontSize: 9, fontWeight: '900' }}>{getShieldTag(teamAText)}</Text>
+                                  </View>
+                                  <Text style={{ color: txtPrimary, fontSize: 13.5, fontWeight: '900', maxWidth: '34%' }} numberOfLines={1}>
+                                    {teamAText}
+                                  </Text>
+
+                                  <View style={{
+                                    backgroundColor: '#0284c7',
+                                    borderRadius: 6,
+                                    paddingHorizontal: 5.5,
+                                    paddingVertical: 1.5,
+                                  }}>
+                                    <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>VS</Text>
+                                  </View>
+
+                                  <Text style={{ color: txtPrimary, fontSize: 13.5, fontWeight: '900', maxWidth: '34%' }} numberOfLines={1}>
+                                    {teamBText}
+                                  </Text>
+                                  <View style={{
+                                    backgroundColor: '#4c0519',
+                                    borderColor: '#f43f5e',
+                                    borderWidth: 1,
+                                    borderRadius: 6,
+                                    paddingHorizontal: 5,
+                                    paddingVertical: 2.5,
+                                  }}>
+                                    <Text style={{ color: '#f8fafc', fontSize: 9, fontWeight: '900' }}>{getShieldTag(teamBText)}</Text>
+                                  </View>
+                                </View>
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, maxWidth: '33%' }}>
+                                  <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" fill="#ef4444" />
+                                  </Svg>
+                                  <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '600', flexShrink: 1 }} numberOfLines={2}>
+                                    {h.venue}
+                                  </Text>
+                                  <Text style={{ color: txtMuted, fontSize: 16, fontWeight: '700', marginLeft: 1 }}>›</Text>
+                                </View>
+                              </View>
+
+                              {/* Batting Summary Line */}
+                              {(statsFilter === 'all' || statsFilter === 'batting' || statsFilter === 'dots') && (
+                                <View style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  paddingTop: 7,
+                                  paddingBottom: 5,
+                                }}>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <RealisticCricketBatIcon size={13} gripColor="#facc15" />
+                                    <Text style={{ color: txtMuted, fontSize: 11.5, fontWeight: '700' }}>Batting:</Text>
+                                    <Text style={{ color: didBat ? '#4ade80' : txtMuted, fontSize: 12, fontWeight: '900' }}>
+                                      {batScoreLabel}
+                                    </Text>
+                                  </View>
+                                  <Text style={{ color: dividerCol, fontSize: 11 }}>|</Text>
+                                  <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '700' }}>
+                                    <Text style={{ color: txtMuted }}>4s: </Text>{h.userBatting?.fours || 0}
+                                  </Text>
+                                  <Text style={{ color: dividerCol, fontSize: 11 }}>|</Text>
+                                  <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '700' }}>
+                                    <Text style={{ color: txtMuted }}>6s: </Text>{h.userBatting?.sixes || 0}
+                                  </Text>
+                                  <Text style={{ color: dividerCol, fontSize: 11 }}>|</Text>
+                                  <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '800' }}>
+                                    <Text style={{ color: txtMuted }}>SR: </Text>{h.userBatting?.sr || '0.0'}
+                                  </Text>
+                                </View>
+                              )}
+
+                              {/* Bowling Summary Line */}
+                              {(statsFilter === 'all' || statsFilter === 'bowling' || statsFilter === 'dots') && (
+                                <View style={{
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  justifyContent: 'space-between',
+                                  paddingBottom: 4,
+                                }}>
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                                    <RealisticCricketLeatherBall size={12} />
+                                    <Text style={{ color: txtMuted, fontSize: 11.5, fontWeight: '700' }}>Bowling:</Text>
+                                    <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '900' }}>
+                                      {h.userBowling?.wickets || 0}/{h.userBowling?.runs || 0} ({h.userBowling?.overs || '0.0'} ov)
+                                    </Text>
+                                  </View>
+                                  <Text style={{ color: dividerCol, fontSize: 11 }}>|</Text>
+                                  <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '700' }}>
+                                    <Text style={{ color: txtMuted }}>Econ: </Text>{h.userBowling?.econ || '0.00'}
+                                  </Text>
+                                  <Text style={{ color: dividerCol, fontSize: 11 }}>|</Text>
+                                  <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '700' }}>
+                                    <Text style={{ color: txtMuted }}>Dots: </Text>{h.userBowling?.dots || 0}
+                                  </Text>
+                                </View>
+                              )}
+
+                              {/* Fielding Summary Line (shown when user has fielding plays or Fielding filter active) */}
+                              {(statsFilter === 'fielding' || (h.userFielding?.chances || 0) > 0) && (
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 4 }}>
+                                  <RealisticFieldingGloveIcon size={12} />
+                                  <Text style={{ color: txtMuted, fontSize: 11.5, fontWeight: '700' }}>Fielding:</Text>
+                                  <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '800' }}>{h.userFielding?.desc || '0 Catches'}</Text>
+                                </View>
+                              )}
+
+                              {/* Footer Strip: Not Out / Out Pill | Team Result | POTM */}
+                              <View style={{
+                                flexDirection: 'row',
+                                alignItems: 'center',
+                                justifyContent: 'space-between',
+                                gap: 6,
+                                borderTopWidth: 0.7,
+                                borderTopColor: dividerCol,
+                                paddingTop: 7,
+                                marginTop: 4,
+                              }}>
+                                <View style={{
+                                  backgroundColor: !didBat
+                                    ? (currentTheme.isLight ? '#e2e8f0' : '#0f233c')
+                                    : (isNotOut ? 'rgba(21, 128, 61, 0.35)' : 'rgba(185, 28, 28, 0.35)'),
+                                  borderColor: !didBat ? cardBorder : (isNotOut ? '#22c55e' : '#ef4444'),
+                                  borderWidth: 1,
+                                  borderRadius: 12,
+                                  paddingHorizontal: 9,
+                                  paddingVertical: 2.5,
+                                }}>
+                                  <Text style={{
+                                    color: !didBat ? txtMuted : (isNotOut ? '#4ade80' : '#fca5a5'),
+                                    fontSize: 10.5,
+                                    fontWeight: '900',
+                                  }}>
+                                    {!didBat ? 'DNB' : (isNotOut ? 'Not Out' : 'Out')}
+                                  </Text>
+                                </View>
+
+                                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                  <Text style={{ fontSize: 11 }}>👥</Text>
+                                  <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+                                    Team Result: <Text style={{ color: txtPrimary, fontWeight: '700' }}>{h.teamResultText || 'In Progress'}</Text>
+                                  </Text>
+                                </View>
+
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                                  <Text style={{ fontSize: 11 }}>⭐</Text>
+                                  <Text style={{ color: h.isPotm ? '#facc15' : txtMuted, fontSize: 10.5, fontWeight: h.isPotm ? '900' : '700' }} numberOfLines={1}>
+                                    POTM: {h.potmName ? h.potmName : '-'}
+                                  </Text>
+                                </View>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })
+                      )}
+                    </View>
+                  );
+                })()}
               </View>
             </ScrollView>
 
