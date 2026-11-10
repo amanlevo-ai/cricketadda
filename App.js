@@ -5044,7 +5044,6 @@ function CricketAddaMain() {
   const [scorecardInning, setScorecardInning] = useState(1);
   const [scorecardTab, setScorecardTab] = useState('scorecard'); // 'scorecard' | 'mvp'
   const [viewerActiveSubTab, setViewerActiveSubTab] = useState('commentary'); // 'commentary' | 'scorecard' | 'wheel'
-  const [viewerYetToBatExpanded, setViewerYetToBatExpanded] = useState(true);
   const [mvpInfoModalVisible, setMvpInfoModalVisible] = useState(false);
   const currentMatchData = (activeMatchId && (matchesDb?.[activeMatchId] || MATCH_DATABASE?.[activeMatchId]))
     || (matchesDb && matchesDb[activeMatchId])
@@ -14751,15 +14750,6 @@ function CricketAddaMain() {
       .map(p => String(typeof p === 'object' ? p.name : p || '').trim())
       .filter(pName => pName && !battedPlayerNames.has(pName.toLowerCase()));
 
-    let yetToBatText = '';
-    if (yetToBatList.length > 0) {
-      yetToBatText = yetToBatList.join(', ');
-    } else if (battingList.length >= 10 || (activeInningData?.wickets || 0) >= 10) {
-      yetToBatText = 'All players have batted.';
-    } else {
-      yetToBatText = 'Remaining squad members yet to bat.';
-    }
-
     return (
       <View style={{ gap: 8 }}>
         {/* Inning Toggle Buttons */}
@@ -15050,54 +15040,6 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               );
             })
-          )}
-        </View>
-
-        {/* 4. YET TO BAT CARD (WITH TEAM LOGO HEADER) */}
-        <View style={{
-          backgroundColor: '#071526',
-          borderRadius: 10,
-          borderWidth: 1,
-          borderColor: '#1e3a5f',
-          overflow: 'hidden',
-        }}>
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setViewerYetToBatExpanded(prev => !prev)}
-            style={{
-              backgroundColor: '#0a213a',
-              paddingHorizontal: 10,
-              paddingVertical: 7,
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
-              <TeamFlagBadge
-                flag={battingTeamFlagResolved}
-                logo={battingTeamLogoResolved}
-                shortName={battingTeamShortResolved}
-                fullName={battingTeamNameResolved}
-                isBatting={true}
-                theme={currentTheme}
-                size="sm"
-              />
-              <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800', flex: 1 }} numberOfLines={1}>
-                {battingTeamNameResolved} – Yet to Bat
-              </Text>
-            </View>
-            <Text style={{ color: '#94a3b8', fontSize: 12 }}>
-              {viewerYetToBatExpanded ? '▲' : '▼'}
-            </Text>
-          </TouchableOpacity>
-
-          {viewerYetToBatExpanded && (
-            <View style={{ padding: 10 }}>
-              <Text style={{ color: '#cbd5e1', fontSize: 12.5, lineHeight: 18 }}>
-                {yetToBatText}
-              </Text>
-            </View>
           )}
         </View>
       </View>
