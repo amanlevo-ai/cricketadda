@@ -22896,88 +22896,90 @@ function CricketAddaMain() {
           <View style={{ flex: 1, backgroundColor: currentTheme.bg }}>
             <ScrollView
               style={styles.mainContentNoPad}
-              contentContainerStyle={{ paddingBottom: bottomInset + 90 }}
+              scrollEnabled={statsSubTab === 'career'}
+              contentContainerStyle={{ paddingBottom: statsSubTab === 'career' ? (bottomInset + 85) : 4 }}
               showsVerticalScrollIndicator={false}
             >
               {/* Top Section Header ("Player Stats") */}
               <View style={{
                 backgroundColor: cardBg,
-                paddingVertical: 10,
+                paddingVertical: 6,
                 paddingHorizontal: 14,
                 borderBottomWidth: 1,
                 borderBottomColor: cardBorder,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 8,
+                gap: 7,
               }}>
-                <Svg width={18} height={18} viewBox="0 0 24 24" fill="none">
+                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
                   <Path d="M4 18h3v-6H4v6zm6 0h3V6h-3v12zm6 0h3v-9h-3v9z" fill="#38bdf8" />
                 </Svg>
-                <Text style={{ color: txtPrimary, fontSize: 18, fontWeight: '900', letterSpacing: 0.3 }}>
+                <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', letterSpacing: 0.3 }}>
                   Player Stats
                 </Text>
               </View>
 
-              <View style={{ paddingHorizontal: 12, paddingTop: 10 }}>
+              <View style={{ paddingHorizontal: 10, paddingTop: 7 }}>
                 {/* 1. PLAYER IDENTITY & TOP KPI HEADER CARD */}
                 <View style={{
                   backgroundColor: cardBg,
                   borderColor: currentTheme.isLight ? '#0284c7' : '#38bdf8',
                   borderWidth: 1.3,
-                  borderRadius: 14,
-                  padding: 12,
-                  marginBottom: 10,
+                  borderRadius: 12,
+                  paddingVertical: 8,
+                  paddingHorizontal: 10,
+                  marginBottom: 7,
                   flexDirection: 'row',
                   alignItems: 'center',
-                  gap: 10,
+                  gap: 9,
                 }}>
                   {/* Avatar (Tap to edit photo/profile) */}
                   <TouchableOpacity activeOpacity={0.85} onPress={openProfileEdit} style={{ position: 'relative' }}>
                     <PlayerAvatar
                       name={userProfile.name || 'Player'}
                       customUri={userProfile.avatarUri}
-                      size={60}
+                      size={50}
                       borderColor="#e2e8f0"
                     />
                     <View style={{
                       position: 'absolute',
                       right: -2,
                       bottom: -2,
-                      width: 20,
-                      height: 20,
-                      borderRadius: 10,
+                      width: 18,
+                      height: 18,
+                      borderRadius: 9,
                       backgroundColor: '#0284c7',
                       borderWidth: 1.5,
                       borderColor: cardBg,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}>
-                      <Text style={{ fontSize: 10 }}>📷</Text>
+                      <Text style={{ fontSize: 9 }}>📷</Text>
                     </View>
                   </TouchableOpacity>
 
                   {/* Middle: Name & Roles */}
                   <TouchableOpacity activeOpacity={0.85} onPress={openProfileEdit} style={{ flex: 1, minWidth: 0 }}>
-                    <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900' }} numberOfLines={1}>
+                    <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900' }} numberOfLines={1}>
                       {userProfile.name || 'CricketAdda Player'}
                     </Text>
 
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 4 }}>
-                      <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2.5 }}>
+                      <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
                         <Path d="M19.7 4.3a1 1 0 00-1.4 0l-9.6 9.6-1.4-1.4-1.4 1.4 1.4 1.4-3.6 3.6 1.4 1.4 3.6-3.6 1.4 1.4 1.4-1.4-1.4-1.4 9.6-9.6a1 1 0 000-1.4z" fill={txtMuted} />
                       </Svg>
-                      <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11.5, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+                      <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600', flex: 1 }} numberOfLines={1}>
                         {userProfile.role || 'Top-Order Batter'}
                       </Text>
                     </View>
 
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2.5 }}>
-                      <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1.5 }}>
+                      <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
                         <Circle cx="12" cy="12" r="9" stroke={txtMuted} strokeWidth="2" />
                         <Path d="M7.5 6.5c2 3 2 8 0 11M16.5 6.5c-2 3-2 8 0 11" stroke={txtMuted} strokeWidth="1.5" />
                       </Svg>
-                      <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11.5, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+                      <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600', flex: 1 }} numberOfLines={1}>
                         {userProfile.bowlingStyle || 'Part-time Bowler'}
                       </Text>
                     </View>
@@ -22987,22 +22989,22 @@ function CricketAddaMain() {
                   <View style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 10,
+                    gap: 8,
                     paddingLeft: 8,
                     borderLeftWidth: 1,
                     borderLeftColor: dividerCol,
                   }}>
                     <View style={{ alignItems: 'center' }}>
-                      <Text style={{ color: txtPrimary, fontSize: 16, fontWeight: '900' }}>{ov.matchesPlayed ?? 0}</Text>
-                      <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '600' }}>Matches</Text>
+                      <Text style={{ color: txtPrimary, fontSize: 15, fontWeight: '900' }}>{ov.matchesPlayed ?? 0}</Text>
+                      <Text style={{ color: txtMuted, fontSize: 9.5, fontWeight: '600' }}>Matches</Text>
                     </View>
                     <View style={{ alignItems: 'center' }}>
-                      <Text style={{ color: txtPrimary, fontSize: 16, fontWeight: '900' }}>{ov.inningsBatted ?? 0}</Text>
-                      <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '600' }}>Innings</Text>
+                      <Text style={{ color: txtPrimary, fontSize: 15, fontWeight: '900' }}>{ov.inningsBatted ?? 0}</Text>
+                      <Text style={{ color: txtMuted, fontSize: 9.5, fontWeight: '600' }}>Innings</Text>
                     </View>
                     <View style={{ alignItems: 'center' }}>
-                      <Text style={{ color: txtPrimary, fontSize: 16, fontWeight: '900' }}>{ov.notOuts ?? 0}</Text>
-                      <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '600' }}>Not Out</Text>
+                      <Text style={{ color: txtPrimary, fontSize: 15, fontWeight: '900' }}>{ov.notOuts ?? 0}</Text>
+                      <Text style={{ color: txtMuted, fontSize: 9.5, fontWeight: '600' }}>Not Out</Text>
                     </View>
                   </View>
                 </View>
@@ -23011,11 +23013,11 @@ function CricketAddaMain() {
                 <View style={{
                   flexDirection: 'row',
                   backgroundColor: cardBg,
-                  borderRadius: 12,
+                  borderRadius: 11,
                   borderWidth: 1,
                   borderColor: cardBorder,
-                  padding: 3,
-                  marginBottom: 10,
+                  padding: 2.5,
+                  marginBottom: 7,
                 }}>
                   {[
                     { key: 'batting', label: 'Batting', icon: 'bat' },
@@ -23036,18 +23038,18 @@ function CricketAddaMain() {
                           alignItems: 'center',
                           justifyContent: 'center',
                           gap: 4,
-                          paddingVertical: 8,
+                          paddingVertical: 6.5,
                           paddingHorizontal: 3,
-                          borderRadius: 9,
+                          borderRadius: 8.5,
                           ...(isAct ? {
                             backgroundColor: '#0284c7',
-                            borderWidth: 1.5,
+                            borderWidth: 1.3,
                             borderColor: '#38bdf8',
                             shadowColor: '#38bdf8',
                             shadowOffset: { width: 0, height: 0 },
-                            shadowOpacity: 0.65,
-                            shadowRadius: 8,
-                            elevation: 6,
+                            shadowOpacity: 0.6,
+                            shadowRadius: 7,
+                            elevation: 5,
                           } : (tIdx < 3 ? {
                             borderRightWidth: 1,
                             borderRightColor: dividerCol,
@@ -23055,30 +23057,30 @@ function CricketAddaMain() {
                         }}
                       >
                         {tab.icon === 'bat' && (
-                          <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
                             <Path d="M19.7 4.3a1 1 0 00-1.4 0l-9.6 9.6-1.4-1.4-1.4 1.4 1.4 1.4-3.6 3.6 1.4 1.4 3.6-3.6 1.4 1.4 1.4-1.4-1.4-1.4 9.6-9.6a1 1 0 000-1.4z" fill={iconCol} />
                           </Svg>
                         )}
                         {tab.icon === 'ball' && (
-                          <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
                             <Circle cx="12" cy="12" r="9" stroke={iconCol} strokeWidth="2" />
                             <Path d="M7.5 6.5c2 3 2 8 0 11M16.5 6.5c-2 3-2 8 0 11" stroke={iconCol} strokeWidth="1.5" />
                           </Svg>
                         )}
                         {tab.icon === 'glove' && (
-                          <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
                             <Path d="M6 10v7c0 1.66 1.34 3 3 3h6c1.66 0 3-1.34 3-3v-7c0-.55-.45-1-1-1s-1 .45-1 1v2h-1V6c0-.55-.45-1-1-1s-1 .45-1 1v5h-1V5c0-.55-.45-1-1-1s-1 .45-1 1v6H9V7c0-.55-.45-1-1-1s-1 .45-1 1v5H6.5V10H6z" fill={iconCol} />
                           </Svg>
                         )}
                         {tab.icon === 'trophy' && (
-                          <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
                             <Path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z" fill={iconCol} />
                           </Svg>
                         )}
                         <Text
                           style={{
                             color: isAct ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#e2e8f0'),
-                            fontSize: 11.5,
+                            fontSize: 11,
                             fontWeight: isAct ? '900' : '700',
                           }}
                           numberOfLines={1}
@@ -23095,14 +23097,14 @@ function CricketAddaMain() {
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  marginBottom: 10,
+                  marginBottom: 7,
                   paddingHorizontal: 2,
                 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-                    <Svg width={17} height={17} viewBox="0 0 24 24" fill="none">
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <Svg width={15} height={15} viewBox="0 0 24 24" fill="none">
                       <Path d="M4 18h3v-6H4v6zm6 0h3V6h-3v12zm6 0h3v-9h-3v9z" fill="#38bdf8" />
                     </Svg>
-                    <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900' }}>
+                    <Text style={{ color: txtPrimary, fontSize: 14.5, fontWeight: '900' }}>
                       {statsSubTab === 'batting'
                         ? 'Batting Statistics'
                         : statsSubTab === 'bowling'
@@ -23120,18 +23122,18 @@ function CricketAddaMain() {
                       backgroundColor: cardBg,
                       borderColor: statsRangeFilter !== 'overall' ? '#38bdf8' : cardBorder,
                       borderWidth: 1,
-                      borderRadius: 16,
-                      paddingHorizontal: 12,
-                      paddingVertical: 5.5,
+                      borderRadius: 14,
+                      paddingHorizontal: 10,
+                      paddingVertical: 4,
                       flexDirection: 'row',
                       alignItems: 'center',
-                      gap: 6,
+                      gap: 5,
                     }}
                   >
-                    <Text style={{ color: txtPrimary, fontSize: 12, fontWeight: '700' }}>
+                    <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '700' }}>
                       {rangeLabelMap[statsRangeFilter] || 'Overall'}
                     </Text>
-                    <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+                    <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
                       <Path d="M7 10l5 5 5-5z" fill={txtMuted} />
                     </Svg>
                   </TouchableOpacity>
@@ -23145,46 +23147,46 @@ function CricketAddaMain() {
                       backgroundColor: currentTheme.isLight ? '#f0f9ff' : '#081d38',
                       borderColor: '#38bdf8',
                       borderWidth: 1.3,
-                      borderRadius: 14,
-                      paddingVertical: 14,
-                      paddingHorizontal: 10,
-                      marginBottom: 10,
+                      borderRadius: 12,
+                      paddingVertical: 10,
+                      paddingHorizontal: 8,
+                      marginBottom: 7,
                       flexDirection: 'row',
                       alignItems: 'center',
                     }}>
-                      <View style={{ flex: 1.35, paddingRight: 8, borderRightWidth: 1, borderRightColor: dividerCol }}>
-                        <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#bae6fd', fontSize: 11.5, fontWeight: '700', textAlign: 'center' }}>
+                      <View style={{ flex: 1.35, paddingRight: 6, borderRightWidth: 1, borderRightColor: dividerCol }}>
+                        <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#bae6fd', fontSize: 11, fontWeight: '700', textAlign: 'center' }}>
                           Total Runs
                         </Text>
-                        <Text style={{ color: txtPrimary, fontSize: 27, fontWeight: '900', textAlign: 'center', marginTop: 2 }} numberOfLines={1} adjustsFontSizeToFit>
+                        <Text style={{ color: txtPrimary, fontSize: 24, fontWeight: '900', textAlign: 'center', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
                           {fmtStat(batStats.runs)}
                         </Text>
                       </View>
 
                       <View style={{ flex: 1, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: dividerCol, alignItems: 'center' }}>
-                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700', textAlign: 'center' }}>Balls Faced</Text>
-                        <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', marginTop: 4 }}>{fmtStat(batStats.ballsFaced)}</Text>
+                        <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700', textAlign: 'center' }}>Balls Faced</Text>
+                        <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{fmtStat(batStats.ballsFaced)}</Text>
                       </View>
 
                       <View style={{ flex: 1, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: dividerCol, alignItems: 'center' }}>
-                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700', textAlign: 'center' }}>Strike Rate</Text>
-                        <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', marginTop: 4 }}>{batStats.sr || '0.0'}</Text>
+                        <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700', textAlign: 'center' }}>Strike Rate</Text>
+                        <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{batStats.sr || '0.0'}</Text>
                       </View>
 
                       <View style={{ flex: 1, paddingLeft: 4, alignItems: 'center' }}>
-                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700', textAlign: 'center' }}>Average</Text>
-                        <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', marginTop: 4 }}>{batStats.avg || '0.00'}</Text>
+                        <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700', textAlign: 'center' }}>Average</Text>
+                        <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{batStats.avg || '0.00'}</Text>
                       </View>
                     </View>
 
-                    {/* 5 Mini Tile Strip: 4s | 6s | Singles | Doubles | Triples */}
-                    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
+                    {/* 5 Mini Tile Strip (NO Icons above 4s / 6s / Singles / Doubles / Triples) */}
+                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 7 }}>
                       {[
-                        { label: '4s', val: fmtStat(batStats.fours), type: 'bat' },
-                        { label: '6s', val: fmtStat(batStats.sixes), type: 'bat' },
-                        { label: 'Singles', val: fmtStat(batStats.singles), type: 'run' },
-                        { label: 'Doubles', val: fmtStat(batStats.doubles), type: 'run2' },
-                        { label: 'Triples', val: fmtStat(batStats.triples), type: 'run3' },
+                        { label: '4s', val: fmtStat(batStats.fours) },
+                        { label: '6s', val: fmtStat(batStats.sixes) },
+                        { label: 'Singles', val: fmtStat(batStats.singles) },
+                        { label: 'Doubles', val: fmtStat(batStats.doubles) },
+                        { label: 'Triples', val: fmtStat(batStats.triples) },
                       ].map(item => (
                         <View
                           key={item.label}
@@ -23193,46 +23195,30 @@ function CricketAddaMain() {
                             backgroundColor: cardBg,
                             borderColor: cardBorder,
                             borderWidth: 1,
-                            borderRadius: 11,
-                            paddingVertical: 9,
+                            borderRadius: 10,
+                            paddingVertical: 7,
                             paddingHorizontal: 3,
                             alignItems: 'center',
                             justifyContent: 'center',
                           }}
                         >
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: 3 }}>
-                            {item.type === 'bat' ? (
-                              <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
-                                <Path d="M19.7 4.3a1 1 0 00-1.4 0l-9.6 9.6-1.4-1.4-1.4 1.4 1.4 1.4-3.6 3.6 1.4 1.4 3.6-3.6 1.4 1.4 1.4-1.4-1.4-1.4 9.6-9.6a1 1 0 000-1.4z" fill={txtPrimary} />
-                              </Svg>
-                            ) : (
-                              <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
-                                <Path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zM9.8 8.9L7 23h2.1l1.8-8 2.1 2v6h2v-7.5l-2.1-2 .6-3C14.8 12 16.8 13 19 13v-2c-1.9 0-3.5-1-4.3-2.4l-1-1.6c-.4-.6-1-1-1.7-1-.3 0-.5.1-.8.1L6 8.3V13h2V9.6l1.8-.7" fill={txtPrimary} />
-                              </Svg>
-                            )}
-                            {(item.type === 'run2' || item.type === 'run3') && (
-                              <Text style={{ color: txtPrimary, fontSize: 9.5, fontWeight: '900' }}>
-                                {item.type === 'run2' ? '2' : '3'}
-                              </Text>
-                            )}
-                          </View>
-                          <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '600' }} numberOfLines={1}>{item.label}</Text>
+                          <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '600' }} numberOfLines={1}>{item.label}</Text>
                           <Text style={{ color: txtPrimary, fontSize: 15, fontWeight: '900', marginTop: 2 }} numberOfLines={1}>{item.val}</Text>
                         </View>
                       ))}
                     </View>
 
                     {/* Bottom 2-Column Split Grid: Milestones & Dismissals (as Batsman) */}
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                    <View style={{ flexDirection: 'row', gap: 7 }}>
                       {/* Left Card: Milestones & Boundaries */}
                       <View style={{
                         flex: 1,
                         backgroundColor: cardBg,
                         borderColor: cardBorder,
                         borderWidth: 1,
-                        borderRadius: 13,
-                        paddingHorizontal: 11,
-                        paddingVertical: 8,
+                        borderRadius: 12,
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
                       }}>
                         {[
                           { label: 'Highest Score', val: batStats.highScore || '0' },
@@ -23248,15 +23234,15 @@ function CricketAddaMain() {
                               flexDirection: 'row',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              paddingVertical: 8,
+                              paddingVertical: 6.5,
                               borderBottomWidth: r.last ? 0 : 0.7,
                               borderBottomColor: dividerCol,
                             }}
                           >
-                            <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11.5, fontWeight: '600', flex: 1, paddingRight: 4 }} numberOfLines={1}>
+                            <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600', flex: 1, paddingRight: 4 }} numberOfLines={1}>
                               {r.label}
                             </Text>
-                            <Text style={{ color: txtPrimary, fontSize: 13.5, fontWeight: '900' }}>
+                            <Text style={{ color: txtPrimary, fontSize: 13, fontWeight: '900' }}>
                               {r.val}
                             </Text>
                           </View>
@@ -23269,23 +23255,23 @@ function CricketAddaMain() {
                         backgroundColor: cardBg,
                         borderColor: cardBorder,
                         borderWidth: 1,
-                        borderRadius: 13,
-                        paddingHorizontal: 11,
-                        paddingVertical: 8,
+                        borderRadius: 12,
+                        paddingHorizontal: 10,
+                        paddingVertical: 5,
                       }}>
                         <View style={{
                           flexDirection: 'row',
                           alignItems: 'center',
-                          gap: 6,
-                          paddingBottom: 7,
-                          marginBottom: 2,
+                          gap: 5,
+                          paddingVertical: 5,
+                          marginBottom: 1,
                           borderBottomWidth: 1,
                           borderBottomColor: dividerCol,
                         }}>
-                          <Svg width={14} height={14} viewBox="0 0 24 24" fill="none">
+                          <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
                             <Path d="M6 4v16h2V4H6zm5 0v16h2V4h-2zm5 0v16h2V4h-2zM5 3h14v2H5V3z" fill={txtPrimary} />
                           </Svg>
-                          <Text style={{ color: txtPrimary, fontSize: 12, fontWeight: '900', flex: 1 }} numberOfLines={1}>
+                          <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '900', flex: 1 }} numberOfLines={1}>
                             Dismissals (as Batsman)
                           </Text>
                         </View>
@@ -23305,15 +23291,15 @@ function CricketAddaMain() {
                               flexDirection: 'row',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              paddingVertical: 6.5,
+                              paddingVertical: 4.5,
                               borderBottomWidth: r.last ? 0 : 0.7,
                               borderBottomColor: dividerCol,
                             }}
                           >
-                            <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11.5, fontWeight: '600' }}>
+                            <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600' }}>
                               {r.label}
                             </Text>
-                            <Text style={{ color: txtPrimary, fontSize: 13, fontWeight: '900' }}>
+                            <Text style={{ color: txtPrimary, fontSize: 12.5, fontWeight: '900' }}>
                               {r.val}
                             </Text>
                           </View>
@@ -23330,39 +23316,39 @@ function CricketAddaMain() {
                       backgroundColor: currentTheme.isLight ? '#f0f9ff' : '#081d38',
                       borderColor: '#38bdf8',
                       borderWidth: 1.3,
-                      borderRadius: 14,
-                      paddingVertical: 14,
-                      paddingHorizontal: 10,
-                      marginBottom: 10,
+                      borderRadius: 12,
+                      paddingVertical: 10,
+                      paddingHorizontal: 8,
+                      marginBottom: 7,
                       flexDirection: 'row',
                       alignItems: 'center',
                     }}>
-                      <View style={{ flex: 1.3, paddingRight: 8, borderRightWidth: 1, borderRightColor: dividerCol }}>
-                        <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#bae6fd', fontSize: 11.5, fontWeight: '700', textAlign: 'center' }}>
+                      <View style={{ flex: 1.3, paddingRight: 6, borderRightWidth: 1, borderRightColor: dividerCol }}>
+                        <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#bae6fd', fontSize: 11, fontWeight: '700', textAlign: 'center' }}>
                           Total Wickets
                         </Text>
-                        <Text style={{ color: '#38bdf8', fontSize: 27, fontWeight: '900', textAlign: 'center', marginTop: 2 }}>
+                        <Text style={{ color: '#38bdf8', fontSize: 24, fontWeight: '900', textAlign: 'center', marginTop: 1 }}>
                           {fmtStat(bowlStats.wickets)}
                         </Text>
                       </View>
 
                       <View style={{ flex: 1, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: dividerCol, alignItems: 'center' }}>
-                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700' }}>Overs</Text>
-                        <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', marginTop: 4 }}>{bowlStats.oversBowled || '0.0'}</Text>
+                        <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700' }}>Overs</Text>
+                        <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{bowlStats.oversBowled || '0.0'}</Text>
                       </View>
 
                       <View style={{ flex: 1, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: dividerCol, alignItems: 'center' }}>
-                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700' }}>Economy</Text>
-                        <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', marginTop: 4 }}>{bowlStats.econ || '0.00'}</Text>
+                        <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700' }}>Economy</Text>
+                        <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{bowlStats.econ || '0.00'}</Text>
                       </View>
 
                       <View style={{ flex: 1, paddingLeft: 4, alignItems: 'center' }}>
-                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700' }}>Average</Text>
-                        <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', marginTop: 4 }}>{bowlStats.avg || '0.00'}</Text>
+                        <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700' }}>Average</Text>
+                        <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{bowlStats.avg || '0.00'}</Text>
                       </View>
                     </View>
 
-                    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 7 }}>
                       {[
                         { label: 'Best', val: bowlStats.best || '0/0' },
                         { label: 'Runs', val: fmtStat(bowlStats.runsConceded) },
@@ -23377,20 +23363,20 @@ function CricketAddaMain() {
                             backgroundColor: cardBg,
                             borderColor: cardBorder,
                             borderWidth: 1,
-                            borderRadius: 11,
-                            paddingVertical: 10,
+                            borderRadius: 10,
+                            paddingVertical: 7,
                             paddingHorizontal: 3,
                             alignItems: 'center',
                           }}
                         >
-                          <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '600' }}>{item.label}</Text>
-                          <Text style={{ color: txtPrimary, fontSize: 14.5, fontWeight: '900', marginTop: 4 }}>{item.val}</Text>
+                          <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '600' }}>{item.label}</Text>
+                          <Text style={{ color: txtPrimary, fontSize: 14, fontWeight: '900', marginTop: 2 }}>{item.val}</Text>
                         </View>
                       ))}
                     </View>
 
-                    <View style={{ flexDirection: 'row', gap: 8 }}>
-                      <View style={{ flex: 1, backgroundColor: cardBg, borderColor: cardBorder, borderWidth: 1, borderRadius: 13, paddingHorizontal: 11, paddingVertical: 8 }}>
+                    <View style={{ flexDirection: 'row', gap: 7 }}>
+                      <View style={{ flex: 1, backgroundColor: cardBg, borderColor: cardBorder, borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}>
                         {[
                           { label: 'Balls Bowled', val: fmtStat(bowlStats.ballsBowled) },
                           { label: 'Strike Rate', val: bowlStats.sr || '0.0' },
@@ -23405,20 +23391,20 @@ function CricketAddaMain() {
                               flexDirection: 'row',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              paddingVertical: 8,
+                              paddingVertical: 6.5,
                               borderBottomWidth: r.last ? 0 : 0.7,
                               borderBottomColor: dividerCol,
                             }}
                           >
-                            <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11.5, fontWeight: '600' }}>{r.label}</Text>
-                            <Text style={{ color: txtPrimary, fontSize: 13.5, fontWeight: '900' }}>{r.val}</Text>
+                            <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600' }}>{r.label}</Text>
+                            <Text style={{ color: txtPrimary, fontSize: 13, fontWeight: '900' }}>{r.val}</Text>
                           </View>
                         ))}
                       </View>
 
-                      <View style={{ flex: 1, backgroundColor: cardBg, borderColor: cardBorder, borderWidth: 1, borderRadius: 13, paddingHorizontal: 11, paddingVertical: 8 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 7, marginBottom: 2, borderBottomWidth: 1, borderBottomColor: dividerCol }}>
-                          <Text style={{ color: txtPrimary, fontSize: 12, fontWeight: '900' }}>🎯 Wickets Taken</Text>
+                      <View style={{ flex: 1, backgroundColor: cardBg, borderColor: cardBorder, borderWidth: 1, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 5 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, paddingVertical: 5, marginBottom: 1, borderBottomWidth: 1, borderBottomColor: dividerCol }}>
+                          <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '900' }}>🎯 Wickets Taken</Text>
                         </View>
                         {[
                           { label: 'Bowled', val: fmtStat(wktByType.bowled) },
@@ -23434,13 +23420,13 @@ function CricketAddaMain() {
                               flexDirection: 'row',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              paddingVertical: 8,
+                              paddingVertical: 5.5,
                               borderBottomWidth: r.last ? 0 : 0.7,
                               borderBottomColor: dividerCol,
                             }}
                           >
-                            <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11.5, fontWeight: '600' }}>{r.label}</Text>
-                            <Text style={{ color: txtPrimary, fontSize: 13.5, fontWeight: '900' }}>{r.val}</Text>
+                            <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600' }}>{r.label}</Text>
+                            <Text style={{ color: txtPrimary, fontSize: 13, fontWeight: '900' }}>{r.val}</Text>
                           </View>
                         ))}
                       </View>
@@ -23455,35 +23441,35 @@ function CricketAddaMain() {
                       backgroundColor: currentTheme.isLight ? '#f0f9ff' : '#081d38',
                       borderColor: '#38bdf8',
                       borderWidth: 1.3,
-                      borderRadius: 14,
-                      paddingVertical: 14,
-                      paddingHorizontal: 10,
-                      marginBottom: 10,
+                      borderRadius: 12,
+                      paddingVertical: 10,
+                      paddingHorizontal: 8,
+                      marginBottom: 7,
                       flexDirection: 'row',
                       alignItems: 'center',
                     }}>
-                      <View style={{ flex: 1.25, paddingRight: 8, borderRightWidth: 1, borderRightColor: dividerCol }}>
-                        <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#bae6fd', fontSize: 11.5, fontWeight: '700', textAlign: 'center' }}>
+                      <View style={{ flex: 1.25, paddingRight: 6, borderRightWidth: 1, borderRightColor: dividerCol }}>
+                        <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#bae6fd', fontSize: 11, fontWeight: '700', textAlign: 'center' }}>
                           Catches
                         </Text>
-                        <Text style={{ color: '#4ade80', fontSize: 27, fontWeight: '900', textAlign: 'center', marginTop: 2 }}>
+                        <Text style={{ color: '#4ade80', fontSize: 24, fontWeight: '900', textAlign: 'center', marginTop: 1 }}>
                           {fmtStat(fieldStats.catches)}
                         </Text>
                       </View>
 
                       <View style={{ flex: 1, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: dividerCol, alignItems: 'center' }}>
-                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700' }}>Run Outs</Text>
-                        <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', marginTop: 4 }}>{fmtStat(fieldStats.runOuts)}</Text>
+                        <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700' }}>Run Outs</Text>
+                        <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{fmtStat(fieldStats.runOuts)}</Text>
                       </View>
 
                       <View style={{ flex: 1, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: dividerCol, alignItems: 'center' }}>
-                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700' }}>Direct Hits</Text>
-                        <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', marginTop: 4 }}>{fmtStat(fieldStats.directHits)}</Text>
+                        <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700' }}>Direct Hits</Text>
+                        <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{fmtStat(fieldStats.directHits)}</Text>
                       </View>
 
                       <View style={{ flex: 1, paddingLeft: 4, alignItems: 'center' }}>
-                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '700' }}>Stumpings</Text>
-                        <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', marginTop: 4 }}>{fmtStat(fieldStats.stumpings)}</Text>
+                        <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700' }}>Stumpings</Text>
+                        <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{fmtStat(fieldStats.stumpings)}</Text>
                       </View>
                     </View>
 
