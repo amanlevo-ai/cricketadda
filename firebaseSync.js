@@ -431,7 +431,7 @@ export async function recordBallDeliveryAtomic(matchId, ballData) {
 
     const assignedSeq = (txResult.snapshot.val() || 2) - 1;
 
-    // Step 2: Push keyed delivery under matches/{matchId}/balls/{pushId}
+    // Step 2: Prepare keyed delivery record for atomic multi-path commit
     const ballsRef = ref(db, `matches/${id}/balls`);
     const newBallRef = push(ballsRef);
     const ballPushId = newBallRef.key;
@@ -444,11 +444,13 @@ export async function recordBallDeliveryAtomic(matchId, ballData) {
       timestamp: Date.now(),
     };
 
-    await set(newBallRef, deliveryRecord);
-
     const actionTime = ballData.actionTime || Date.now();
-    // Step 3: Concurrency-safe atomic metadata updates (NO derived totals stored!)
-    const metaUpdates = {
+
+    // Step 3: Concurrency-safe atomic multi-path update (delivery + metadata in ONE SINGLE WRITE!)
+    // This eliminates race conditions where deliveries appear before isUndoAction: false is written,
+    // which previously caused spurious undo signals and "This Over" pill flickering.
+    const multiPathUpdates = {
+      [`balls/${ballPushId}`]: deliveryRecord,
       lastSyncedAt: Date.now(),
       lastUpdatedAt: actionTime,
       lastActionTimestamp: actionTime,
@@ -458,24 +460,24 @@ export async function recordBallDeliveryAtomic(matchId, ballData) {
       senderClientId: ballData.senderClientId || '',
     };
 
-    if (ballData.nextStriker !== undefined) metaUpdates.currentStriker = ballData.nextStriker;
-    else if (ballData.striker !== undefined) metaUpdates.currentStriker = ballData.striker;
+    if (ballData.nextStriker !== undefined) multiPathUpdates.currentStriker = ballData.nextStriker;
+    else if (ballData.striker !== undefined) multiPathUpdates.currentStriker = ballData.striker;
 
-    if (ballData.nextNonStriker !== undefined) metaUpdates.currentNonStriker = ballData.nextNonStriker;
-    else if (ballData.nonStriker !== undefined) metaUpdates.currentNonStriker = ballData.nonStriker;
+    if (ballData.nextNonStriker !== undefined) multiPathUpdates.currentNonStriker = ballData.nextNonStriker;
+    else if (ballData.nonStriker !== undefined) multiPathUpdates.currentNonStriker = ballData.nonStriker;
 
-    if (ballData.nextBowler !== undefined) metaUpdates.currentBowler = ballData.nextBowler;
-    else if (ballData.bowler !== undefined) metaUpdates.currentBowler = ballData.bowler;
+    if (ballData.nextBowler !== undefined) multiPathUpdates.currentBowler = ballData.nextBowler;
+    else if (ballData.bowler !== undefined) multiPathUpdates.currentBowler = ballData.bowler;
 
-    if (ballData.lastOverBowler !== undefined) metaUpdates.lastOverBowler = ballData.lastOverBowler;
-    if (ballData.status) metaUpdates.status = ballData.status;
+    if (ballData.lastOverBowler !== undefined) multiPathUpdates.lastOverBowler = ballData.lastOverBowler;
+    if (ballData.status) multiPathUpdates.status = ballData.status;
     if (ballData.celebrationEvent) {
-      metaUpdates.celebrationEvent = ballData.celebrationEvent;
+      multiPathUpdates.celebrationEvent = ballData.celebrationEvent;
     } else {
-      metaUpdates.celebrationEvent = null;
+      multiPathUpdates.celebrationEvent = null;
     }
 
-    await update(matchRef, metaUpdates);
+    await update(matchRef, multiPathUpdates);
 
     console.log(`[FirebaseSync] 🟢 Ball seq #${assignedSeq} pushed to matches/${id}/balls/${ballPushId} in ${Date.now() - startTime}ms`);
     return { success: true, seq: assignedSeq, pushId: ballPushId };
@@ -489,8 +491,9 @@ export async function recordBallDeliveryAtomic(matchId, ballData) {
  * Concurrency-safe atomic delivery undo:
  * Isolates delivery with highest seq, deletes it from matches/{matchId}/balls/{pushId},
  * and decrements nextBallSeq via runTransaction.
+ * Performs delivery deletion and metadata update in a single atomic update call.
  */
-export async function undoLastBallDeliveryAtomic(matchId) {
+export async function undoLastBallDeliveryAtomic(matchId, senderClientId = '') {
   if (!isFirebaseConfigured() || !matchId) {
     return { success: false, error: 'Firebase not configured or invalid matchId' };
   }
@@ -516,9 +519,6 @@ export async function undoLastBallDeliveryAtomic(matchId) {
     const [latestPushId, latestBall] = entries[0];
     const removedSeq = Number(latestBall.seq) || 1;
 
-    // Delete the keyed delivery record
-    await remove(ref(db, `matches/${id}/balls/${latestPushId}`));
-
     // Roll back sequence in nextBallSeq transactionally
     const seqRef = ref(db, `matches/${id}/nextBallSeq`);
     await runTransaction(seqRef, (cur) => {
@@ -528,12 +528,15 @@ export async function undoLastBallDeliveryAtomic(matchId) {
       return cur;
     });
 
+    // Delete the keyed delivery record AND update undo metadata atomically in ONE WRITE
     const undoTime = Date.now();
     await update(matchRef, {
+      [`balls/${latestPushId}`]: null,
       lastSyncedAt: undoTime,
       lastUpdatedAt: undoTime,
       lastActionTimestamp: undoTime,
       isUndoAction: true,
+      senderClientId: senderClientId || '',
       celebrationEvent: null,
     });
 

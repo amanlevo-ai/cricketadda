@@ -7546,8 +7546,10 @@ function CricketAddaMain() {
             next[mId] = { ...existing, ...mData };
             hasChanges = true;
 
-            // Synchronize active match screen instantly if this match is open
-            if (mId === activeMatchIdRef.current) {
+            // Synchronize active match screen instantly if this match is open on spectator devices.
+            // Official scorer uses local derived state + dedicated subscribeToFirebaseMatch listener;
+            // skipping here completely prevents double-update collisions and "This Over" pill flicker.
+            if (mId === activeMatchIdRef.current && !isOfficialScorerRef.current) {
               const cloudDeliveries = Array.isArray(mData.scoringHistory)
                 ? mData.scoringHistory
                 : (mData.balls && typeof mData.balls === 'object' ? Object.values(mData.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0)) : []);
@@ -9052,6 +9054,7 @@ function CricketAddaMain() {
       scorerPhone: match?.scorerPhone || currentMatchInDb.scorerPhone || userProfile?.phone || authPhone || '',
       scorerEmail: match?.scorerEmail || currentMatchInDb.scorerEmail || userProfile?.email || authEmail || '',
       scorerName: match?.scorerName || currentMatchInDb.scorerName || userProfile?.name || authName || '',
+      senderClientId: clientIdRef?.current || '',
       liveCommentaryList: customPayload.liveCommentaryList || liveCommentaryList,
       liveBatters: customPayload.liveBatters || liveBatters,
       liveBowlerStats: customPayload.liveBowlerStats || liveBowlerStats,
@@ -9231,9 +9234,39 @@ function CricketAddaMain() {
         (cloudBallsCount > (lastAppliedRemoteSyncRef.current?.balls || 0))
       );
 
-      if (isOfficialScorer && !isCloudStrictlyNewer && !isUndoSignal) {
-        // Scorer's own device: ignore delayed echo packets to prevent blinking
+      // Check if this incoming cloud packet was dispatched by THIS device (self-echo)
+      const isMyOwnEcho = Boolean(
+        isOfficialScorer &&
+        localTime > 0 &&
+        cloudData.senderClientId &&
+        clientIdRef.current &&
+        cloudData.senderClientId === clientIdRef.current
+      );
+
+      if (isMyOwnEcho) {
+        // Scorer's own device: sync timestamps & sequence refs but ignore remote state echo
+        // because the scorer's local engine is already authoritative and zero-latency.
+        // This eliminates "This Over" pill flickering and redundant re-renders after scoring/undo.
+        if (cloudTime > localTime) lastLocalActionTimeRef.current = cloudTime;
+        if (cloudVersion > localVersion) localMatchVersionRef.current = cloudVersion;
+        lastAppliedRemoteSyncRef.current = {
+          timestamp: Math.max(cloudTime, lastAppliedRemoteSyncRef.current?.timestamp || 0),
+          balls: cloudBallsCount,
+          innings: Number(cloudData.currentInnings || 1),
+        };
         return;
+      }
+
+      if (isOfficialScorer) {
+        const localBallsCount = Array.isArray(scoringHistory) ? scoringHistory.length : 0;
+        // If local scorer already has identical delivery count and action happened recently, ignore echo
+        if (cloudBallsCount === localBallsCount && localTime > 0 && (Date.now() - localTime < 3000)) {
+          return;
+        }
+        if (!isCloudStrictlyNewer && !isUndoSignal) {
+          // Scorer's own device: ignore delayed echo packets to prevent blinking
+          return;
+        }
       }
 
       if (cloudTime > localTime) lastLocalActionTimeRef.current = cloudTime;
@@ -11403,6 +11436,7 @@ function CricketAddaMain() {
       forceReset: false,
       isReset: false,
       forceResetAt: null,
+      isUndoAction: false,
       liveRuns: nextRuns,
       liveWickets: nextWkts,
       liveBalls: nextBalls,
@@ -12629,6 +12663,11 @@ function CricketAddaMain() {
       const undoTime = Date.now();
       localMatchVersionRef.current = (localMatchVersionRef.current || 0) + 1;
       lastLocalActionTimeRef.current = undoTime;
+      lastAppliedRemoteSyncRef.current = {
+        timestamp: undoTime,
+        balls: derivedActive.balls,
+        innings: currentInnings,
+      };
 
       // Update persistent matches database with rolled-back state
       setMatchesDb(prev => {
@@ -12701,7 +12740,7 @@ function CricketAddaMain() {
 
       // Concurrency-safe atomic undo on Cloud RTDB
       if (activeMatchId && isFirebaseConfigured()) {
-        undoLastBallDeliveryAtomic(activeMatchId).then(res => {
+        undoLastBallDeliveryAtomic(activeMatchId, clientIdRef?.current || '').then(res => {
           if (res && res.success) {
             console.log(`[CloudRTDB] 🟢 Ball delivery seq #${res.removedSeq} undone in RTDB`);
           } else {
@@ -12792,6 +12831,14 @@ function CricketAddaMain() {
           },
         };
       });
+
+      const undoFallbackTime = Date.now();
+      lastLocalActionTimeRef.current = undoFallbackTime;
+      lastAppliedRemoteSyncRef.current = {
+        timestamp: undoFallbackTime,
+        balls: nextB,
+        innings: currentInnings,
+      };
 
       broadcastMatchState({
         isUndoAction: true,
