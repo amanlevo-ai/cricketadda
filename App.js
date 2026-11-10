@@ -4995,6 +4995,7 @@ function CricketAddaMain() {
   const [statsSubTab, setStatsSubTab] = useState('batting'); // 'batting' | 'bowling' | 'fielding' | 'career'
   const [statsRangeFilter, setStatsRangeFilter] = useState('overall'); // 'overall' | 'last5' | 'completed' | 'live'
   const [statsRangeMenuVisible, setStatsRangeMenuVisible] = useState(false);
+  const [headerUserMenuVisible, setHeaderUserMenuVisible] = useState(false);
   const [showMvpLeaderboard, setShowMvpLeaderboard] = useState(false);
 
   // Dynamic Matches Database & Auto-Saved Setup Draft State
@@ -18710,7 +18711,7 @@ function CricketAddaMain() {
                   paddingHorizontal: 8,
                   borderRadius: 20,
                 }}
-                onPress={() => navigateTo('profile')}
+                onPress={() => setHeaderUserMenuVisible(true)}
                 activeOpacity={0.8}
               >
                 <PlayerAvatar name={userProfile.name || 'User'} size={24} customUri={userProfile.avatarUri} />
@@ -18720,6 +18721,152 @@ function CricketAddaMain() {
               </TouchableOpacity>
             </View>
           </View>
+
+          {/* Header User Quick Menu Modal (My QR, Squads, Profile, Player Stats) */}
+          <Modal visible={headerUserMenuVisible} transparent animationType="fade" onRequestClose={() => setHeaderUserMenuVisible(false)}>
+            <TouchableOpacity
+              activeOpacity={1}
+              onPress={() => setHeaderUserMenuVisible(false)}
+              style={{ flex: 1, backgroundColor: 'rgba(2, 6, 23, 0.65)', justifyContent: 'flex-start', alignItems: 'flex-end', paddingTop: 64, paddingRight: 14 }}
+            >
+              <TouchableOpacity
+                activeOpacity={1}
+                onPress={() => {}}
+                style={{
+                  width: 230,
+                  backgroundColor: currentTheme.isLight ? '#ffffff' : '#071526',
+                  borderRadius: 16,
+                  borderWidth: 1.5,
+                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#38bdf8',
+                  padding: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 14,
+                  elevation: 10,
+                }}
+              >
+                {/* User Summary Header */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 10,
+                  paddingBottom: 10,
+                  marginBottom: 8,
+                  borderBottomWidth: 1,
+                  borderBottomColor: currentTheme.isLight ? '#e2e8f0' : '#1e3a5f',
+                }}>
+                  <PlayerAvatar name={userProfile.name || 'User'} size={36} customUri={userProfile.avatarUri} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13.5, fontWeight: '800' }} numberOfLines={1}>
+                      {userProfile.name || 'Player'}
+                    </Text>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11 }} numberOfLines={1}>
+                      {userProfile.role || 'Cricketer'}
+                    </Text>
+                  </View>
+                </View>
+
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingVertical: 10,
+                    paddingHorizontal: 10,
+                    borderRadius: 10,
+                    backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(56, 189, 248, 0.12)',
+                    borderWidth: 1,
+                    borderColor: currentTheme.isLight ? '#bae6fd' : 'rgba(56, 189, 248, 0.35)',
+                    marginBottom: 8,
+                  }}
+                  onPress={() => {
+                    setHeaderUserMenuVisible(false);
+                    openPlayerQrCode(userProfile, (registeredTeams[0]?.name || 'CricketAdda'), (registeredTeams[0]?.flag || '🦁'));
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>🪪</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13, fontWeight: '800' }}>My QR</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5 }}>Player ID</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingVertical: 10,
+                    paddingHorizontal: 10,
+                    borderRadius: 10,
+                    backgroundColor: currentTheme.isLight ? '#fffbeb' : 'rgba(245, 158, 11, 0.12)',
+                    borderWidth: 1,
+                    borderColor: currentTheme.isLight ? '#fde68a' : 'rgba(245, 158, 11, 0.35)',
+                    marginBottom: 8,
+                  }}
+                  onPress={() => {
+                    setHeaderUserMenuVisible(false);
+                    openCaptainTeamModal();
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>👑</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13, fontWeight: '800' }}>Squads</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5 }}>Manage</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingVertical: 10,
+                    paddingHorizontal: 10,
+                    borderRadius: 10,
+                    backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f233c',
+                    borderWidth: 1,
+                    borderColor: currentTheme.isLight ? '#e2e8f0' : '#1e3a5f',
+                    marginBottom: 8,
+                  }}
+                  onPress={() => {
+                    setHeaderUserMenuVisible(false);
+                    openProfileEdit();
+                  }}
+                >
+                  <Text style={{ fontSize: 18 }}>✏️</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13, fontWeight: '800' }}>Profile</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 10.5 }}>Edit Bio</Text>
+                  </View>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 10,
+                    paddingVertical: 9,
+                    paddingHorizontal: 10,
+                    borderRadius: 10,
+                    backgroundColor: currentTheme.isLight ? '#f1f5f9' : 'rgba(15, 35, 60, 0.55)',
+                    borderWidth: 1,
+                    borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e3a5f',
+                  }}
+                  onPress={() => {
+                    setHeaderUserMenuVisible(false);
+                    navigateTo('profile');
+                  }}
+                >
+                  <Text style={{ fontSize: 16 }}>📊</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 12.5, fontWeight: '700' }}>Player Stats</Text>
+                  </View>
+                </TouchableOpacity>
+              </TouchableOpacity>
+            </TouchableOpacity>
+          </Modal>
 
       {/* ========================================================================= */}
       {/* 2.1 MATCHES HUB SCREEN */}
@@ -23581,71 +23728,6 @@ function CricketAddaMain() {
                       ))}
                     </View>
 
-                    {/* Quick Profile Actions Row: My QR Passport + Edit Profile + Manage Teams */}
-                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          backgroundColor: cardBg,
-                          borderColor: '#38bdf8',
-                          borderWidth: 1,
-                          borderRadius: 11,
-                          padding: 10,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 8,
-                        }}
-                        onPress={() => openPlayerQrCode(userProfile, (registeredTeams[0]?.name || 'CricketAdda'), (registeredTeams[0]?.flag || '🦁'))}
-                      >
-                        <Text style={{ fontSize: 18 }}>🪪</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: txtPrimary, fontSize: 12.5, fontWeight: '800' }}>My QR</Text>
-                          <Text style={{ color: txtMuted, fontSize: 10 }}>Player ID</Text>
-                        </View>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          backgroundColor: cardBg,
-                          borderColor: '#f59e0b',
-                          borderWidth: 1,
-                          borderRadius: 11,
-                          padding: 10,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 8,
-                        }}
-                        onPress={openCaptainTeamModal}
-                      >
-                        <Text style={{ fontSize: 18 }}>👑</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: txtPrimary, fontSize: 12.5, fontWeight: '800' }}>Squads</Text>
-                          <Text style={{ color: txtMuted, fontSize: 10 }}>Manage</Text>
-                        </View>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        style={{
-                          flex: 1,
-                          backgroundColor: cardBg,
-                          borderColor: cardBorder,
-                          borderWidth: 1,
-                          borderRadius: 11,
-                          padding: 10,
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          gap: 8,
-                        }}
-                        onPress={openProfileEdit}
-                      >
-                        <Text style={{ fontSize: 18 }}>✏️</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ color: txtPrimary, fontSize: 12.5, fontWeight: '800' }}>Profile</Text>
-                          <Text style={{ color: txtMuted, fontSize: 10 }}>Edit Bio</Text>
-                        </View>
-                      </TouchableOpacity>
-                    </View>
 
                     {/* Match History Filters */}
                     <View style={[styles.filterPillsRow, { marginTop: 2 }]}>
@@ -23770,28 +23852,6 @@ function CricketAddaMain() {
                       ))
                     )}
 
-                    {/* Clean Test Reset Button */}
-                    <TouchableOpacity
-                      style={{
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 8,
-                        backgroundColor: currentTheme.isLight ? '#fef3c7' : 'rgba(180, 83, 9, 0.25)',
-                        borderColor: '#f59e0b',
-                        borderWidth: 1,
-                        borderRadius: 10,
-                        paddingVertical: 12,
-                        paddingHorizontal: 16,
-                        marginTop: 14,
-                      }}
-                      onPress={handleResetMatchesTeamsAndStats}
-                    >
-                      <Text style={{ fontSize: 16 }}>🧹</Text>
-                      <Text style={{ color: currentTheme.isLight ? '#b45309' : '#fcd34d', fontSize: 13, fontWeight: 'bold' }}>
-                        Reset Teams, Matches & Stats (Test Mode)
-                      </Text>
-                    </TouchableOpacity>
                   </View>
                 )}
               </View>
