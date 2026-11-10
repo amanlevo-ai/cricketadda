@@ -2828,6 +2828,39 @@ const RealisticCricketBatIcon = ({ gripColor = '#facc15', size = 30, style = {} 
   );
 };
 
+// ============================================================================
+// REALISTIC CRICKET FIELDING GLOVE ICON (MULTI-TONE PADDED LEATHER GLOVE)
+// ============================================================================
+const RealisticFieldingGloveIcon = ({ size = 16, style = {} }) => {
+  return (
+    <View style={[{ width: size, height: size, alignItems: 'center', justifyContent: 'center' }, style]}>
+      <Svg width={size} height={size} viewBox="0 0 36 36" fill="none">
+        {/* Wrist Cuff */}
+        <Rect x="10" y="25" width="16" height="7" rx="2.5" fill="#1e293b" stroke="#94a3b8" strokeWidth="1.2" />
+        {/* Glove Outer Padded Shell */}
+        <Path
+          d="M8 22 V13 C8 11.3 9.3 10 11 10 C11.8 10 12.5 10.4 13 11 V8 C13 6.3 14.3 5 16 5 C17.7 5 19 6.3 19 8 V11 V7.5 C19 5.8 20.3 4.5 22 4.5 C23.7 4.5 25 5.8 25 7.5 V12 C25.5 11.4 26.2 11 27 11 C28.7 11 30 12.3 30 14 V20 C30 23.5 27.5 26 24 26 H12 C9.5 26 8 24.2 8 22 Z"
+          fill="#f8fafc"
+          stroke="#0284c7"
+          strokeWidth="1.5"
+        />
+        {/* Leather Palm Pocket & Webbing */}
+        <Path
+          d="M12 16 C12 14.5 13.5 13.5 15 13.5 H22 C23.8 13.5 25.5 14.8 25.5 16.8 C25.5 20 22.8 23 19 23 H15 C13.2 23 12 21.5 12 19.5 V16 Z"
+          fill="#38bdf8"
+          opacity={0.85}
+        />
+        {/* Finger Padding Stitch Lines */}
+        <Line x1="13" y1="11" x2="13" y2="15" stroke="#0369a1" strokeWidth="1.2" strokeLinecap="round" />
+        <Line x1="19" y1="9.5" x2="19" y2="14.5" stroke="#0369a1" strokeWidth="1.2" strokeLinecap="round" />
+        <Line x1="25" y1="11.5" x2="25" y2="15.5" stroke="#0369a1" strokeWidth="1.2" strokeLinecap="round" />
+        {/* Wrist Strap Accent */}
+        <Rect x="13" y="27" width="10" height="2.5" rx="1" fill="#facc15" />
+      </Svg>
+    </View>
+  );
+};
+
 const getShortBatStyle = (style) => {
   if (!style) return 'RHB';
   const s = String(style).toLowerCase();
@@ -22966,19 +22999,14 @@ function CricketAddaMain() {
                     </Text>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2.5 }}>
-                      <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
-                        <Path d="M19.7 4.3a1 1 0 00-1.4 0l-9.6 9.6-1.4-1.4-1.4 1.4 1.4 1.4-3.6 3.6 1.4 1.4 3.6-3.6 1.4 1.4 1.4-1.4-1.4-1.4 9.6-9.6a1 1 0 000-1.4z" fill={txtMuted} />
-                      </Svg>
+                      <RealisticCricketBatIcon size={13} gripColor="#facc15" />
                       <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600', flex: 1 }} numberOfLines={1}>
                         {userProfile.role || 'Top-Order Batter'}
                       </Text>
                     </View>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1.5 }}>
-                      <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
-                        <Circle cx="12" cy="12" r="9" stroke={txtMuted} strokeWidth="2" />
-                        <Path d="M7.5 6.5c2 3 2 8 0 11M16.5 6.5c-2 3-2 8 0 11" stroke={txtMuted} strokeWidth="1.5" />
-                      </Svg>
+                      <RealisticCricketLeatherBall size={11.5} />
                       <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600', flex: 1 }} numberOfLines={1}>
                         {userProfile.bowlingStyle || 'Part-time Bowler'}
                       </Text>
@@ -23026,7 +23054,6 @@ function CricketAddaMain() {
                     { key: 'career', label: 'Career', icon: 'trophy' },
                   ].map((tab, tIdx) => {
                     const isAct = statsSubTab === tab.key;
-                    const iconCol = isAct ? '#ffffff' : (currentTheme.isLight ? '#475569' : '#cbd5e1');
                     return (
                       <TouchableOpacity
                         key={tab.key}
@@ -23057,24 +23084,17 @@ function CricketAddaMain() {
                         }}
                       >
                         {tab.icon === 'bat' && (
-                          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-                            <Path d="M19.7 4.3a1 1 0 00-1.4 0l-9.6 9.6-1.4-1.4-1.4 1.4 1.4 1.4-3.6 3.6 1.4 1.4 3.6-3.6 1.4 1.4 1.4-1.4-1.4-1.4 9.6-9.6a1 1 0 000-1.4z" fill={iconCol} />
-                          </Svg>
+                          <RealisticCricketBatIcon size={14} gripColor="#facc15" />
                         )}
                         {tab.icon === 'ball' && (
-                          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-                            <Circle cx="12" cy="12" r="9" stroke={iconCol} strokeWidth="2" />
-                            <Path d="M7.5 6.5c2 3 2 8 0 11M16.5 6.5c-2 3-2 8 0 11" stroke={iconCol} strokeWidth="1.5" />
-                          </Svg>
+                          <RealisticCricketLeatherBall size={13} />
                         )}
                         {tab.icon === 'glove' && (
-                          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-                            <Path d="M6 10v7c0 1.66 1.34 3 3 3h6c1.66 0 3-1.34 3-3v-7c0-.55-.45-1-1-1s-1 .45-1 1v2h-1V6c0-.55-.45-1-1-1s-1 .45-1 1v5h-1V5c0-.55-.45-1-1-1s-1 .45-1 1v6H9V7c0-.55-.45-1-1-1s-1 .45-1 1v5H6.5V10H6z" fill={iconCol} />
-                          </Svg>
+                          <RealisticFieldingGloveIcon size={14} />
                         )}
                         {tab.icon === 'trophy' && (
-                          <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
-                            <Path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z" fill={iconCol} />
+                          <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                            <Path d="M19 5h-2V3H7v2H5c-1.1 0-2 .9-2 2v1c0 2.55 1.92 4.63 4.39 4.94A5.01 5.01 0 0011 15.9V19H7v2h10v-2h-4v-3.1a5.01 5.01 0 003.61-2.96C19.08 12.63 21 10.55 21 8V7c0-1.1-.9-2-2-2z" fill="#facc15" stroke="#b45309" strokeWidth="1" />
                           </Svg>
                         )}
                         <Text
