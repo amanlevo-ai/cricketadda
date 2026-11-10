@@ -19418,7 +19418,7 @@ function CricketAddaMain() {
                                 paddingVertical: 3,
                               }}>
                                 <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '700' }}>
-                                  M: <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#38bdf8', fontWeight: '900' }}>{teamRecord.played}</Text>
+                                  Matches: <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#38bdf8', fontWeight: '900' }}>{teamRecord.played}</Text>
                                 </Text>
                               </View>
 
