@@ -4876,8 +4876,11 @@ function CricketAddaMain() {
   const [customOppTeamFlag, setCustomOppTeamFlag] = useState('⚡');
 
   // Teams Hub Screen State
-  const [teamFilterTab, setTeamFilterTab] = useState('created'); // 'created' | 'playing' | 'all'
+  const [teamFilterTab, setTeamFilterTab] = useState('all'); // 'all' | 'created' | 'playing'
   const [teamSearchText, setTeamSearchText] = useState('');
+  const [teamSortMode, setTeamSortMode] = useState('all'); // 'all' | 'az' | 'squad' | 'matches'
+  const [teamSortMenuVisible, setTeamSortMenuVisible] = useState(false);
+  const [teamActionMenuTeam, setTeamActionMenuTeam] = useState(null);
   const [expandedTeamId, setExpandedTeamId] = useState(null);
   const [addPlayerModalVisible, setAddPlayerModalVisible] = useState(false);
   const [targetTeamForAddPlayer, setTargetTeamForAddPlayer] = useState(null);
@@ -18821,600 +18824,868 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* 2.15 MY TEAMS & SQUADS HUB SCREEN */}
       {/* ========================================================================= */}
-      {activeTab === 'teams' && (
-        <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
-          {/* Header Banner */}
-          <View style={[styles.teamsHubHeaderCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <View style={[styles.teamsHubIconCircle, { backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0c4a6e' }]}>
-                  <Text style={{ fontSize: 24 }}>👥</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={[styles.teamsHubTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-                    My Teams Hub
-                  </Text>
-                  <Text style={[styles.teamsHubSubtitle, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-                    Manage created squads & view tournament teams
-                  </Text>
-                </View>
-              </View>
+      {activeTab === 'teams' && (() => {
+        const myTeamsList = (registeredTeams || []).filter(isCreatedByMe);
+        const playingForList = (registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t));
+        const allTeamsCount = (registeredTeams || []).length;
 
-              <TouchableOpacity
-                style={[styles.teamsHubCreateBtn, { backgroundColor: currentTheme.primary }]}
-                onPress={() => openNewTeamModal('teamA')}
+        const sortLabelMap = {
+          all: 'All',
+          az: 'A–Z',
+          squad: 'Squad',
+          matches: 'Played',
+        };
+
+        let displayList = registeredTeams || [];
+        if (teamFilterTab === 'created') {
+          displayList = myTeamsList;
+        } else if (teamFilterTab === 'playing') {
+          displayList = playingForList;
+        } else {
+          // Put My Teams & Playing For cleanly sorted on All Teams view
+          displayList = [...(registeredTeams || [])].sort((a, b) => {
+            const scoreA = isCreatedByMe(a) ? 2 : isPlayingInTeam(a) ? 1 : 0;
+            const scoreB = isCreatedByMe(b) ? 2 : isPlayingInTeam(b) ? 1 : 0;
+            return scoreB - scoreA;
+          });
+        }
+
+        if (teamSearchText.trim()) {
+          const q = teamSearchText.toLowerCase().trim();
+          displayList = (registeredTeams || []).filter(t => {
+            const matchName = (t.name || '').toLowerCase().includes(q);
+            const matchCap = (t.captain || '').toLowerCase().includes(q);
+            const matchWk = (t.wicketkeeper || '').toLowerCase().includes(q);
+            const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
+            const matchSquad = Array.isArray(t.squad) && t.squad.some(p => {
+              const pn = typeof p === 'string' ? p : (p.name || '');
+              return (pn || '').toLowerCase().includes(q);
+            });
+            return matchName || matchCap || matchWk || matchCity || matchSquad;
+          });
+        }
+
+        if (teamSortMode === 'az') {
+          displayList = [...displayList].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+        } else if (teamSortMode === 'squad') {
+          displayList = [...displayList].sort((a, b) => (b.squad?.length || 0) - (a.squad?.length || 0));
+        } else if (teamSortMode === 'matches') {
+          displayList = [...displayList].sort((a, b) => getTeamMatchesPlayedCount(b) - getTeamMatchesPlayedCount(a));
+        }
+
+        return (
+          <ImageBackground
+            source={require('./assets/login-bg.jpg')}
+            style={{ flex: 1 }}
+            resizeMode="cover"
+          >
+            <View style={{ flex: 1, backgroundColor: 'rgba(3, 10, 22, 0.90)' }}>
+              <ScrollView
+                style={styles.mainContentNoPad}
+                contentContainerStyle={{ paddingBottom: bottomInset + 95 }}
+                showsVerticalScrollIndicator={false}
               >
-                <Text style={[styles.teamsHubCreateBtnText, { color: currentTheme.primaryText }]}>➕ Create Team</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Quick Metrics Bar */}
-            <View style={[styles.teamsMetricRow, { borderTopColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }]}>
-              <View style={styles.teamsMetricItem}>
-                <Text style={[styles.teamsMetricNum, { color: '#10b981' }]}>
-                  {(registeredTeams || []).filter(isCreatedByMe).length}
-                </Text>
-                <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Your Teams</Text>
-              </View>
-
-              <View style={[styles.teamsMetricDivider, { backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#334155' }]} />
-
-              <View style={styles.teamsMetricItem}>
-                <Text style={[styles.teamsMetricNum, { color: '#0284c7' }]}>
-                  {(registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t)).length}
-                </Text>
-                <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>You Play For</Text>
-              </View>
-
-              <View style={[styles.teamsMetricDivider, { backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#334155' }]} />
-
-              <View style={styles.teamsMetricItem}>
-                <Text style={[styles.teamsMetricNum, { color: '#f59e0b' }]}>
-                  {(registeredTeams || []).length}
-                </Text>
-                <Text style={[styles.teamsMetricLabel, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Total Clubs</Text>
-              </View>
-            </View>
-          </View>
-
-          {/* Search Box */}
-          <View style={[styles.teamSearchContainer, {
-            backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0a192f',
-            borderColor: currentTheme.isLight ? '#94a3b8' : '#38bdf8',
-            borderWidth: 1.5,
-            borderRadius: 12,
-            shadowColor: '#38bdf8',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.15,
-            shadowRadius: 4,
-            elevation: 2,
-          }]}>
-            <Text style={{ fontSize: 16, marginRight: 8 }}>🔍</Text>
-            <TextInput
-              style={[styles.teamSearchInput, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}
-              placeholder="Search team name, captain, or squad player..."
-              placeholderTextColor={currentTheme.isLight ? '#94a3b8' : '#64748b'}
-              value={teamSearchText}
-              onChangeText={setTeamSearchText}
-              clearButtonMode="while-editing"
-            />
-            {teamSearchText ? (
-              <TouchableOpacity onPress={() => setTeamSearchText('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
-              </TouchableOpacity>
-            ) : null}
-          </View>
-
-          {/* Filter Pills */}
-          <View style={styles.filterPillsRow}>
-            <TouchableOpacity
-              style={[
-                styles.filterPill,
-                currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
-                teamFilterTab === 'created' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)
-              ]}
-              onPress={() => setTeamFilterTab('created')}
-            >
-              <Text
-                style={[
-                  styles.filterPillText,
-                  currentTheme.isLight && { color: '#475569' },
-                  teamFilterTab === 'created' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)
-                ]}
-              >
-                👑 Your Teams ({(registeredTeams || []).filter(isCreatedByMe).length})
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.filterPill,
-                currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
-                teamFilterTab === 'playing' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)
-              ]}
-              onPress={() => setTeamFilterTab('playing')}
-            >
-              <Text
-                style={[
-                  styles.filterPillText,
-                  currentTheme.isLight && { color: '#475569' },
-                  teamFilterTab === 'playing' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)
-                ]}
-              >
-                🤝 You Play For ({(registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t)).length})
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[
-                styles.filterPill,
-                currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
-                teamFilterTab === 'all' && (currentTheme.isLight ? { backgroundColor: '#0284c7', borderColor: '#0284c7' } : styles.filterPillActive)
-              ]}
-              onPress={() => setTeamFilterTab('all')}
-            >
-              <Text
-                style={[
-                  styles.filterPillText,
-                  currentTheme.isLight && { color: '#475569' },
-                  teamFilterTab === 'all' && (currentTheme.isLight ? { color: '#ffffff' } : styles.filterPillTextActive)
-                ]}
-              >
-                🌐 All Clubs ({(registeredTeams || []).length})
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Teams List */}
-          {(() => {
-            let list = registeredTeams;
-            if (teamFilterTab === 'created') {
-              list = (registeredTeams || []).filter(isCreatedByMe);
-            } else if (teamFilterTab === 'playing') {
-              list = (registeredTeams || []).filter(t => !isCreatedByMe(t) && isPlayingInTeam(t));
-            } else {
-              list = registeredTeams || [];
-            }
-
-            if (teamSearchText.trim()) {
-              const q = teamSearchText.toLowerCase().trim();
-              // Search across all registered and opponent teams
-              list = (registeredTeams || []).filter(t => {
-                const matchName = (t.name || '').toLowerCase().includes(q);
-                const matchCap = (t.captain || '').toLowerCase().includes(q);
-                const matchCity = (t.city || t.homeGround || '').toLowerCase().includes(q);
-                const matchSquad = Array.isArray(t.squad) && t.squad.some(p => {
-                  const pn = typeof p === 'string' ? p : (p.name || '');
-                  return (pn || '').toLowerCase().includes(q);
-                });
-                return matchName || matchCap || matchCity || matchSquad;
-              });
-            }
-
-            if ((list || []).length === 0) {
-              return (
-                <View style={[styles.teamsEmptyCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder }]}>
-                  <Text style={{ fontSize: 44, marginBottom: 8 }}>
-                    {teamFilterTab === 'created' ? '🏏' : teamFilterTab === 'playing' ? '🤝' : '🔍'}
-                  </Text>
-                  <Text style={[styles.teamsEmptyTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-                    {teamFilterTab === 'created'
-                      ? 'No Created Teams Yet'
-                      : teamFilterTab === 'playing'
-                      ? 'No Teams You Play For'
-                      : 'No Matching Teams Found'}
-                  </Text>
-                  <Text style={[styles.teamsEmptySub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-                    {teamFilterTab === 'created'
-                      ? 'Create your own cricket club with custom players, captain, and jersey numbers!'
-                      : teamFilterTab === 'playing'
-                      ? 'When you are added to other clubs or tournament squads, they will show up here.'
-                      : `No results found for "${teamSearchText}". Try searching for a different name.`}
-                  </Text>
-                  {teamFilterTab === 'created' && (
-                    <TouchableOpacity
-                      style={[styles.teamsEmptyActionBtn, { backgroundColor: currentTheme.primary }]}
-                      onPress={() => openNewTeamModal('teamA')}
-                    >
-                      <Text style={[styles.teamsEmptyActionBtnText, { color: currentTheme.primaryText }]}>➕ Create Your Team Now</Text>
-                    </TouchableOpacity>
-                  )}
-                </View>
-              );
-            }
-
-            return list.map(t => {
-              const isOwner = isCreatedByMe(t);
-              const isMember = isPlayingInTeam(t);
-              const isExpanded = expandedTeamId === t.id;
-              const squadCount = t.squad?.length || 0;
-
-              return (
-                <View
-                  key={`team_card_${t.id}`}
-                  style={[
-                    styles.teamHubCard,
-                    {
-                      backgroundColor: currentTheme.cardBg,
-                      borderColor: isOwner ? (currentTheme.isLight ? '#86efac' : '#10b98150') : currentTheme.cardBorder,
-                      borderWidth: 1.5,
-                      borderRadius: 16,
-                      padding: 14,
-                      marginBottom: 12,
-                    }
-                  ]}
+                {/* 1. TOP STADIUM HERO HEADER ("My Teams" centered + compact + Create button) */}
+                <ImageBackground
+                  source={require('./assets/hero-banner.jpg')}
+                  style={{ width: '100%' }}
+                  imageStyle={{ opacity: 0.42 }}
+                  resizeMode="cover"
                 >
-                  {/* Card Header: Flag + Name/Location + Creator Badge */}
-                  <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12, gap: 8 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                      <View
-                        style={{
-                          width: 44,
-                          height: 44,
-                          borderRadius: 12,
-                          backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#162235',
-                          borderWidth: 1,
-                          borderColor: currentTheme.isLight ? '#e2e8f0' : '#23354d',
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          overflow: 'hidden',
-                        }}
-                      >
-                        <SmartTeamLogo
-                          team={t}
-                          allTeams={registeredTeams}
-                          allUsers={usersDb}
-                          style={{ width: 44, height: 44 }}
-                          flagStyle={{ fontSize: 24 }}
-                          fallbackFlag={t.flag || '🦁'}
-                        />
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                          <Text
-                            style={{
-                              fontSize: 16.5,
-                              fontWeight: '900',
-                              color: currentTheme.isLight ? '#0f172a' : '#ffffff',
-                            }}
-                            numberOfLines={1}
-                          >
-                            {t.name}
-                          </Text>
-                          {t.shortName ? (
-                            <View style={{ backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 5 }}>
-                              <Text style={{ fontSize: 10.5, fontWeight: '800', color: currentTheme.primary }}>
-                                {t.shortName}
-                              </Text>
-                            </View>
-                          ) : null}
-                        </View>
-                        <Text
-                          style={{
-                            fontSize: 11.5,
-                            color: currentTheme.isLight ? '#64748b' : '#94a3b8',
-                            marginTop: 2,
-                          }}
-                          numberOfLines={1}
-                        >
-                          📍 {t.city || t.homeGround || 'Local Ground'}{t.club && t.club !== 'Custom Club' ? ` • ${t.club}` : ''}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Ownership / Permission Badge */}
-                    <View
+                  <View style={{
+                    backgroundColor: 'rgba(3, 11, 24, 0.72)',
+                    paddingTop: 12,
+                    paddingBottom: 14,
+                    paddingHorizontal: 14,
+                    alignItems: 'center',
+                    borderBottomWidth: 1,
+                    borderBottomColor: 'rgba(56, 189, 248, 0.14)',
+                  }}>
+                    {/* Compact Create Team pill on top-right */}
+                    <TouchableOpacity
+                      onPress={() => openNewTeamModal('teamA')}
+                      activeOpacity={0.85}
                       style={{
-                        backgroundColor: isOwner
-                          ? 'rgba(16, 185, 129, 0.12)'
-                          : isMember
-                          ? 'rgba(2, 132, 199, 0.12)'
-                          : currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                        borderColor: isOwner
-                          ? '#10b981'
-                          : isMember
-                          ? '#0284c7'
-                          : currentTheme.isLight ? '#cbd5e1' : '#334155',
+                        position: 'absolute',
+                        right: 12,
+                        top: 11,
+                        backgroundColor: 'rgba(2, 132, 199, 0.88)',
+                        borderColor: '#38bdf8',
                         borderWidth: 1,
-                        paddingHorizontal: 8,
-                        paddingVertical: 3.5,
-                        borderRadius: 8,
-                        alignSelf: 'flex-start',
+                        borderRadius: 16,
+                        paddingHorizontal: 10,
+                        paddingVertical: 4.5,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 4,
+                        shadowColor: '#38bdf8',
+                        shadowOffset: { width: 0, height: 0 },
+                        shadowOpacity: 0.45,
+                        shadowRadius: 6,
+                        elevation: 4,
+                        zIndex: 5,
                       }}
                     >
-                      <Text
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 'bold',
-                          color: isOwner
-                            ? '#10b981'
-                            : isMember
-                            ? '#0284c7'
-                            : currentTheme.isLight ? '#64748b' : '#94a3b8',
-                        }}
-                      >
-                        {isOwner ? '👑 Created by You' : isMember ? '👤 Playing Member' : '🔒 Opponent Club'}
+                      <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>＋</Text>
+                      <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }}>Create</Text>
+                    </TouchableOpacity>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                      <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
+                        <Path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="#ffffff" />
+                      </Svg>
+                      <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', letterSpacing: 0.3 }}>
+                        My Teams
                       </Text>
                     </View>
+                    <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '600', marginTop: 3, textAlign: 'center' }}>
+                      Teams you created and teams you play for
+                    </Text>
                   </View>
+                </ImageBackground>
 
-                  {/* Structured Squad & Stats Tile Grid */}
-                  <View
-                    style={{
-                      backgroundColor: currentTheme.isLight ? '#f8fafc' : '#131e30',
-                      borderRadius: 12,
-                      padding: 10,
-                      borderWidth: 1,
-                      borderColor: currentTheme.isLight ? '#edf2f7' : '#1a293f',
-                      marginBottom: 12,
-                    }}
-                  >
-                    {/* Captain & Wicketkeeper Row */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 6 }}>
-                        <Text style={{ fontSize: 13 }}>👑</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 9.5, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3 }}>
-                            Captain
-                          </Text>
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: currentTheme.isLight ? '#0f172a' : '#f1f5f9' }} numberOfLines={1}>
-                            {t.captain || 'Captain'}
-                          </Text>
-                        </View>
-                      </View>
-
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                        <Text style={{ fontSize: 13 }}>🧤</Text>
-                        <View style={{ flex: 1 }}>
-                          <Text style={{ fontSize: 9.5, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.3 }}>
-                            Wicketkeeper
-                          </Text>
-                          <Text style={{ fontSize: 12, fontWeight: '700', color: currentTheme.isLight ? '#0f172a' : '#f1f5f9' }} numberOfLines={1}>
-                            {t.wicketkeeper || 'Keeper'}
-                          </Text>
-                        </View>
-                      </View>
-                    </View>
-
-                    {/* Divider */}
-                    <View style={{ height: 1, backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#1e2e46', marginVertical: 4 }} />
-
-                    {/* Squad Count & Matches Played Row */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 2 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <Text style={{ fontSize: 12 }}>👥</Text>
-                        <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#475569' : '#cbd5e1' }}>
-                          Squad: <Text style={{ fontWeight: '800', color: currentTheme.primary }}>{squadCount} {squadCount === 1 ? 'Player' : 'Players'}</Text>
-                        </Text>
-                      </View>
-
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <Text style={{ fontSize: 12 }}>📊</Text>
-                        <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#475569' : '#cbd5e1' }}>
-                          Matches: <Text style={{ fontWeight: '800', color: getTeamMatchesPlayedCount(t) > 0 ? '#38bdf8' : '#94a3b8' }}>{getTeamMatchesPlayedCount(t)} Played</Text>
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
-
-                  {/* Action Bar */}
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={{ paddingHorizontal: 12, paddingTop: 10 }}>
+                  {/* 2. 3-SEGMENT CAPSULE FILTER BAR (All Teams | My Teams | Playing For) */}
+                  <View style={{
+                    flexDirection: 'row',
+                    backgroundColor: 'rgba(7, 20, 38, 0.92)',
+                    borderRadius: 12,
+                    borderWidth: 1,
+                    borderColor: '#1e3a5f',
+                    padding: 3,
+                    marginBottom: 10,
+                  }}>
+                    {/* Tab 1: All Teams */}
                     <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => setTeamFilterTab('all')}
                       style={{
                         flex: 1,
-                        backgroundColor: '#10b981',
-                        paddingVertical: 10,
-                        paddingHorizontal: 14,
-                        borderRadius: 10,
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 6,
-                        shadowColor: '#10b981',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.25,
-                        shadowRadius: 4,
-                        elevation: 2,
+                        gap: 5,
+                        paddingVertical: 8,
+                        paddingHorizontal: 4,
+                        borderRadius: 9,
+                        ...(teamFilterTab === 'all' ? {
+                          backgroundColor: '#0284c7',
+                          borderWidth: 1.5,
+                          borderColor: '#38bdf8',
+                          shadowColor: '#38bdf8',
+                          shadowOffset: { width: 0, height: 0 },
+                          shadowOpacity: 0.65,
+                          shadowRadius: 8,
+                          elevation: 6,
+                        } : {
+                          borderRightWidth: teamFilterTab === 'created' ? 0 : 1,
+                          borderRightColor: 'rgba(56, 189, 248, 0.18)',
+                        }),
                       }}
-                      onPress={() => openNewTeamModal('teamA', '', t)}
                     >
-                      <Text style={{ fontSize: 14 }}>✏️</Text>
-                      <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800', letterSpacing: 0.2 }}>
-                        {isOwner ? 'Edit Team' : 'View Team'}
+                      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                        <Path d="M12 2L2 7l10 5 10-5-10-5zm0 9l2.5-1.25L22 14l-10 5-10-5 7.5-4.25L12 11zm0 5l-10-5v2l10 5 10-5v-2l-10 5z" fill={teamFilterTab === 'all' ? '#ffffff' : '#cbd5e1'} />
+                      </Svg>
+                      <Text
+                        style={{
+                          color: teamFilterTab === 'all' ? '#ffffff' : '#e2e8f0',
+                          fontSize: 11,
+                          fontWeight: teamFilterTab === 'all' ? '900' : '700',
+                        }}
+                        numberOfLines={1}
+                      >
+                        All Teams ({allTeamsCount})
                       </Text>
                     </TouchableOpacity>
 
-                    {/* Team QR Code Button */}
+                    {/* Tab 2: My Teams */}
                     <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => setTeamFilterTab('created')}
                       style={{
-                        backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#06201a',
-                        borderColor: '#10b981',
-                        borderWidth: 1.2,
-                        paddingVertical: 10,
-                        paddingHorizontal: 12,
-                        borderRadius: 10,
+                        flex: 1,
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 4,
+                        gap: 5,
+                        paddingVertical: 8,
+                        paddingHorizontal: 4,
+                        borderRadius: 9,
+                        ...(teamFilterTab === 'created' ? {
+                          backgroundColor: '#0284c7',
+                          borderWidth: 1.5,
+                          borderColor: '#38bdf8',
+                          shadowColor: '#38bdf8',
+                          shadowOffset: { width: 0, height: 0 },
+                          shadowOpacity: 0.65,
+                          shadowRadius: 8,
+                          elevation: 6,
+                        } : {
+                          borderRightWidth: teamFilterTab === 'playing' ? 0 : 1,
+                          borderRightColor: 'rgba(56, 189, 248, 0.18)',
+                        }),
                       }}
-                      onPress={() => openTeamQrCode(t)}
                     >
-                      <Text style={{ fontSize: 14 }}>🪪</Text>
-                      <Text style={{ color: '#10b981', fontSize: 12, fontWeight: '800' }}>Team QR</Text>
+                      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                        <Path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm0 2h14v2H5v-2z" fill={teamFilterTab === 'created' ? '#ffffff' : '#cbd5e1'} />
+                      </Svg>
+                      <Text
+                        style={{
+                          color: teamFilterTab === 'created' ? '#ffffff' : '#e2e8f0',
+                          fontSize: 11,
+                          fontWeight: teamFilterTab === 'created' ? '900' : '700',
+                        }}
+                        numberOfLines={1}
+                      >
+                        My Teams ({myTeamsList.length})
+                      </Text>
                     </TouchableOpacity>
 
-                    {/* Delete button (strictly owner only) */}
-                    {isOwner && (
-                      <TouchableOpacity
+                    {/* Tab 3: Playing For */}
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => setTeamFilterTab('playing')}
+                      style={{
+                        flex: 1,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 5,
+                        paddingVertical: 8,
+                        paddingHorizontal: 4,
+                        borderRadius: 9,
+                        ...(teamFilterTab === 'playing' ? {
+                          backgroundColor: '#0284c7',
+                          borderWidth: 1.5,
+                          borderColor: '#38bdf8',
+                          shadowColor: '#38bdf8',
+                          shadowOffset: { width: 0, height: 0 },
+                          shadowOpacity: 0.65,
+                          shadowRadius: 8,
+                          elevation: 6,
+                        } : {}),
+                      }}
+                    >
+                      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                        <Path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill={teamFilterTab === 'playing' ? '#ffffff' : '#cbd5e1'} />
+                      </Svg>
+                      <Text
                         style={{
-                          width: 42,
-                          height: 42,
-                          borderRadius: 10,
-                          backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                          borderColor: '#ef4444',
-                          borderWidth: 1.2,
-                          justifyContent: 'center',
-                          alignItems: 'center',
+                          color: teamFilterTab === 'playing' ? '#ffffff' : '#e2e8f0',
+                          fontSize: 11,
+                          fontWeight: teamFilterTab === 'playing' ? '900' : '700',
                         }}
-                        onPress={() => handleDeleteCustomTeam(t.id)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        numberOfLines={1}
                       >
-                        <Text style={{ fontSize: 18 }}>🗑️</Text>
-                      </TouchableOpacity>
-                    )}
+                        Playing For ({playingForList.length})
+                      </Text>
+                    </TouchableOpacity>
                   </View>
 
-                  {/* Expandable Squad Roster View */}
-                  {isExpanded && (
-                    <View style={[styles.expandedSquadBox, { borderTopColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }]}>
-                      {/* Permission Notice Banner */}
-                      <View
-                        style={[
-                          styles.squadPermNotice,
-                          isOwner
-                            ? { backgroundColor: currentTheme.isLight ? '#ecfdf5' : 'rgba(16, 185, 129, 0.1)', borderColor: '#10b981' }
-                            : { backgroundColor: currentTheme.isLight ? '#f8fafc' : 'rgba(30, 41, 59, 0.5)', borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155' }
-                        ]}
-                      >
-                        <Text style={{ fontSize: 16, marginRight: 6 }}>{isOwner ? '👑' : '🔒'}</Text>
-                        <Text
-                          style={[
-                            styles.squadPermNoticeText,
-                            { color: isOwner ? (currentTheme.isLight ? '#065f46' : '#34d399') : (currentTheme.isLight ? '#475569' : '#94a3b8') }
-                          ]}
-                        >
-                          {isOwner
-                            ? 'Full Creator Access: You can add new players (up to 20) and remove squad members.'
-                            : `View-Only Mode: You cannot add or remove players from this team. Only the team creator (${t.captain || 'the owner'}) can modify this squad.`}
-                        </Text>
-                      </View>
+                  {/* 3. SEARCH INPUT + FILTER/SORT DROPDOWN ROW */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                    <View style={{
+                      flex: 1,
+                      height: 40,
+                      backgroundColor: 'rgba(7, 20, 38, 0.92)',
+                      borderRadius: 10,
+                      borderWidth: 1,
+                      borderColor: '#1e3a5f',
+                      paddingHorizontal: 11,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 8,
+                    }}>
+                      <Svg width={15} height={15} viewBox="0 0 24 24" fill="none">
+                        <Path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0016 9.5 6.5 6.5 0 109.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z" fill="#94a3b8" />
+                      </Svg>
+                      <TextInput
+                        style={{ flex: 1, color: '#ffffff', fontSize: 13.5, fontWeight: '600', paddingVertical: 0 }}
+                        placeholder="Search team..."
+                        placeholderTextColor="#64748b"
+                        value={teamSearchText}
+                        onChangeText={setTeamSearchText}
+                        clearButtonMode="while-editing"
+                      />
+                      {teamSearchText ? (
+                        <TouchableOpacity onPress={() => setTeamSearchText('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                          <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
 
-                      {/* Quick Add Player Shortcut inside squad for Owner */}
-                      {isOwner && squadCount < 20 && (
+                    <TouchableOpacity
+                      activeOpacity={0.85}
+                      onPress={() => setTeamSortMenuVisible(true)}
+                      style={{
+                        height: 40,
+                        minWidth: 94,
+                        paddingHorizontal: 12,
+                        backgroundColor: 'rgba(7, 20, 38, 0.92)',
+                        borderRadius: 10,
+                        borderWidth: 1,
+                        borderColor: teamSortMode !== 'all' ? '#38bdf8' : '#1e3a5f',
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        gap: 6,
+                      }}
+                    >
+                      <Text style={{ color: '#e2e8f0', fontSize: 13, fontWeight: '700' }}>
+                        {sortLabelMap[teamSortMode] || 'All'}
+                      </Text>
+                      <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+                        <Path d="M7 10l5 5 5-5z" fill="#cbd5e1" />
+                      </Svg>
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* 4. TEAMS LIST */}
+                  {(displayList || []).length === 0 ? (
+                    <View style={{
+                      backgroundColor: 'rgba(7, 20, 38, 0.92)',
+                      borderColor: '#1e3a5f',
+                      borderWidth: 1,
+                      borderRadius: 16,
+                      padding: 24,
+                      alignItems: 'center',
+                      marginTop: 8,
+                    }}>
+                      <Text style={{ fontSize: 42, marginBottom: 8 }}>
+                        {teamFilterTab === 'created' ? '🏏' : teamFilterTab === 'playing' ? '🤝' : '🔍'}
+                      </Text>
+                      <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900', marginBottom: 6 }}>
+                        {teamFilterTab === 'created'
+                          ? 'No Created Teams Yet'
+                          : teamFilterTab === 'playing'
+                          ? 'No Teams You Play For'
+                          : 'No Matching Teams Found'}
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 12.5, textAlign: 'center', lineHeight: 18 }}>
+                        {teamFilterTab === 'created'
+                          ? 'Create your own cricket club with custom players, captain, and jersey numbers!'
+                          : teamFilterTab === 'playing'
+                          ? 'When you are added to other clubs or tournament squads, they will show up here.'
+                          : `No results found${teamSearchText ? ` for "${teamSearchText}"` : ''}. Try creating a team or changing your search.`}
+                      </Text>
+                      {(teamFilterTab === 'created' || teamFilterTab === 'all') && (
                         <TouchableOpacity
-                          style={[styles.squadInnerAddBtn, { backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#06201a', borderColor: '#10b981' }]}
-                          onPress={() => openAddPlayerToTeamModal(t)}
+                          style={{
+                            marginTop: 14,
+                            backgroundColor: '#0284c7',
+                            borderColor: '#38bdf8',
+                            borderWidth: 1,
+                            borderRadius: 10,
+                            paddingHorizontal: 16,
+                            paddingVertical: 10,
+                          }}
+                          onPress={() => openNewTeamModal('teamA')}
                         >
-                          <Text style={{ color: '#10b981', fontSize: 12.5, fontWeight: 'bold' }}>
-                            ➕ Add Teammate to {t.name} ({squadCount}/20)
-                          </Text>
+                          <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>➕ Create Your Team Now</Text>
                         </TouchableOpacity>
                       )}
+                    </View>
+                  ) : (
+                    displayList.map(t => {
+                      const isOwner = isCreatedByMe(t);
+                      const isMember = isPlayingInTeam(t);
+                      const isExpanded = expandedTeamId === t.id;
+                      const squadArr = Array.isArray(t.squad) ? t.squad : [];
+                      const squadCount = squadArr.length;
 
-                      {/* Squad Members Roster */}
-                      <View style={{ gap: 6, marginTop: 4 }}>
-                        {Array.isArray(t?.squad) && (t?.squad || []).length > 0 ? (
-                          t.squad.map((p, pIdx) => {
-                            const pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
-                            const cleanPName = pName.replace(' (c)', '').replace(' (wk)', '').trim();
-                            const isCap = (typeof p === 'object' && p.isCaptain) || pIdx === 0 || cleanPName === t.captain || pName.includes('(c)');
-                            const isWk = (typeof p === 'object' && p.isWk) || (typeof p === 'object' && p.role === 'WK') || cleanPName === t.wicketkeeper || pName.includes('(wk)');
-                            const isMe = userProfile?.name && cleanPName.toLowerCase() === userProfile.name.toLowerCase().trim();
-                            const pRole = (typeof p === 'object' && p.role) ? p.role : (isCap ? 'BAT' : isWk ? 'WK' : (pIdx % 3 === 0 ? 'BOWL' : pIdx % 2 === 0 ? 'ALL' : 'BAT'));
-                            const pPhone = typeof p === 'object' ? p.phone : '';
+                      // Resolve clean Captain & Wicketkeeper display names
+                      const capFromSquad = squadArr.find(p => (typeof p === 'object' && p.isCaptain) || String(typeof p === 'string' ? p : p?.name || '').includes('(c)'));
+                      const rawCap = t.captain
+                        || (typeof capFromSquad === 'string' ? capFromSquad : capFromSquad?.name)
+                        || (typeof squadArr[0] === 'string' ? squadArr[0] : squadArr[0]?.name)
+                        || 'Not Assigned';
+                      const captainDisplay = String(rawCap).replace(/\s*\([^)]*\)/g, '').trim() || 'Not Assigned';
 
-                            const roleColor = pRole === 'BOWL' ? '#10b981' : pRole === 'WK' ? '#0284c7' : pRole === 'ALL' ? '#a855f7' : '#f59e0b';
+                      const wkFromSquad = squadArr.find(p => (typeof p === 'object' && (p.isWk || p.role === 'WK')) || String(typeof p === 'string' ? p : p?.name || '').toLowerCase().includes('(wk)'));
+                      const rawWk = t.wicketkeeper
+                        || (typeof wkFromSquad === 'string' ? wkFromSquad : wkFromSquad?.name)
+                        || (typeof squadArr[1] === 'string' ? squadArr[1] : squadArr[1]?.name)
+                        || 'Not Assigned';
+                      const wkDisplay = String(rawWk).replace(/\s*\([^)]*\)/g, '').trim() || 'Not Assigned';
 
-                            return (
-                              <View
-                                key={`squad_item_${t.id}_${pIdx}`}
-                                style={[
-                                  styles.squadPlayerRow,
-                                  { backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a', borderColor: isCap ? '#f59e0b' : (currentTheme.isLight ? '#e2e8f0' : '#1e293b') }
-                                ]}
-                              >
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                                  {/* Avatar with Captain Gold Ring */}
-                                  <View style={{ position: 'relative' }}>
-                                    <PlayerAvatar
-                                      playerName={cleanPName}
-                                      avatarUri={typeof p === 'object' ? (p.avatarUri || PLAYER_AVATARS[cleanPName]) : PLAYER_AVATARS[cleanPName]}
-                                      size={32}
-                                      isCaptain={isCap}
-                                    />
-                                    {isCap && (
-                                      <View style={styles.avatarCaptainCrown}>
-                                        <Text style={{ fontSize: 8 }}>👑</Text>
-                                      </View>
-                                    )}
-                                  </View>
+                      return (
+                        <View
+                          key={`team_card_${t.id}`}
+                          style={{
+                            backgroundColor: isOwner ? 'rgba(8, 30, 56, 0.94)' : 'rgba(7, 19, 38, 0.90)',
+                            borderColor: isOwner ? '#38bdf8' : '#1e3a5f',
+                            borderWidth: isOwner ? 1.5 : 1,
+                            borderRadius: 14,
+                            paddingVertical: 10,
+                            paddingHorizontal: 11,
+                            marginBottom: 10,
+                            ...(isOwner ? {
+                              shadowColor: '#38bdf8',
+                              shadowOffset: { width: 0, height: 0 },
+                              shadowOpacity: 0.42,
+                              shadowRadius: 8,
+                              elevation: 5,
+                            } : {}),
+                          }}
+                        >
+                          {/* Main Broadcast Horizontal Team Card Row */}
+                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            {/* Left: Large Team Shield/Crest */}
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => setExpandedTeamId(prev => prev === t.id ? null : t.id)}
+                              style={{
+                                width: 62,
+                                height: 62,
+                                borderRadius: 10,
+                                backgroundColor: '#04101f',
+                                borderWidth: 1,
+                                borderColor: isOwner ? 'rgba(56, 189, 248, 0.35)' : '#1e3a5f',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                overflow: 'hidden',
+                              }}
+                            >
+                              <SmartTeamLogo
+                                team={t}
+                                allTeams={registeredTeams}
+                                allUsers={usersDb}
+                                style={{ width: 60, height: 60 }}
+                                flagStyle={{ fontSize: 32 }}
+                                fallbackFlag={t.flag || '🦁'}
+                              />
+                            </TouchableOpacity>
 
-                                  <View style={{ flex: 1 }}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                                      <Text style={[styles.squadPlayerRowName, { color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]}>
-                                        {cleanPName}
-                                      </Text>
-                                      {isCap && (
-                                        <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold' }}>(c)</Text>
-                                      )}
-                                      {isWk && !isCap && (
-                                        <Text style={{ color: '#0284c7', fontSize: 11, fontWeight: 'bold' }}>(wk)</Text>
-                                      )}
-                                      {isMe && (
-                                        <View style={[styles.youBadge, { backgroundColor: currentTheme.isLight ? '#e0f2fe' : '#0c4a6e' }]}>
-                                          <Text style={[styles.youBadgeText, { color: '#0284c7' }]}>You</Text>
-                                        </View>
-                                      )}
-                                    </View>
+                            {/* Middle: Team Name + Badge, Captain, Wicketkeeper */}
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => setExpandedTeamId(prev => prev === t.id ? null : t.id)}
+                              style={{ flex: 1, marginLeft: 11, marginRight: 6 }}
+                            >
+                              {/* Title + Ownership Pill */}
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                                <Text style={{ fontSize: 16, fontWeight: '900', color: '#ffffff', flexShrink: 1 }} numberOfLines={1}>
+                                  {t.name}
+                                </Text>
 
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                                      {/* Role Badge */}
-                                      <View style={[styles.squadRoleMiniBadge, { backgroundColor: roleColor + '20', borderColor: roleColor }]}>
-                                        <Text style={[styles.squadRoleMiniBadgeText, { color: roleColor }]}>{pRole}</Text>
-                                      </View>
-
-                                      {/* Phone if available */}
-                                      {pPhone ? (
-                                        <View style={[styles.squadPhoneTag, { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b' }]}>
-                                          <Text style={[styles.squadPhoneTagText, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>
-                                            📞 {pPhone}
-                                          </Text>
-                                        </View>
-                                      ) : null}
-                                    </View>
-                                  </View>
-                                </View>
-
-                                {/* Delete / Remove Control for Creator */}
                                 {isOwner ? (
-                                  (isCap || isMe || pIdx === 0) ? (
-                                    <View style={styles.captainLockedBadge}>
-                                      <Text style={styles.captainLockedBadgeText}>👑 Creator</Text>
-                                    </View>
-                                  ) : (
-                                    <TouchableOpacity
-                                      style={styles.removePlayerRowBtn}
-                                      onPress={() => handleDeletePlayerFromTeam(t.id, pIdx)}
-                                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                    >
-                                      <Text style={styles.removePlayerRowBtnText}>✕ Remove</Text>
-                                    </TouchableOpacity>
-                                  )
+                                  <View style={{
+                                    backgroundColor: 'rgba(202, 138, 4, 0.24)',
+                                    borderColor: '#eab308',
+                                    borderWidth: 1,
+                                    borderRadius: 6,
+                                    paddingHorizontal: 7,
+                                    paddingVertical: 2,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                  }}>
+                                    <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
+                                      <Path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm0 2h14v2H5v-2z" fill="#facc15" />
+                                    </Svg>
+                                    <Text style={{ color: '#fef08a', fontSize: 10, fontWeight: '800' }}>My Team</Text>
+                                  </View>
+                                ) : isMember ? (
+                                  <View style={{
+                                    backgroundColor: 'rgba(22, 163, 74, 0.24)',
+                                    borderColor: '#22c55e',
+                                    borderWidth: 1,
+                                    borderRadius: 6,
+                                    paddingHorizontal: 7,
+                                    paddingVertical: 2,
+                                    flexDirection: 'row',
+                                    alignItems: 'center',
+                                    gap: 4,
+                                  }}>
+                                    <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
+                                      <Path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5z" fill="#4ade80" />
+                                    </Svg>
+                                    <Text style={{ color: '#86efac', fontSize: 10, fontWeight: '800' }}>Playing For</Text>
+                                  </View>
                                 ) : (
-                                  <View style={styles.viewOnlyPlayerBadge}>
-                                    <Text style={[styles.viewOnlyPlayerBadgeText, { color: currentTheme.isLight ? '#94a3b8' : '#64748b' }]}>
-                                      #{pIdx + 1}
-                                    </Text>
+                                  <View style={{
+                                    backgroundColor: 'rgba(51, 65, 85, 0.45)',
+                                    borderColor: '#475569',
+                                    borderWidth: 1,
+                                    borderRadius: 6,
+                                    paddingHorizontal: 7,
+                                    paddingVertical: 2,
+                                  }}>
+                                    <Text style={{ color: '#cbd5e1', fontSize: 10, fontWeight: '700' }}>Club</Text>
                                   </View>
                                 )}
                               </View>
-                            );
-                          })
-                        ) : (
-                          <Text style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', paddingVertical: 8 }}>
-                            No players in squad.
-                          </Text>
-                        )}
-                      </View>
-                    </View>
+
+                              {/* Captain Line */}
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 5 }}>
+                                <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                                  <Path d="M12 5C7.58 5 4 7.69 4 11c0 1.47.69 2.82 1.84 3.86L4 17h16l-1.84-2.14C19.31 13.82 20 12.47 20 11c0-3.31-3.58-6-8-6zm-6 13v2h12v-2H6z" fill="#e2e8f0" />
+                                </Svg>
+                                <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+                                  Captain: <Text style={{ color: '#f8fafc', fontWeight: '700' }}>{captainDisplay}</Text>
+                                </Text>
+                              </View>
+
+                              {/* Wicketkeeper Line */}
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                                <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                                  <Path d="M6 10v7c0 1.66 1.34 3 3 3h1c1.1 0 2-.9 2-2v-7c0-.55-.45-1-1-1s-1 .45-1 1v3H9V9c0-.55-.45-1-1-1s-1 .45-1 1v5H6.5V10H6zm8 0v7c0 1.66 1.34 3 3 3h1c1.66 0 3-1.34 3-3v-7c0-.55-.45-1-1-1s-1 .45-1 1v3h-1V9c0-.55-.45-1-1-1s-1 .45-1 1v5h-.5V10H14z" fill="#e2e8f0" />
+                                </Svg>
+                                <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: '600', flex: 1 }} numberOfLines={1}>
+                                  Wicketkeeper: <Text style={{ color: '#f8fafc', fontWeight: '700' }}>{wkDisplay}</Text>
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+
+                            {/* Right: Top ⋮ Menu & Bottom Edit / View Button */}
+                            <View style={{ alignItems: 'flex-end', justifyContent: 'space-between', minHeight: 62 }}>
+                              <TouchableOpacity
+                                onPress={() => setTeamActionMenuTeam(t)}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                                style={{ paddingHorizontal: 4, paddingVertical: 2 }}
+                              >
+                                <Text style={{ color: '#cbd5e1', fontSize: 17, fontWeight: '900', lineHeight: 18 }}>⋮</Text>
+                              </TouchableOpacity>
+
+                              <TouchableOpacity
+                                activeOpacity={0.85}
+                                onPress={() => openNewTeamModal('teamA', '', t)}
+                                style={isOwner ? {
+                                  backgroundColor: '#0284c7',
+                                  borderColor: '#38bdf8',
+                                  borderWidth: 1,
+                                  borderRadius: 8,
+                                  paddingHorizontal: 13,
+                                  paddingVertical: 5.5,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                  shadowColor: '#38bdf8',
+                                  shadowOffset: { width: 0, height: 0 },
+                                  shadowOpacity: 0.45,
+                                  shadowRadius: 6,
+                                  elevation: 4,
+                                } : {
+                                  backgroundColor: '#0f2544',
+                                  borderColor: '#3b5978',
+                                  borderWidth: 1,
+                                  borderRadius: 8,
+                                  paddingHorizontal: 12,
+                                  paddingVertical: 5.5,
+                                  flexDirection: 'row',
+                                  alignItems: 'center',
+                                  gap: 5,
+                                }}
+                              >
+                                {isOwner ? (
+                                  <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 000-1.41l-2.34-2.34a1 1 0 00-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="#ffffff" />
+                                  </Svg>
+                                ) : (
+                                  <Svg width={13} height={13} viewBox="0 0 24 24" fill="none">
+                                    <Path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8a3 3 0 100 6 3 3 0 000-6z" fill="#ffffff" />
+                                  </Svg>
+                                )}
+                                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800' }}>
+                                  {isOwner ? 'Edit' : 'View'}
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          </View>
+
+                          {/* Expandable Squad Roster View (Tap Card to Toggle) */}
+                          {isExpanded && (
+                            <View style={[styles.expandedSquadBox, { borderTopColor: 'rgba(56, 189, 248, 0.2)' }]}>
+                              {/* Quick Action Strip inside expanded card */}
+                              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, gap: 6 }}>
+                                <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '700' }}>
+                                  👥 {squadCount} {squadCount === 1 ? 'Player' : 'Players'} • 📊 {getTeamMatchesPlayedCount(t)} Matches
+                                </Text>
+                                <TouchableOpacity
+                                  onPress={() => openTeamQrCode(t)}
+                                  style={{
+                                    backgroundColor: 'rgba(16, 185, 129, 0.14)',
+                                    borderColor: '#10b981',
+                                    borderWidth: 1,
+                                    borderRadius: 6,
+                                    paddingHorizontal: 8,
+                                    paddingVertical: 3,
+                                  }}
+                                >
+                                  <Text style={{ color: '#34d399', fontSize: 11, fontWeight: '800' }}>🪪 Team QR</Text>
+                                </TouchableOpacity>
+                              </View>
+
+                              {/* Quick Add Player Shortcut inside squad for Owner */}
+                              {isOwner && squadCount < 20 && (
+                                <TouchableOpacity
+                                  style={[styles.squadInnerAddBtn, { backgroundColor: '#06201a', borderColor: '#10b981' }]}
+                                  onPress={() => openAddPlayerToTeamModal(t)}
+                                >
+                                  <Text style={{ color: '#10b981', fontSize: 12.5, fontWeight: 'bold' }}>
+                                    ➕ Add Teammate to {t.name} ({squadCount}/20)
+                                  </Text>
+                                </TouchableOpacity>
+                              )}
+
+                              {/* Squad Members Roster */}
+                              <View style={{ gap: 6, marginTop: 4 }}>
+                                {squadArr.length > 0 ? (
+                                  squadArr.map((p, pIdx) => {
+                                    const pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
+                                    const cleanPName = pName.replace(' (c)', '').replace(' (wk)', '').trim();
+                                    const isCap = (typeof p === 'object' && p.isCaptain) || pIdx === 0 || cleanPName === t.captain || pName.includes('(c)');
+                                    const isWk = (typeof p === 'object' && p.isWk) || (typeof p === 'object' && p.role === 'WK') || cleanPName === t.wicketkeeper || pName.includes('(wk)');
+                                    const isMe = userProfile?.name && cleanPName.toLowerCase() === userProfile.name.toLowerCase().trim();
+                                    const pRole = (typeof p === 'object' && p.role) ? p.role : (isCap ? 'BAT' : isWk ? 'WK' : (pIdx % 3 === 0 ? 'BOWL' : pIdx % 2 === 0 ? 'ALL' : 'BAT'));
+                                    const pPhone = typeof p === 'object' ? p.phone : '';
+                                    const roleColor = pRole === 'BOWL' ? '#10b981' : pRole === 'WK' ? '#0284c7' : pRole === 'ALL' ? '#a855f7' : '#f59e0b';
+
+                                    return (
+                                      <View
+                                        key={`squad_item_${t.id}_${pIdx}`}
+                                        style={[
+                                          styles.squadPlayerRow,
+                                          { backgroundColor: '#0f172a', borderColor: isCap ? '#f59e0b' : '#1e293b' }
+                                        ]}
+                                      >
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                                          <View style={{ position: 'relative' }}>
+                                            <PlayerAvatar
+                                              name={cleanPName}
+                                              customUri={typeof p === 'object' ? (p.avatarUri || getPlayerAvatarUri(cleanPName)) : getPlayerAvatarUri(cleanPName)}
+                                              size={32}
+                                              borderColor={isCap ? '#f59e0b' : '#38bdf8'}
+                                            />
+                                            {isCap && (
+                                              <View style={styles.avatarCaptainCrown}>
+                                                <Text style={{ fontSize: 8 }}>👑</Text>
+                                              </View>
+                                            )}
+                                          </View>
+
+                                          <View style={{ flex: 1 }}>
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                                              <Text style={[styles.squadPlayerRowName, { color: '#ffffff' }]}>
+                                                {cleanPName}
+                                              </Text>
+                                              {isCap && (
+                                                <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold' }}>(c)</Text>
+                                              )}
+                                              {isWk && !isCap && (
+                                                <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: 'bold' }}>(wk)</Text>
+                                              )}
+                                              {isMe && (
+                                                <View style={[styles.youBadge, { backgroundColor: '#0c4a6e' }]}>
+                                                  <Text style={[styles.youBadgeText, { color: '#38bdf8' }]}>You</Text>
+                                                </View>
+                                              )}
+                                            </View>
+
+                                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                              <View style={[styles.squadRoleMiniBadge, { backgroundColor: roleColor + '20', borderColor: roleColor }]}>
+                                                <Text style={[styles.squadRoleMiniBadgeText, { color: roleColor }]}>{pRole}</Text>
+                                              </View>
+                                              {pPhone ? (
+                                                <View style={[styles.squadPhoneTag, { backgroundColor: '#1e293b' }]}>
+                                                  <Text style={[styles.squadPhoneTagText, { color: '#94a3b8' }]}>
+                                                    📞 {pPhone}
+                                                  </Text>
+                                                </View>
+                                              ) : null}
+                                            </View>
+                                          </View>
+                                        </View>
+
+                                        {isOwner ? (
+                                          (isCap || isMe || pIdx === 0) ? (
+                                            <View style={styles.captainLockedBadge}>
+                                              <Text style={styles.captainLockedBadgeText}>👑 Creator</Text>
+                                            </View>
+                                          ) : (
+                                            <TouchableOpacity
+                                              style={styles.removePlayerRowBtn}
+                                              onPress={() => handleDeletePlayerFromTeam(t.id, pIdx)}
+                                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                            >
+                                              <Text style={styles.removePlayerRowBtnText}>✕ Remove</Text>
+                                            </TouchableOpacity>
+                                          )
+                                        ) : (
+                                          <View style={styles.viewOnlyPlayerBadge}>
+                                            <Text style={[styles.viewOnlyPlayerBadgeText, { color: '#64748b' }]}>
+                                              #{pIdx + 1}
+                                            </Text>
+                                          </View>
+                                        )}
+                                      </View>
+                                    );
+                                  })
+                                ) : (
+                                  <Text style={{ color: '#94a3b8', fontSize: 12, textAlign: 'center', paddingVertical: 8 }}>
+                                    No players in squad.
+                                  </Text>
+                                )}
+                              </View>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })
                   )}
                 </View>
-              );
-            });
-          })()}
-        </ScrollView>
-      )}
+              </ScrollView>
+
+              {/* Sort / Filter Dropdown Modal */}
+              <Modal visible={teamSortMenuVisible} transparent animationType="fade" onRequestClose={() => setTeamSortMenuVisible(false)}>
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={() => setTeamSortMenuVisible(false)}
+                  style={{ flex: 1, backgroundColor: 'rgba(2, 6, 23, 0.72)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
+                >
+                  <View style={{
+                    width: '100%',
+                    maxWidth: 320,
+                    backgroundColor: '#071526',
+                    borderRadius: 16,
+                    borderWidth: 1.5,
+                    borderColor: '#38bdf8',
+                    padding: 14,
+                  }}>
+                    <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', marginBottom: 10 }}>Sort & Filter Teams</Text>
+                    {[
+                      { key: 'all', label: '🌐 All (Default Order)' },
+                      { key: 'az', label: '🔤 Team Name (A–Z)' },
+                      { key: 'matches', label: '📊 Most Matches Played' },
+                      { key: 'squad', label: '👥 Largest Squad Size' },
+                    ].map(opt => (
+                      <TouchableOpacity
+                        key={opt.key}
+                        onPress={() => {
+                          setTeamSortMode(opt.key);
+                          setTeamSortMenuVisible(false);
+                        }}
+                        style={{
+                          paddingVertical: 11,
+                          paddingHorizontal: 12,
+                          borderRadius: 10,
+                          marginBottom: 6,
+                          backgroundColor: teamSortMode === opt.key ? 'rgba(2, 132, 199, 0.32)' : 'rgba(15, 23, 42, 0.65)',
+                          borderWidth: 1,
+                          borderColor: teamSortMode === opt.key ? '#38bdf8' : '#1e3a5f',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: teamSortMode === opt.key ? '800' : '600' }}>
+                          {opt.label}
+                        </Text>
+                        {teamSortMode === opt.key && <Text style={{ color: '#38bdf8', fontWeight: '900' }}>✓</Text>}
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </TouchableOpacity>
+              </Modal>
+
+              {/* Team Quick Actions Menu Modal (⋮ Button) */}
+              <Modal visible={Boolean(teamActionMenuTeam)} transparent animationType="fade" onRequestClose={() => setTeamActionMenuTeam(null)}>
+                <TouchableOpacity
+                  activeOpacity={1}
+                  onPress={() => setTeamActionMenuTeam(null)}
+                  style={{ flex: 1, backgroundColor: 'rgba(2, 6, 23, 0.78)', justifyContent: 'center', alignItems: 'center', padding: 24 }}
+                >
+                  {teamActionMenuTeam && (() => {
+                    const mTeam = teamActionMenuTeam;
+                    const mIsOwner = isCreatedByMe(mTeam);
+                    const mSquadCount = Array.isArray(mTeam.squad) ? mTeam.squad.length : 0;
+                    return (
+                      <View style={{
+                        width: '100%',
+                        maxWidth: 330,
+                        backgroundColor: '#071526',
+                        borderRadius: 16,
+                        borderWidth: 1.5,
+                        borderColor: '#38bdf8',
+                        padding: 14,
+                      }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
+                          <SmartTeamLogo team={mTeam} allTeams={registeredTeams} allUsers={usersDb} style={{ width: 38, height: 38, borderRadius: 8 }} flagStyle={{ fontSize: 22 }} fallbackFlag={mTeam.flag || '🦁'} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900' }} numberOfLines={1}>{mTeam.name}</Text>
+                            <Text style={{ color: '#94a3b8', fontSize: 11.5 }}>{mSquadCount} Players • {getTeamMatchesPlayedCount(mTeam)} Matches</Text>
+                          </View>
+                        </View>
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            const tid = mTeam.id;
+                            setTeamActionMenuTeam(null);
+                            setExpandedTeamId(prev => prev === tid ? null : tid);
+                          }}
+                          style={{ paddingVertical: 11, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#0f2544', marginBottom: 8 }}
+                        >
+                          <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '700' }}>
+                            👥 {expandedTeamId === mTeam.id ? 'Hide Squad Roster' : 'Expand Squad Roster'} ({mSquadCount})
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            setTeamActionMenuTeam(null);
+                            openNewTeamModal('teamA', '', mTeam);
+                          }}
+                          style={{ paddingVertical: 11, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#0f2544', marginBottom: 8 }}
+                        >
+                          <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '700' }}>
+                            {mIsOwner ? '✏️ Edit Team & Players' : '👁️ View Team Details'}
+                          </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          onPress={() => {
+                            setTeamActionMenuTeam(null);
+                            openTeamQrCode(mTeam);
+                          }}
+                          style={{ paddingVertical: 11, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(16, 185, 129, 0.14)', borderWidth: 1, borderColor: '#10b981', marginBottom: 8 }}
+                        >
+                          <Text style={{ color: '#34d399', fontSize: 13.5, fontWeight: '800' }}>🪪 View Team QR Code</Text>
+                        </TouchableOpacity>
+
+                        {mIsOwner && mSquadCount < 20 && (
+                          <TouchableOpacity
+                            onPress={() => {
+                              setTeamActionMenuTeam(null);
+                              openAddPlayerToTeamModal(mTeam);
+                            }}
+                            style={{ paddingVertical: 11, paddingHorizontal: 12, borderRadius: 10, backgroundColor: '#0f2544', marginBottom: 8 }}
+                          >
+                            <Text style={{ color: '#38bdf8', fontSize: 13.5, fontWeight: '700' }}>
+                              ➕ Add Teammate ({mSquadCount}/20)
+                            </Text>
+                          </TouchableOpacity>
+                        )}
+
+                        {mIsOwner && (
+                          <TouchableOpacity
+                            onPress={() => {
+                              setTeamActionMenuTeam(null);
+                              handleDeleteCustomTeam(mTeam.id);
+                            }}
+                            style={{ paddingVertical: 11, paddingHorizontal: 12, borderRadius: 10, backgroundColor: 'rgba(239, 68, 68, 0.14)', borderWidth: 1, borderColor: '#ef4444' }}
+                          >
+                            <Text style={{ color: '#f87171', fontSize: 13.5, fontWeight: '800' }}>🗑️ Delete Team</Text>
+                          </TouchableOpacity>
+                        )}
+                      </View>
+                    );
+                  })()}
+                </TouchableOpacity>
+              </Modal>
+            </View>
+          </ImageBackground>
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* 2.2 SCORER TAB */}
