@@ -8072,7 +8072,11 @@ function CricketAddaMain() {
 
   // Scanner Laser Animation Loop
   useEffect(() => {
-    if (universalQrScannerVisible || (newTeamModalVisible && playerAddTab === 'qr')) {
+    if (
+      universalQrScannerVisible ||
+      (newTeamModalVisible && playerAddTab === 'qr' && !scannedPlayerProfile) ||
+      (guestModalVisible && guestPlayerAddTab === 'qr' && !scannedPlayerProfile)
+    ) {
       qrLaserAnim.setValue(0);
       const scanLoop = Animated.loop(
         Animated.sequence([
@@ -8093,7 +8097,7 @@ function CricketAddaMain() {
       scanLoop.start();
       return () => scanLoop.stop();
     }
-  }, [universalQrScannerVisible, newTeamModalVisible, playerAddTab]);
+  }, [universalQrScannerVisible, newTeamModalVisible, playerAddTab, guestModalVisible, guestPlayerAddTab, scannedPlayerProfile]);
 
   // Android Hardware Back Button listener
   useEffect(() => {
@@ -8103,11 +8107,16 @@ function CricketAddaMain() {
         return true;
       }
       if (universalQrScannerVisible) {
+        setScannedPlayerProfile(null);
         setUniversalQrScannerVisible(false);
+        restoreLastTeamDetailIfAny();
         return true;
       }
       if (qrDisplayModalVisible) {
         setQrDisplayModalVisible(false);
+        if (!newTeamModalVisible) {
+          restoreLastTeamDetailIfAny();
+        }
         return true;
       }
       if (scorerTransferModalVisible) {
@@ -8144,6 +8153,7 @@ function CricketAddaMain() {
         setNewTeamLogo(null);
         setNewTeamCustomLogoUrl('');
         setShowTeamLogoUrlInput(false);
+        restoreLastTeamDetailIfAny();
         return true;
       }
       if (commentaryModalVisible) {
@@ -8164,6 +8174,10 @@ function CricketAddaMain() {
       }
       if (dlsModalVisible) {
         setDlsModalVisible(false);
+        return true;
+      }
+      if (guestModalVisible) {
+        closeUnifiedAddPlayerModal();
         return true;
       }
       if (selectedTeamDetail) {
@@ -8193,6 +8207,8 @@ function CricketAddaMain() {
     selectedTeamDetail,
     inspectedStatsPlayer,
     returnToTeamDetail,
+    registeredTeams,
+    guestModalVisible,
     photoPickerVisible,
     universalQrScannerVisible,
     qrDisplayModalVisible,
@@ -12052,26 +12068,26 @@ function CricketAddaMain() {
           bowlingStyle: data.bowlingStyle || (existing ? existing.bowlingStyle : (pRole === 'BOWL' ? 'Right Arm Fast' : 'Right Arm Medium')),
           jersey: data.jersey || (existing ? existing.jersey : ''),
           avatarUri: data.avatarUri || (existing && existing.avatarUri) || PLAYER_AVATARS[pName] || null,
-          matches: (existing && existing.matches) || data.matches || 28,
-          runs: (existing && existing.runs) || data.runs || 840,
-          wickets: (existing && existing.wickets) || data.wickets || 24,
-          strikeRate: (existing && existing.strikeRate) || data.strikeRate || '142.0',
-          economy: (existing && existing.economy) || data.economy || '6.9',
-          rating: (existing && existing.rating) || data.rating || '9.2',
+          matches: (existing && existing.matches) || data.matches || 0,
+          runs: (existing && existing.runs) || data.runs || 0,
+          wickets: (existing && existing.wickets) || data.wickets || 0,
+          strikeRate: (existing && existing.strikeRate) || data.strikeRate || '0.0',
+          economy: (existing && existing.economy) || data.economy || '0.0',
+          rating: (existing && existing.rating) || data.rating || '-',
         };
-
-        setScannedPlayerProfile(scannedProfile);
 
         if (activePurpose === 'scan_player_xi_1' || activePurpose === 'scan_player_xi_2') {
           const targetKey = activePurpose === 'scan_player_xi_1' ? 'myPlayingXI' : 'opponentPlayingXI';
           const currentXI = matchDraft[targetKey] || [];
           if (currentXI.length >= 11) {
             setUniversalQrScannerVisible(false);
+            setScannedPlayerProfile(null);
             showAppToast('Playing XI is full (11/11). Deselect a player first ⚠️', '⚠️', 'warning');
             return;
           }
           if (currentXI.some(p => p.name?.toLowerCase() === pName.toLowerCase() || (pPhone && (p.phone || '').replace(/[^0-9]/g, '') === pPhone))) {
             setUniversalQrScannerVisible(false);
+            setScannedPlayerProfile(null);
             showAppToast(`${pName} is already selected in Playing XI! ℹ️`, 'ℹ️', 'info');
             return;
           }
@@ -12088,16 +12104,20 @@ function CricketAddaMain() {
           };
           updateDraft({ [targetKey]: [...currentXI, newPlayer] });
           setUniversalQrScannerVisible(false);
+          setGuestModalVisible(false);
+          setScannedPlayerProfile(null);
           showAppToast(`Added ${pName} to Playing XI via QR! 🏏`, '✅', 'success');
           return;
         }
 
         if (targetTeamForAddPlayer) {
           setUniversalQrScannerVisible(false);
+          setScannedPlayerProfile(null);
           appendPlayerToExistingTeamSquad(targetTeamForAddPlayer, scannedProfile);
           return;
         }
 
+        setScannedPlayerProfile(scannedProfile);
         showAppToast(`Scanned player profile: ${pName}`, '📷');
         return;
       }
@@ -16726,6 +16746,7 @@ function CricketAddaMain() {
       setNewTeamCustomLogoUrl('');
       setShowTeamLogoUrlInput(false);
       setTeamSearchQuery('');
+      restoreLastTeamDetailIfAny(updatedTeamObj);
 
       showAppToast(
         isOwner
@@ -17120,15 +17141,23 @@ function CricketAddaMain() {
     showAppToast(`Removed "${pName}" from ${team.name}`, '🗑️');
   };
 
-  // Shared helper to close unified Add Player modal and return to Team Details if opened from My Teams
-  const closeUnifiedAddPlayerModal = (updatedTeam = null) => {
-    const teamToReopen = updatedTeam || returnToTeamDetail;
-    setGuestModalVisible(false);
-    setTargetTeamForAddPlayer(null);
+  // Shared helper to restore the previously open Team Detail screen after closing any sub-modal
+  const restoreLastTeamDetailIfAny = (overrideTeam = null) => {
+    const teamToReopen = overrideTeam || (returnToTeamDetail
+      ? (registeredTeams.find(t => t.id === returnToTeamDetail.id) || returnToTeamDetail)
+      : null);
+    setReturnToTeamDetail(null);
     if (teamToReopen) {
-      setReturnToTeamDetail(null);
       setSelectedTeamDetail(teamToReopen);
     }
+  };
+
+  // Shared helper to close unified Add Player modal and return to Team Details if opened from My Teams
+  const closeUnifiedAddPlayerModal = (updatedTeam = null) => {
+    setGuestModalVisible(false);
+    setTargetTeamForAddPlayer(null);
+    setScannedPlayerProfile(null);
+    restoreLastTeamDetailIfAny(updatedTeam);
   };
 
   // Shared helper to append a player (Manual, QR Scan, or Mobile Search) into an existing My Team squad & sync Firebase
@@ -19517,7 +19546,16 @@ function CricketAddaMain() {
           return (
             <TouchableOpacity
               key={tab.key}
-              onPress={() => setGuestPlayerAddTab(tab.key)}
+              onPress={() => {
+                if (tab.key === 'qr') {
+                  setScannedPlayerProfile(null);
+                  setQrScannedLocked(false);
+                  if (!cameraPermission?.granted && requestCameraPermission) {
+                    requestCameraPermission().catch(() => {});
+                  }
+                }
+                setGuestPlayerAddTab(tab.key);
+              }}
               activeOpacity={0.8}
               style={{
                 flex: 1,
@@ -19646,58 +19684,100 @@ function CricketAddaMain() {
         </View>
       )}
 
-      {/* TAB 2: SCAN PLAYER QR */}
+      {/* TAB 2: DIRECT LIVE CAMERA QR SCANNER (NO INTERMEDIATE BUTTON, NO DUMMY DATA) */}
       {guestPlayerAddTab === 'qr' && (
-        <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+        <View style={{ alignItems: 'center', justifyContent: 'center', paddingVertical: 4 }}>
           <View style={{
-            width: 60,
-            height: 60,
-            borderRadius: 30,
-            backgroundColor: 'rgba(56, 189, 248, 0.15)',
-            borderWidth: 1.5,
-            borderColor: '#38bdf8',
-            alignItems: 'center',
+            width: '100%',
+            height: 220,
+            backgroundColor: '#000000',
+            borderRadius: 12,
+            borderWidth: 2,
+            borderColor: '#10b981',
             justifyContent: 'center',
-            marginBottom: 10,
+            alignItems: 'center',
+            position: 'relative',
+            overflow: 'hidden',
           }}>
-            <Text style={{ fontSize: 28 }}>📷</Text>
+            <UniversalLiveQrCameraView
+              onScan={(data) => {
+                setQrScannedLocked(true);
+                const purpose = targetTeamForAddPlayer
+                  ? 'add_squad_player'
+                  : (guestTargetTeam === 'myTeam' ? 'scan_player_xi_1' : 'scan_player_xi_2');
+                setQrScanPurpose(purpose);
+                handleScanQrPayload(data, purpose);
+              }}
+              isLocked={qrScannedLocked}
+              active={guestModalVisible && guestPlayerAddTab === 'qr' && !scannedPlayerProfile}
+              cameraPermission={cameraPermission}
+              requestCameraPermission={requestCameraPermission}
+            />
+
+            {/* Corner Brackets */}
+            <View pointerEvents="none" style={{ position: 'absolute', top: 8, left: 8, width: 22, height: 22, borderTopWidth: 3, borderLeftWidth: 3, borderColor: '#10b981' }} />
+            <View pointerEvents="none" style={{ position: 'absolute', top: 8, right: 8, width: 22, height: 22, borderTopWidth: 3, borderRightWidth: 3, borderColor: '#10b981' }} />
+            <View pointerEvents="none" style={{ position: 'absolute', bottom: 8, left: 8, width: 22, height: 22, borderBottomWidth: 3, borderLeftWidth: 3, borderColor: '#10b981' }} />
+            <View pointerEvents="none" style={{ position: 'absolute', bottom: 8, right: 8, width: 22, height: 22, borderBottomWidth: 3, borderRightWidth: 3, borderColor: '#10b981' }} />
+
+            {/* Live Badge */}
+            <View pointerEvents="none" style={{
+              position: 'absolute',
+              top: 8,
+              backgroundColor: 'rgba(2, 6, 23, 0.8)',
+              paddingHorizontal: 10,
+              paddingVertical: 3,
+              borderRadius: 12,
+              borderWidth: 1,
+              borderColor: 'rgba(16, 185, 129, 0.4)',
+            }}>
+              <Text style={{ color: '#34d399', fontSize: 10, fontWeight: '800', letterSpacing: 0.4 }}>
+                📷 POINT CAMERA AT PLAYER QR
+              </Text>
+            </View>
+
+            {/* Animated Laser Scan Beam */}
+            <Animated.View
+              pointerEvents="none"
+              style={{
+                position: 'absolute',
+                left: 12,
+                right: 12,
+                height: 3,
+                backgroundColor: '#10b981',
+                shadowColor: '#10b981',
+                shadowRadius: 8,
+                shadowOpacity: 0.9,
+                borderRadius: 2,
+                transform: [
+                  {
+                    translateY: qrLaserAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [-85, 85],
+                    }),
+                  },
+                ],
+              }}
+            />
           </View>
-          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900', textAlign: 'center', marginBottom: 4 }}>
-            Scan Player QR Pass / Card
-          </Text>
-          <Text style={{ color: '#94a3b8', fontSize: 11.5, textAlign: 'center', paddingHorizontal: 10, marginBottom: 18 }}>
+
+          <Text style={{ color: '#94a3b8', fontSize: 11, textAlign: 'center', marginTop: 10, marginBottom: 12 }}>
             {targetTeamForAddPlayer
-              ? `Scan any registered player's QR code to instantly verify & add them to ${targetTeamForAddPlayer.name}`
-              : "Scan any registered player's QR code to instantly verify & add them to Playing XI"}
+              ? `Scan player's CricketAdda QR passport to add directly to ${targetTeamForAddPlayer.name}`
+              : "Scan player's CricketAdda QR passport to add directly to Playing XI"}
           </Text>
 
           <TouchableOpacity
             style={{
               width: '100%',
-              height: 44,
-              borderRadius: 11,
-              backgroundColor: '#10b981',
-              flexDirection: 'row',
+              backgroundColor: '#334155',
+              paddingVertical: 10,
+              borderRadius: 10,
               alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
             }}
-            onPress={() => {
-              if (targetTeamForAddPlayer && selectedTeamDetail) {
-                setReturnToTeamDetail(selectedTeamDetail);
-                setSelectedTeamDetail(null);
-              }
-              setGuestModalVisible(false);
-              openUniversalQrScanner(
-                targetTeamForAddPlayer
-                  ? 'add_squad_player'
-                  : (guestTargetTeam === 'myTeam' ? 'scan_player_xi_1' : 'scan_player_xi_2')
-              );
-            }}
-            activeOpacity={0.85}
+            onPress={() => closeUnifiedAddPlayerModal()}
           >
-            <Text style={{ fontSize: 16 }}>📷</Text>
-            <Text style={{ color: '#000000', fontSize: 14, fontWeight: '900' }}>Open Camera QR Scanner</Text>
+            <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Cancel</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -21826,6 +21906,7 @@ function CricketAddaMain() {
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                             <TouchableOpacity
                               onPress={() => {
+                                setReturnToTeamDetail(dTeam);
                                 setSelectedTeamDetail(null);
                                 openTeamQrCode(dTeam);
                               }}
@@ -21844,6 +21925,7 @@ function CricketAddaMain() {
                             {dIsOwner && (
                               <TouchableOpacity
                                 onPress={() => {
+                                  setReturnToTeamDetail(dTeam);
                                   setSelectedTeamDetail(null);
                                   openNewTeamModal('teamA', '', dTeam);
                                 }}
@@ -27561,6 +27643,7 @@ function CricketAddaMain() {
                         setNewTeamLogo(null);
                         setNewTeamCustomLogoUrl('');
                         setShowTeamLogoUrlInput(false);
+                        restoreLastTeamDetailIfAny();
                       }}
                     >
                       <Text style={styles.closeRoundBtnText}>✕</Text>
@@ -28100,23 +28183,23 @@ function CricketAddaMain() {
                       {/* Stats Grid */}
                       <View style={styles.playerStatsSummaryRow}>
                         <View style={styles.playerStatBox}>
-                          <Text style={styles.playerStatNum}>{scannedPlayerProfile.matches || 28}</Text>
+                          <Text style={styles.playerStatNum}>{scannedPlayerProfile.matches ?? 0}</Text>
                           <Text style={styles.playerStatLbl}>Matches</Text>
                         </View>
                         <View style={styles.playerStatBox}>
                           <Text style={styles.playerStatNum}>
-                            {scannedPlayerProfile.role === 'BOWL' ? (scannedPlayerProfile.wickets || 32) : (scannedPlayerProfile.runs || 890)}
+                            {scannedPlayerProfile.role === 'BOWL' ? (scannedPlayerProfile.wickets ?? 0) : (scannedPlayerProfile.runs ?? 0)}
                           </Text>
                           <Text style={styles.playerStatLbl}>{scannedPlayerProfile.role === 'BOWL' ? 'Wickets' : 'Runs'}</Text>
                         </View>
                         <View style={styles.playerStatBox}>
                           <Text style={styles.playerStatNum}>
-                            {scannedPlayerProfile.role === 'BOWL' ? (scannedPlayerProfile.economy || '6.7') : (scannedPlayerProfile.strikeRate || '141.2')}
+                            {scannedPlayerProfile.role === 'BOWL' ? (scannedPlayerProfile.economy || '0.0') : (scannedPlayerProfile.strikeRate || '0.0')}
                           </Text>
                           <Text style={styles.playerStatLbl}>{scannedPlayerProfile.role === 'BOWL' ? 'Econ' : 'SR'}</Text>
                         </View>
                         <View style={styles.playerStatBox}>
-                          <Text style={styles.playerStatNum}>{scannedPlayerProfile.rating || '9.1'} ⭐</Text>
+                          <Text style={styles.playerStatNum}>{scannedPlayerProfile.rating || '-'} ⭐</Text>
                           <Text style={styles.playerStatLbl}>Rating</Text>
                         </View>
                       </View>
@@ -35569,7 +35652,16 @@ function CricketAddaMain() {
 
       {/* 2. UNIQUE QR CODE PASSPORT DISPLAY MODAL (TEAMS, PLAYERS, SCORER)        */}
       {/* ========================================================================= */}
-      <Modal visible={qrDisplayModalVisible} transparent animationType="fade" statusBarTranslucent={true} onRequestClose={() => setQrDisplayModalVisible(false)}>
+      <Modal
+        visible={qrDisplayModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          setQrDisplayModalVisible(false);
+          if (!newTeamModalVisible) restoreLastTeamDetailIfAny();
+        }}
+      >
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={{
             backgroundColor: currentTheme.isLight ? '#ffffff' : '#0f172a',
@@ -35622,7 +35714,13 @@ function CricketAddaMain() {
                   ) : null}
                 </View>
               </View>
-              <TouchableOpacity style={styles.wizardCloseBtn} onPress={() => setQrDisplayModalVisible(false)}>
+              <TouchableOpacity
+                style={styles.wizardCloseBtn}
+                onPress={() => {
+                  setQrDisplayModalVisible(false);
+                  if (!newTeamModalVisible) restoreLastTeamDetailIfAny();
+                }}
+              >
                 <Text style={styles.wizardCloseBtnText}>✕</Text>
               </TouchableOpacity>
             </View>
@@ -35687,7 +35785,10 @@ function CricketAddaMain() {
                   alignItems: 'center',
                   justifyContent: 'center',
                 }}
-                onPress={() => setQrDisplayModalVisible(false)}
+                onPress={() => {
+                  setQrDisplayModalVisible(false);
+                  if (!newTeamModalVisible) restoreLastTeamDetailIfAny();
+                }}
               >
                 <Text style={{ color: '#f8fafc', fontSize: 13, fontWeight: 'bold' }}>Close</Text>
               </TouchableOpacity>
@@ -35697,9 +35798,19 @@ function CricketAddaMain() {
       </Modal>
 
       {/* ========================================================================= */}
-      {/* 3. UNIVERSAL QR SCANNER & INSTANT SIMULATOR (TEAMS & SCORING TRANSFER)    */}
+      {/* 3. UNIVERSAL QR SCANNER (REAL CAMERA ONLY — ZERO DUMMY DATA)              */}
       {/* ========================================================================= */}
-      <Modal visible={universalQrScannerVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setUniversalQrScannerVisible(false)}>
+      <Modal
+        visible={universalQrScannerVisible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          setScannedPlayerProfile(null);
+          setUniversalQrScannerVisible(false);
+          restoreLastTeamDetailIfAny();
+        }}
+      >
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={{
             backgroundColor: '#020617',
@@ -35734,6 +35845,7 @@ function CricketAddaMain() {
                 onPress={() => {
                   setScannedPlayerProfile(null);
                   setUniversalQrScannerVisible(false);
+                  restoreLastTeamDetailIfAny();
                 }}
               >
                 <Text style={styles.wizardCloseBtnText}>✕</Text>
@@ -35803,23 +35915,23 @@ function CricketAddaMain() {
                   {/* Stats Grid */}
                   <View style={styles.playerStatsSummaryRow}>
                     <View style={styles.playerStatBox}>
-                      <Text style={styles.playerStatNum}>{scannedPlayerProfile.matches || 28}</Text>
+                      <Text style={styles.playerStatNum}>{scannedPlayerProfile.matches ?? 0}</Text>
                       <Text style={styles.playerStatLbl}>Matches</Text>
                     </View>
                     <View style={styles.playerStatBox}>
                       <Text style={styles.playerStatNum}>
-                        {scannedPlayerProfile.role === 'BOWL' ? (scannedPlayerProfile.wickets || 32) : (scannedPlayerProfile.runs || 890)}
+                        {scannedPlayerProfile.role === 'BOWL' ? (scannedPlayerProfile.wickets ?? 0) : (scannedPlayerProfile.runs ?? 0)}
                       </Text>
                       <Text style={styles.playerStatLbl}>{scannedPlayerProfile.role === 'BOWL' ? 'Wickets' : 'Runs'}</Text>
                     </View>
                     <View style={styles.playerStatBox}>
                       <Text style={styles.playerStatNum}>
-                        {scannedPlayerProfile.role === 'BOWL' ? (scannedPlayerProfile.economy || '6.7') : (scannedPlayerProfile.strikeRate || '141.2')}
+                        {scannedPlayerProfile.role === 'BOWL' ? (scannedPlayerProfile.economy || '0.0') : (scannedPlayerProfile.strikeRate || '0.0')}
                       </Text>
                       <Text style={styles.playerStatLbl}>{scannedPlayerProfile.role === 'BOWL' ? 'Econ' : 'SR'}</Text>
                     </View>
                     <View style={styles.playerStatBox}>
-                      <Text style={styles.playerStatNum}>{scannedPlayerProfile.rating || '9.1'} ⭐</Text>
+                      <Text style={styles.playerStatNum}>{scannedPlayerProfile.rating || '-'} ⭐</Text>
                       <Text style={styles.playerStatLbl}>Rating</Text>
                     </View>
                   </View>
@@ -35915,77 +36027,6 @@ function CricketAddaMain() {
                   />
                 </View>
 
-                {/* Quick Selection Chips from Real Match Squads & Registered Teams */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ width: '100%', marginBottom: 12 }}>
-                  {qrScanPurpose === 'add_squad_player' ? (
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      {registeredPlayers.slice(0, 8).map(p => (
-                        <TouchableOpacity
-                          key={`quick_p_${p.id || p.name}`}
-                          style={{
-                            backgroundColor: '#1e293b',
-                            borderColor: '#10b981',
-                            borderWidth: 1,
-                            borderRadius: 8,
-                            paddingVertical: 7,
-                            paddingHorizontal: 10,
-                            alignItems: 'center',
-                          }}
-                          onPress={() => handleScanQrPayload(JSON.stringify({ type: 'player_pass', name: p.name, phone: p.phone, role: p.role, jersey: p.jersey, battingStyle: p.battingStyle }))}
-                        >
-                          <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }}>👤 {p.name}</Text>
-                          <Text style={{ color: '#10b981', fontSize: 9.5 }}>{p.phone ? `📞 ${p.phone} • ` : ''}{p.role}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  ) : qrScanPurpose === 'transfer_scorer' ? (
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      {[
-                        ...activeBattingSquad.map(name => ({ name, role: 'BAT', team: battingTeamName, flag: battingTeamFlag })),
-                        ...activeOppBowlers.map(name => ({ name, role: 'BOWL', team: bowlingTeamName, flag: bowlingTeamFlag }))
-                      ].map((p, pIdx) => (
-                        <TouchableOpacity
-                          key={`quick_trans_${p.name}_${pIdx}`}
-                          style={{
-                            backgroundColor: '#1e293b',
-                            borderColor: '#38bdf8',
-                            borderWidth: 1,
-                            borderRadius: 8,
-                            paddingVertical: 7,
-                            paddingHorizontal: 10,
-                            alignItems: 'center',
-                          }}
-                          onPress={() => handleScanQrPayload(JSON.stringify({ type: 'player', name: p.name, role: p.role, team: p.team, flag: p.flag }))}
-                        >
-                          <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }}>👤 {p.name}</Text>
-                          <Text style={{ color: '#94a3b8', fontSize: 9.5 }}>{p.flag} {p.team}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  ) : (
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
-                      {registeredTeams.slice(0, 4).map(t => (
-                        <TouchableOpacity
-                          key={t.id}
-                          style={{
-                            backgroundColor: '#1e293b',
-                            borderColor: '#10b981',
-                            borderWidth: 1,
-                            borderRadius: 8,
-                            paddingVertical: 7,
-                            paddingHorizontal: 10,
-                            alignItems: 'center',
-                          }}
-                          onPress={() => handleScanQrPayload(JSON.stringify({ type: 'team', id: t.id, name: t.name, flag: t.flag, city: t.city, squad: t.squad }))}
-                        >
-                          <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }}>{t.flag} {t.name}</Text>
-                          <Text style={{ color: '#94a3b8', fontSize: 9.5 }}>{t.city}</Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  )}
-                </ScrollView>
-
                 <TouchableOpacity
                   style={{
                     width: '100%',
@@ -35997,6 +36038,7 @@ function CricketAddaMain() {
                   onPress={() => {
                     setScannedPlayerProfile(null);
                     setUniversalQrScannerVisible(false);
+                    restoreLastTeamDetailIfAny();
                   }}
                 >
                   <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: 'bold' }}>Cancel Scanner</Text>
