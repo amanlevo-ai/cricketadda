@@ -20334,7 +20334,6 @@ function CricketAddaMain() {
                                 const isBowlRole = !isWkRole && (roleUpper.includes('BOWL') || roleUpper.includes('FAST') || roleUpper.includes('SPIN') || roleUpper.includes('MEDIUM') || roleUpper.includes('PACER'));
                                 const isAllRole = !isWkRole && !isBowlRole && roleUpper.includes('ALL');
                                 const shortRoleBadge = isWkRole ? 'WK' : isBowlRole ? 'BOWL' : isAllRole ? 'ALL' : 'BAT';
-                                const roleColor = isBowlRole ? '#10b981' : isWkRole ? '#0284c7' : isAllRole ? '#a855f7' : '#f59e0b';
                                 const pAvatarUri = typeof p === 'object' ? (p.avatarUri || matchedUser?.avatarUri || getPlayerAvatarUri(cleanPName)) : (matchedUser?.avatarUri || getPlayerAvatarUri(cleanPName));
 
                                 const pStats = selectedTeamSquadStatsMap[cleanPName.toLowerCase()] || USER_CAREER_DATA;
@@ -20344,26 +20343,26 @@ function CricketAddaMain() {
 
                                 const roleKpis = isWkRole
                                   ? [
-                                      { label: 'Runs', val: Number(pBat.runs || 0), col: '#38bdf8' },
-                                      { label: 'Catches', val: Number(pField.catches || 0), col: '#4ade80' },
-                                      { label: 'Stumps', val: Number(pField.stumpings || 0), col: '#facc15' },
+                                      { label: 'Runs', val: Number(pBat.runs || 0) },
+                                      { label: 'Catches', val: Number(pField.catches || 0) },
+                                      { label: 'Stumps', val: Number(pField.stumpings || 0) },
                                     ]
                                   : isBowlRole
                                   ? [
-                                      { label: 'Wkts', val: Number(pBowl.wickets || 0), col: '#4ade80' },
-                                      { label: 'Econ', val: pBowl.econ || '0.00', col: '#38bdf8' },
-                                      { label: 'Avg', val: pBowl.avg || '0.00', col: '#f8fafc' },
+                                      { label: 'Wkts', val: Number(pBowl.wickets || 0) },
+                                      { label: 'Econ', val: pBowl.econ || '0.00' },
+                                      { label: 'Avg', val: pBowl.avg || '0.00' },
                                     ]
                                   : isAllRole
                                   ? [
-                                      { label: 'Runs', val: Number(pBat.runs || 0), col: '#38bdf8' },
-                                      { label: 'Avg', val: pBat.avg || '0.00', col: '#f8fafc' },
-                                      { label: 'Wkts', val: Number(pBowl.wickets || 0), col: '#4ade80' },
+                                      { label: 'Runs', val: Number(pBat.runs || 0) },
+                                      { label: 'Avg', val: pBat.avg || '0.00' },
+                                      { label: 'Wkts', val: Number(pBowl.wickets || 0) },
                                     ]
                                   : [
-                                      { label: 'Runs', val: Number(pBat.runs || 0), col: '#38bdf8' },
-                                      { label: 'Avg', val: pBat.avg || '0.00', col: '#f8fafc' },
-                                      { label: 'SR', val: pBat.sr || '0.0', col: '#4ade80' },
+                                      { label: 'Runs', val: Number(pBat.runs || 0) },
+                                      { label: 'Avg', val: pBat.avg || '0.00' },
+                                      { label: 'SR', val: pBat.sr || '0.0' },
                                     ];
 
                                 const handleOpenPlayerStats = () => {
@@ -20396,7 +20395,7 @@ function CricketAddaMain() {
                                         flexDirection: 'column',
                                         alignItems: 'stretch',
                                         backgroundColor: '#071526',
-                                        borderColor: isCap ? '#f59e0b' : '#1e3a5f',
+                                        borderColor: '#1e3a5f',
                                         paddingVertical: 9,
                                         paddingHorizontal: 10,
                                         gap: 7,
@@ -20410,7 +20409,7 @@ function CricketAddaMain() {
                                             name={cleanPName}
                                             customUri={pAvatarUri}
                                             size={38}
-                                            borderColor={isCap ? '#f59e0b' : '#38bdf8'}
+                                            borderColor="#334155"
                                           />
                                           {isCap && (
                                             <View style={styles.avatarCaptainCrown}>
@@ -20424,16 +20423,16 @@ function CricketAddaMain() {
                                             <Text style={[styles.squadPlayerRowName, { color: '#ffffff' }]} numberOfLines={1}>
                                               {cleanPName}
                                             </Text>
-                                            {isCap && <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold' }}>(c)</Text>}
+                                            {isCap && <Text style={{ color: '#cbd5e1', fontSize: 12, fontWeight: 'bold' }}>(c)</Text>}
                                             {isMe && (
-                                              <View style={[styles.youBadge, { backgroundColor: '#0c4a6e' }]}>
-                                                <Text style={[styles.youBadgeText, { color: '#38bdf8' }]}>You</Text>
+                                              <View style={[styles.youBadge, { backgroundColor: '#0f233c', borderColor: '#334155', borderWidth: 1 }]}>
+                                                <Text style={[styles.youBadgeText, { color: '#cbd5e1' }]}>You</Text>
                                               </View>
                                             )}
                                           </View>
                                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                                            <View style={[styles.squadRoleMiniBadge, { backgroundColor: roleColor + '20', borderColor: roleColor }]}>
-                                              <Text style={[styles.squadRoleMiniBadgeText, { color: roleColor }]}>{shortRoleBadge}</Text>
+                                            <View style={[styles.squadRoleMiniBadge, { backgroundColor: '#0f233c', borderColor: '#334155' }]}>
+                                              <Text style={[styles.squadRoleMiniBadgeText, { color: '#cbd5e1' }]}>{shortRoleBadge}</Text>
                                             </View>
                                             {pPhone ? (
                                               <View style={[styles.squadPhoneTag, { backgroundColor: '#0f2544' }]}>
@@ -20446,8 +20445,8 @@ function CricketAddaMain() {
 
                                       {dIsOwner ? (
                                         (isCap || isMe || pIdx === 0) ? (
-                                          <View style={styles.captainLockedBadge}>
-                                            <Text style={styles.captainLockedBadgeText}>👑 Creator</Text>
+                                          <View style={[styles.captainLockedBadge, { backgroundColor: '#0f233c', borderColor: '#334155' }]}>
+                                            <Text style={[styles.captainLockedBadgeText, { color: '#cbd5e1' }]}>👑 Creator</Text>
                                           </View>
                                         ) : (
                                           <TouchableOpacity
@@ -20465,7 +20464,7 @@ function CricketAddaMain() {
                                       )}
                                     </View>
 
-                                    {/* Real Role-Based Stats Strip + Open Full Stats Arrow */}
+                                    {/* Real Role-Based Stats Strip (Clean Neutral Style) */}
                                     <View style={{
                                       flexDirection: 'row',
                                       alignItems: 'center',
@@ -20481,11 +20480,11 @@ function CricketAddaMain() {
                                       <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                                         {roleKpis.map(k => (
                                           <Text key={k.label} style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>
-                                            {k.label}: <Text style={{ color: k.col, fontWeight: '900' }}>{k.val}</Text>
+                                            {k.label}: <Text style={{ color: '#f8fafc', fontWeight: '900' }}>{k.val}</Text>
                                           </Text>
                                         ))}
                                       </View>
-                                      <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '900' }}>Stats ›</Text>
+                                      <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800' }}>Stats ›</Text>
                                     </View>
                                   </TouchableOpacity>
                                 );
