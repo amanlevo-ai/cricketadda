@@ -5113,6 +5113,8 @@ function CricketAddaMain() {
   const [teamSortMenuVisible, setTeamSortMenuVisible] = useState(false);
   const [teamActionMenuTeam, setTeamActionMenuTeam] = useState(null);
   const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
+  const [inspectedStatsPlayer, setInspectedStatsPlayer] = useState(null);
+  const [returnToTeamDetail, setReturnToTeamDetail] = useState(null);
   const [expandedTeamId, setExpandedTeamId] = useState(null);
   const [addPlayerModalVisible, setAddPlayerModalVisible] = useState(false);
   const [targetTeamForAddPlayer, setTargetTeamForAddPlayer] = useState(null);
@@ -8162,6 +8164,18 @@ function CricketAddaMain() {
         setDlsModalVisible(false);
         return true;
       }
+      if (selectedTeamDetail) {
+        setSelectedTeamDetail(null);
+        return true;
+      }
+      if (activeTab === 'profile' && inspectedStatsPlayer) {
+        const backTeam = returnToTeamDetail;
+        setInspectedStatsPlayer(null);
+        setReturnToTeamDetail(null);
+        navigateTo('teams');
+        if (backTeam) setSelectedTeamDetail(backTeam);
+        return true;
+      }
       if (navHistory.length > 1) {
         goBack();
         return true;
@@ -8173,6 +8187,10 @@ function CricketAddaMain() {
     return () => handler.remove();
   }, [
     navHistory,
+    activeTab,
+    selectedTeamDetail,
+    inspectedStatsPlayer,
+    returnToTeamDetail,
     photoPickerVisible,
     universalQrScannerVisible,
     qrDisplayModalVisible,
@@ -8877,8 +8895,9 @@ function CricketAddaMain() {
         }
       }
 
+      const targetProfileForStats = inspectedStatsPlayer || userProfile || { name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null };
       const computed = computeCareerDataFromMatches(
-        userProfile || { name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null },
+        targetProfileForStats,
         filteredMatchesDb,
         effActiveId,
         effLiveMatch,
@@ -8890,7 +8909,7 @@ function CricketAddaMain() {
     } catch (e) {
       return defaultStats;
     }
-  }, [userProfile, matchesDb, activeMatchId, currentMatchData, liveBatters, liveBowlerStats, matchDroppedCatches, userCareerData, statsRangeFilter]);
+  }, [inspectedStatsPlayer, userProfile, matchesDb, activeMatchId, currentMatchData, liveBatters, liveBowlerStats, matchDroppedCatches, userCareerData, statsRangeFilter]);
 
   const filteredMatchHistoryList = useMemo(() => {
     const list = activeUserCareerData?.matchHistoryList || [];
@@ -8902,6 +8921,46 @@ function CricketAddaMain() {
     }
     return list;
   }, [activeUserCareerData, statsFilter]);
+
+  // Real-time role stats map for every squad player inside the opened Team Details modal
+  const selectedTeamSquadStatsMap = useMemo(() => {
+    if (!selectedTeamDetail) return {};
+    const liveTeamObj = (registeredTeams || []).find(x => x.id === selectedTeamDetail.id) || selectedTeamDetail;
+    const squadList = Array.isArray(liveTeamObj?.squad) ? liveTeamObj.squad : [];
+    const statsByName = {};
+    squadList.forEach((p, idx) => {
+      const rawName = typeof p === 'string' ? p : (p?.name || `Player ${idx + 1}`);
+      const cleanName = String(rawName).replace(/\s*\([^)]*\)/g, '').trim();
+      if (!cleanName) return;
+      const pPhone = typeof p === 'object' ? String(p.phone || '').replace(/[^0-9]/g, '') : '';
+      const pId = typeof p === 'object' ? String(p.id || p.playerId || '') : '';
+      const matchedDbUser = (usersDb || []).find(u =>
+        (pPhone && String(u.phone || '').replace(/[^0-9]/g, '') === pPhone)
+        || (u.name && String(u.name).trim().toLowerCase() === cleanName.toLowerCase())
+      );
+      try {
+        const computed = computeCareerDataFromMatches(
+          {
+            name: cleanName,
+            phone: pPhone || matchedDbUser?.phone || '',
+            id: pId || matchedDbUser?.id || '',
+            role: (typeof p === 'object' && p.role) || matchedDbUser?.role || 'Batter',
+            avatarUri: (typeof p === 'object' && p.avatarUri) || matchedDbUser?.avatarUri || null,
+          },
+          matchesDb || {},
+          activeMatchId,
+          currentMatchData,
+          liveBatters || {},
+          liveBowlerStats || {},
+          matchDroppedCatches || []
+        );
+        statsByName[cleanName.toLowerCase()] = computed;
+      } catch (err) {
+        statsByName[cleanName.toLowerCase()] = USER_CAREER_DATA;
+      }
+    });
+    return statsByName;
+  }, [selectedTeamDetail, registeredTeams, usersDb, matchesDb, activeMatchId, currentMatchData, liveBatters, liveBowlerStats, matchDroppedCatches]);
 
 
   // ============================================================================
@@ -18894,6 +18953,8 @@ function CricketAddaMain() {
                   }}
                   onPress={() => {
                     setHeaderUserMenuVisible(false);
+                    setInspectedStatsPlayer(null);
+                    setReturnToTeamDetail(null);
                     navigateTo('profile');
                   }}
                 >
@@ -20259,80 +20320,174 @@ function CricketAddaMain() {
                                 const pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
                                 const cleanPName = pName.replace(' (c)', '').replace(' (wk)', '').trim();
                                 const isCap = (typeof p === 'object' && p.isCaptain) || pIdx === 0 || cleanPName === dTeam.captain || pName.includes('(c)');
-                                const isWk = (typeof p === 'object' && p.isWk) || (typeof p === 'object' && p.role === 'WK') || cleanPName === dTeam.wicketkeeper || pName.includes('(wk)');
+                                const isWk = (typeof p === 'object' && p.isWk) || (typeof p === 'object' && String(p.role || '').toUpperCase() === 'WK') || cleanPName === dTeam.wicketkeeper || pName.includes('(wk)');
                                 const isMe = userProfile?.name && cleanPName.toLowerCase() === userProfile.name.toLowerCase().trim();
-                                const pRole = (typeof p === 'object' && p.role) ? p.role : (isCap ? 'BAT' : isWk ? 'WK' : (pIdx % 3 === 0 ? 'BOWL' : pIdx % 2 === 0 ? 'ALL' : 'BAT'));
-                                const pPhone = typeof p === 'object' ? p.phone : '';
-                                const roleColor = pRole === 'BOWL' ? '#10b981' : pRole === 'WK' ? '#0284c7' : pRole === 'ALL' ? '#a855f7' : '#f59e0b';
+                                const pPhone = typeof p === 'object' ? (p.phone || '') : '';
+                                const pId = typeof p === 'object' ? (p.id || p.playerId || '') : '';
+                                const matchedUser = (usersDb || []).find(u =>
+                                  (pPhone && String(u.phone || '').replace(/[^0-9]/g, '') === String(pPhone).replace(/[^0-9]/g, ''))
+                                  || (u.name && String(u.name).trim().toLowerCase() === cleanPName.toLowerCase())
+                                );
+                                const pRole = (typeof p === 'object' && p.role) ? p.role : (matchedUser?.role || (isWk ? 'WK' : (isCap ? 'BAT' : (pIdx % 3 === 0 ? 'BOWL' : pIdx % 2 === 0 ? 'ALL' : 'BAT'))));
+                                const roleUpper = String(pRole || '').toUpperCase();
+                                const isWkRole = isWk || roleUpper.includes('WK') || roleUpper.includes('KEEPER');
+                                const isBowlRole = !isWkRole && (roleUpper.includes('BOWL') || roleUpper.includes('FAST') || roleUpper.includes('SPIN') || roleUpper.includes('MEDIUM') || roleUpper.includes('PACER'));
+                                const isAllRole = !isWkRole && !isBowlRole && roleUpper.includes('ALL');
+                                const shortRoleBadge = isWkRole ? 'WK' : isBowlRole ? 'BOWL' : isAllRole ? 'ALL' : 'BAT';
+                                const roleColor = isBowlRole ? '#10b981' : isWkRole ? '#0284c7' : isAllRole ? '#a855f7' : '#f59e0b';
+                                const pAvatarUri = typeof p === 'object' ? (p.avatarUri || matchedUser?.avatarUri || getPlayerAvatarUri(cleanPName)) : (matchedUser?.avatarUri || getPlayerAvatarUri(cleanPName));
+
+                                const pStats = selectedTeamSquadStatsMap[cleanPName.toLowerCase()] || USER_CAREER_DATA;
+                                const pBat = pStats?.careerStats?.batting || {};
+                                const pBowl = pStats?.careerStats?.bowling || {};
+                                const pField = pStats?.careerStats?.fielding || {};
+
+                                const roleKpis = isWkRole
+                                  ? [
+                                      { label: 'Runs', val: Number(pBat.runs || 0), col: '#38bdf8' },
+                                      { label: 'Catches', val: Number(pField.catches || 0), col: '#4ade80' },
+                                      { label: 'Stumps', val: Number(pField.stumpings || 0), col: '#facc15' },
+                                    ]
+                                  : isBowlRole
+                                  ? [
+                                      { label: 'Wkts', val: Number(pBowl.wickets || 0), col: '#4ade80' },
+                                      { label: 'Econ', val: pBowl.econ || '0.00', col: '#38bdf8' },
+                                      { label: 'Avg', val: pBowl.avg || '0.00', col: '#f8fafc' },
+                                    ]
+                                  : isAllRole
+                                  ? [
+                                      { label: 'Runs', val: Number(pBat.runs || 0), col: '#38bdf8' },
+                                      { label: 'Avg', val: pBat.avg || '0.00', col: '#f8fafc' },
+                                      { label: 'Wkts', val: Number(pBowl.wickets || 0), col: '#4ade80' },
+                                    ]
+                                  : [
+                                      { label: 'Runs', val: Number(pBat.runs || 0), col: '#38bdf8' },
+                                      { label: 'Avg', val: pBat.avg || '0.00', col: '#f8fafc' },
+                                      { label: 'SR', val: pBat.sr || '0.0', col: '#4ade80' },
+                                    ];
+
+                                const handleOpenPlayerStats = () => {
+                                  setReturnToTeamDetail(dTeam);
+                                  setSelectedTeamDetail(null);
+                                  setInspectedStatsPlayer({
+                                    name: cleanPName,
+                                    phone: pPhone || matchedUser?.phone || '',
+                                    id: pId || matchedUser?.id || '',
+                                    role: (typeof p === 'object' && p.role && String(p.role).length > 4)
+                                      ? p.role
+                                      : (isWkRole ? 'Wicketkeeper Batter' : isBowlRole ? 'Bowler' : isAllRole ? 'All-Rounder' : 'Top-Order Batter'),
+                                    bowlingStyle: matchedUser?.bowlingStyle || (isBowlRole ? 'Right Arm Medium' : isAllRole ? 'All-Round Bowler' : 'Part-time Bowler'),
+                                    jersey: (typeof p === 'object' && p.jersey) || matchedUser?.jersey || `#${pIdx + 1}`,
+                                    avatarUri: pAvatarUri || null,
+                                  });
+                                  setStatsSubTab(isBowlRole ? 'bowling' : 'batting');
+                                  setStatsFilter('all');
+                                  navigateTo('profile');
+                                };
 
                                 return (
-                                  <View
+                                  <TouchableOpacity
                                     key={`modal_squad_${dTeam.id}_${pIdx}`}
+                                    activeOpacity={0.85}
+                                    onPress={handleOpenPlayerStats}
                                     style={[
                                       styles.squadPlayerRow,
-                                      { backgroundColor: '#071526', borderColor: isCap ? '#f59e0b' : '#1e3a5f' }
+                                      {
+                                        flexDirection: 'column',
+                                        alignItems: 'stretch',
+                                        backgroundColor: '#071526',
+                                        borderColor: isCap ? '#f59e0b' : '#1e3a5f',
+                                        paddingVertical: 9,
+                                        paddingHorizontal: 10,
+                                        gap: 7,
+                                      }
                                     ]}
                                   >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 }}>
-                                      <View style={{ position: 'relative' }}>
-                                        <PlayerAvatar
-                                          name={cleanPName}
-                                          customUri={typeof p === 'object' ? (p.avatarUri || getPlayerAvatarUri(cleanPName)) : getPlayerAvatarUri(cleanPName)}
-                                          size={36}
-                                          borderColor={isCap ? '#f59e0b' : '#38bdf8'}
-                                        />
-                                        {isCap && (
-                                          <View style={styles.avatarCaptainCrown}>
-                                            <Text style={{ fontSize: 8 }}>👑</Text>
-                                          </View>
-                                        )}
-                                      </View>
-
-                                      <View style={{ flex: 1 }}>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
-                                          <Text style={[styles.squadPlayerRowName, { color: '#ffffff' }]}>
-                                            {cleanPName}
-                                          </Text>
-                                          {isCap && <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold' }}>(c)</Text>}
-                                          {isMe && (
-                                            <View style={[styles.youBadge, { backgroundColor: '#0c4a6e' }]}>
-                                              <Text style={[styles.youBadgeText, { color: '#38bdf8' }]}>You</Text>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 9, flex: 1 }}>
+                                        <View style={{ position: 'relative' }}>
+                                          <PlayerAvatar
+                                            name={cleanPName}
+                                            customUri={pAvatarUri}
+                                            size={38}
+                                            borderColor={isCap ? '#f59e0b' : '#38bdf8'}
+                                          />
+                                          {isCap && (
+                                            <View style={styles.avatarCaptainCrown}>
+                                              <Text style={{ fontSize: 8 }}>👑</Text>
                                             </View>
                                           )}
                                         </View>
-                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                                          <View style={[styles.squadRoleMiniBadge, { backgroundColor: roleColor + '20', borderColor: roleColor }]}>
-                                            <Text style={[styles.squadRoleMiniBadgeText, { color: roleColor }]}>{pRole}</Text>
+
+                                        <View style={{ flex: 1 }}>
+                                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                                            <Text style={[styles.squadPlayerRowName, { color: '#ffffff' }]} numberOfLines={1}>
+                                              {cleanPName}
+                                            </Text>
+                                            {isCap && <Text style={{ color: '#f59e0b', fontSize: 12, fontWeight: 'bold' }}>(c)</Text>}
+                                            {isMe && (
+                                              <View style={[styles.youBadge, { backgroundColor: '#0c4a6e' }]}>
+                                                <Text style={[styles.youBadgeText, { color: '#38bdf8' }]}>You</Text>
+                                              </View>
+                                            )}
                                           </View>
-                                          {pPhone ? (
-                                            <View style={[styles.squadPhoneTag, { backgroundColor: '#0f2544' }]}>
-                                              <Text style={[styles.squadPhoneTagText, { color: '#94a3b8' }]}>📞 {pPhone}</Text>
+                                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                            <View style={[styles.squadRoleMiniBadge, { backgroundColor: roleColor + '20', borderColor: roleColor }]}>
+                                              <Text style={[styles.squadRoleMiniBadgeText, { color: roleColor }]}>{shortRoleBadge}</Text>
                                             </View>
-                                          ) : null}
+                                            {pPhone ? (
+                                              <View style={[styles.squadPhoneTag, { backgroundColor: '#0f2544' }]}>
+                                                <Text style={[styles.squadPhoneTagText, { color: '#94a3b8' }]}>📞 {pPhone}</Text>
+                                              </View>
+                                            ) : null}
+                                          </View>
                                         </View>
                                       </View>
+
+                                      {dIsOwner ? (
+                                        (isCap || isMe || pIdx === 0) ? (
+                                          <View style={styles.captainLockedBadge}>
+                                            <Text style={styles.captainLockedBadgeText}>👑 Creator</Text>
+                                          </View>
+                                        ) : (
+                                          <TouchableOpacity
+                                            style={styles.removePlayerRowBtn}
+                                            onPress={() => handleDeletePlayerFromTeam(dTeam.id, pIdx)}
+                                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                          >
+                                            <Text style={styles.removePlayerRowBtnText}>✕ Remove</Text>
+                                          </TouchableOpacity>
+                                        )
+                                      ) : (
+                                        <View style={styles.viewOnlyPlayerBadge}>
+                                          <Text style={[styles.viewOnlyPlayerBadgeText, { color: '#94a3b8' }]}>#{pIdx + 1}</Text>
+                                        </View>
+                                      )}
                                     </View>
 
-                                    {dIsOwner ? (
-                                      (isCap || isMe || pIdx === 0) ? (
-                                        <View style={styles.captainLockedBadge}>
-                                          <Text style={styles.captainLockedBadgeText}>👑 Creator</Text>
-                                        </View>
-                                      ) : (
-                                        <TouchableOpacity
-                                          style={styles.removePlayerRowBtn}
-                                          onPress={() => handleDeletePlayerFromTeam(dTeam.id, pIdx)}
-                                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                                        >
-                                          <Text style={styles.removePlayerRowBtnText}>✕ Remove</Text>
-                                        </TouchableOpacity>
-                                      )
-                                    ) : (
-                                      <View style={styles.viewOnlyPlayerBadge}>
-                                        <Text style={[styles.viewOnlyPlayerBadgeText, { color: '#94a3b8' }]}>#{pIdx + 1}</Text>
+                                    {/* Real Role-Based Stats Strip + Open Full Stats Arrow */}
+                                    <View style={{
+                                      flexDirection: 'row',
+                                      alignItems: 'center',
+                                      justifyContent: 'space-between',
+                                      backgroundColor: '#04101f',
+                                      borderRadius: 8,
+                                      borderWidth: 1,
+                                      borderColor: 'rgba(30, 58, 95, 0.85)',
+                                      paddingVertical: 5,
+                                      paddingHorizontal: 9,
+                                      gap: 6,
+                                    }}>
+                                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                                        {roleKpis.map(k => (
+                                          <Text key={k.label} style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>
+                                            {k.label}: <Text style={{ color: k.col, fontWeight: '900' }}>{k.val}</Text>
+                                          </Text>
+                                        ))}
                                       </View>
-                                    )}
-                                  </View>
+                                      <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '900' }}>Stats ›</Text>
+                                    </View>
+                                  </TouchableOpacity>
                                 );
                               })
                             ) : (
@@ -23104,6 +23259,8 @@ function CricketAddaMain() {
           setPhotoPickerVisible(true);
         };
 
+        const displayStatsProfile = inspectedStatsPlayer || userProfile;
+        const isViewingOtherPlayer = Boolean(inspectedStatsPlayer);
         const cardBg = currentTheme.isLight ? '#ffffff' : '#071526';
         const cardBorder = currentTheme.isLight ? '#cbd5e1' : '#1e3a5f';
         const txtPrimary = currentTheme.isLight ? '#0f172a' : '#ffffff';
@@ -23128,8 +23285,36 @@ function CricketAddaMain() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
+                position: 'relative',
                 gap: 8,
               }}>
+                {isViewingOtherPlayer && (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => {
+                      const backTeam = returnToTeamDetail;
+                      setInspectedStatsPlayer(null);
+                      setReturnToTeamDetail(null);
+                      navigateTo('teams');
+                      if (backTeam) setSelectedTeamDetail(backTeam);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: 12,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f233c',
+                      borderColor: cardBorder,
+                      borderWidth: 1,
+                      borderRadius: 8,
+                      paddingHorizontal: 9,
+                      paddingVertical: 4,
+                    }}
+                  >
+                    <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '900' }}>← Back</Text>
+                  </TouchableOpacity>
+                )}
                 <Svg width={18} height={15} viewBox="0 0 18 15" fill="none" style={{ marginTop: -2 }}>
                   <Rect x="1" y="7" width="4" height="7.5" rx="1" fill="#0284c7" />
                   <Rect x="7" y="3.5" width="4" height="11" rx="1" fill="#0ea5e9" />
@@ -23154,48 +23339,50 @@ function CricketAddaMain() {
                   alignItems: 'center',
                   gap: 9,
                 }}>
-                  {/* Avatar (Tap to edit photo/profile) */}
-                  <TouchableOpacity activeOpacity={0.85} onPress={openProfileEdit} style={{ position: 'relative' }}>
+                  {/* Avatar (Tap to edit own photo/profile) */}
+                  <TouchableOpacity activeOpacity={isViewingOtherPlayer ? 1 : 0.85} onPress={() => !isViewingOtherPlayer && openProfileEdit()} style={{ position: 'relative' }}>
                     <PlayerAvatar
-                      name={userProfile.name || 'Player'}
-                      customUri={userProfile.avatarUri}
+                      name={displayStatsProfile.name || 'Player'}
+                      customUri={displayStatsProfile.avatarUri}
                       size={50}
                       borderColor="#e2e8f0"
                     />
-                    <View style={{
-                      position: 'absolute',
-                      right: -2,
-                      bottom: -2,
-                      width: 18,
-                      height: 18,
-                      borderRadius: 9,
-                      backgroundColor: '#0284c7',
-                      borderWidth: 1.5,
-                      borderColor: cardBg,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}>
-                      <Text style={{ fontSize: 9 }}>📷</Text>
-                    </View>
+                    {!isViewingOtherPlayer && (
+                      <View style={{
+                        position: 'absolute',
+                        right: -2,
+                        bottom: -2,
+                        width: 18,
+                        height: 18,
+                        borderRadius: 9,
+                        backgroundColor: '#0284c7',
+                        borderWidth: 1.5,
+                        borderColor: cardBg,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Text style={{ fontSize: 9 }}>📷</Text>
+                      </View>
+                    )}
                   </TouchableOpacity>
 
                   {/* Middle: Name & Roles */}
-                  <TouchableOpacity activeOpacity={0.85} onPress={openProfileEdit} style={{ flex: 1, minWidth: 0 }}>
+                  <TouchableOpacity activeOpacity={isViewingOtherPlayer ? 1 : 0.85} onPress={() => !isViewingOtherPlayer && openProfileEdit()} style={{ flex: 1, minWidth: 0 }}>
                     <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900' }} numberOfLines={1}>
-                      {userProfile.name || 'CricketAdda Player'}
+                      {displayStatsProfile.name || 'CricketAdda Player'}
                     </Text>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2.5 }}>
                       <RealisticCricketBatIcon size={13} gripColor="#facc15" />
                       <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600', flex: 1 }} numberOfLines={1}>
-                        {userProfile.role || 'Top-Order Batter'}
+                        {displayStatsProfile.role || 'Top-Order Batter'}
                       </Text>
                     </View>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 1.5 }}>
                       <RealisticCricketLeatherBall size={11.5} />
                       <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600', flex: 1 }} numberOfLines={1}>
-                        {userProfile.bowlingStyle || 'Part-time Bowler'}
+                        {displayStatsProfile.bowlingStyle || 'Part-time Bowler'}
                       </Text>
                     </View>
                   </TouchableOpacity>
@@ -24591,7 +24778,11 @@ function CricketAddaMain() {
         {/* 4. Stats */}
         <TouchableOpacity
           style={styles.bottomNavTab}
-          onPress={() => navigateTo('profile')}
+          onPress={() => {
+            setInspectedStatsPlayer(null);
+            setReturnToTeamDetail(null);
+            navigateTo('profile');
+          }}
           activeOpacity={0.8}
         >
           <Text style={[styles.bottomNavIcon, (activeTab === 'profile' || activeTab === 'scorecard') && { color: '#22c55e' }]}>📊</Text>
