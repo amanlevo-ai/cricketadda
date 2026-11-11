@@ -8102,6 +8102,10 @@ function CricketAddaMain() {
   // Android Hardware Back Button listener
   useEffect(() => {
     const onBackPress = () => {
+      if (headerUserMenuVisible) {
+        setHeaderUserMenuVisible(false);
+        return true;
+      }
       if (photoPickerVisible) {
         setPhotoPickerVisible(false);
         return true;
@@ -8209,6 +8213,7 @@ function CricketAddaMain() {
     returnToTeamDetail,
     registeredTeams,
     guestModalVisible,
+    headerUserMenuVisible,
     photoPickerVisible,
     universalQrScannerVisible,
     qrDisplayModalVisible,
@@ -18327,12 +18332,7 @@ function CricketAddaMain() {
       live: 'Live',
     };
 
-    const openProfileEdit = () => {
-      setEditNameInput(userProfile.name);
-      setEditJerseyInput(userProfile.jersey);
-      setEditRoleInput(userProfile.role);
-      setPhotoPickerVisible(true);
-    };
+    const openProfileEdit = openPhotoPicker;
 
     const displayStatsProfile = (isModalView || inspectedStatsPlayer) ? (inspectedStatsPlayer || userProfile) : userProfile;
     const isViewingOtherPlayer = Boolean(isModalView || inspectedStatsPlayer);
@@ -20658,7 +20658,7 @@ function CricketAddaMain() {
                   }}
                   onPress={() => {
                     setHeaderUserMenuVisible(false);
-                    openProfileEdit();
+                    openPhotoPicker();
                   }}
                 >
                   <Text style={{ fontSize: 18 }}>✏️</Text>
@@ -25572,7 +25572,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* MODAL 0: USER PROFILE & PHOTO PICKER MODAL */}
       {/* ========================================================================= */}
-      <Modal visible={photoPickerVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={photoPickerVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setPhotoPickerVisible(false)}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
