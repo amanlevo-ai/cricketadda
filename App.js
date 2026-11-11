@@ -5220,6 +5220,7 @@ function CricketAddaMain() {
   const [guestPlayerAddTab, setGuestPlayerAddTab] = useState('guest'); // 'guest' | 'qr' | 'phone'
   const [guestPlayerName, setGuestPlayerName] = useState('');
   const [guestPlayerRole, setGuestPlayerRole] = useState('BAT'); // 'BAT' | 'BOWL' | 'ALL' | 'WK'
+  const [guestPlayerHand, setGuestPlayerHand] = useState('Right'); // 'Right' | 'Left'
   const [guestPhoneSearchInput, setGuestPhoneSearchInput] = useState('');
   const [guestPhoneFoundPlayer, setGuestPhoneFoundPlayer] = useState(null);
   const [guestPhoneSearched, setGuestPhoneSearched] = useState(false);
@@ -12091,11 +12092,8 @@ function CricketAddaMain() {
         }
 
         if (targetTeamForAddPlayer) {
-          setNewTeamPlayerName(pName);
-          setNewTeamPlayerRole(pRole);
-          setNewTeamPlayerPhone(pPhone);
           setUniversalQrScannerVisible(false);
-          showAppToast(`Loaded ${pName} (${pRole}) profile via QR!`, '✅');
+          appendPlayerToExistingTeamSquad(targetTeamForAddPlayer, scannedProfile);
           return;
         }
 
@@ -17100,7 +17098,87 @@ function CricketAddaMain() {
     showAppToast(`Removed "${pName}" from ${team.name}`, '🗑️');
   };
 
-  // Open modal to add player to a created team
+  // Shared helper to close unified Add Player modal and return to Team Details if opened from My Teams
+  const closeUnifiedAddPlayerModal = (updatedTeam = null) => {
+    const teamToReopen = updatedTeam || returnToTeamDetail;
+    setGuestModalVisible(false);
+    setTargetTeamForAddPlayer(null);
+    if (teamToReopen) {
+      setReturnToTeamDetail(null);
+      setSelectedTeamDetail(teamToReopen);
+    }
+  };
+
+  // Shared helper to append a player (Manual, QR Scan, or Mobile Search) into an existing My Team squad & sync Firebase
+  const appendPlayerToExistingTeamSquad = (teamObj, playerPayload) => {
+    const targetTeamId = teamObj?.id;
+    const team = registeredTeams.find(t => t.id === targetTeamId) || teamObj;
+    if (!team) return false;
+    if (!isCreatedByMe(team)) {
+      showAppToast('You can only add players to teams created by you', '🔒', 'error');
+      return false;
+    }
+    if ((team.squad || []).length >= 20) {
+      showAppToast('Squad limit reached (20/20 max players)', '⚠️', 'error');
+      return false;
+    }
+    const cleanName = String(playerPayload?.name || '').trim();
+    if (!cleanName) {
+      showAppToast('Please enter a player name', '⚠️', 'error');
+      return false;
+    }
+    const cleanPhone = String(playerPayload?.phone || '').replace(/[^0-9]/g, '');
+    if (Array.isArray(team?.squad) && team.squad.some(p => {
+      const pn = typeof p === 'string' ? p : p?.name;
+      const pp = typeof p === 'object' ? String(p?.phone || '').replace(/[^0-9]/g, '') : '';
+      return (pn && pn.toLowerCase().trim() === cleanName.toLowerCase()) || (cleanPhone && pp && pp === cleanPhone);
+    })) {
+      showAppToast(`"${cleanName}" is already in ${team.name}'s squad`, '⚠️', 'error');
+      return false;
+    }
+
+    const resolvedRole = playerPayload?.role || 'BAT';
+    const isLeftHand = String(playerPayload?.hand || playerPayload?.battingStyle || '').toLowerCase().includes('left');
+    const newPlayerObj = {
+      id: playerPayload?.id || `p_cust_${Date.now()}_${(team?.squad?.length || 0) + 1}`,
+      name: cleanName,
+      phone: cleanPhone,
+      role: resolvedRole,
+      battingStyle: playerPayload?.battingStyle || (isLeftHand ? 'Left-hand Bat' : 'Right-hand Bat'),
+      bowlingStyle: playerPayload?.bowlingStyle || (isLeftHand ? 'Left-arm Medium' : 'Right-arm Medium'),
+      jersey: playerPayload?.jersey || `#${(team?.squad?.length || 0) + 1}`,
+      isCaptain: false,
+      isViceCaptain: false,
+      isWk: resolvedRole === 'WK',
+      avatarUri: playerPayload?.avatarUri || PLAYER_AVATARS[cleanName] || null,
+    };
+
+    const updatedSquad = [...(team.squad || []), newPlayerObj];
+    const updatedTeam = { ...team, squad: updatedSquad };
+    const updatedTeams = registeredTeams.map(t => (t.id === team.id ? updatedTeam : t));
+
+    setRegisteredTeams(updatedTeams);
+    AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updatedTeams)).catch(() => {});
+    if (isFirebaseConfigured()) {
+      syncSingleTeamToFirebase(updatedTeam).catch(() => {});
+    }
+
+    if (cleanPhone && cleanPhone.length === 10) {
+      setRegisteredPlayers(prev => {
+        if (prev.some(p => p.phone === cleanPhone)) return prev;
+        const updated = [...prev, newPlayerObj];
+        AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updated)).catch(() => {});
+        return updated;
+      });
+    }
+
+    setGuestPlayerName('');
+    closeUnifiedAddPlayerModal(updatedTeam);
+    showAppToast(`Added "${cleanName}" (${resolvedRole}) to ${team.name}!`, '✅', 'success');
+    return true;
+  };
+
+  // Open unified 3-tab Add Player window (same as Wizard) for a created team
   const openAddPlayerToTeamModal = (team) => {
     if (!isCreatedByMe(team)) {
       showAppToast('You can only add players to teams created by you', '🔒', 'error');
@@ -17111,71 +17189,27 @@ function CricketAddaMain() {
       return;
     }
     setTargetTeamForAddPlayer(team);
-    setNewTeamPlayerName('');
-    setNewTeamPlayerRole('BAT');
-    setNewTeamPlayerPhone('');
-    setAddPlayerModalVisible(true);
+    setGuestPlayerName('');
+    setGuestPlayerRole('BAT');
+    setGuestPlayerHand('Right');
+    setGuestPlayerAddTab('guest');
+    setGuestPhoneSearchInput('');
+    setGuestPhoneFoundPlayer(null);
+    setGuestPhoneSearched(false);
+    setGuestModalVisible(true);
   };
 
-  // Add player to an existing created team
+  // Legacy manual handler kept safe
   const handleAddPlayerToExistingTeam = () => {
     if (!targetTeamForAddPlayer) return;
-    const teamId = targetTeamForAddPlayer.id;
-    const team = registeredTeams.find(t => t.id === teamId);
-    if (!team) return;
-    if (!isCreatedByMe(team)) {
-      showAppToast('You can only add players to teams created by you', '🔒', 'error');
-      return;
-    }
-    const cleanName = newTeamPlayerName.trim();
-    if (!cleanName) {
-      showAppToast('Please enter a player name', '⚠️', 'error');
-      return;
-    }
-    if (Array.isArray(team?.squad) && team.squad.some(p => {
-      const pn = typeof p === 'string' ? p : p.name;
-      return pn.toLowerCase().trim() === cleanName.toLowerCase();
-    })) {
-      showAppToast(`"${cleanName}" is already in ${team.name}'s squad`, '⚠️', 'error');
-      return;
-    }
-
-    const cleanPhone = newTeamPlayerPhone.replace(/[^0-9]/g, '');
-    const newPlayerObj = {
-      id: `p_cust_${Date.now()}_${(team?.squad?.length || 0) + 1}`,
-      name: cleanName,
-      phone: cleanPhone,
+    appendPlayerToExistingTeamSquad(targetTeamForAddPlayer, {
+      name: newTeamPlayerName,
+      phone: newTeamPlayerPhone,
       role: newTeamPlayerRole,
-      isCaptain: false,
-      isViceCaptain: false,
-      isWk: newTeamPlayerRole === 'WK',
-      avatarUri: PLAYER_AVATARS[cleanName] || null,
-    };
-
-    const updatedSquad = [...team.squad, newPlayerObj];
-    const updatedTeams = registeredTeams.map(t => {
-      if (t.id === teamId) {
-        return { ...t, squad: updatedSquad };
-      }
-      return t;
     });
-
-    setRegisteredTeams(updatedTeams);
-    AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updatedTeams)).catch(() => {});
-    
-    if (cleanPhone && (cleanPhone || '').length === 10) {
-      setRegisteredPlayers(prev => {
-        if (prev.some(p => p.phone === cleanPhone)) return prev;
-        const updated = [...prev, newPlayerObj];
-        AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updated)).catch(() => {});
-        return updated;
-      });
-    }
-
     setAddPlayerModalVisible(false);
     setNewTeamPlayerName('');
     setNewTeamPlayerPhone('');
-    showAppToast(`Added "${cleanName}" (${newTeamPlayerRole}) to ${team.name}!`, '✅');
   };
 
   // Delete custom team - Opens custom themed in-app confirmation modal (strictly for creator/owner)
@@ -17503,14 +17537,31 @@ function CricketAddaMain() {
 
   const addGuestPlayer = () => {
     if (!guestPlayerName || !guestPlayerName.trim()) {
-      Alert.alert('Player Name Required', 'Please enter the guest player name.');
+      Alert.alert('Player Name Required', 'Please enter the player name.');
       return;
     }
     const cleanName = guestPlayerName.trim();
+    const isLeftHand = guestPlayerHand === 'Left';
+    const batStyleVal = isLeftHand ? 'Left-hand Bat' : 'Right-hand Bat';
+    const bowlStyleVal = isLeftHand ? 'Left-arm Medium' : 'Right-arm Medium';
+
+    if (targetTeamForAddPlayer) {
+      appendPlayerToExistingTeamSquad(targetTeamForAddPlayer, {
+        name: cleanName,
+        role: guestPlayerRole,
+        hand: guestPlayerHand,
+        battingStyle: batStyleVal,
+        bowlingStyle: bowlStyleVal,
+      });
+      return;
+    }
+
     const newGuestObj = {
       id: `guest_${Date.now()}`,
       name: `${cleanName} (Guest)`,
       role: guestPlayerRole,
+      battingStyle: batStyleVal,
+      bowlingStyle: bowlStyleVal,
       isCaptain: false,
       isWk: guestPlayerRole === 'WK',
       isGuest: true,
@@ -17560,6 +17611,8 @@ function CricketAddaMain() {
             name: localMatch.name,
             phone: localMatch.phone || cleanDigits,
             role: localMatch.role || 'BAT',
+            battingStyle: localMatch.battingStyle || '',
+            bowlingStyle: localMatch.bowlingStyle || '',
             avatarUri: localMatch.avatarUri || localMatch.photoUri || null,
           };
         }
@@ -17582,6 +17635,8 @@ function CricketAddaMain() {
             name: prof.name || userMatch.name || 'Player',
             phone: prof.phone || userMatch.phone || cleanDigits,
             role: (prof.role && prof.role.includes('Bowler')) ? 'BOWL' : (prof.role && prof.role.includes('Keeper')) ? 'WK' : (prof.role && prof.role.includes('All')) ? 'ALL' : 'BAT',
+            battingStyle: prof.battingStyle || '',
+            bowlingStyle: prof.bowlingStyle || '',
             avatarUri: prof.avatarUri || prof.photoUri || userMatch.avatarUri || null,
           };
         }
@@ -17599,6 +17654,8 @@ function CricketAddaMain() {
                 name: squadMatch.name,
                 phone: squadMatch.phone || cleanDigits,
                 role: squadMatch.role || 'BAT',
+                battingStyle: squadMatch.battingStyle || '',
+                bowlingStyle: squadMatch.bowlingStyle || '',
                 avatarUri: squadMatch.avatarUri || squadMatch.photoUri || null,
               };
               break;
@@ -17617,6 +17674,8 @@ function CricketAddaMain() {
               name: cloudProfile.name,
               phone: cloudProfile.phone || cleanDigits,
               role: (cloudProfile.role && cloudProfile.role.includes('Bowler')) ? 'BOWL' : (cloudProfile.role && cloudProfile.role.includes('Keeper')) ? 'WK' : (cloudProfile.role && cloudProfile.role.includes('All')) ? 'ALL' : 'BAT',
+              battingStyle: cloudProfile.battingStyle || '',
+              bowlingStyle: cloudProfile.bowlingStyle || '',
               avatarUri: cloudProfile.avatarUri || cloudProfile.photoUri || null,
             };
           }
@@ -17631,6 +17690,10 @@ function CricketAddaMain() {
 
   const addSearchedPhonePlayerToXI = (player) => {
     if (!player) return;
+    if (targetTeamForAddPlayer) {
+      appendPlayerToExistingTeamSquad(targetTeamForAddPlayer, player);
+      return;
+    }
     const targetKey = guestTargetTeam === 'myTeam' ? 'myPlayingXI' : 'opponentPlayingXI';
     const currentXI = matchDraft[targetKey] || [];
     if (currentXI.length >= 11) {
@@ -17647,6 +17710,8 @@ function CricketAddaMain() {
       name: player.name,
       phone: player.phone || '',
       role: player.role || 'BAT',
+      battingStyle: player.battingStyle || '',
+      bowlingStyle: player.bowlingStyle || '',
       avatarUri: player.avatarUri || null,
       isWk: player.role === 'WK',
     };
@@ -21495,6 +21560,7 @@ function CricketAddaMain() {
                             {dIsOwner && dSquad.length < 20 && (
                               <TouchableOpacity
                                 onPress={() => {
+                                  setReturnToTeamDetail(dTeam);
                                   setSelectedTeamDetail(null);
                                   openAddPlayerToTeamModal(dTeam);
                                 }}
@@ -32605,6 +32671,9 @@ function CricketAddaMain() {
                           gap: 6,
                         }}
                         onPress={() => {
+                          setTargetTeamForAddPlayer(null);
+                          setReturnToTeamDetail(null);
+                          setGuestPlayerHand('Right');
                           setGuestTargetTeam(xiTeamStep === 1 ? 'myTeam' : 'opponentTeam');
                           setGuestPlayerAddTab('guest');
                           setGuestPhoneSearchInput('');
@@ -33633,7 +33702,13 @@ function CricketAddaMain() {
       </Modal>
 
       {/* UNIFIED ADD NEW PLAYER MODAL (GUEST / SCAN QR / PHONE SEARCH) */}
-      <Modal visible={guestModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal
+        visible={guestModalVisible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent={true}
+        onRequestClose={() => closeUnifiedAddPlayerModal()}
+      >
         <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }]}>
           <View style={{
             width: '100%',
@@ -33658,13 +33733,15 @@ function CricketAddaMain() {
                   Add New Player
                 </Text>
               </View>
-              <TouchableOpacity onPress={() => setGuestModalVisible(false)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <TouchableOpacity onPress={() => closeUnifiedAddPlayerModal()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
                 <Text style={{ color: '#f87171', fontSize: 17, fontWeight: '900' }}>✕</Text>
               </TouchableOpacity>
             </View>
 
             <Text style={[styles.modalSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginBottom: 12 }]}>
-              {guestTargetTeam === 'myTeam' ? (matchDraft.myTeam?.name || 'Team 1') : (matchDraft.opponentTeam?.name || 'Opponent Team')}
+              {targetTeamForAddPlayer
+                ? `${targetTeamForAddPlayer.name} (${(targetTeamForAddPlayer.squad || []).length}/20 Squad)`
+                : (guestTargetTeam === 'myTeam' ? (matchDraft.myTeam?.name || 'Team 1') : (matchDraft.opponentTeam?.name || 'Opponent Team'))}
             </Text>
 
             {/* 3 Unified Option Tabs */}
@@ -33760,10 +33837,41 @@ function CricketAddaMain() {
                   ))}
                 </View>
 
+                <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', marginTop: 12 }]}>
+                  {guestPlayerRole === 'BOWL' ? 'Bowling Arm:' : 'Batting / Bowling Hand:'}
+                </Text>
+                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 14 }}>
+                  {[
+                    { key: 'Right', label: guestPlayerRole === 'BOWL' ? 'Right-Arm' : 'Right-Hand' },
+                    { key: 'Left', label: guestPlayerRole === 'BOWL' ? 'Left-Arm' : 'Left-Hand' },
+                  ].map(h => {
+                    const isSelH = guestPlayerHand === h.key;
+                    return (
+                      <TouchableOpacity
+                        key={h.key}
+                        style={[
+                          styles.formatPillBtn,
+                          { flex: 1, backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
+                          isSelH && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary },
+                        ]}
+                        onPress={() => setGuestPlayerHand(h.key)}
+                      >
+                        <Text style={[
+                          styles.formatPillBtnText,
+                          { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
+                          isSelH && { color: currentTheme.primaryText, fontWeight: '900' },
+                        ]}>
+                          {h.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
                 <View style={styles.modalBtnRow}>
                   <TouchableOpacity
                     style={[styles.skipBtn, { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b', borderColor: currentTheme.cardBorder }]}
-                    onPress={() => setGuestModalVisible(false)}
+                    onPress={() => closeUnifiedAddPlayerModal()}
                   >
                     <Text style={[styles.skipBtnText, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Cancel</Text>
                   </TouchableOpacity>
@@ -33771,7 +33879,9 @@ function CricketAddaMain() {
                     style={[styles.confirmBtn, { backgroundColor: currentTheme.primary }]}
                     onPress={addGuestPlayer}
                   >
-                    <Text style={[styles.confirmBtnText, { color: currentTheme.primaryText, fontWeight: 'bold' }]}>Add to XI ✓</Text>
+                    <Text style={[styles.confirmBtnText, { color: currentTheme.primaryText, fontWeight: 'bold' }]}>
+                      {targetTeamForAddPlayer ? 'Add to Squad ✓' : 'Add to XI ✓'}
+                    </Text>
                   </TouchableOpacity>
                 </View>
               </View>
@@ -33797,7 +33907,9 @@ function CricketAddaMain() {
                   Scan Player QR Pass / Card
                 </Text>
                 <Text style={{ color: '#94a3b8', fontSize: 11.5, textAlign: 'center', paddingHorizontal: 10, marginBottom: 18 }}>
-                  Scan any registered player's QR code to instantly verify & add them to Playing XI
+                  {targetTeamForAddPlayer
+                    ? `Scan any registered player's QR code to instantly verify & add them to ${targetTeamForAddPlayer.name}`
+                    : "Scan any registered player's QR code to instantly verify & add them to Playing XI"}
                 </Text>
 
                 <TouchableOpacity
@@ -33813,7 +33925,11 @@ function CricketAddaMain() {
                   }}
                   onPress={() => {
                     setGuestModalVisible(false);
-                    openUniversalQrScanner(guestTargetTeam === 'myTeam' ? 'scan_player_xi_1' : 'scan_player_xi_2');
+                    openUniversalQrScanner(
+                      targetTeamForAddPlayer
+                        ? 'add_squad_player'
+                        : (guestTargetTeam === 'myTeam' ? 'scan_player_xi_1' : 'scan_player_xi_2')
+                    );
                   }}
                   activeOpacity={0.85}
                 >
@@ -33928,7 +34044,7 @@ function CricketAddaMain() {
                       activeOpacity={0.85}
                     >
                       <Text style={{ color: '#000000', fontSize: 14.5, fontWeight: '900' }}>
-                        Add {guestPhoneFoundPlayer.name} to Playing XI ❯
+                        {targetTeamForAddPlayer ? `Add ${guestPhoneFoundPlayer.name} to Squad ❯` : `Add ${guestPhoneFoundPlayer.name} to Playing XI ❯`}
                       </Text>
                     </TouchableOpacity>
                   </View>
