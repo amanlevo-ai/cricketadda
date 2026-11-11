@@ -5113,6 +5113,7 @@ function CricketAddaMain() {
   const [teamSortMenuVisible, setTeamSortMenuVisible] = useState(false);
   const [teamActionMenuTeam, setTeamActionMenuTeam] = useState(null);
   const [selectedTeamDetail, setSelectedTeamDetail] = useState(null);
+  const [playerPendingRemoveConfirm, setPlayerPendingRemoveConfirm] = useState(null);
   const [inspectedStatsPlayer, setInspectedStatsPlayer] = useState(null);
   const [returnToTeamDetail, setReturnToTeamDetail] = useState(null);
   const [expandedTeamId, setExpandedTeamId] = useState(null);
@@ -17068,7 +17069,7 @@ function CricketAddaMain() {
     return registeredTeams.filter(t => t && ((t.isCustomCreated && (myCreatedIds.has(t.id) || isCreatedByMe(t))) || isPlayingInTeam(t)));
   }, [registeredTeams, isAuthenticated, userProfile, authEmail, usersDb]);
 
-  // Delete a player from a created team squad
+  // Request themed confirmation before deleting a player from a created team squad
   const handleDeletePlayerFromTeam = (teamId, playerIndex) => {
     const team = registeredTeams.find(t => t.id === teamId);
     if (!team) return;
@@ -17077,24 +17078,45 @@ function CricketAddaMain() {
       return;
     }
     const player = team.squad[playerIndex];
-    const pName = typeof player === 'string' ? player : (player.name || 'Player');
+    const pName = typeof player === 'string' ? player : (player?.name || 'Player');
+    const cleanPName = String(pName).replace(/\s*\([^)]*\)/g, '').trim();
     const uName = (userProfile?.name || '').toLowerCase().trim();
-    
-    if (playerIndex === 0 || (typeof player === 'object' && player.isCaptain) || pName.toLowerCase().includes(uName)) {
+
+    if (playerIndex === 0 || (typeof player === 'object' && player?.isCaptain) || (uName && cleanPName.toLowerCase().includes(uName))) {
       showAppToast('You (Captain / Owner) cannot be removed from your team squad', '⚠️', 'error');
       return;
     }
 
-    const updatedSquad = team.squad.filter((_, idx) => idx !== playerIndex);
-    const updatedTeams = registeredTeams.map(t => {
-      if (t.id === teamId) {
-        return { ...t, squad: updatedSquad };
-      }
-      return t;
+    setPlayerPendingRemoveConfirm({
+      teamId,
+      teamName: team.name,
+      playerIndex,
+      playerName: cleanPName || pName,
     });
+  };
+
+  // Confirmed deletion after user accepts the themed confirmation box
+  const executeConfirmedRemovePlayerFromTeam = () => {
+    if (!playerPendingRemoveConfirm) return;
+    const { teamId, playerIndex } = playerPendingRemoveConfirm;
+    const team = registeredTeams.find(t => t.id === teamId);
+    if (!team) {
+      setPlayerPendingRemoveConfirm(null);
+      return;
+    }
+    const player = team.squad?.[playerIndex];
+    const pName = typeof player === 'string' ? player : (player?.name || 'Player');
+
+    const updatedSquad = (team.squad || []).filter((_, idx) => idx !== playerIndex);
+    const updatedTeam = { ...team, squad: updatedSquad };
+    const updatedTeams = registeredTeams.map(t => (t.id === teamId ? updatedTeam : t));
 
     setRegisteredTeams(updatedTeams);
     AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updatedTeams)).catch(() => {});
+    if (isFirebaseConfigured()) {
+      syncSingleTeamToFirebase(updatedTeam).catch(() => {});
+    }
+    setPlayerPendingRemoveConfirm(null);
     showAppToast(`Removed "${pName}" from ${team.name}`, '🗑️');
   };
 
@@ -21353,7 +21375,9 @@ function CricketAddaMain() {
                 transparent={false}
                 statusBarTranslucent={true}
                 onRequestClose={() => {
-                  if (inspectedStatsPlayer) {
+                  if (playerPendingRemoveConfirm) {
+                    setPlayerPendingRemoveConfirm(null);
+                  } else if (inspectedStatsPlayer) {
                     setInspectedStatsPlayer(null);
                   } else {
                     setSelectedTeamDetail(null);
@@ -21456,19 +21480,15 @@ function CricketAddaMain() {
                           </View>
                         </View>
 
-                        <ScrollView
-                          style={{ flex: 1 }}
-                          contentContainerStyle={{ padding: 14, paddingBottom: bottomInset + 32 }}
-                          showsVerticalScrollIndicator={false}
-                        >
-                          {/* Team Hero Card */}
+                        <View style={{ flex: 1, paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(bottomInset, 12) }}>
+                          {/* Team Hero Card (Fixed Header, Non-Scrolling Page) */}
                           <View style={{
                             backgroundColor: 'rgba(8, 30, 56, 0.94)',
                             borderColor: '#38bdf8',
                             borderWidth: 1.5,
                             borderRadius: 16,
-                            padding: 14,
-                            marginBottom: 14,
+                            padding: 13,
+                            marginBottom: 12,
                           }}>
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                               <View style={{
@@ -21552,33 +21572,51 @@ function CricketAddaMain() {
                             </View>
                           </View>
 
-                          {/* Squad Roster Header */}
-                          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                            <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900' }}>
-                              👥 Squad Players ({dSquad.length})
-                            </Text>
-                            {dIsOwner && dSquad.length < 20 && (
-                              <TouchableOpacity
-                                onPress={() => {
-                                  setReturnToTeamDetail(dTeam);
-                                  setSelectedTeamDetail(null);
-                                  openAddPlayerToTeamModal(dTeam);
-                                }}
-                                style={{
-                                  backgroundColor: 'rgba(16, 185, 129, 0.16)',
-                                  borderColor: '#10b981',
-                                  borderWidth: 1,
-                                  borderRadius: 8,
-                                  paddingHorizontal: 10,
-                                  paddingVertical: 5,
-                                }}
-                              >
-                                <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '800' }}>＋ Add Player</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
+                          {/* Dedicated Framed Scrollable Players List Box */}
+                          <View style={{
+                            flex: 1,
+                            backgroundColor: currentTheme.isLight ? '#f8fafc' : '#04101f',
+                            borderColor: '#1e3a5f',
+                            borderWidth: 1.3,
+                            borderRadius: 16,
+                            paddingTop: 10,
+                            paddingHorizontal: 10,
+                            paddingBottom: 6,
+                            overflow: 'hidden',
+                          }}>
+                            {/* Fixed Box Header */}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, paddingHorizontal: 2 }}>
+                              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }}>
+                                👥 Squad Players ({dSquad.length})
+                              </Text>
+                              {dIsOwner && dSquad.length < 20 && (
+                                <TouchableOpacity
+                                  onPress={() => {
+                                    setReturnToTeamDetail(dTeam);
+                                    setSelectedTeamDetail(null);
+                                    openAddPlayerToTeamModal(dTeam);
+                                  }}
+                                  style={{
+                                    backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                                    borderColor: '#10b981',
+                                    borderWidth: 1,
+                                    borderRadius: 8,
+                                    paddingHorizontal: 10,
+                                    paddingVertical: 5,
+                                  }}
+                                >
+                                  <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '800' }}>＋ Add Player</Text>
+                                </TouchableOpacity>
+                              )}
+                            </View>
 
-                          <View style={{ gap: 7, marginBottom: 16 }}>
+                            {/* Inner Scrollable Players List ONLY */}
+                            <ScrollView
+                              style={{ flex: 1 }}
+                              contentContainerStyle={{ gap: 8, paddingBottom: 8 }}
+                              showsVerticalScrollIndicator={true}
+                              nestedScrollEnabled={true}
+                            >
                             {dSquad.length > 0 ? (
                               dSquad.map((p, pIdx) => {
                                 const pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
@@ -21806,9 +21844,93 @@ function CricketAddaMain() {
                                 <Text style={{ color: '#94a3b8', fontSize: 12.5 }}>No players in squad yet.</Text>
                               </View>
                             )}
-                          </View>
+                              </ScrollView>
+                            </View>
+                        </View>
 
-                        </ScrollView>
+                        {/* App-Themed Remove Player Confirmation Dialog Box */}
+                        {playerPendingRemoveConfirm && (
+                          <TouchableOpacity
+                            activeOpacity={1}
+                            onPress={() => setPlayerPendingRemoveConfirm(null)}
+                            style={[
+                              StyleSheet.absoluteFillObject,
+                              {
+                                backgroundColor: 'rgba(2, 6, 23, 0.78)',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                padding: 24,
+                                zIndex: 999,
+                              }
+                            ]}
+                          >
+                            <TouchableOpacity
+                              activeOpacity={1}
+                              onPress={() => {}}
+                              style={{
+                                width: '100%',
+                                maxWidth: 330,
+                                backgroundColor: currentTheme.isLight ? '#ffffff' : '#071526',
+                                borderRadius: 16,
+                                borderWidth: 1.5,
+                                borderColor: '#38bdf8',
+                                padding: 18,
+                                shadowColor: '#0ea5e9',
+                                shadowOffset: { width: 0, height: 6 },
+                                shadowOpacity: 0.35,
+                                shadowRadius: 14,
+                                elevation: 12,
+                              }}
+                            >
+                              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 16.5, fontWeight: '900', marginBottom: 8 }}>
+                                Remove Player?
+                              </Text>
+                              <Text style={{ color: currentTheme.isLight ? '#475569' : '#cbd5e1', fontSize: 13, lineHeight: 19, marginBottom: 16 }}>
+                                Are you sure you want to remove{' '}
+                                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontWeight: '800' }}>
+                                  {playerPendingRemoveConfirm.playerName}
+                                </Text>{' '}
+                                from {playerPendingRemoveConfirm.teamName}?
+                              </Text>
+
+                              <View style={{ flexDirection: 'row', gap: 10 }}>
+                                <TouchableOpacity
+                                  onPress={() => setPlayerPendingRemoveConfirm(null)}
+                                  style={{
+                                    flex: 1,
+                                    paddingVertical: 10,
+                                    borderRadius: 10,
+                                    backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f233c',
+                                    borderWidth: 1,
+                                    borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e3a5f',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 13, fontWeight: '800' }}>
+                                    Cancel
+                                  </Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity
+                                  onPress={executeConfirmedRemovePlayerFromTeam}
+                                  style={{
+                                    flex: 1,
+                                    paddingVertical: 10,
+                                    borderRadius: 10,
+                                    backgroundColor: '#0284c7',
+                                    borderWidth: 1,
+                                    borderColor: '#38bdf8',
+                                    alignItems: 'center',
+                                  }}
+                                >
+                                  <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>
+                                    Remove
+                                  </Text>
+                                </TouchableOpacity>
+                              </View>
+                            </TouchableOpacity>
+                          </TouchableOpacity>
+                        )}
                       </View>
                   );
                 })())}
