@@ -19469,10 +19469,10 @@ function CricketAddaMain() {
       width: '100%',
       maxWidth: 380,
       backgroundColor: '#05182a',
-      borderRadius: 20,
+      borderRadius: 18,
       borderWidth: 1.5,
       borderColor: '#22c55e',
-      padding: 20,
+      padding: 16,
       shadowColor: '#22c55e',
       shadowOffset: { width: 0, height: 4 },
       shadowOpacity: 0.35,
@@ -19553,11 +19553,10 @@ function CricketAddaMain() {
             onChangeText={setGuestPlayerName}
             placeholder="e.g. Gurdeep Singh"
             placeholderTextColor="#64748b"
-            autoFocus={true}
           />
 
-          <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', marginTop: 12 }]}>Player Role:</Text>
-          <View style={[styles.formatPillsRow, { marginTop: 4, marginBottom: 12 }]}>
+          <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', marginTop: 10 }]}>Player Role:</Text>
+          <View style={{ flexDirection: 'row', gap: 6, marginTop: 4, marginBottom: 10 }}>
             {[
               { key: 'BAT', label: 'Batter', icon: '🏏' },
               { key: 'BOWL', label: 'Bowler', is3DBall: true },
@@ -19568,22 +19567,28 @@ function CricketAddaMain() {
                 key={r.key}
                 style={[
                   styles.formatPillBtn,
-                  { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
+                  {
+                    flex: 1,
+                    paddingHorizontal: 4,
+                    paddingVertical: 7,
+                    backgroundColor: currentTheme.cardBg,
+                    borderColor: currentTheme.cardBorder,
+                  },
                   guestPlayerRole === r.key && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary }
                 ]}
                 onPress={() => setGuestPlayerRole(r.key)}
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3 }}>
                   {r.is3DBall ? (
-                    <RealisticCricketLeatherBall size={12} />
+                    <RealisticCricketLeatherBall size={11} />
                   ) : (
-                    <Text style={{ fontSize: 11 }}>{r.icon}</Text>
+                    <Text style={{ fontSize: 10.5 }}>{r.icon}</Text>
                   )}
                   <Text style={[
                     styles.formatPillBtnText,
-                    { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
+                    { fontSize: 10.5, color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
                     guestPlayerRole === r.key && { color: currentTheme.primaryText, fontWeight: '900' }
-                  ]}>
+                  ]} numberOfLines={1}>
                     {r.label}
                   </Text>
                 </View>
@@ -22226,23 +22231,29 @@ function CricketAddaMain() {
 
                         {/* App-Themed Remove Player Confirmation Dialog Box */}
                         {playerPendingRemoveConfirm && (
-                          <TouchableOpacity
-                            activeOpacity={1}
-                            onPress={() => setPlayerPendingRemoveConfirm(null)}
-                            style={[
-                              StyleSheet.absoluteFillObject,
-                              {
-                                backgroundColor: 'rgba(2, 6, 23, 0.78)',
-                                justifyContent: 'center',
-                                alignItems: 'center',
-                                padding: 24,
-                                zIndex: 999,
-                              }
-                            ]}
+                          <View
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(2, 6, 23, 0.80)',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              paddingHorizontal: 24,
+                              paddingTop: topInset + 12,
+                              paddingBottom: bottomInset + 12,
+                              zIndex: 999,
+                              elevation: 24,
+                            }}
                           >
                             <TouchableOpacity
                               activeOpacity={1}
-                              onPress={() => {}}
+                              onPress={() => setPlayerPendingRemoveConfirm(null)}
+                              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                            />
+                            <View
                               style={{
                                 width: '100%',
                                 maxWidth: 330,
@@ -22304,25 +22315,38 @@ function CricketAddaMain() {
                                   </Text>
                                 </TouchableOpacity>
                               </View>
-                            </TouchableOpacity>
-                          </TouchableOpacity>
+                            </View>
+                          </View>
                         )}
 
-                        {/* Instant Zero-Slide Add Player Overlay (opens right over Team Window without slide-down glitch) */}
+                        {/* Instant Zero-Slide Centered Add Player Overlay */}
                         {guestModalVisible && (
-                          <TouchableOpacity
-                            activeOpacity={1}
-                            onPress={() => closeUnifiedAddPlayerModal()}
-                            style={[
-                              StyleSheet.absoluteFillObject,
-                              styles.modalOverlay,
-                              { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, zIndex: 1000 }
-                            ]}
+                          <View
+                            style={{
+                              position: 'absolute',
+                              top: 0,
+                              left: 0,
+                              right: 0,
+                              bottom: 0,
+                              backgroundColor: 'rgba(0, 5, 12, 0.85)',
+                              justifyContent: 'center',
+                              alignItems: 'center',
+                              paddingHorizontal: 18,
+                              paddingTop: topInset + 12,
+                              paddingBottom: bottomInset + 12,
+                              zIndex: 1000,
+                              elevation: 25,
+                            }}
                           >
-                            <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{ width: '100%', maxWidth: 380 }}>
+                            <TouchableOpacity
+                              activeOpacity={1}
+                              onPress={() => closeUnifiedAddPlayerModal()}
+                              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+                            />
+                            <View style={{ width: '100%', maxWidth: 380 }}>
                               {renderUnifiedAddPlayerCard()}
-                            </TouchableOpacity>
-                          </TouchableOpacity>
+                            </View>
+                          </View>
                         )}
                       </View>
                   );
