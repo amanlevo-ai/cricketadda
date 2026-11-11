@@ -21526,13 +21526,39 @@ function CricketAddaMain() {
                                   (pPhone && String(u.phone || '').replace(/[^0-9]/g, '') === String(pPhone).replace(/[^0-9]/g, ''))
                                   || (u.name && String(u.name).trim().toLowerCase() === cleanPName.toLowerCase())
                                 );
-                                const pRole = (typeof p === 'object' && p.role) ? p.role : (matchedUser?.role || (isWk ? 'WK' : (isCap ? 'BAT' : (pIdx % 3 === 0 ? 'BOWL' : pIdx % 2 === 0 ? 'ALL' : 'BAT'))));
+                                const matchedRegPlayer = (registeredPlayers || []).find(rp =>
+                                  (pPhone && String(rp.phone || '').replace(/[^0-9]/g, '') === String(pPhone).replace(/[^0-9]/g, ''))
+                                  || (rp.name && String(rp.name).trim().toLowerCase() === cleanPName.toLowerCase())
+                                );
+                                const pRole = (typeof p === 'object' && p.role) ? p.role : (matchedUser?.role || matchedRegPlayer?.role || (isWk ? 'WK' : (isCap ? 'BAT' : (pIdx % 3 === 0 ? 'BOWL' : pIdx % 2 === 0 ? 'ALL' : 'BAT'))));
                                 const roleUpper = String(pRole || '').toUpperCase();
                                 const isWkRole = isWk || roleUpper.includes('WK') || roleUpper.includes('KEEPER');
                                 const isBowlRole = !isWkRole && (roleUpper.includes('BOWL') || roleUpper.includes('FAST') || roleUpper.includes('SPIN') || roleUpper.includes('MEDIUM') || roleUpper.includes('PACER'));
                                 const isAllRole = !isWkRole && !isBowlRole && roleUpper.includes('ALL');
                                 const shortRoleBadge = isWkRole ? 'WK' : isBowlRole ? 'BOWL' : isAllRole ? 'ALL' : 'BAT';
-                                const pAvatarUri = typeof p === 'object' ? (p.avatarUri || matchedUser?.avatarUri || getPlayerAvatarUri(cleanPName)) : (matchedUser?.avatarUri || getPlayerAvatarUri(cleanPName));
+                                const pAvatarUri = typeof p === 'object' ? (p.avatarUri || matchedUser?.avatarUri || matchedRegPlayer?.avatarUri || getPlayerAvatarUri(cleanPName)) : (matchedUser?.avatarUri || matchedRegPlayer?.avatarUri || getPlayerAvatarUri(cleanPName));
+
+                                const rawBatStyle = (typeof p === 'object' && p.battingStyle)
+                                  || matchedUser?.battingStyle
+                                  || matchedRegPlayer?.battingStyle
+                                  || (isMe ? userProfile?.battingStyle : '')
+                                  || '';
+                                const rawBowlStyle = (typeof p === 'object' && p.bowlingStyle)
+                                  || matchedUser?.bowlingStyle
+                                  || matchedRegPlayer?.bowlingStyle
+                                  || (isMe ? userProfile?.bowlingStyle : '')
+                                  || '';
+                                const isLeftBat = rawBatStyle.toLowerCase().includes('left') || rawBatStyle.toLowerCase().includes('lhb') || roleUpper.includes('LHB');
+                                const batHandShort = isLeftBat ? 'Left-Hand' : 'Right-Hand';
+                                const isLeftBowl = rawBowlStyle.toLowerCase().includes('left') || rawBowlStyle.toLowerCase().includes('chinaman') || (!rawBowlStyle && roleUpper.includes('LEFT'));
+                                const bowlStyleClean = rawBowlStyle
+                                  ? rawBowlStyle.replace(/right-?arm/i, 'Right-Arm').replace(/left-?arm/i, 'Left-Arm')
+                                  : (isLeftBowl ? 'Left-Arm' : 'Right-Arm');
+                                const styleTagLabel = isBowlRole
+                                  ? bowlStyleClean
+                                  : isAllRole
+                                  ? `${batHandShort} • ${bowlStyleClean}`
+                                  : batHandShort;
 
                                 const pStats = selectedTeamSquadStatsMap[cleanPName.toLowerCase()] || USER_CAREER_DATA;
                                 const pBat = pStats?.careerStats?.batting || {};
@@ -21570,13 +21596,13 @@ function CricketAddaMain() {
                                   setStatsFilter('all');
                                   setInspectedStatsPlayer({
                                     name: cleanPName,
-                                    phone: pPhone || matchedUser?.phone || '',
-                                    id: pId || matchedUser?.id || '',
+                                    phone: pPhone || matchedUser?.phone || matchedRegPlayer?.phone || '',
+                                    id: pId || matchedUser?.id || matchedRegPlayer?.id || '',
                                     role: (typeof p === 'object' && p.role && String(p.role).length > 4)
                                       ? p.role
-                                      : (isWkRole ? 'Wicketkeeper Batter' : isBowlRole ? 'Bowler' : isAllRole ? 'All-Rounder' : 'Top-Order Batter'),
-                                    bowlingStyle: matchedUser?.bowlingStyle || (isBowlRole ? 'Right Arm Medium' : isAllRole ? 'All-Round Bowler' : 'Part-time Bowler'),
-                                    jersey: (typeof p === 'object' && p.jersey) || matchedUser?.jersey || `#${pIdx + 1}`,
+                                      : `${isWkRole ? 'Wicketkeeper' : isBowlRole ? 'Bowler' : isAllRole ? 'All-Rounder' : 'Batsman'} (${isLeftBat ? 'LHB' : 'RHB'})`,
+                                    bowlingStyle: rawBowlStyle || (isBowlRole ? bowlStyleClean : isAllRole ? bowlStyleClean : 'Part-time Bowler'),
+                                    jersey: (typeof p === 'object' && p.jersey) || matchedUser?.jersey || matchedRegPlayer?.jersey || `#${pIdx + 1}`,
                                     avatarUri: pAvatarUri || null,
                                   });
                                 };
@@ -21635,10 +21661,13 @@ function CricketAddaMain() {
                                               </View>
                                             )}
                                           </View>
-                                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3, flexWrap: 'wrap' }}>
                                             <View style={[styles.squadRoleMiniBadge, { backgroundColor: '#0f233c', borderColor: '#334155' }]}>
                                               <Text style={[styles.squadRoleMiniBadgeText, { color: '#cbd5e1' }]}>{shortRoleBadge}</Text>
                                             </View>
+                                            <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '600' }} numberOfLines={1}>
+                                              {styleTagLabel}
+                                            </Text>
                                             {pPhone ? (
                                               <View style={[styles.squadPhoneTag, { backgroundColor: '#0f2544' }]}>
                                                 <Text style={[styles.squadPhoneTagText, { color: '#94a3b8' }]}>📞 {pPhone}</Text>
@@ -21669,7 +21698,7 @@ function CricketAddaMain() {
                                       )}
                                     </View>
 
-                                    {/* Real Role-Based Stats Strip (Clean Neutral Style) */}
+                                    {/* Real Role-Based Stats Strip with Clean Vertical Dividers (|) */}
                                     <View style={{
                                       flexDirection: 'row',
                                       alignItems: 'center',
@@ -21678,18 +21707,30 @@ function CricketAddaMain() {
                                       borderRadius: 9,
                                       borderWidth: 1,
                                       borderColor: 'rgba(56, 189, 248, 0.25)',
-                                      paddingVertical: 5.5,
-                                      paddingHorizontal: 9,
-                                      gap: 6,
+                                      paddingVertical: 6,
+                                      paddingHorizontal: 6,
                                     }}>
-                                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                                        {roleKpis.map(k => (
-                                          <Text key={k.label} style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700' }}>
-                                            {k.label}: <Text style={{ color: '#f8fafc', fontWeight: '900' }}>{k.val}</Text>
-                                          </Text>
+                                      <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center' }}>
+                                        {roleKpis.map((k, kIdx) => (
+                                          <View
+                                            key={k.label}
+                                            style={{
+                                              flex: 1,
+                                              flexDirection: 'row',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              borderRightWidth: 1,
+                                              borderRightColor: 'rgba(56, 189, 248, 0.22)',
+                                              paddingHorizontal: 4,
+                                            }}
+                                          >
+                                            <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '700' }} numberOfLines={1}>
+                                              {k.label}: <Text style={{ color: '#f8fafc', fontWeight: '900' }}>{k.val}</Text>
+                                            </Text>
+                                          </View>
                                         ))}
                                       </View>
-                                      <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800' }}>Stats ›</Text>
+                                      <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', paddingLeft: 8, paddingRight: 3 }}>Stats ›</Text>
                                     </View>
                                   </TouchableOpacity>
                                 );
@@ -21701,62 +21742,6 @@ function CricketAddaMain() {
                             )}
                           </View>
 
-                          {/* Real Team Match History Section */}
-                          <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', marginBottom: 8 }}>
-                            🏏 Team Matches ({dRec.played})
-                          </Text>
-                          {dRec.matches.length === 0 ? (
-                            <View style={{ backgroundColor: '#071526', borderRadius: 12, borderWidth: 1, borderColor: '#1e3a5f', padding: 16, alignItems: 'center' }}>
-                              <Text style={{ color: '#94a3b8', fontSize: 12.5 }}>No matches played by {dTeam.name} yet.</Text>
-                            </View>
-                          ) : (
-                            <View style={{ gap: 8 }}>
-                              {dRec.matches.slice(0, 15).map((mItem, mIdx) => {
-                                const isWin = mItem._teamOutcome === 'win';
-                                const isLoss = mItem._teamOutcome === 'loss';
-                                const isLive = mItem.status === 'live';
-                                const badgeText = isWin ? 'WON' : isLoss ? 'LOST' : mItem._teamOutcome === 'tie' ? 'TIED' : (isLive ? 'LIVE' : 'PLAYED');
-                                const badgeColor = isWin ? '#22c55e' : isLoss ? '#ef4444' : isLive ? '#dc2626' : '#38bdf8';
-                                return (
-                                  <View
-                                    key={`td_match_${mItem.id || mIdx}`}
-                                    style={{
-                                      backgroundColor: '#071526',
-                                      borderRadius: 12,
-                                      borderWidth: 1,
-                                      borderColor: '#1e3a5f',
-                                      padding: 11,
-                                    }}
-                                  >
-                                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                                      <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '800', flex: 1 }} numberOfLines={1}>
-                                        {mItem.teamA || mItem.innings1?.team || 'Team A'} vs {mItem.teamB || mItem.innings2?.team || 'Team B'}
-                                      </Text>
-                                      <View style={{
-                                        backgroundColor: badgeColor + '25',
-                                        borderColor: badgeColor,
-                                        borderWidth: 1,
-                                        borderRadius: 6,
-                                        paddingHorizontal: 7,
-                                        paddingVertical: 2,
-                                      }}>
-                                        <Text style={{ color: badgeColor, fontSize: 10, fontWeight: '900' }}>{badgeText}</Text>
-                                      </View>
-                                    </View>
-                                    {mItem.result ? (
-                                      <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '600' }} numberOfLines={2}>
-                                        {mItem.result}
-                                      </Text>
-                                    ) : (
-                                      <Text style={{ color: '#94a3b8', fontSize: 11.5 }}>
-                                        {mItem.innings1 ? `${mItem.innings1.team || 'Inn 1'}: ${mItem.innings1.runs ?? 0}/${mItem.innings1.wickets ?? 0} (${mItem.innings1.overs || '0.0'})` : 'Match in progress'}
-                                      </Text>
-                                    )}
-                                  </View>
-                                );
-                              })}
-                            </View>
-                          )}
                         </ScrollView>
                       </View>
                   );
