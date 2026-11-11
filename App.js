@@ -8874,16 +8874,10 @@ function CricketAddaMain() {
   const filteredMatchHistoryList = useMemo(() => {
     const list = activeUserCareerData?.matchHistoryList || [];
     if (statsFilter === 'batting') {
-      return list.filter(h => (h?.userBatting?.balls || 0) > 0 || (h?.userBatting?.runs || 0) > 0);
+      return list.filter(h => (h?.userBatting?.balls || 0) > 0 || (h?.userBatting?.runs || 0) > 0 || Boolean(h?.userBatting?.didBat));
     }
     if (statsFilter === 'bowling') {
-      return list.filter(h => (h?.userBowling?.overs && h?.userBowling?.overs !== '0.0') || (h?.userBowling?.wickets || 0) > 0);
-    }
-    if (statsFilter === 'fielding') {
-      return list.filter(h => (h?.userFielding?.chances || 0) > 0);
-    }
-    if (statsFilter === 'dots') {
-      return list.filter(h => (h?.userBatting?.dots || 0) > 0 || (h?.userBowling?.dots || 0) > 0 || h?.isDuckMatch);
+      return list.filter(h => Boolean(h?.userBowling?.didBowl) || (h?.userBowling?.overs && h?.userBowling?.overs !== '0.0') || (h?.userBowling?.wickets || 0) > 0);
     }
     return list;
   }, [activeUserCareerData, statsFilter]);
@@ -23115,10 +23109,10 @@ function CricketAddaMain() {
                 justifyContent: 'center',
                 gap: 7,
               }}>
-                <Svg width={16} height={16} viewBox="0 0 24 24" fill="none">
-                  <Path d="M4 18h3v-6H4v6zm6 0h3V6h-3v12zm6 0h3v-9h-3v9z" fill="#38bdf8" />
+                <Svg width={14} height={14} viewBox="3 4 18 15" fill="none">
+                  <Path d="M4 18h3.5v-6.5H4V18zm5.5 0H13V5H9.5v13zm5.5 0h3.5v-9H15v9z" fill="#38bdf8" />
                 </Svg>
-                <Text style={{ color: txtPrimary, fontSize: 16.5, fontWeight: '900', letterSpacing: 0.3 }}>
+                <Text style={{ color: txtPrimary, fontSize: 17, lineHeight: 20, includeFontPadding: false, fontWeight: '900', letterSpacing: 0.3 }}>
                   Player Stats
                 </Text>
               </View>
@@ -23718,10 +23712,8 @@ function CricketAddaMain() {
                 {/* ======================= TAB 4: CAREER & HISTORY ======================= */}
                 {statsSubTab === 'career' && (() => {
                   const allHist = activeUserCareerData.matchHistoryList || [];
-                  const batHistCount = allHist.filter(h => (h.userBatting?.balls || 0) > 0 || (h.userBatting?.runs || 0) > 0).length;
-                  const bowlHistCount = allHist.filter(h => (h.userBowling?.overs && h.userBowling.overs !== '0.0') || (h.userBowling?.wickets || 0) > 0).length;
-                  const fieldHistCount = allHist.filter(h => (h.userFielding?.chances || 0) > 0).length;
-                  const dotsHistCount = allHist.filter(h => (h.userBatting?.dots || 0) > 0 || (h.userBowling?.dots || 0) > 0 || h.isDuckMatch).length;
+                  const batHistCount = allHist.filter(h => (h.userBatting?.balls || 0) > 0 || (h.userBatting?.runs || 0) > 0 || Boolean(h.userBatting?.didBat)).length;
+                  const bowlHistCount = allHist.filter(h => Boolean(h.userBowling?.didBowl) || (h.userBowling?.overs && h.userBowling.overs !== '0.0') || (h.userBowling?.wickets || 0) > 0).length;
                   const getShieldTag = (name) => {
                     const parts = String(name || 'TM').trim().split(/\s+/);
                     if (parts.length >= 2) {
@@ -23795,28 +23787,28 @@ function CricketAddaMain() {
                         ))}
                       </View>
 
-                      {/* Career Filter Pills */}
-                      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 7, marginBottom: 12 }}>
+                      {/* Career Filter Pills (All, Batting, Bowling in one balanced row) */}
+                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 12 }}>
                         {[
                           { key: 'all', label: `All (${allHist.length})`, icon: 'all' },
                           { key: 'batting', label: `Batting (${batHistCount})`, icon: 'bat' },
-                          { key: 'bowling', label: `Wickets (${bowlHistCount})`, icon: 'ball' },
-                          { key: 'fielding', label: `Fielding (${fieldHistCount})`, icon: 'glove' },
-                          { key: 'dots', label: `Dots/Ducks (${dotsHistCount})`, icon: 'dot' },
+                          { key: 'bowling', label: `Bowling (${bowlHistCount})`, icon: 'ball' },
                         ].map(pill => {
-                          const active = statsFilter === pill.key;
+                          const active = (statsFilter === pill.key) || (pill.key === 'all' && statsFilter !== 'batting' && statsFilter !== 'bowling');
                           return (
                             <TouchableOpacity
                               key={pill.key}
                               activeOpacity={0.85}
                               onPress={() => setStatsFilter(pill.key)}
                               style={{
+                                flex: 1,
                                 flexDirection: 'row',
                                 alignItems: 'center',
-                                gap: 5,
-                                paddingHorizontal: 11,
-                                paddingVertical: 6.5,
-                                borderRadius: 20,
+                                justifyContent: 'center',
+                                gap: 6,
+                                paddingHorizontal: 10,
+                                paddingVertical: 8,
+                                borderRadius: 22,
                                 backgroundColor: active ? '#0284c7' : cardBg,
                                 borderWidth: 1.2,
                                 borderColor: active ? '#38bdf8' : cardBorder,
@@ -23827,20 +23819,15 @@ function CricketAddaMain() {
                                 elevation: active ? 4 : 0,
                               }}
                             >
-                              {pill.icon === 'bat' && <RealisticCricketBatIcon size={12} gripColor="#facc15" />}
+                              {pill.icon === 'bat' && <RealisticCricketBatIcon size={13} gripColor="#facc15" />}
                               {pill.icon === 'ball' && <RealisticCricketLeatherBall size={12} />}
-                              {pill.icon === 'glove' && <RealisticFieldingGloveIcon size={12} />}
-                              {pill.icon === 'dot' && (
-                                <Svg width={12} height={12} viewBox="0 0 16 16">
-                                  <Circle cx="8" cy="8" r="6" fill={active ? '#ffffff' : '#e2e8f0'} stroke="#94a3b8" strokeWidth="1" />
-                                </Svg>
-                              )}
                               <Text
                                 style={{
                                   color: active ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#e2e8f0'),
-                                  fontSize: 11.5,
+                                  fontSize: 12,
                                   fontWeight: active ? '900' : '700',
                                 }}
+                                numberOfLines={1}
                               >
                                 {pill.label}
                               </Text>
@@ -23875,7 +23862,7 @@ function CricketAddaMain() {
                           </Text>
                           <Text style={{ fontSize: 12, color: txtMuted, textAlign: 'center', lineHeight: 18, marginBottom: 12 }}>
                             {statsFilter === 'all'
-                              ? 'Once you play or score matches, your batting scores, bowling spells, fielding plays, and match scorecards will appear here.'
+                              ? 'Once you play or score matches, your batting scores, bowling spells, and match scorecards will appear here.'
                               : 'Select "All" to view your complete match history.'}
                           </Text>
                           <TouchableOpacity
@@ -23892,11 +23879,14 @@ function CricketAddaMain() {
                           const isLive = h.status === 'live';
                           const teamAText = h.teamA || (h.title ? h.title.split(/\s+vs\s+/i)[0] : 'Team A');
                           const teamBText = h.teamB || (h.title && h.title.includes('vs') ? h.title.split(/\s+vs\s+/i)[1] : 'Team B');
-                          const didBat = Boolean(h.userBatting?.didBat);
+                          const didBat = Boolean(h.userBatting?.didBat || (h.userBatting?.balls || 0) > 0 || (h.userBatting?.runs || 0) > 0);
+                          const didBowl = Boolean(h.userBowling?.didBowl || (h.userBowling?.overs && h.userBowling.overs !== '0.0') || (h.userBowling?.wickets || 0) > 0);
                           const isNotOut = Boolean(h.userBatting?.notOut);
                           const batScoreLabel = didBat
                             ? `${h.userBatting?.runs || 0}${isNotOut ? '*' : ''} (${h.userBatting?.balls || 0}b)`
                             : 'DNB';
+                          const showBattingLine = didBat && statsFilter !== 'bowling';
+                          const showBowlingLine = didBowl && statsFilter !== 'batting';
 
                           return (
                             <TouchableOpacity
@@ -23970,7 +23960,7 @@ function CricketAddaMain() {
                                 </View>
                               </View>
 
-                              {/* Middle Row: Team A vs Team B + Venue + Chevron */}
+                              {/* Middle Row: Team A vs Team B + Chevron (Venue Removed) */}
                               <View style={{
                                 flexDirection: 'row',
                                 alignItems: 'center',
@@ -23980,31 +23970,31 @@ function CricketAddaMain() {
                                 borderBottomColor: dividerCol,
                                 gap: 6,
                               }}>
-                                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap' }}>
+                                <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
                                   <View style={{
                                     backgroundColor: '#0c2340',
                                     borderColor: '#38bdf8',
                                     borderWidth: 1,
                                     borderRadius: 6,
-                                    paddingHorizontal: 5,
+                                    paddingHorizontal: 6,
                                     paddingVertical: 2.5,
                                   }}>
-                                    <Text style={{ color: '#f8fafc', fontSize: 9, fontWeight: '900' }}>{getShieldTag(teamAText)}</Text>
+                                    <Text style={{ color: '#f8fafc', fontSize: 9.5, fontWeight: '900' }}>{getShieldTag(teamAText)}</Text>
                                   </View>
-                                  <Text style={{ color: txtPrimary, fontSize: 13.5, fontWeight: '900', maxWidth: '34%' }} numberOfLines={1}>
+                                  <Text style={{ color: txtPrimary, fontSize: 14, fontWeight: '900', maxWidth: '36%' }} numberOfLines={1}>
                                     {teamAText}
                                   </Text>
 
                                   <View style={{
                                     backgroundColor: '#0284c7',
                                     borderRadius: 6,
-                                    paddingHorizontal: 5.5,
+                                    paddingHorizontal: 6,
                                     paddingVertical: 1.5,
                                   }}>
-                                    <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>VS</Text>
+                                    <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>VS</Text>
                                   </View>
 
-                                  <Text style={{ color: txtPrimary, fontSize: 13.5, fontWeight: '900', maxWidth: '34%' }} numberOfLines={1}>
+                                  <Text style={{ color: txtPrimary, fontSize: 14, fontWeight: '900', maxWidth: '36%' }} numberOfLines={1}>
                                     {teamBText}
                                   </Text>
                                   <View style={{
@@ -24012,37 +24002,29 @@ function CricketAddaMain() {
                                     borderColor: '#f43f5e',
                                     borderWidth: 1,
                                     borderRadius: 6,
-                                    paddingHorizontal: 5,
+                                    paddingHorizontal: 6,
                                     paddingVertical: 2.5,
                                   }}>
-                                    <Text style={{ color: '#f8fafc', fontSize: 9, fontWeight: '900' }}>{getShieldTag(teamBText)}</Text>
+                                    <Text style={{ color: '#f8fafc', fontSize: 9.5, fontWeight: '900' }}>{getShieldTag(teamBText)}</Text>
                                   </View>
                                 </View>
 
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, maxWidth: '33%' }}>
-                                  <Svg width={11} height={11} viewBox="0 0 24 24" fill="none">
-                                    <Path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5a2.5 2.5 0 110-5 2.5 2.5 0 010 5z" fill="#ef4444" />
-                                  </Svg>
-                                  <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '600', flexShrink: 1 }} numberOfLines={2}>
-                                    {h.venue}
-                                  </Text>
-                                  <Text style={{ color: txtMuted, fontSize: 16, fontWeight: '700', marginLeft: 1 }}>›</Text>
-                                </View>
+                                <Text style={{ color: txtMuted, fontSize: 18, fontWeight: '700', paddingLeft: 4 }}>›</Text>
                               </View>
 
-                              {/* Batting Summary Line */}
-                              {(statsFilter === 'all' || statsFilter === 'batting' || statsFilter === 'dots') && (
+                              {/* Batting Summary Line (Only shown if player batted) */}
+                              {showBattingLine && (
                                 <View style={{
                                   flexDirection: 'row',
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
                                   paddingTop: 7,
-                                  paddingBottom: 5,
+                                  paddingBottom: showBowlingLine ? 4 : 6,
                                 }}>
                                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                     <RealisticCricketBatIcon size={13} gripColor="#facc15" />
                                     <Text style={{ color: txtMuted, fontSize: 11.5, fontWeight: '700' }}>Batting:</Text>
-                                    <Text style={{ color: didBat ? '#4ade80' : txtMuted, fontSize: 12, fontWeight: '900' }}>
+                                    <Text style={{ color: '#4ade80', fontSize: 12, fontWeight: '900' }}>
                                       {batScoreLabel}
                                     </Text>
                                   </View>
@@ -24061,13 +24043,14 @@ function CricketAddaMain() {
                                 </View>
                               )}
 
-                              {/* Bowling Summary Line */}
-                              {(statsFilter === 'all' || statsFilter === 'bowling' || statsFilter === 'dots') && (
+                              {/* Bowling Summary Line (Only shown if player bowled) */}
+                              {showBowlingLine && (
                                 <View style={{
                                   flexDirection: 'row',
                                   alignItems: 'center',
                                   justifyContent: 'space-between',
-                                  paddingBottom: 4,
+                                  paddingTop: showBattingLine ? 3 : 7,
+                                  paddingBottom: 6,
                                 }}>
                                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                                     <RealisticCricketLeatherBall size={12} />
@@ -24087,12 +24070,12 @@ function CricketAddaMain() {
                                 </View>
                               )}
 
-                              {/* Fielding Summary Line (shown when user has fielding plays or Fielding filter active) */}
-                              {(statsFilter === 'fielding' || (h.userFielding?.chances || 0) > 0) && (
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, paddingBottom: 4 }}>
-                                  <RealisticFieldingGloveIcon size={12} />
-                                  <Text style={{ color: txtMuted, fontSize: 11.5, fontWeight: '700' }}>Fielding:</Text>
-                                  <Text style={{ color: txtPrimary, fontSize: 11.5, fontWeight: '800' }}>{h.userFielding?.desc || '0 Catches'}</Text>
+                              {/* Fallback if player neither batted nor bowled in the match */}
+                              {!showBattingLine && !showBowlingLine && (
+                                <View style={{ paddingTop: 7, paddingBottom: 6 }}>
+                                  <Text style={{ color: txtMuted, fontSize: 11.5, fontWeight: '600' }}>
+                                    Did Not Bat or Bowl in this match
+                                  </Text>
                                 </View>
                               )}
 
@@ -24108,21 +24091,21 @@ function CricketAddaMain() {
                                 marginTop: 4,
                               }}>
                                 <View style={{
-                                  backgroundColor: !didBat
-                                    ? (currentTheme.isLight ? '#e2e8f0' : '#0f233c')
-                                    : (isNotOut ? 'rgba(21, 128, 61, 0.35)' : 'rgba(185, 28, 28, 0.35)'),
-                                  borderColor: !didBat ? cardBorder : (isNotOut ? '#22c55e' : '#ef4444'),
+                                  backgroundColor: didBat
+                                    ? (isNotOut ? 'rgba(21, 128, 61, 0.35)' : 'rgba(185, 28, 28, 0.35)')
+                                    : (didBowl ? 'rgba(2, 132, 199, 0.25)' : (currentTheme.isLight ? '#e2e8f0' : '#0f233c')),
+                                  borderColor: didBat ? (isNotOut ? '#22c55e' : '#ef4444') : (didBowl ? '#38bdf8' : cardBorder),
                                   borderWidth: 1,
                                   borderRadius: 12,
                                   paddingHorizontal: 9,
                                   paddingVertical: 2.5,
                                 }}>
                                   <Text style={{
-                                    color: !didBat ? txtMuted : (isNotOut ? '#4ade80' : '#fca5a5'),
+                                    color: didBat ? (isNotOut ? '#4ade80' : '#fca5a5') : (didBowl ? '#38bdf8' : txtMuted),
                                     fontSize: 10.5,
                                     fontWeight: '900',
                                   }}>
-                                    {!didBat ? 'DNB' : (isNotOut ? 'Not Out' : 'Out')}
+                                    {didBat ? (isNotOut ? 'Not Out' : 'Out') : (didBowl ? 'Bowled' : 'DNB')}
                                   </Text>
                                 </View>
 
