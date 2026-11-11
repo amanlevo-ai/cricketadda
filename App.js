@@ -19464,6 +19464,381 @@ function CricketAddaMain() {
     );
   };
 
+  const renderUnifiedAddPlayerCard = () => (
+    <View style={{
+      width: '100%',
+      maxWidth: 380,
+      backgroundColor: '#05182a',
+      borderRadius: 20,
+      borderWidth: 1.5,
+      borderColor: '#22c55e',
+      padding: 20,
+      shadowColor: '#22c55e',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.35,
+      shadowRadius: 16,
+      elevation: 20,
+    }}>
+      {/* Header */}
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+          <Text style={{ fontSize: 16 }}>➕</Text>
+          <Text style={[styles.modalTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 0 }]}>
+            Add New Player
+          </Text>
+        </View>
+        <TouchableOpacity onPress={() => closeUnifiedAddPlayerModal()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+          <Text style={{ color: '#f87171', fontSize: 17, fontWeight: '900' }}>✕</Text>
+        </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.modalSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginBottom: 12 }]}>
+        {targetTeamForAddPlayer
+          ? `${targetTeamForAddPlayer.name} (${(targetTeamForAddPlayer.squad || []).length}/20 Squad)`
+          : (guestTargetTeam === 'myTeam' ? (matchDraft.myTeam?.name || 'Team 1') : (matchDraft.opponentTeam?.name || 'Opponent Team'))}
+      </Text>
+
+      {/* 3 Unified Option Tabs */}
+      <View style={{
+        flexDirection: 'row',
+        backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#081c30',
+        borderRadius: 10,
+        padding: 3,
+        marginBottom: 14,
+        borderWidth: 1,
+        borderColor: 'rgba(56, 189, 248, 0.25)',
+      }}>
+        {[
+          { key: 'guest', label: targetTeamForAddPlayer ? 'Add Player' : 'Add Guest', icon: '👤' },
+          { key: 'qr', label: 'Scan QR', icon: '📷' },
+          { key: 'phone', label: 'By Mobile', icon: '📞' },
+        ].map(tab => {
+          const isActive = guestPlayerAddTab === tab.key;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => setGuestPlayerAddTab(tab.key)}
+              activeOpacity={0.8}
+              style={{
+                flex: 1,
+                paddingVertical: 7,
+                borderRadius: 8,
+                backgroundColor: isActive ? currentTheme.primary : 'transparent',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 4,
+              }}
+            >
+              <Text style={{ fontSize: 12 }}>{tab.icon}</Text>
+              <Text style={{
+                color: isActive ? currentTheme.primaryText : (currentTheme.isLight ? '#64748b' : '#94a3b8'),
+                fontSize: 11.5,
+                fontWeight: isActive ? '900' : '700',
+              }}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
+      {/* TAB 1: ADD GUEST / SQUAD PLAYER */}
+      {guestPlayerAddTab === 'guest' && (
+        <View>
+          <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>Player Full Name:</Text>
+          <TextInput
+            style={[styles.wizardTextInput, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a', borderColor: currentTheme.cardBorder, color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginTop: 4 }]}
+            value={guestPlayerName}
+            onChangeText={setGuestPlayerName}
+            placeholder="e.g. Gurdeep Singh"
+            placeholderTextColor="#64748b"
+            autoFocus={true}
+          />
+
+          <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', marginTop: 12 }]}>Player Role:</Text>
+          <View style={[styles.formatPillsRow, { marginTop: 4, marginBottom: 12 }]}>
+            {[
+              { key: 'BAT', label: 'Batter', icon: '🏏' },
+              { key: 'BOWL', label: 'Bowler', is3DBall: true },
+              { key: 'ALL', label: 'All-Round', icon: '⚡' },
+              { key: 'WK', label: 'Keeper', icon: '🧤' },
+            ].map(r => (
+              <TouchableOpacity
+                key={r.key}
+                style={[
+                  styles.formatPillBtn,
+                  { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
+                  guestPlayerRole === r.key && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary }
+                ]}
+                onPress={() => setGuestPlayerRole(r.key)}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  {r.is3DBall ? (
+                    <RealisticCricketLeatherBall size={12} />
+                  ) : (
+                    <Text style={{ fontSize: 11 }}>{r.icon}</Text>
+                  )}
+                  <Text style={[
+                    styles.formatPillBtnText,
+                    { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
+                    guestPlayerRole === r.key && { color: currentTheme.primaryText, fontWeight: '900' }
+                  ]}>
+                    {r.label}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', marginTop: 4 }]}>
+            {guestPlayerRole === 'BOWL' ? 'Bowling Arm:' : 'Batting / Bowling Hand:'}
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 14 }}>
+            {[
+              { key: 'Right', label: guestPlayerRole === 'BOWL' ? 'Right-Arm' : 'Right-Hand' },
+              { key: 'Left', label: guestPlayerRole === 'BOWL' ? 'Left-Arm' : 'Left-Hand' },
+            ].map(h => {
+              const isSelH = guestPlayerHand === h.key;
+              return (
+                <TouchableOpacity
+                  key={h.key}
+                  style={[
+                    styles.formatPillBtn,
+                    { flex: 1, backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
+                    isSelH && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary },
+                  ]}
+                  onPress={() => setGuestPlayerHand(h.key)}
+                >
+                  <Text style={[
+                    styles.formatPillBtnText,
+                    { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
+                    isSelH && { color: currentTheme.primaryText, fontWeight: '900' },
+                  ]}>
+                    {h.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
+          <View style={styles.modalBtnRow}>
+            <TouchableOpacity
+              style={[styles.skipBtn, { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b', borderColor: currentTheme.cardBorder }]}
+              onPress={() => closeUnifiedAddPlayerModal()}
+            >
+              <Text style={[styles.skipBtnText, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.confirmBtn, { backgroundColor: currentTheme.primary }]}
+              onPress={addGuestPlayer}
+            >
+              <Text style={[styles.confirmBtnText, { color: currentTheme.primaryText, fontWeight: 'bold' }]}>
+                {targetTeamForAddPlayer ? 'Add to Squad ✓' : 'Add to XI ✓'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      {/* TAB 2: SCAN PLAYER QR */}
+      {guestPlayerAddTab === 'qr' && (
+        <View style={{ alignItems: 'center', paddingVertical: 12 }}>
+          <View style={{
+            width: 60,
+            height: 60,
+            borderRadius: 30,
+            backgroundColor: 'rgba(56, 189, 248, 0.15)',
+            borderWidth: 1.5,
+            borderColor: '#38bdf8',
+            alignItems: 'center',
+            justifyContent: 'center',
+            marginBottom: 10,
+          }}>
+            <Text style={{ fontSize: 28 }}>📷</Text>
+          </View>
+          <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900', textAlign: 'center', marginBottom: 4 }}>
+            Scan Player QR Pass / Card
+          </Text>
+          <Text style={{ color: '#94a3b8', fontSize: 11.5, textAlign: 'center', paddingHorizontal: 10, marginBottom: 18 }}>
+            {targetTeamForAddPlayer
+              ? `Scan any registered player's QR code to instantly verify & add them to ${targetTeamForAddPlayer.name}`
+              : "Scan any registered player's QR code to instantly verify & add them to Playing XI"}
+          </Text>
+
+          <TouchableOpacity
+            style={{
+              width: '100%',
+              height: 44,
+              borderRadius: 11,
+              backgroundColor: '#10b981',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+            onPress={() => {
+              if (targetTeamForAddPlayer && selectedTeamDetail) {
+                setReturnToTeamDetail(selectedTeamDetail);
+                setSelectedTeamDetail(null);
+              }
+              setGuestModalVisible(false);
+              openUniversalQrScanner(
+                targetTeamForAddPlayer
+                  ? 'add_squad_player'
+                  : (guestTargetTeam === 'myTeam' ? 'scan_player_xi_1' : 'scan_player_xi_2')
+              );
+            }}
+            activeOpacity={0.85}
+          >
+            <Text style={{ fontSize: 16 }}>📷</Text>
+            <Text style={{ color: '#000000', fontSize: 14, fontWeight: '900' }}>Open Camera QR Scanner</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* TAB 3: SEARCH BY PHONE NUMBER */}
+      {guestPlayerAddTab === 'phone' && (
+        <View>
+          <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>
+            Enter 10-Digit Mobile Number:
+          </Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 12 }}>
+            <TextInput
+              style={[styles.wizardTextInput, {
+                flex: 1,
+                backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a',
+                borderColor: currentTheme.cardBorder,
+                color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+              }]}
+              value={guestPhoneSearchInput}
+              onChangeText={t => {
+                setGuestPhoneSearchInput(t.replace(/[^0-9]/g, '').slice(0, 10));
+                setGuestPhoneSearched(false);
+                setGuestPhoneFoundPlayer(null);
+              }}
+              placeholder="e.g. 9876543210"
+              placeholderTextColor="#64748b"
+              keyboardType="phone-pad"
+              maxLength={10}
+              autoFocus={true}
+            />
+            <TouchableOpacity
+              style={{
+                height: 44,
+                paddingHorizontal: 16,
+                borderRadius: 10,
+                backgroundColor: '#38bdf8',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
+              onPress={handleSearchAndAddPlayerByPhone}
+              disabled={guestPhoneSearching}
+              activeOpacity={0.8}
+            >
+              <Text style={{ color: '#000000', fontSize: 12.5, fontWeight: '900' }}>
+                {guestPhoneSearching ? 'Searching...' : '🔍 Search'}
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Search Result */}
+          {guestPhoneFoundPlayer ? (
+            <View style={{
+              backgroundColor: 'rgba(5, 24, 42, 0.95)',
+              borderWidth: 1.5,
+              borderColor: '#10b981',
+              borderRadius: 12,
+              padding: 12,
+              marginBottom: 12,
+            }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: '#1e293b',
+                  borderWidth: 1.5,
+                  borderColor: '#10b981',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
+                }}>
+                  {guestPhoneFoundPlayer.avatarUri ? (
+                    <Image source={{ uri: guestPhoneFoundPlayer.avatarUri }} style={{ width: 40, height: 40 }} />
+                  ) : (
+                    <Text style={{ color: '#cbd5e1', fontSize: 14, fontWeight: 'bold' }}>
+                      {(guestPhoneFoundPlayer.name || 'P').charAt(0)}
+                    </Text>
+                  )}
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: '900' }} numberOfLines={1}>
+                    {guestPhoneFoundPlayer.name}
+                  </Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>
+                    📱 {guestPhoneFoundPlayer.phone} • {guestPhoneFoundPlayer.role || 'BAT'}
+                  </Text>
+                </View>
+              </View>
+
+              <TouchableOpacity
+                style={{
+                  marginTop: 12,
+                  height: 44,
+                  borderRadius: 12,
+                  backgroundColor: '#22c55e',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 6,
+                  shadowColor: '#22c55e',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 5,
+                  elevation: 5,
+                }}
+                onPress={() => addSearchedPhonePlayerToXI(guestPhoneFoundPlayer)}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: '#000000', fontSize: 14.5, fontWeight: '900' }}>
+                  {targetTeamForAddPlayer ? `Add ${guestPhoneFoundPlayer.name} to Squad ❯` : `Add ${guestPhoneFoundPlayer.name} to Playing XI ❯`}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : guestPhoneSearched && !guestPhoneSearching ? (
+            <View style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.12)',
+              borderWidth: 1,
+              borderColor: 'rgba(239, 68, 68, 0.3)',
+              borderRadius: 10,
+              padding: 12,
+              marginBottom: 12,
+              alignItems: 'center',
+            }}>
+              <Text style={{ color: '#f87171', fontSize: 12, fontWeight: '700', textAlign: 'center', marginBottom: 6 }}>
+                No registered player found with this number.
+              </Text>
+              <TouchableOpacity
+                style={{
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 6,
+                  backgroundColor: '#0284c7',
+                }}
+                onPress={() => setGuestPlayerAddTab('guest')}
+              >
+                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800' }}>
+                  Add as Guest Player instead ➔
+                </Text>
+              </TouchableOpacity>
+            </View>
+          ) : null}
+        </View>
+      )}
+    </View>
+  );
+
   // =========================================================================
   // MAIN APP INTERFACE
   // =========================================================================
@@ -21375,7 +21750,9 @@ function CricketAddaMain() {
                 transparent={false}
                 statusBarTranslucent={true}
                 onRequestClose={() => {
-                  if (playerPendingRemoveConfirm) {
+                  if (guestModalVisible) {
+                    closeUnifiedAddPlayerModal();
+                  } else if (playerPendingRemoveConfirm) {
                     setPlayerPendingRemoveConfirm(null);
                   } else if (inspectedStatsPlayer) {
                     setInspectedStatsPlayer(null);
@@ -21592,8 +21969,7 @@ function CricketAddaMain() {
                               {dIsOwner && dSquad.length < 20 && (
                                 <TouchableOpacity
                                   onPress={() => {
-                                    setReturnToTeamDetail(dTeam);
-                                    setSelectedTeamDetail(null);
+                                    setReturnToTeamDetail(null);
                                     openAddPlayerToTeamModal(dTeam);
                                   }}
                                   style={{
@@ -21928,6 +22304,23 @@ function CricketAddaMain() {
                                   </Text>
                                 </TouchableOpacity>
                               </View>
+                            </TouchableOpacity>
+                          </TouchableOpacity>
+                        )}
+
+                        {/* Instant Zero-Slide Add Player Overlay (opens right over Team Window without slide-down glitch) */}
+                        {guestModalVisible && (
+                          <TouchableOpacity
+                            activeOpacity={1}
+                            onPress={() => closeUnifiedAddPlayerModal()}
+                            style={[
+                              StyleSheet.absoluteFillObject,
+                              styles.modalOverlay,
+                              { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20, zIndex: 1000 }
+                            ]}
+                          >
+                            <TouchableOpacity activeOpacity={1} onPress={() => {}} style={{ width: '100%', maxWidth: 380 }}>
+                              {renderUnifiedAddPlayerCard()}
                             </TouchableOpacity>
                           </TouchableOpacity>
                         )}
@@ -33825,383 +34218,14 @@ function CricketAddaMain() {
 
       {/* UNIFIED ADD NEW PLAYER MODAL (GUEST / SCAN QR / PHONE SEARCH) */}
       <Modal
-        visible={guestModalVisible}
+        visible={Boolean(guestModalVisible && !selectedTeamDetail)}
         transparent
-        animationType="slide"
+        animationType="none"
         statusBarTranslucent={true}
         onRequestClose={() => closeUnifiedAddPlayerModal()}
       >
         <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 }]}>
-          <View style={{
-            width: '100%',
-            maxWidth: 380,
-            backgroundColor: '#05182a',
-            borderRadius: 20,
-            borderWidth: 1.5,
-            borderColor: '#22c55e',
-            padding: 20,
-            shadowColor: '#22c55e',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.35,
-            shadowRadius: 16,
-            elevation: 20,
-          }}>
-            
-            {/* Header */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 16 }}>➕</Text>
-                <Text style={[styles.modalTitle, { color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginBottom: 0 }]}>
-                  Add New Player
-                </Text>
-              </View>
-              <TouchableOpacity onPress={() => closeUnifiedAddPlayerModal()} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Text style={{ color: '#f87171', fontSize: 17, fontWeight: '900' }}>✕</Text>
-              </TouchableOpacity>
-            </View>
-
-            <Text style={[styles.modalSub, { color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginBottom: 12 }]}>
-              {targetTeamForAddPlayer
-                ? `${targetTeamForAddPlayer.name} (${(targetTeamForAddPlayer.squad || []).length}/20 Squad)`
-                : (guestTargetTeam === 'myTeam' ? (matchDraft.myTeam?.name || 'Team 1') : (matchDraft.opponentTeam?.name || 'Opponent Team'))}
-            </Text>
-
-            {/* 3 Unified Option Tabs */}
-            <View style={{
-              flexDirection: 'row',
-              backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#081c30',
-              borderRadius: 10,
-              padding: 3,
-              marginBottom: 14,
-              borderWidth: 1,
-              borderColor: 'rgba(56, 189, 248, 0.25)',
-            }}>
-              {[
-                { key: 'guest', label: 'Add Guest', icon: '👤' },
-                { key: 'qr', label: 'Scan QR', icon: '📷' },
-                { key: 'phone', label: 'By Mobile', icon: '📞' },
-              ].map(tab => {
-                const isActive = guestPlayerAddTab === tab.key;
-                return (
-                  <TouchableOpacity
-                    key={tab.key}
-                    onPress={() => setGuestPlayerAddTab(tab.key)}
-                    activeOpacity={0.8}
-                    style={{
-                      flex: 1,
-                      paddingVertical: 7,
-                      borderRadius: 8,
-                      backgroundColor: isActive ? currentTheme.primary : 'transparent',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexDirection: 'row',
-                      gap: 4,
-                    }}
-                  >
-                    <Text style={{ fontSize: 12 }}>{tab.icon}</Text>
-                    <Text style={{
-                      color: isActive ? currentTheme.primaryText : (currentTheme.isLight ? '#64748b' : '#94a3b8'),
-                      fontSize: 11.5,
-                      fontWeight: isActive ? '900' : '700',
-                    }}>
-                      {tab.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            {/* TAB 1: ADD GUEST PLAYER */}
-            {guestPlayerAddTab === 'guest' && (
-              <View>
-                <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>Player Full Name:</Text>
-                <TextInput
-                  style={[styles.wizardTextInput, { backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a', borderColor: currentTheme.cardBorder, color: currentTheme.isLight ? '#0f172a' : '#ffffff', marginTop: 4 }]}
-                  value={guestPlayerName}
-                  onChangeText={setGuestPlayerName}
-                  placeholder="e.g. Gurdeep Singh"
-                  placeholderTextColor="#64748b"
-                  autoFocus={true}
-                />
-
-                <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', marginTop: 12 }]}>Player Role:</Text>
-                <View style={[styles.formatPillsRow, { marginTop: 4, marginBottom: 14 }]}>
-                  {[
-                    { key: 'BAT', label: 'Batter', icon: '🏏' },
-                    { key: 'BOWL', label: 'Bowler', is3DBall: true },
-                    { key: 'ALL', label: 'All-Round', icon: '⚡' },
-                    { key: 'WK', label: 'Keeper', icon: '🧤' },
-                  ].map(r => (
-                    <TouchableOpacity
-                      key={r.key}
-                      style={[
-                        styles.formatPillBtn,
-                        { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                        guestPlayerRole === r.key && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary }
-                      ]}
-                      onPress={() => setGuestPlayerRole(r.key)}
-                    >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                        {r.is3DBall ? (
-                          <RealisticCricketLeatherBall size={12} />
-                        ) : (
-                          <Text style={{ fontSize: 11 }}>{r.icon}</Text>
-                        )}
-                        <Text style={[
-                          styles.formatPillBtnText,
-                          { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
-                          guestPlayerRole === r.key && { color: currentTheme.primaryText, fontWeight: '900' }
-                        ]}>
-                          {r.label}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1', marginTop: 12 }]}>
-                  {guestPlayerRole === 'BOWL' ? 'Bowling Arm:' : 'Batting / Bowling Hand:'}
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 14 }}>
-                  {[
-                    { key: 'Right', label: guestPlayerRole === 'BOWL' ? 'Right-Arm' : 'Right-Hand' },
-                    { key: 'Left', label: guestPlayerRole === 'BOWL' ? 'Left-Arm' : 'Left-Hand' },
-                  ].map(h => {
-                    const isSelH = guestPlayerHand === h.key;
-                    return (
-                      <TouchableOpacity
-                        key={h.key}
-                        style={[
-                          styles.formatPillBtn,
-                          { flex: 1, backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder },
-                          isSelH && { backgroundColor: currentTheme.primary, borderColor: currentTheme.primary },
-                        ]}
-                        onPress={() => setGuestPlayerHand(h.key)}
-                      >
-                        <Text style={[
-                          styles.formatPillBtnText,
-                          { color: currentTheme.isLight ? '#0f172a' : '#94a3b8' },
-                          isSelH && { color: currentTheme.primaryText, fontWeight: '900' },
-                        ]}>
-                          {h.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-
-                <View style={styles.modalBtnRow}>
-                  <TouchableOpacity
-                    style={[styles.skipBtn, { backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b', borderColor: currentTheme.cardBorder }]}
-                    onPress={() => closeUnifiedAddPlayerModal()}
-                  >
-                    <Text style={[styles.skipBtnText, { color: currentTheme.isLight ? '#64748b' : '#94a3b8' }]}>Cancel</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    style={[styles.confirmBtn, { backgroundColor: currentTheme.primary }]}
-                    onPress={addGuestPlayer}
-                  >
-                    <Text style={[styles.confirmBtnText, { color: currentTheme.primaryText, fontWeight: 'bold' }]}>
-                      {targetTeamForAddPlayer ? 'Add to Squad ✓' : 'Add to XI ✓'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            )}
-
-            {/* TAB 2: SCAN PLAYER QR */}
-            {guestPlayerAddTab === 'qr' && (
-              <View style={{ alignItems: 'center', paddingVertical: 12 }}>
-                <View style={{
-                  width: 60,
-                  height: 60,
-                  borderRadius: 30,
-                  backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                  borderWidth: 1.5,
-                  borderColor: '#38bdf8',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginBottom: 10,
-                }}>
-                  <Text style={{ fontSize: 28 }}>📷</Text>
-                </View>
-                <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900', textAlign: 'center', marginBottom: 4 }}>
-                  Scan Player QR Pass / Card
-                </Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11.5, textAlign: 'center', paddingHorizontal: 10, marginBottom: 18 }}>
-                  {targetTeamForAddPlayer
-                    ? `Scan any registered player's QR code to instantly verify & add them to ${targetTeamForAddPlayer.name}`
-                    : "Scan any registered player's QR code to instantly verify & add them to Playing XI"}
-                </Text>
-
-                <TouchableOpacity
-                  style={{
-                    width: '100%',
-                    height: 44,
-                    borderRadius: 11,
-                    backgroundColor: '#10b981',
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 8,
-                  }}
-                  onPress={() => {
-                    setGuestModalVisible(false);
-                    openUniversalQrScanner(
-                      targetTeamForAddPlayer
-                        ? 'add_squad_player'
-                        : (guestTargetTeam === 'myTeam' ? 'scan_player_xi_1' : 'scan_player_xi_2')
-                    );
-                  }}
-                  activeOpacity={0.85}
-                >
-                  <Text style={{ fontSize: 16 }}>📷</Text>
-                  <Text style={{ color: '#000000', fontSize: 14, fontWeight: '900' }}>Open Camera QR Scanner</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {/* TAB 3: SEARCH BY PHONE NUMBER */}
-            {guestPlayerAddTab === 'phone' && (
-              <View>
-                <Text style={[styles.inputFieldLabel, { color: currentTheme.isLight ? '#334155' : '#cbd5e1' }]}>
-                  Enter 10-Digit Mobile Number:
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginTop: 4, marginBottom: 12 }}>
-                  <TextInput
-                    style={[styles.wizardTextInput, {
-                      flex: 1,
-                      backgroundColor: currentTheme.isLight ? '#f8fafc' : '#0f172a',
-                      borderColor: currentTheme.cardBorder,
-                      color: currentTheme.isLight ? '#0f172a' : '#ffffff',
-                    }]}
-                    value={guestPhoneSearchInput}
-                    onChangeText={t => {
-                      setGuestPhoneSearchInput(t.replace(/[^0-9]/g, '').slice(0, 10));
-                      setGuestPhoneSearched(false);
-                      setGuestPhoneFoundPlayer(null);
-                    }}
-                    placeholder="e.g. 9876543210"
-                    placeholderTextColor="#64748b"
-                    keyboardType="phone-pad"
-                    maxLength={10}
-                    autoFocus={true}
-                  />
-                  <TouchableOpacity
-                    style={{
-                      height: 44,
-                      paddingHorizontal: 16,
-                      borderRadius: 10,
-                      backgroundColor: '#38bdf8',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    onPress={handleSearchAndAddPlayerByPhone}
-                    disabled={guestPhoneSearching}
-                    activeOpacity={0.8}
-                  >
-                    <Text style={{ color: '#000000', fontSize: 12.5, fontWeight: '900' }}>
-                      {guestPhoneSearching ? 'Searching...' : '🔍 Search'}
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-
-                {/* Search Result */}
-                {guestPhoneFoundPlayer ? (
-                  <View style={{
-                    backgroundColor: 'rgba(5, 24, 42, 0.95)',
-                    borderWidth: 1.5,
-                    borderColor: '#10b981',
-                    borderRadius: 12,
-                    padding: 12,
-                    marginBottom: 12,
-                  }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <View style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 20,
-                        backgroundColor: '#1e293b',
-                        borderWidth: 1.5,
-                        borderColor: '#10b981',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                      }}>
-                        {guestPhoneFoundPlayer.avatarUri ? (
-                          <Image source={{ uri: guestPhoneFoundPlayer.avatarUri }} style={{ width: 40, height: 40 }} />
-                        ) : (
-                          <Text style={{ color: '#cbd5e1', fontSize: 14, fontWeight: 'bold' }}>
-                            {(guestPhoneFoundPlayer.name || 'P').charAt(0)}
-                          </Text>
-                        )}
-                      </View>
-                      <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: '900' }} numberOfLines={1}>
-                          {guestPhoneFoundPlayer.name}
-                        </Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 11 }}>
-                          📱 {guestPhoneFoundPlayer.phone} • {guestPhoneFoundPlayer.role || 'BAT'}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <TouchableOpacity
-                      style={{
-                        marginTop: 12,
-                        height: 44,
-                        borderRadius: 12,
-                        backgroundColor: '#22c55e',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexDirection: 'row',
-                        gap: 6,
-                        shadowColor: '#22c55e',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.35,
-                        shadowRadius: 5,
-                        elevation: 5,
-                      }}
-                      onPress={() => addSearchedPhonePlayerToXI(guestPhoneFoundPlayer)}
-                      activeOpacity={0.85}
-                    >
-                      <Text style={{ color: '#000000', fontSize: 14.5, fontWeight: '900' }}>
-                        {targetTeamForAddPlayer ? `Add ${guestPhoneFoundPlayer.name} to Squad ❯` : `Add ${guestPhoneFoundPlayer.name} to Playing XI ❯`}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : guestPhoneSearched && !guestPhoneSearching ? (
-                  <View style={{
-                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
-                    borderWidth: 1,
-                    borderColor: 'rgba(239, 68, 68, 0.3)',
-                    borderRadius: 10,
-                    padding: 12,
-                    marginBottom: 12,
-                    alignItems: 'center',
-                  }}>
-                    <Text style={{ color: '#f87171', fontSize: 12, fontWeight: '700', textAlign: 'center', marginBottom: 6 }}>
-                      No registered player found with this number.
-                    </Text>
-                    <TouchableOpacity
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 6,
-                        borderRadius: 6,
-                        backgroundColor: '#0284c7',
-                      }}
-                      onPress={() => setGuestPlayerAddTab('guest')}
-                    >
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800' }}>
-                        Add as Guest Player instead ➔
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                ) : null}
-              </View>
-            )}
-
-          </View>
+          {renderUnifiedAddPlayerCard()}
         </View>
       </Modal>
 
