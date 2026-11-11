@@ -2079,6 +2079,7 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
   let totalFifties = 0;
   let highestScore = 0;
   let highestScoreNotOut = false;
+  let bestPartnership = 0;
   let totalInningsBatted = 0;
   let totalDismissals = 0;
   let totalNotOuts = 0;
@@ -2266,6 +2267,7 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
         : (Array.isArray(m.liveState?.scoringHistory) ? m.liveState.scoringHistory : []));
 
     const bowlerOversRunsMap = {};
+    const partnershipStandsMap = {};
     let mMatchCatches = 0;
     let mMatchRunOuts = 0;
     let mMatchStumpings = 0;
@@ -2274,8 +2276,18 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
       if (!d) return;
       const dExtra = String(d.extraType || 'none').toLowerCase();
       const batRuns = Number(d.runsOffBat !== undefined ? d.runsOffBat : (dExtra === 'none' ? (d.runs || 0) : 0));
+      const dTotalRuns = Number(d.addedRuns !== undefined ? d.addedRuns : (d.runs || 0));
 
-      if (matchesUserIdentity(d.striker)) {
+      const isUserStriker = matchesUserIdentity(d.striker);
+      const isUserNonStriker = matchesUserIdentity(d.nonStriker);
+      if (isUserStriker || isUserNonStriker) {
+        const partnerRaw = isUserStriker ? (d.nonStriker || '') : (d.striker || '');
+        const cleanPartner = String(partnerRaw).replace(/\s*\([c|wk|c\/wk|wk\/c]\)/gi, '').trim().toLowerCase() || 'stand';
+        const standKey = `${d.innings || 1}__${cleanPartner}`;
+        partnershipStandsMap[standKey] = (partnershipStandsMap[standKey] || 0) + dTotalRuns;
+      }
+
+      if (isUserStriker) {
         if (dExtra !== 'wide' && dExtra !== 'bye' && dExtra !== 'legbye' && dExtra !== 'penalty') {
           if (batRuns === 1) totalSingles++;
           else if (batRuns === 2) totalDoubles++;
@@ -2298,7 +2310,7 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
         if (dExtra === 'noball') totalBowlingNoBalls++;
         const ovKey = `${d.innings || 1}_${d.over ?? 0}`;
         if (!bowlerOversRunsMap[ovKey]) bowlerOversRunsMap[ovKey] = { runs: 0, legal: 0 };
-        bowlerOversRunsMap[ovKey].runs += Number(d.addedRuns !== undefined ? d.addedRuns : (d.runs || 0));
+        bowlerOversRunsMap[ovKey].runs += dTotalRuns;
         if (dExtra !== 'wide' && dExtra !== 'noball' && dExtra !== 'penalty') {
           bowlerOversRunsMap[ovKey].legal += 1;
         }
@@ -2325,6 +2337,14 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
         }
       }
     });
+
+    const matchStandValues = Object.values(partnershipStandsMap);
+    if (matchStandValues.length > 0) {
+      const mBestStand = Math.max(...matchStandValues);
+      if (mBestStand > bestPartnership) bestPartnership = mBestStand;
+    } else if (userBat && bRuns > bestPartnership) {
+      bestPartnership = bRuns;
+    }
 
     Object.values(bowlerOversRunsMap).forEach(ovStat => {
       if (ovStat.legal >= 6 && ovStat.runs === 0) totalMaidens++;
@@ -2465,6 +2485,7 @@ const computeCareerDataFromMatches = (userProf, matchesDatabase, activeMId, curr
         avg: battingAvg,
         sr: battingSr,
         highScore: highestScore > 0 ? `${highestScore}${highestScoreNotOut ? '*' : ''}` : '0',
+        bestPartnership,
         twoHundreds: totalTwoHundreds,
         hundreds: totalHundreds,
         fifties: totalFifties,
@@ -2527,7 +2548,7 @@ const USER_CAREER_DATA = {
   },
   careerStats: {
     batting: {
-      runs: 0, avg: '0.00', sr: '0.0', highScore: '0', twoHundreds: 0, hundreds: 0, fifties: 0,
+      runs: 0, avg: '0.00', sr: '0.0', highScore: '0', bestPartnership: 0, twoHundreds: 0, hundreds: 0, fifties: 0,
       fours: 0, sixes: 0, singles: 0, doubles: 0, triples: 0,
       ballsFaced: 0, dotBallsFaced: 0, dotPct: '0.0%', ducks: 0, goldenDucks: 0, silverDucks: 0,
       dismissalsByType: { caught: 0, bowled: 0, lbw: 0, runOut: 0, stumped: 0, hitWicket: 0, other: 0 },
@@ -23412,7 +23433,8 @@ function CricketAddaMain() {
                           { label: '100s', val: fmtStat(batStats.hundreds) },
                           { label: '200s', val: fmtStat(batStats.twoHundreds) },
                           { label: 'Ducks', val: fmtStat(batStats.ducks) },
-                          { label: 'Boundaries (4s+6s)', val: fmtStat((batStats.fours || 0) + (batStats.sixes || 0)), last: true },
+                          { label: 'Boundaries (4s+6s)', val: fmtStat((batStats.fours || 0) + (batStats.sixes || 0)) },
+                          { label: 'Best Partnership', val: fmtStat(batStats.bestPartnership), last: true },
                         ].map(r => (
                           <View
                             key={r.label}
