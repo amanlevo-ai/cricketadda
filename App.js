@@ -21592,10 +21592,18 @@ function CricketAddaMain() {
                                         flexDirection: 'column',
                                         alignItems: 'stretch',
                                         backgroundColor: '#071526',
-                                        borderColor: '#1e3a5f',
-                                        paddingVertical: 9,
-                                        paddingHorizontal: 10,
-                                        gap: 7,
+                                        borderColor: '#0ea5e9',
+                                        borderWidth: 1.5,
+                                        borderRadius: 14,
+                                        paddingVertical: 10,
+                                        paddingHorizontal: 11,
+                                        gap: 8,
+                                        marginBottom: 2,
+                                        shadowColor: '#0ea5e9',
+                                        shadowOffset: { width: 0, height: 0 },
+                                        shadowOpacity: 0.28,
+                                        shadowRadius: 7,
+                                        elevation: 3,
                                       }
                                     ]}
                                   >
@@ -21606,7 +21614,7 @@ function CricketAddaMain() {
                                             name={cleanPName}
                                             customUri={pAvatarUri}
                                             size={38}
-                                            borderColor="#334155"
+                                            borderColor="#38bdf8"
                                           />
                                           {isCap && (
                                             <View style={styles.avatarCaptainCrown}>
@@ -21667,10 +21675,10 @@ function CricketAddaMain() {
                                       alignItems: 'center',
                                       justifyContent: 'space-between',
                                       backgroundColor: '#04101f',
-                                      borderRadius: 8,
+                                      borderRadius: 9,
                                       borderWidth: 1,
-                                      borderColor: 'rgba(30, 58, 95, 0.85)',
-                                      paddingVertical: 5,
+                                      borderColor: 'rgba(56, 189, 248, 0.25)',
+                                      paddingVertical: 5.5,
                                       paddingHorizontal: 9,
                                       gap: 6,
                                     }}>
