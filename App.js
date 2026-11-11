@@ -23107,12 +23107,14 @@ function CricketAddaMain() {
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                gap: 7,
+                gap: 8,
               }}>
-                <Svg width={14} height={14} viewBox="3 4 18 15" fill="none">
-                  <Path d="M4 18h3.5v-6.5H4V18zm5.5 0H13V5H9.5v13zm5.5 0h3.5v-9H15v9z" fill="#38bdf8" />
+                <Svg width={18} height={15} viewBox="0 0 18 15" fill="none" style={{ marginTop: -2 }}>
+                  <Rect x="1" y="7" width="4" height="7.5" rx="1" fill="#0284c7" />
+                  <Rect x="7" y="3.5" width="4" height="11" rx="1" fill="#0ea5e9" />
+                  <Rect x="13" y="0.5" width="4" height="14" rx="1" fill="#38bdf8" />
                 </Svg>
-                <Text style={{ color: txtPrimary, fontSize: 17, lineHeight: 20, includeFontPadding: false, fontWeight: '900', letterSpacing: 0.3 }}>
+                <Text style={{ color: txtPrimary, fontSize: 18, lineHeight: 22, includeFontPadding: false, fontWeight: '900', letterSpacing: 0.3 }}>
                   Player Stats
                 </Text>
               </View>
