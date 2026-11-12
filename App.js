@@ -18491,7 +18491,7 @@ function CricketAddaMain() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginTop: 2.5 }}>
                   <RealisticCricketBatIcon size={13} gripColor="#facc15" />
                   <Text style={{ color: currentTheme.isLight ? '#334155' : '#cbd5e1', fontSize: 11, fontWeight: '600', flex: 1 }} numberOfLines={1}>
-                    {displayStatsProfile.role || 'Top-Order Batter'}
+                    {(displayStatsProfile.role || 'Top-Order Batter').replace(/Wicketkeeper(\s*Batter)?/gi, 'WK')}
                   </Text>
                 </View>
 
@@ -25741,12 +25741,15 @@ function CricketAddaMain() {
               const roleLow = cleanRoleTitle.toLowerCase();
               const isBowlerRole = roleLow.includes('bowl') && !roleLow.includes('bat') && !roleLow.includes('all');
               const isAllRounderRole = roleLow.includes('all');
+              const isWkRole = roleLow.includes('wicket') || roleLow === 'wk' || roleLow.startsWith('wk ');
               const cleanBatHand = (userProfile.battingStyle || '').trim();
               const rawBowlStyle = (userProfile.bowlingStyle || '').trim();
               const cleanBowlHand = rawBowlStyle && rawBowlStyle !== 'None' ? rawBowlStyle : '';
-              const displayRoleName = isBowlerRole
-                ? (cleanBowlHand.toLowerCase().includes('spin') ? 'Spin Bowler' : 'Fast Bowler')
-                : cleanRoleTitle;
+              const displayRoleName = isWkRole
+                ? 'WK'
+                : isBowlerRole
+                  ? (cleanBowlHand.toLowerCase().includes('spin') ? 'Spin Bowler' : 'Fast Bowler')
+                  : cleanRoleTitle;
               const styleDetailParts = isBowlerRole
                 ? [cleanBowlHand]
                 : isAllRounderRole
