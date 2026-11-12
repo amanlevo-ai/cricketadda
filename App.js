@@ -4943,6 +4943,7 @@ const STORAGE_KEYS = {
   WIZARD_STATE: '@cricketadda_wizard_state',
   ACTIVE_TAB: '@cricketadda_active_tab',
   SPLASH_SEEN: '@cricketadda_splash_seen',
+  NOTIFICATIONS: '@cricketadda_pref_notifications',
 };
 
 const DB_CLEAN_EPOCH = 1790319500000; // Sept 25, 2026 DB full wipe epoch
@@ -5298,6 +5299,8 @@ function CricketAddaMain() {
 
   const [aboutModalVisible, setAboutModalVisible] = useState(false);
   const [aboutActiveTab, setAboutActiveTab] = useState('developer'); // 'developer' | 'tech' | 'features'
+  const [themeModalVisible, setThemeModalVisible] = useState(false);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   // AUTHENTICATION & SIGNUP / ONBOARDING STATE
   const [isSessionRestoring, setIsSessionRestoring] = useState(true);
@@ -6965,6 +6968,11 @@ function CricketAddaMain() {
           setSelectedThemeId(storedTheme);
         }
 
+        const storedNotif = await AsyncStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+        if (storedNotif !== null) {
+          setNotificationsEnabled(storedNotif === 'true');
+        }
+
         const storedWheel = await AsyncStorage.getItem(STORAGE_KEYS.AUTO_WHEEL);
         if (storedWheel !== null) {
           setAutoWheel(storedWheel === 'true');
@@ -8106,6 +8114,18 @@ function CricketAddaMain() {
         setHeaderUserMenuVisible(false);
         return true;
       }
+      if (themeModalVisible) {
+        setThemeModalVisible(false);
+        return true;
+      }
+      if (aboutModalVisible) {
+        setAboutModalVisible(false);
+        return true;
+      }
+      if (changePasswordModalVisible) {
+        setChangePasswordModalVisible(false);
+        return true;
+      }
       if (photoPickerVisible) {
         setPhotoPickerVisible(false);
         return true;
@@ -8214,6 +8234,9 @@ function CricketAddaMain() {
     registeredTeams,
     guestModalVisible,
     headerUserMenuVisible,
+    themeModalVisible,
+    aboutModalVisible,
+    changePasswordModalVisible,
     photoPickerVisible,
     universalQrScannerVisible,
     qrDisplayModalVisible,
@@ -25115,291 +25138,234 @@ function CricketAddaMain() {
       {activeTab === 'profile' && renderPlayerStatsView({ isModalView: false })}
 
       {/* ========================================================================= */}
-      {/* 2.6 APP & MATCH SCORER SETTINGS TAB */}
+      {/* 2.6 APP & MATCH SCORER SETTINGS TAB (CLEAN CARD VIEW)                    */}
       {/* ========================================================================= */}
-      {activeTab === 'settings' && (
-        <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
-          <TouchableOpacity
-            style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}
-            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            onPress={goBack}
+      {activeTab === 'settings' && (() => {
+        const isLight = currentTheme.isLight;
+        const cardSurface = isLight ? '#ffffff' : 'rgba(9, 20, 38, 0.88)';
+        const cardBorderCol = isLight ? '#cbd5e1' : '#1e3a5f';
+        const titleColor = isLight ? '#0f172a' : '#f8fafc';
+        const subColor = isLight ? '#64748b' : '#94a3b8';
+
+        const settingsRows = [
+          {
+            key: 'security',
+            icon: '🔒',
+            iconBg: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.14)',
+            title: 'Account & Security',
+            subtitle: 'Change password',
+            type: 'nav',
+            onPress: () => {
+              setNewChangePassword('');
+              setConfirmChangePassword('');
+              setChangePasswordModalVisible(true);
+            },
+          },
+          {
+            key: 'theme',
+            icon: '🎨',
+            iconBg: isLight ? '#f3e8ff' : 'rgba(168, 85, 247, 0.16)',
+            title: 'App Theme',
+            subtitle: 'Choose your preferred app theme',
+            type: 'nav',
+            onPress: () => setThemeModalVisible(true),
+          },
+          {
+            key: 'notifications',
+            icon: '🔔',
+            iconBg: isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.16)',
+            title: 'Notifications',
+            subtitle: 'Match alerts, team updates & reminders',
+            type: 'switch',
+            value: notificationsEnabled,
+            onPress: () => {
+              setNotificationsEnabled(prev => {
+                const next = !prev;
+                AsyncStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, String(next)).catch(() => {});
+                showAppToast(next ? 'Match notifications enabled 🔔' : 'Match notifications muted 🔕', next ? '🔔' : '🔕', 'info');
+                return next;
+              });
+            },
+          },
+          {
+            key: 'about',
+            icon: 'ℹ️',
+            iconBg: isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.14)',
+            title: 'About CricketAdda',
+            subtitle: 'App version, developer info & updates',
+            type: 'nav',
+            extraTopGap: true,
+            onPress: () => setAboutModalVisible(true),
+          },
+        ];
+
+        return (
+          <ScrollView
+            style={styles.mainContent}
+            contentContainerStyle={{ paddingBottom: bottomInset + 92, paddingTop: 4 }}
+            showsVerticalScrollIndicator={false}
           >
-            <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
-          </TouchableOpacity>
+            {/* Header Row: Back Button + Centered Settings Title + Subtitle */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+              <TouchableOpacity
+                style={{
+                  width: 38,
+                  height: 32,
+                  borderRadius: 10,
+                  backgroundColor: isLight ? '#f1f5f9' : '#0b192c',
+                  borderColor: cardBorderCol,
+                  borderWidth: 1.2,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={goBack}
+                activeOpacity={0.8}
+              >
+                <Text style={{ color: titleColor, fontSize: 17, fontWeight: '900', marginTop: -2 }}>←</Text>
+              </TouchableOpacity>
 
-          {/* PLAYER ACCOUNT & AUTHENTICATION SESSION */}
-          <Text style={{ color: currentTheme.isLight ? '#0284c7' : (currentTheme.secondary || '#38bdf8'), fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8, marginTop: 4 }}>
-            👤 PLAYER ACCOUNT & SESSION
-          </Text>
-          <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', marginBottom: 16 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-              <PlayerAvatar name={userProfile.name} size={44} customUri={userProfile.avatarUri} borderColor="#10b981" />
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }}>
-                  {userProfile.name} <Text style={{ color: '#10b981', fontSize: 12 }}>({userProfile.jersey})</Text>
-                </Text>
-                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11 }}>
-                  {authEmail || 'player@cricketadda.com'} • {userProfile.role}
-                </Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Text style={{ fontSize: 20 }}>⚙️</Text>
+                <Text style={{ color: titleColor, fontSize: 21, fontWeight: '900', letterSpacing: 0.2 }}>Settings</Text>
               </View>
+
+              <View style={{ width: 38 }} />
             </View>
 
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  backgroundColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(14, 165, 233, 0.15)',
-                  borderColor: '#38bdf8',
-                  borderWidth: 1,
-                  borderRadius: 8,
-                  paddingVertical: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onPress={() => {
-                  setNewChangePassword('');
-                  setConfirmChangePassword('');
-                  setChangePasswordModalVisible(true);
-                }}
-              >
-                <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#38bdf8', fontSize: 12, fontWeight: 'bold' }}>
-                  🔑 Set / Change Password
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={{
-                  flex: 1,
-                  backgroundColor: currentTheme.isLight ? '#fee2e2' : 'rgba(127, 29, 29, 0.4)',
-                  borderColor: '#ef4444',
-                  borderWidth: 1,
-                  borderRadius: 8,
-                  paddingVertical: 10,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                onPress={handleSignOutAndReset}
-              >
-                <Text style={{ color: currentTheme.isLight ? '#dc2626' : '#fca5a5', fontSize: 12, fontWeight: 'bold' }}>
-                  🚪 Sign Out
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* 0. APP THEME SELECTOR */}
-          <Text style={{ color: currentTheme.isLight ? '#0284c7' : (currentTheme.secondary || '#38bdf8'), fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8 }}>
-            🎨 APP THEME & PALETTE
-          </Text>
-
-          <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', marginBottom: 16 }}>
-            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11.5, marginBottom: 10 }}>
-              Choose your visual theme to customize the look and feel of the entire app:
+            <Text style={{ color: subColor, fontSize: 12, textAlign: 'center', marginBottom: 16 }}>
+              Manage your account, app preferences and more
             </Text>
 
-            <View style={{ gap: 8 }}>
-              {APP_THEMES.map(t => {
-                const isSelected = selectedThemeId === t.id;
-                return (
-                  <TouchableOpacity
-                    key={t.id}
+            {/* 1. Highlighted User Profile Banner Card */}
+            <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={openPhotoPicker}
+              style={{
+                backgroundColor: cardSurface,
+                borderColor: isLight ? '#0284c7' : '#38bdf8',
+                borderWidth: 1.5,
+                borderRadius: 16,
+                paddingVertical: 14,
+                paddingHorizontal: 14,
+                marginBottom: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                shadowColor: '#38bdf8',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isLight ? 0.12 : 0.25,
+                shadowRadius: 8,
+                elevation: 4,
+              }}
+            >
+              <PlayerAvatar
+                name={userProfile.name || 'Player'}
+                size={60}
+                customUri={userProfile.avatarUri}
+                borderColor="#38bdf8"
+              />
+              <View style={{ flex: 1, marginLeft: 14, paddingRight: 8 }}>
+                <Text style={{ color: titleColor, fontSize: 16.5, fontWeight: '900' }} numberOfLines={1}>
+                  {userProfile.name || 'Player'}{' '}
+                  <Text style={{ color: '#10b981', fontSize: 15, fontWeight: '900' }}>
+                    ({userProfile.jersey || '#1'})
+                  </Text>
+                </Text>
+                <Text style={{ color: isLight ? '#334155' : '#e2e8f0', fontSize: 12.5, fontWeight: '600', marginTop: 3 }} numberOfLines={1}>
+                  {userProfile.role || 'Cricketer'}{userProfile.battingStyle ? ` (${userProfile.battingStyle})` : ''}
+                </Text>
+                <Text style={{ color: subColor, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                  {authEmail || userProfile.email || 'player@cricketadda.com'}
+                </Text>
+              </View>
+              <Text style={{ color: isLight ? '#64748b' : '#e2e8f0', fontSize: 22, fontWeight: '700' }}>›</Text>
+            </TouchableOpacity>
+
+            {/* 2. Settings Navigation & Preference Cards */}
+            {settingsRows.map(item => (
+              <TouchableOpacity
+                key={item.key}
+                activeOpacity={0.82}
+                onPress={item.onPress}
+                style={{
+                  backgroundColor: cardSurface,
+                  borderColor: cardBorderCol,
+                  borderWidth: 1.2,
+                  borderRadius: 14,
+                  paddingVertical: 13,
+                  paddingHorizontal: 14,
+                  marginTop: item.extraTopGap ? 14 : 0,
+                  marginBottom: 11,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                }}
+              >
+                <View style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 22,
+                  backgroundColor: item.iconBg,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginRight: 14,
+                }}>
+                  <Text style={{ fontSize: 20 }}>{item.icon}</Text>
+                </View>
+
+                <View style={{ flex: 1, paddingRight: 10 }}>
+                  <Text style={{ color: titleColor, fontSize: 15, fontWeight: '800' }} numberOfLines={1}>
+                    {item.title}
+                  </Text>
+                  <Text style={{ color: subColor, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                    {item.subtitle}
+                  </Text>
+                </View>
+
+                {item.type === 'switch' ? (
+                  <View
                     style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      backgroundColor: isSelected ? (t.isLight ? '#f1f5f9' : t.cardBg) : (currentTheme.isLight ? '#f8fafc' : '#0f172a'),
-                      borderColor: isSelected ? t.primary : (currentTheme.isLight ? '#cbd5e1' : '#1e293b'),
-                      borderWidth: isSelected ? 2 : 1,
-                      borderRadius: 10,
-                      paddingVertical: 10,
-                      paddingHorizontal: 12,
-                      gap: 12,
-                    }}
-                    onPress={() => {
-                            setSelectedThemeId(t.id);
-                            AsyncStorage.setItem(STORAGE_KEYS.THEME, t.id).catch(() => {});
-                          }}
-                  >
-                    <Text style={{ fontSize: 24 }}>{t.icon}</Text>
-                    <View style={{ flex: 1, paddingRight: 6 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
-                        <Text
-                          style={{
-                            color: isSelected ? (t.isLight ? '#0f172a' : '#ffffff') : (currentTheme.isLight ? '#0f172a' : '#e2e8f0'),
-                            fontSize: 13,
-                            fontWeight: isSelected ? '900' : 'bold',
-                            flexShrink: 1,
-                          }}
-                          numberOfLines={1}
-                        >
-                          {t.name}
-                        </Text>
-                        <View style={{ backgroundColor: t.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                          <Text style={{ color: t.primaryText, fontSize: 9, fontWeight: '900' }}>{t.tag}</Text>
-                        </View>
-                      </View>
-
-                      {/* Color Preview Swatches */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.bg, borderWidth: 1, borderColor: '#475569' }} />
-                        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.cardBg, borderWidth: 1, borderColor: '#475569' }} />
-                        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.primary }} />
-                        <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.accent }} />
-                      </View>
-                    </View>
-
-                    <View style={{
-                      width: 20,
-                      height: 20,
-                      borderRadius: 10,
-                      borderWidth: 2,
-                      borderColor: isSelected ? t.primary : '#64748b',
-                      backgroundColor: isSelected ? t.primary : 'transparent',
-                      alignItems: 'center',
+                      width: 52,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: item.value ? '#10b981' : (isLight ? '#cbd5e1' : '#334155'),
+                      padding: 3,
                       justifyContent: 'center',
-                      flexShrink: 0,
-                    }}>
-                      {isSelected && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: t.primaryText }} />}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
-          {/* 1. AUDIO & HAPTIC FEEDBACK */}
-          <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8 }}>
-            🔊 AUDIO & SENSORY FEEDBACK
-          </Text>
-
-          <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', gap: 14, marginBottom: 16 }}>
-            {/* Sound Effects */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flex: 1, paddingRight: 10 }}>
-                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13.5, fontWeight: 'bold' }}>📢 Sound Effects on Boundaries</Text>
-                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 2 }}>Audible crowd cheers and umpire whistle tones</Text>
-              </View>
-              <TouchableOpacity
-                style={{
-                  width: 48,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: soundEffectsEnabled ? '#10b981' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
-                  padding: 2,
-                  justifyContent: 'center',
-                  alignItems: soundEffectsEnabled ? 'flex-end' : 'flex-start',
-                }}
-                onPress={() => setSoundEffectsEnabled(prev => !prev)}
-              >
-                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff' }} />
+                      alignItems: item.value ? 'flex-end' : 'flex-start',
+                    }}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff' }} />
+                  </View>
+                ) : (
+                  <Text style={{ color: isLight ? '#64748b' : '#e2e8f0', fontSize: 22, fontWeight: '700' }}>›</Text>
+                )}
               </TouchableOpacity>
-            </View>
+            ))}
 
-            <View style={{ height: 1, backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#1f2937' }} />
-
-            {/* Haptics */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-              <View style={{ flex: 1, paddingRight: 10 }}>
-                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13.5, fontWeight: 'bold' }}>📳 Haptic Vibrations</Text>
-                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 2 }}>Tactile vibration pulse on keypad buttons and wickets</Text>
-              </View>
-              <TouchableOpacity
-                style={{
-                  width: 48,
-                  height: 26,
-                  borderRadius: 13,
-                  backgroundColor: hapticsEnabled ? '#10b981' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
-                  padding: 2,
-                  justifyContent: 'center',
-                  alignItems: hapticsEnabled ? 'flex-end' : 'flex-start',
-                }}
-                onPress={() => setHapticsEnabled(prev => !prev)}
-              >
-                <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff' }} />
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* 4. ABOUT & DEVELOPER INFO */}
-          <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 12, fontWeight: '900', letterSpacing: 0.5, marginBottom: 8 }}>
-            ℹ️ ABOUT & DEVELOPER INFO
-          </Text>
-
-          <View style={{ backgroundColor: currentTheme.isLight ? '#ffffff' : '#111827', borderRadius: 12, padding: 14, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', marginBottom: 16 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                <View style={{ width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(2, 132, 199, 0.15)', borderWidth: 1.5, borderColor: '#0284c7', alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ fontSize: 22 }}>🏏</Text>
-                </View>
-                <View>
-                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 15, fontWeight: '900' }}>
-                    CricketAdda <Text style={{ color: currentTheme.primary }}>PRO</Text>
-                  </Text>
-                  <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 1 }}>
-                    v2.4.0 • Built by Amandeep Singh
-                  </Text>
-                </View>
-              </View>
-            </View>
-
-            <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11.5, lineHeight: 17, marginBottom: 12 }}>
-              Official match scoring, DLS calculation engine, real-time cloud streaming & 360° analytics for cricket clubs worldwide.
-            </Text>
-
+            {/* 3. Sign Out Action Card */}
             <TouchableOpacity
+              activeOpacity={0.85}
+              onPress={handleSignOutAndReset}
               style={{
-                backgroundColor: currentTheme.primary,
-                borderRadius: 8,
-                paddingVertical: 11,
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'row',
-                gap: 8,
-              }}
-              onPress={() => setAboutModalVisible(true)}
-            >
-              <Text style={{ fontSize: 15 }}>ℹ️</Text>
-              <Text style={{ color: currentTheme.primaryText || '#ffffff', fontSize: 13, fontWeight: '900' }}>
-                View App & Developer Info
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={{
-                backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
-                borderColor: currentTheme.primary,
-                borderWidth: 1,
-                borderRadius: 8,
-                paddingVertical: 11,
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexDirection: 'row',
-                gap: 8,
+                backgroundColor: isLight ? '#fee2e2' : 'rgba(127, 29, 29, 0.28)',
+                borderColor: '#ef4444',
+                borderWidth: 1.4,
+                borderRadius: 14,
+                paddingVertical: 14,
                 marginTop: 8,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
               }}
-              disabled={isCheckingUpdate}
-              onPress={handleManualCheckUpdate}
             >
-              {isCheckingUpdate ? (
-                <ActivityIndicator size="small" color={currentTheme.primary} />
-              ) : (
-                <Text style={{ fontSize: 15 }}>🔄</Text>
-              )}
-              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 13, fontWeight: '900' }}>
-                {isCheckingUpdate ? 'Checking for updates...' : 'Check for Updates (OTA)'}
+              <Text style={{ fontSize: 17 }}>🚪</Text>
+              <Text style={{ color: isLight ? '#dc2626' : '#f8fafc', fontSize: 15, fontWeight: '800' }}>
+                Sign Out
               </Text>
             </TouchableOpacity>
-          </View>
-
-          <View style={{ alignItems: 'center', paddingVertical: 12, borderTopWidth: 1, borderTopColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b' }}>
-            <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 13, fontWeight: '900' }}>
-              CricketAdda <Text style={{ color: currentTheme.primary }}>PRO</Text> v2.4.0
-            </Text>
-            <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 2 }}>
-              Crafted with ❤️ by Amandeep Singh (amanlevo@gmail.com)
-            </Text>
-          </View>
-        </ScrollView>
-      )}
+          </ScrollView>
+        );
+      })()}
 
       {/* ========================================================================= */}
       {/* NATIVE BOTTOM NAVIGATION BAR (MATCHING MOCKUP & VIEWER DESIGN)            */}
@@ -36921,7 +36887,33 @@ function CricketAddaMain() {
             </ScrollView>
 
             {/* Bottom Actions */}
-            <View style={{ flexDirection: 'row', gap: 8, marginTop: 12 }}>
+            <TouchableOpacity
+              style={{
+                backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b',
+                borderColor: currentTheme.primary,
+                borderWidth: 1,
+                borderRadius: 10,
+                paddingVertical: 10,
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexDirection: 'row',
+                gap: 8,
+                marginTop: 12,
+              }}
+              disabled={isCheckingUpdate}
+              onPress={handleManualCheckUpdate}
+            >
+              {isCheckingUpdate ? (
+                <ActivityIndicator size="small" color={currentTheme.primary} />
+              ) : (
+                <Text style={{ fontSize: 14 }}>🔄</Text>
+              )}
+              <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '900' }}>
+                {isCheckingUpdate ? 'Checking for updates...' : 'Check for Updates (OTA)'}
+              </Text>
+            </TouchableOpacity>
+
+            <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
               <TouchableOpacity
                 style={{
                   flex: 1,
@@ -36963,6 +36955,175 @@ function CricketAddaMain() {
                 </Text>
               </TouchableOpacity>
             </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ========================================================================= */}
+      {/* APP THEME & PREFERENCES MODAL (OPENED FROM SETTINGS -> APP THEME)         */}
+      {/* ========================================================================= */}
+      <Modal
+        visible={themeModalVisible}
+        transparent
+        animationType="slide"
+        statusBarTranslucent={true}
+        onRequestClose={() => setThemeModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
+          <View style={{
+            backgroundColor: currentTheme.isLight ? '#ffffff' : '#0a101d',
+            borderColor: currentTheme.primary,
+            borderWidth: 1.5,
+            borderRadius: 20,
+            padding: 18,
+            width: Math.min(width - 20, 420),
+            maxHeight: Math.min(safeModalCardMaxHeight, 640),
+          }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <View>
+                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 17, fontWeight: '900' }}>
+                  🎨 App Theme & Feedback
+                </Text>
+                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11.5, marginTop: 2 }}>
+                  Choose your preferred theme and audio/haptics
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b', alignItems: 'center', justifyContent: 'center' }}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                onPress={() => setThemeModalVisible(false)}
+              >
+                <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+              <View style={{ gap: 8, marginBottom: 14 }}>
+                {APP_THEMES.map(t => {
+                  const isSelected = selectedThemeId === t.id;
+                  return (
+                    <TouchableOpacity
+                      key={t.id}
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        backgroundColor: isSelected ? (t.isLight ? '#f1f5f9' : t.cardBg) : (currentTheme.isLight ? '#f8fafc' : '#0f172a'),
+                        borderColor: isSelected ? t.primary : (currentTheme.isLight ? '#cbd5e1' : '#1e293b'),
+                        borderWidth: isSelected ? 2 : 1,
+                        borderRadius: 12,
+                        paddingVertical: 10,
+                        paddingHorizontal: 12,
+                        gap: 12,
+                      }}
+                      onPress={() => {
+                        setSelectedThemeId(t.id);
+                        AsyncStorage.setItem(STORAGE_KEYS.THEME, t.id).catch(() => {});
+                      }}
+                    >
+                      <Text style={{ fontSize: 24 }}>{t.icon}</Text>
+                      <View style={{ flex: 1, paddingRight: 6 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6 }}>
+                          <Text
+                            style={{
+                              color: isSelected ? (t.isLight ? '#0f172a' : '#ffffff') : (currentTheme.isLight ? '#0f172a' : '#e2e8f0'),
+                              fontSize: 13,
+                              fontWeight: isSelected ? '900' : 'bold',
+                              flexShrink: 1,
+                            }}
+                            numberOfLines={1}
+                          >
+                            {t.name}
+                          </Text>
+                          <View style={{ backgroundColor: t.primary, paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
+                            <Text style={{ color: t.primaryText, fontSize: 9, fontWeight: '900' }}>{t.tag}</Text>
+                          </View>
+                        </View>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                          <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.bg, borderWidth: 1, borderColor: '#475569' }} />
+                          <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.cardBg, borderWidth: 1, borderColor: '#475569' }} />
+                          <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.primary }} />
+                          <View style={{ width: 12, height: 12, borderRadius: 6, backgroundColor: t.accent }} />
+                        </View>
+                      </View>
+                      <View style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        borderWidth: 2,
+                        borderColor: isSelected ? t.primary : '#64748b',
+                        backgroundColor: isSelected ? t.primary : 'transparent',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        {isSelected && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: t.primaryText }} />}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* Sensory Toggles preserved inside App Theme & Preferences */}
+              <View style={{ backgroundColor: currentTheme.isLight ? '#f8fafc' : '#111827', borderRadius: 12, padding: 12, borderWidth: 1, borderColor: currentTheme.isLight ? '#cbd5e1' : '#1f2937', gap: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13, fontWeight: 'bold' }}>📢 Sound Effects</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11 }}>Boundary cheers and umpire tones</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={{
+                      width: 48,
+                      height: 26,
+                      borderRadius: 13,
+                      backgroundColor: soundEffectsEnabled ? '#10b981' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
+                      padding: 2,
+                      justifyContent: 'center',
+                      alignItems: soundEffectsEnabled ? 'flex-end' : 'flex-start',
+                    }}
+                    onPress={() => setSoundEffectsEnabled(prev => !prev)}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff' }} />
+                  </TouchableOpacity>
+                </View>
+
+                <View style={{ height: 1, backgroundColor: currentTheme.isLight ? '#e2e8f0' : '#1f2937' }} />
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <View style={{ flex: 1, paddingRight: 10 }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#f8fafc', fontSize: 13, fontWeight: 'bold' }}>📳 Haptic Vibrations</Text>
+                    <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11 }}>Tactile feedback on scoring & wickets</Text>
+                  </View>
+                  <TouchableOpacity
+                    style={{
+                      width: 48,
+                      height: 26,
+                      borderRadius: 13,
+                      backgroundColor: hapticsEnabled ? '#10b981' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
+                      padding: 2,
+                      justifyContent: 'center',
+                      alignItems: hapticsEnabled ? 'flex-end' : 'flex-start',
+                    }}
+                    onPress={() => setHapticsEnabled(prev => !prev)}
+                  >
+                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff' }} />
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </ScrollView>
+
+            <TouchableOpacity
+              style={{
+                backgroundColor: currentTheme.primary,
+                borderRadius: 12,
+                paddingVertical: 12,
+                alignItems: 'center',
+                marginTop: 12,
+              }}
+              onPress={() => setThemeModalVisible(false)}
+            >
+              <Text style={{ color: currentTheme.primaryText || '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
+                Done ✓
+              </Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
