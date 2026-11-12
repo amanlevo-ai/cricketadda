@@ -6729,7 +6729,8 @@ function CricketAddaMain() {
   const saveProfileEdits = () => {
     const cleanName = editNameInput.trim() || (!isAuthenticated && authName ? authName : userProfile.name);
     const cleanJersey = editJerseyInput.trim() || (!isAuthenticated && authJersey ? authJersey : userProfile.jersey);
-    const cleanRole = editRoleInput.trim() || (!isAuthenticated && authRole ? authRole : userProfile.role);
+    const rawRole = (editRoleInput || (!isAuthenticated && authRole ? authRole : userProfile.role) || 'Batter').trim();
+    const cleanRole = rawRole.replace(/\s*\((Right-hand Bat|Left-hand Bat|Right-hand|Left-hand)\)\s*$/i, '').trim() || 'Batter';
     const cleanBat = editBattingStyleInput || userProfile.battingStyle || 'Right-hand Bat';
     const cleanBowl = editBowlingStyleInput || userProfile.bowlingStyle || 'Right-arm Fast';
     if (!isAuthenticated) {
@@ -25477,7 +25478,7 @@ function CricketAddaMain() {
           onPress={() => navigateTo('settings')}
           activeOpacity={0.8}
         >
-          <Text style={[styles.bottomNavIcon, activeTab === 'settings' && { color: '#22c55e' }]}>•••</Text>
+          <Text style={[styles.bottomNavIcon, activeTab === 'settings' && { color: '#22c55e' }]}>⚙️</Text>
           <Text style={[styles.bottomNavLabel, activeTab === 'settings' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>More</Text>
           {activeTab === 'settings' && <View style={styles.bottomNavActiveBar} />}
         </TouchableOpacity>
@@ -25536,195 +25537,486 @@ function CricketAddaMain() {
       )}
 
       {/* ========================================================================= */}
-      {/* MODAL 0: USER PROFILE & PHOTO PICKER MODAL */}
+      {/* MODAL 0: USER PROFILE & PHOTO EDITOR (COMPACT ZERO-SCROLL SCREEN)         */}
       {/* ========================================================================= */}
-      <Modal visible={photoPickerVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setPhotoPickerVisible(false)}>
-        <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
-            <ScrollView showsVerticalScrollIndicator={false}>
-              <View style={styles.photoPickerHeader}>
+      <Modal visible={photoPickerVisible} transparent animationType="fade" statusBarTranslucent={true} onRequestClose={() => setPhotoPickerVisible(false)}>
+        {(() => {
+          const isLight = currentTheme.isLight;
+          const pageBg = isLight ? '#f1f5f9' : '#020b16';
+          const cardBgCol = isLight ? '#ffffff' : 'rgba(9, 20, 38, 0.94)';
+          const cardBorderCol = isLight ? '#cbd5e1' : '#1e3a5f';
+          const fieldBgCol = isLight ? '#f8fafc' : '#0b182c';
+          const txtMain = isLight ? '#0f172a' : '#f8fafc';
+          const txtMuted = isLight ? '#64748b' : '#94a3b8';
+
+          const roleLower = (editRoleInput || '').toLowerCase();
+          const activeRoleKey = roleLower.includes('wicket')
+            ? 'Wicketkeeper Batter'
+            : roleLower.includes('all')
+              ? 'All-Rounder'
+              : roleLower.includes('bowl') && !roleLower.includes('bat')
+                ? 'Fast Bowler'
+                : 'Top-Order Batter';
+
+          const bowlLower = (editBowlingStyleInput || '').toLowerCase();
+          const activeBowlKey = bowlLower.includes('left')
+            ? 'Left-arm Fast'
+            : bowlLower.includes('right')
+              ? 'Right-arm Fast'
+              : 'None';
+
+          const displayPhone = userProfile?.phone || authPhone || 'Not linked';
+          const displayEmail = authEmail || userProfile?.email || 'Not linked';
+
+          return (
+            <View style={{
+              flex: 1,
+              backgroundColor: pageBg,
+              paddingTop: topInset + 8,
+              paddingBottom: Math.max(bottomInset, 10) + 6,
+              paddingHorizontal: 12,
+            }}>
+              <ScrollView
+                showsVerticalScrollIndicator={false}
+                bounces={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between' }}
+              >
                 <View>
-                  <Text style={[styles.photoPickerTitle, currentTheme.isLight && { color: '#0f172a' }]}>📷 Customize Profile & Photo</Text>
-                  <Text style={[styles.photoPickerSub, currentTheme.isLight && { color: '#64748b' }]}>Upload from gallery, take with camera, or enter image URL</Text>
-                </View>
-                <TouchableOpacity style={[styles.closeRoundBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9' }]} onPress={() => setPhotoPickerVisible(false)}>
-                  <Text style={[styles.closeRoundBtnText, currentTheme.isLight && { color: '#475569' }]}>✕</Text>
-                </TouchableOpacity>
-              </View>
+                  {/* Top Header Bar */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <TouchableOpacity
+                      style={{
+                        width: 36,
+                        height: 32,
+                        borderRadius: 10,
+                        backgroundColor: isLight ? '#e2e8f0' : '#0b192c',
+                        borderColor: cardBorderCol,
+                        borderWidth: 1.2,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                      onPress={() => setPhotoPickerVisible(false)}
+                    >
+                      <Text style={{ color: txtMain, fontSize: 17, fontWeight: '900', marginTop: -2 }}>←</Text>
+                    </TouchableOpacity>
 
-              {/* Current Active Preview */}
-              <View style={[styles.activePhotoPreviewCard, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                <PlayerAvatar name={editNameInput || (!isAuthenticated && authName ? authName : userProfile.name)} customUri={userProfile.avatarUri} size={64} borderColor="#10b981" />
-                <View style={{ flex: 1, marginLeft: 12 }}>
-                  <Text style={[styles.previewActiveName, currentTheme.isLight && { color: '#0f172a' }]}>
-                    {editNameInput || (!isAuthenticated && authName ? authName : userProfile.name)} <Text style={{ color: '#34d399' }}>({editJerseyInput || (!isAuthenticated && authJersey ? authJersey : userProfile.jersey)})</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
+                      <Text style={{ fontSize: 19 }}>👤</Text>
+                      <Text style={{ color: txtMain, fontSize: 20, fontWeight: '900', letterSpacing: 0.2 }}>Edit Profile</Text>
+                    </View>
+
+                    <View style={{ width: 36 }} />
+                  </View>
+
+                  <Text style={{ color: txtMuted, fontSize: 11.5, textAlign: 'center', marginBottom: 10 }}>
+                    Update your profile &amp; playing details
                   </Text>
-                  <Text style={[styles.previewActiveRole, currentTheme.isLight && { color: '#0284c7' }]}>
-                    {editRoleInput || (!isAuthenticated && authRole ? authRole : userProfile.role)}
+
+                  {/* 1. Profile Photo Card */}
+                  <View style={{
+                    backgroundColor: cardBgCol,
+                    borderColor: isLight ? '#0284c7' : '#38bdf8',
+                    borderWidth: 1.4,
+                    borderRadius: 15,
+                    padding: 11,
+                    marginBottom: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                  }}>
+                    <TouchableOpacity activeOpacity={0.85} onPress={pickImageFromGallery} style={{ position: 'relative' }}>
+                      <PlayerAvatar
+                        name={editNameInput || (!isAuthenticated && authName ? authName : userProfile.name)}
+                        customUri={userProfile.avatarUri}
+                        size={60}
+                        borderColor="#38bdf8"
+                      />
+                      <View style={{
+                        position: 'absolute',
+                        right: -2,
+                        bottom: -2,
+                        width: 22,
+                        height: 22,
+                        borderRadius: 11,
+                        backgroundColor: '#0f172a',
+                        borderWidth: 1.5,
+                        borderColor: '#38bdf8',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Text style={{ fontSize: 10 }}>📷</Text>
+                      </View>
+                    </TouchableOpacity>
+
+                    <View style={{ flex: 1, marginLeft: 12 }}>
+                      <Text style={{ color: txtMain, fontSize: 14.5, fontWeight: '900' }}>Profile Photo</Text>
+                      <Text style={{ color: txtMuted, fontSize: 11, marginTop: 1, marginBottom: 8 }}>
+                        Add or change your profile photo
+                      </Text>
+                      <View style={{ flexDirection: 'row', gap: 8 }}>
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
+                            backgroundColor: fieldBgCol,
+                            borderColor: isLight ? '#cbd5e1' : '#334155',
+                            borderWidth: 1,
+                            borderRadius: 9,
+                            paddingVertical: 7,
+                          }}
+                          onPress={pickImageFromGallery}
+                          activeOpacity={0.82}
+                        >
+                          <Text style={{ fontSize: 13 }}>🖼️</Text>
+                          <Text style={{ color: txtMain, fontSize: 11.5, fontWeight: '800' }}>Choose Photo</Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 5,
+                            backgroundColor: fieldBgCol,
+                            borderColor: isLight ? '#cbd5e1' : '#334155',
+                            borderWidth: 1,
+                            borderRadius: 9,
+                            paddingVertical: 7,
+                          }}
+                          onPress={takePhotoWithCamera}
+                          activeOpacity={0.82}
+                        >
+                          <Text style={{ fontSize: 13 }}>📷</Text>
+                          <Text style={{ color: txtMain, fontSize: 11.5, fontWeight: '800' }}>Take Photo</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* 2. Player Details Card */}
+                  <View style={{
+                    backgroundColor: cardBgCol,
+                    borderColor: cardBorderCol,
+                    borderWidth: 1.2,
+                    borderRadius: 15,
+                    padding: 12,
+                    marginBottom: 9,
+                  }}>
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 7,
+                      paddingBottom: 8,
+                      marginBottom: 9,
+                      borderBottomWidth: 1,
+                      borderBottomColor: isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.7)',
+                    }}>
+                      <Text style={{ fontSize: 14 }}>👤</Text>
+                      <Text style={{ color: txtMain, fontSize: 14, fontWeight: '900' }}>Player Details</Text>
+                    </View>
+
+                    {/* Row 1: Player Name + Jersey Number */}
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 9 }}>
+                      <View style={{ flex: 2 }}>
+                        <Text style={{ color: txtMain, fontSize: 11, fontWeight: '800', marginBottom: 4 }}>👤 Player Name *</Text>
+                        <TextInput
+                          style={{
+                            backgroundColor: fieldBgCol,
+                            borderColor: cardBorderCol,
+                            borderWidth: 1,
+                            borderRadius: 9,
+                            color: txtMain,
+                            fontSize: 13,
+                            fontWeight: '700',
+                            paddingHorizontal: 10,
+                            height: 38,
+                          }}
+                          value={editNameInput}
+                          onChangeText={setEditNameInput}
+                          placeholder="Enter name"
+                          placeholderTextColor="#64748b"
+                        />
+                      </View>
+
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: txtMain, fontSize: 11, fontWeight: '800', marginBottom: 4 }}>👕 Jersey No. *</Text>
+                        <TextInput
+                          style={{
+                            backgroundColor: fieldBgCol,
+                            borderColor: cardBorderCol,
+                            borderWidth: 1,
+                            borderRadius: 9,
+                            color: txtMain,
+                            fontSize: 13,
+                            fontWeight: '700',
+                            paddingHorizontal: 10,
+                            height: 38,
+                          }}
+                          value={editJerseyInput}
+                          onChangeText={setEditJerseyInput}
+                          placeholder="#18"
+                          placeholderTextColor="#64748b"
+                        />
+                      </View>
+                    </View>
+
+                    {/* Row 2: Mobile Number + Email (Read-only account info) */}
+                    <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>📞 Mobile Number</Text>
+                        <View style={{
+                          backgroundColor: fieldBgCol,
+                          borderColor: cardBorderCol,
+                          borderWidth: 1,
+                          borderRadius: 9,
+                          paddingHorizontal: 9,
+                          height: 35,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}>
+                          <Text style={{ color: txtMuted, fontSize: 11.5, flex: 1 }} numberOfLines={1}>{displayPhone}</Text>
+                          <Text style={{ fontSize: 11, marginLeft: 4 }}>🔒</Text>
+                        </View>
+                      </View>
+
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ color: txtMuted, fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>✉️ Email</Text>
+                        <View style={{
+                          backgroundColor: fieldBgCol,
+                          borderColor: cardBorderCol,
+                          borderWidth: 1,
+                          borderRadius: 9,
+                          paddingHorizontal: 9,
+                          height: 35,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                        }}>
+                          <Text style={{ color: txtMuted, fontSize: 11.5, flex: 1 }} numberOfLines={1}>{displayEmail}</Text>
+                          <Text style={{ fontSize: 11, marginLeft: 4 }}>🔒</Text>
+                        </View>
+                      </View>
+                    </View>
+
+                    {/* Row 3: Playing Role * (4 compact horizontal cards) */}
+                    <Text style={{ color: txtMain, fontSize: 11, fontWeight: '800', marginBottom: 6 }}>🏏 Playing Role *</Text>
+                    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
+                      {[
+                        { key: 'Top-Order Batter', label: 'Batter', icon: '🏏' },
+                        { key: 'Fast Bowler', label: 'Bowler', icon: '🔴' },
+                        { key: 'Wicketkeeper Batter', label: 'Keeper', icon: '🧤' },
+                        { key: 'All-Rounder', label: 'All-Round', icon: '⚡' },
+                      ].map(r => {
+                        const isSel = activeRoleKey === r.key;
+                        return (
+                          <TouchableOpacity
+                            key={r.key}
+                            activeOpacity={0.82}
+                            onPress={() => setEditRoleInput(r.key)}
+                            style={{
+                              flex: 1,
+                              backgroundColor: isSel ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.22)') : fieldBgCol,
+                              borderColor: isSel ? '#38bdf8' : cardBorderCol,
+                              borderWidth: isSel ? 1.6 : 1,
+                              borderRadius: 10,
+                              paddingVertical: 8,
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              position: 'relative',
+                            }}
+                          >
+                            {isSel && (
+                              <View style={{
+                                position: 'absolute',
+                                top: -5,
+                                right: -3,
+                                width: 15,
+                                height: 15,
+                                borderRadius: 7.5,
+                                backgroundColor: '#0ea5e9',
+                                borderWidth: 1,
+                                borderColor: '#ffffff',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                              }}>
+                                <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '900' }}>✓</Text>
+                              </View>
+                            )}
+                            <Text style={{ fontSize: 16, marginBottom: 2 }}>{r.icon}</Text>
+                            <Text style={{ color: isSel ? (isLight ? '#0369a1' : '#ffffff') : txtMuted, fontSize: 10.5, fontWeight: isSel ? '900' : '700' }} numberOfLines={1}>
+                              {r.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+
+                    {/* Row 4: Batting Hand * + Bowling Style side-by-side */}
+                    <View style={{ flexDirection: 'row', gap: 8 }}>
+                      <View style={{ flex: 2 }}>
+                        <Text style={{ color: txtMain, fontSize: 10.5, fontWeight: '800', marginBottom: 5 }}>🏏 Batting Hand *</Text>
+                        <View style={{ flexDirection: 'row', gap: 5 }}>
+                          {[
+                            { val: 'Right-hand Bat', label: 'Right-hand' },
+                            { val: 'Left-hand Bat', label: 'Left-hand' },
+                          ].map(b => {
+                            const isSel = editBattingStyleInput === b.val;
+                            return (
+                              <TouchableOpacity
+                                key={b.val}
+                                activeOpacity={0.82}
+                                onPress={() => setEditBattingStyleInput(b.val)}
+                                style={{
+                                  flex: 1,
+                                  backgroundColor: isSel ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.22)') : fieldBgCol,
+                                  borderColor: isSel ? '#38bdf8' : cardBorderCol,
+                                  borderWidth: isSel ? 1.5 : 1,
+                                  borderRadius: 9,
+                                  paddingVertical: 9,
+                                  paddingHorizontal: 4,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  position: 'relative',
+                                }}
+                              >
+                                {isSel && (
+                                  <View style={{
+                                    position: 'absolute',
+                                    top: -5,
+                                    right: -3,
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: 7,
+                                    backgroundColor: '#0ea5e9',
+                                    borderWidth: 1,
+                                    borderColor: '#ffffff',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}>
+                                    <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900' }}>✓</Text>
+                                  </View>
+                                )}
+                                <Text style={{ color: isSel ? (isLight ? '#0369a1' : '#ffffff') : txtMuted, fontSize: 10.5, fontWeight: isSel ? '900' : '700' }} numberOfLines={1}>
+                                  {b.label}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+
+                      <View style={{ flex: 3 }}>
+                        <Text style={{ color: txtMain, fontSize: 10.5, fontWeight: '800', marginBottom: 5 }}>🔴 Bowling Style</Text>
+                        <View style={{ flexDirection: 'row', gap: 5 }}>
+                          {[
+                            { val: 'None', label: 'Non-Bowl', icon: '🚫' },
+                            { val: 'Right-arm Fast', label: 'Right Arm', icon: '🔴' },
+                            { val: 'Left-arm Fast', label: 'Left Arm', icon: '🔴' },
+                          ].map(bw => {
+                            const isSel = activeBowlKey === bw.val;
+                            return (
+                              <TouchableOpacity
+                                key={bw.val}
+                                activeOpacity={0.82}
+                                onPress={() => setEditBowlingStyleInput(bw.val)}
+                                style={{
+                                  flex: 1,
+                                  backgroundColor: isSel ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.22)') : fieldBgCol,
+                                  borderColor: isSel ? '#38bdf8' : cardBorderCol,
+                                  borderWidth: isSel ? 1.5 : 1,
+                                  borderRadius: 9,
+                                  paddingVertical: 6,
+                                  paddingHorizontal: 3,
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  position: 'relative',
+                                }}
+                              >
+                                {isSel && (
+                                  <View style={{
+                                    position: 'absolute',
+                                    top: -5,
+                                    right: -3,
+                                    width: 14,
+                                    height: 14,
+                                    borderRadius: 7,
+                                    backgroundColor: '#0ea5e9',
+                                    borderWidth: 1,
+                                    borderColor: '#ffffff',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                  }}>
+                                    <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900' }}>✓</Text>
+                                  </View>
+                                )}
+                                <Text style={{ fontSize: 11, marginBottom: 1 }}>{bw.icon}</Text>
+                                <Text style={{ color: isSel ? (isLight ? '#0369a1' : '#ffffff') : txtMuted, fontSize: 9.5, fontWeight: isSel ? '900' : '700' }} numberOfLines={1}>
+                                  {bw.label}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* 3. Info Banner */}
+                  <View style={{
+                    backgroundColor: cardBgCol,
+                    borderColor: cardBorderCol,
+                    borderWidth: 1,
+                    borderRadius: 12,
+                    paddingVertical: 8,
+                    paddingHorizontal: 11,
+                    marginBottom: 10,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 8,
+                  }}>
+                    <Text style={{ fontSize: 14 }}>ℹ️</Text>
+                    <Text style={{ color: txtMuted, fontSize: 11, flex: 1, lineHeight: 15 }}>
+                      Only required details are shown. You can update other preferences later from{' '}
+                      <Text style={{ color: txtMain, fontWeight: '800' }}>More › Settings</Text>.
+                    </Text>
+                  </View>
+                </View>
+
+                {/* 4. Save Profile CTA Button */}
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={saveProfileEdits}
+                  style={{
+                    backgroundColor: '#16a34a',
+                    borderColor: '#22c55e',
+                    borderWidth: 1,
+                    borderRadius: 14,
+                    paddingVertical: 13,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                    shadowColor: '#22c55e',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 4,
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900', letterSpacing: 0.3 }}>
+                    Save Profile ✓
                   </Text>
-                  <Text style={[styles.previewActiveStatus, currentTheme.isLight && { color: '#16a34a' }]}>✓ Active Profile Avatar</Text>
-                </View>
-              </View>
-
-              {/* Action Buttons: Gallery & Camera */}
-              <Text style={[styles.pickerSectionHeading, currentTheme.isLight && { color: '#0f172a' }]}>📱 UPLOAD FROM YOUR DEVICE</Text>
-              <View style={styles.uploadBtnRow}>
-                <TouchableOpacity style={[styles.galleryUploadBtn, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }]} onPress={pickImageFromGallery}>
-                  <Text style={styles.uploadBtnIcon}>🖼️</Text>
-                  <Text style={[styles.uploadBtnTitle, currentTheme.isLight && { color: '#0f172a' }]}>Choose Gallery Photo</Text>
-                  <Text style={styles.uploadBtnSub}>Select from device photos</Text>
                 </TouchableOpacity>
-
-                <TouchableOpacity style={[styles.cameraUploadBtn, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }]} onPress={takePhotoWithCamera}>
-                  <Text style={styles.uploadBtnIcon}>📸</Text>
-                  <Text style={[styles.uploadBtnTitle, currentTheme.isLight && { color: '#0f172a' }]}>Take New Photo</Text>
-                  <Text style={styles.uploadBtnSub}>Capture with camera</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Custom Web URL Option */}
-              <Text style={[styles.pickerSectionHeading, { marginTop: 16 }, currentTheme.isLight && { color: '#0f172a' }]}>🔗 OR ENTER IMAGE WEB URL</Text>
-              <View style={styles.urlInputRow}>
-                <TextInput
-                  style={[styles.urlInput, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1', color: '#0f172a' }]}
-                  placeholder="https://example.com/my-photo.jpg"
-                  placeholderTextColor="#94a3b8"
-                  value={customUrlInput}
-                  onChangeText={setCustomUrlInput}
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity style={styles.urlApplyBtn} onPress={applyCustomUrl}>
-                  <Text style={styles.urlApplyBtnText}>Apply</Text>
-                </TouchableOpacity>
-              </View>
-
-              {/* Edit Name & Jersey Form */}
-              <Text style={[styles.pickerSectionHeading, { marginTop: 16 }, currentTheme.isLight && { color: '#0f172a' }]}>✏️ EDIT PROFILE DETAILS</Text>
-              <View style={[styles.profileEditForm, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#cbd5e1' }]}>
-                <View style={styles.formField}>
-                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>PLAYER NAME:</Text>
-                  <TextInput
-                    style={[styles.formInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }]}
-                    value={editNameInput}
-                    onChangeText={setEditNameInput}
-                    placeholder="Enter your name"
-                    placeholderTextColor="#94a3b8"
-                  />
-                </View>
-                <View style={styles.formField}>
-                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>JERSEY #:</Text>
-                  <TextInput
-                    style={[styles.formInput, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1', color: '#0f172a' }]}
-                    value={editJerseyInput}
-                    onChangeText={setEditJerseyInput}
-                    placeholder="#45"
-                    placeholderTextColor="#94a3b8"
-                  />
-                </View>
-
-                {/* Playing Role (Selectable Options) */}
-                <View style={[styles.formField, { marginTop: 6 }]}>
-                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>PLAYING ROLE (SELECT OPTION):</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                    {[
-                      'Top-Order Batter',
-                      'Middle-Order Batter',
-                      'Fast Bowler',
-                      'Spin Bowler',
-                      'Wicketkeeper Batter',
-                      'All-Rounder',
-                    ].map(r => {
-                      const isSel = (editRoleInput || '').includes(r) || editRoleInput === r;
-                      return (
-                        <TouchableOpacity
-                          key={r}
-                          style={[
-                            styles.authRoleChipCompact,
-                            { paddingVertical: 7, paddingHorizontal: 10, borderRadius: 8 },
-                            currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
-                            isSel && (currentTheme.isLight ? { backgroundColor: '#dcfce7', borderColor: '#10b981' } : styles.authRoleChipActive),
-                          ]}
-                          onPress={() => setEditRoleInput(r)}
-                        >
-                          <Text style={[styles.authRoleChipTextCompact, { fontSize: 11.5 }, currentTheme.isLight && { color: '#334155' }, isSel && (currentTheme.isLight ? { color: '#15803d', fontWeight: '900' } : styles.authRoleChipTextActive)]}>
-                            {r === 'Top-Order Batter' ? '🏏 Top-Order' : r === 'Middle-Order Batter' ? '🏏 Mid-Order' : r === 'Fast Bowler' ? '⚡ Fast Bowl' : r === 'Spin Bowler' ? '🌀 Spin Bowl' : r === 'Wicketkeeper Batter' ? '🧤 WK-Batter' : '🔥 All-Rounder'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {/* Batting Hand (Left / Right Hand Options) */}
-                <View style={[styles.formField, { marginTop: 8 }]}>
-                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>BATTING HAND (LEFT / RIGHT HAND):</Text>
-                  <View style={{ flexDirection: 'row', gap: 8, marginTop: 4 }}>
-                    {['Right-hand Bat', 'Left-hand Bat'].map(b => {
-                      const isSel = editBattingStyleInput === b;
-                      return (
-                        <TouchableOpacity
-                          key={b}
-                          style={[
-                            styles.authStyleChipCompact,
-                            { paddingVertical: 8, borderRadius: 8 },
-                            currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
-                            isSel && (currentTheme.isLight ? { backgroundColor: '#e0f2fe', borderColor: '#0284c7' } : styles.authStyleChipActive),
-                          ]}
-                          onPress={() => setEditBattingStyleInput(b)}
-                        >
-                          <Text style={[styles.authStyleChipTextCompact, { fontSize: 12 }, currentTheme.isLight && { color: '#334155' }, isSel && (currentTheme.isLight ? { color: '#0369a1', fontWeight: '900' } : styles.authStyleChipTextActive)]}>
-                            {b === 'Right-hand Bat' ? '👉 Right-hand Bat' : '👈 Left-hand Bat'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-
-                {/* Bowling Style (Options) */}
-                <View style={[styles.formField, { marginTop: 8 }]}>
-                  <Text style={[styles.formLabel, currentTheme.isLight && { color: '#475569' }]}>BOWLING STYLE (SELECT OPTION):</Text>
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginTop: 4 }}>
-                    {[
-                      'Right-arm Fast',
-                      'Right-arm Spin',
-                      'Left-arm Fast',
-                      'Left-arm Spin',
-                      'None',
-                    ].map(bw => {
-                      const isSel = editBowlingStyleInput === bw;
-                      return (
-                        <TouchableOpacity
-                          key={bw}
-                          style={[
-                            styles.authRoleChipCompact,
-                            { paddingVertical: 6, paddingHorizontal: 9, borderRadius: 8 },
-                            currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
-                            isSel && (currentTheme.isLight ? { backgroundColor: '#dcfce7', borderColor: '#10b981' } : styles.authRoleChipActive),
-                          ]}
-                          onPress={() => setEditBowlingStyleInput(bw)}
-                        >
-                          <Text style={[styles.authRoleChipTextCompact, { fontSize: 11 }, currentTheme.isLight && { color: '#334155' }, isSel && (currentTheme.isLight ? { color: '#15803d', fontWeight: '900' } : styles.authRoleChipTextActive)]}>
-                            {bw === 'Right-arm Fast' ? '⚡ RA Fast' : bw === 'Right-arm Spin' ? '🌀 RA Spin' : bw === 'Left-arm Fast' ? '⚡ LA Fast' : bw === 'Left-arm Spin' ? '🌀 LA Spin' : '🚫 Non-Bowler'}
-                          </Text>
-                        </TouchableOpacity>
-                      );
-                    })}
-                  </View>
-                </View>
-              </View>
-
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, marginBottom: 8 }}>
-                <TouchableOpacity style={styles.saveProfileBtn} onPress={saveProfileEdits}>
-                  <Text style={styles.saveProfileBtnText}>Save Profile ✓</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.closePickerBtn, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }]} onPress={() => setPhotoPickerVisible(false)}>
-                  <Text style={[styles.closePickerBtnText, currentTheme.isLight && { color: '#475569' }]}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </ScrollView>
-          </View>
-        </View>
+              </ScrollView>
+            </View>
+          );
+        })()}
       </Modal>
 
       {/* ========================================================================= */}
