@@ -25730,48 +25730,181 @@ function CricketAddaMain() {
             </Text>
 
             {/* 1. Highlighted User Profile Banner Card */}
-            <TouchableOpacity
-              activeOpacity={0.85}
-              onPress={openPhotoPicker}
-              style={{
-                backgroundColor: cardSurface,
-                borderColor: isLight ? '#0284c7' : '#38bdf8',
-                borderWidth: 1.5,
-                borderRadius: 16,
-                paddingVertical: 14,
-                paddingHorizontal: 14,
-                marginBottom: 14,
-                flexDirection: 'row',
-                alignItems: 'center',
-                shadowColor: '#38bdf8',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isLight ? 0.12 : 0.25,
-                shadowRadius: 8,
-                elevation: 4,
-              }}
-            >
-              <PlayerAvatar
-                name={userProfile.name || 'Player'}
-                size={60}
-                customUri={userProfile.avatarUri}
-                borderColor="#38bdf8"
-              />
-              <View style={{ flex: 1, marginLeft: 14, paddingRight: 8 }}>
-                <Text style={{ color: titleColor, fontSize: 16.5, fontWeight: '900' }} numberOfLines={1}>
-                  {userProfile.name || 'Player'}{' '}
-                  <Text style={{ color: '#10b981', fontSize: 15, fontWeight: '900' }}>
-                    ({userProfile.jersey || '#1'})
-                  </Text>
-                </Text>
-                <Text style={{ color: isLight ? '#334155' : '#e2e8f0', fontSize: 12.5, fontWeight: '600', marginTop: 3 }} numberOfLines={1}>
-                  {userProfile.role || 'Cricketer'}{userProfile.battingStyle ? ` (${userProfile.battingStyle})` : ''}
-                </Text>
-                <Text style={{ color: subColor, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
-                  {authEmail || userProfile.email || 'player@cricketadda.com'}
-                </Text>
-              </View>
-              <Text style={{ color: isLight ? '#64748b' : '#e2e8f0', fontSize: 22, fontWeight: '700' }}>›</Text>
-            </TouchableOpacity>
+            {(() => {
+              const profileEmail = (authEmail || userProfile.email || '').trim();
+              const profilePhone = (userProfile.phone || authPhone || '').trim();
+              const rawJersey = String(userProfile.jersey || '1').trim();
+              const jerseyLabel = rawJersey.startsWith('#') ? rawJersey : `#${rawJersey}`;
+
+              const rawRoleStr = (userProfile.role || 'Cricketer').trim();
+              const cleanRoleTitle = rawRoleStr.replace(/\s*\((Right-hand Bat|Left-hand Bat|Right-hand|Left-hand)\)\s*$/i, '').trim() || 'Cricketer';
+              const roleLow = cleanRoleTitle.toLowerCase();
+              const isBowlerRole = roleLow.includes('bowl') && !roleLow.includes('bat') && !roleLow.includes('all');
+              const isAllRounderRole = roleLow.includes('all');
+              const cleanBatHand = (userProfile.battingStyle || '').trim();
+              const rawBowlStyle = (userProfile.bowlingStyle || '').trim();
+              const cleanBowlHand = rawBowlStyle && rawBowlStyle !== 'None' ? rawBowlStyle : '';
+              const displayRoleName = isBowlerRole
+                ? (cleanBowlHand.toLowerCase().includes('spin') ? 'Spin Bowler' : 'Fast Bowler')
+                : cleanRoleTitle;
+              const styleDetailParts = isBowlerRole
+                ? [cleanBowlHand]
+                : isAllRounderRole
+                  ? [cleanBatHand, cleanBowlHand]
+                  : [cleanBatHand];
+              const styleSummary = styleDetailParts.filter(Boolean).join(' • ');
+              const roleDisplayText = styleSummary ? `${displayRoleName} (${styleSummary})` : displayRoleName;
+
+              const renderVerifiedPill = () => (
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 3.5,
+                  backgroundColor: isLight ? 'rgba(34, 197, 94, 0.12)' : 'rgba(34, 197, 94, 0.16)',
+                  borderColor: '#22c55e',
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  paddingHorizontal: 6.5,
+                  paddingVertical: 1.5,
+                  flexShrink: 0,
+                }}>
+                  <View style={{
+                    width: 11,
+                    height: 11,
+                    borderRadius: 5.5,
+                    backgroundColor: '#22c55e',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}>
+                    <Text style={{ color: '#ffffff', fontSize: 7.5, fontWeight: '900', marginTop: -0.5 }}>✓</Text>
+                  </View>
+                  <Text style={{ color: isLight ? '#15803d' : '#4ade80', fontSize: 10, fontWeight: '800' }}>Verified</Text>
+                </View>
+              );
+
+              return (
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={openPhotoPicker}
+                  style={{
+                    backgroundColor: cardSurface,
+                    borderColor: isLight ? '#0284c7' : '#38bdf8',
+                    borderWidth: 1.5,
+                    borderRadius: 16,
+                    paddingVertical: 13,
+                    paddingHorizontal: 13,
+                    marginBottom: 14,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    shadowColor: '#38bdf8',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: isLight ? 0.12 : 0.28,
+                    shadowRadius: 8,
+                    elevation: 4,
+                  }}
+                >
+                  {/* Avatar with bottom-right camera badge */}
+                  <View style={{ position: 'relative' }}>
+                    <PlayerAvatar
+                      name={userProfile.name || 'Player'}
+                      size={64}
+                      customUri={userProfile.avatarUri}
+                      borderColor="#38bdf8"
+                    />
+                    <View style={{
+                      position: 'absolute',
+                      right: -2,
+                      bottom: -2,
+                      width: 22,
+                      height: 22,
+                      borderRadius: 11,
+                      backgroundColor: '#0284c7',
+                      borderWidth: 1.8,
+                      borderColor: isLight ? '#ffffff' : '#061224',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <Svg width={12} height={12} viewBox="0 0 24 24" fill="none">
+                        <Path
+                          d="M4 7h3l2-2h6l2 2h3a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2z"
+                          stroke="#ffffff"
+                          strokeWidth="2"
+                          strokeLinejoin="round"
+                        />
+                        <Circle cx="12" cy="13" r="3.5" stroke="#ffffff" strokeWidth="2" />
+                      </Svg>
+                    </View>
+                  </View>
+
+                  {/* Middle stacked details: Name + #Jersey, Email + Verified, Phone + Verified, Role (Hand / Bowling) */}
+                  <View style={{ flex: 1, marginLeft: 13, paddingRight: 6, minWidth: 0 }}>
+                    {/* Line 1: Name + #Jersey Pill */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4 }}>
+                      <Text style={{ color: titleColor, fontSize: 16.5, fontWeight: '900', flexShrink: 1 }} numberOfLines={1}>
+                        {userProfile.name || 'Player'}
+                      </Text>
+                      <View style={{
+                        backgroundColor: isLight ? '#e0f2fe' : 'rgba(14, 165, 233, 0.16)',
+                        borderColor: '#0284c7',
+                        borderWidth: 1,
+                        borderRadius: 12,
+                        paddingHorizontal: 7.5,
+                        paddingVertical: 1,
+                        flexShrink: 0,
+                      }}>
+                        <Text style={{ color: isLight ? '#0369a1' : '#38bdf8', fontSize: 11.5, fontWeight: '900' }}>
+                          {jerseyLabel}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Line 2: Email + Verified */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3.5 }}>
+                      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                        <Rect x="2" y="4" width="20" height="16" rx="2" stroke="#38bdf8" strokeWidth="2" />
+                        <Path d="M22 6L12 13L2 6" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                      </Svg>
+                      <Text style={{ color: isLight ? '#334155' : '#e2e8f0', fontSize: 12, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
+                        {profileEmail || 'Email not linked'}
+                      </Text>
+                      {Boolean(profileEmail) && renderVerifiedPill()}
+                    </View>
+
+                    {/* Line 3: Phone + Verified */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 3.5 }}>
+                      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                        <Path
+                          d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"
+                          stroke="#38bdf8"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </Svg>
+                      <Text style={{ color: isLight ? '#334155' : '#e2e8f0', fontSize: 12, fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
+                        {profilePhone || 'Phone not linked'}
+                      </Text>
+                      {Boolean(profilePhone) && renderVerifiedPill()}
+                    </View>
+
+                    {/* Line 4: Playing Role + Batting Hand / Bowling Style */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Svg width={13} height={13} viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0 }}>
+                        <Path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        <Circle cx="9" cy="7" r="4" stroke="#38bdf8" strokeWidth="2" />
+                        <Path d="M23 21v-2a4 4 0 0 0-3-3.87" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" />
+                        <Path d="M16 3.13a4 4 0 0 1 0 7.75" stroke="#38bdf8" strokeWidth="2" strokeLinecap="round" />
+                      </Svg>
+                      <Text style={{ color: isLight ? '#334155' : '#cbd5e1', fontSize: 11.8, fontWeight: '600', flex: 1 }} numberOfLines={2}>
+                        {roleDisplayText}
+                      </Text>
+                    </View>
+                  </View>
+
+                  <Text style={{ color: isLight ? '#64748b' : '#e2e8f0', fontSize: 22, fontWeight: '700' }}>›</Text>
+                </TouchableOpacity>
+              );
+            })()}
 
             {/* 2. Settings Navigation & Preference Cards */}
             {settingsRows.map(item => (
