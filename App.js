@@ -6732,7 +6732,9 @@ function CricketAddaMain() {
     const rawRole = (editRoleInput || (!isAuthenticated && authRole ? authRole : userProfile.role) || 'Batter').trim();
     const cleanRole = rawRole.replace(/\s*\((Right-hand Bat|Left-hand Bat|Right-hand|Left-hand)\)\s*$/i, '').trim() || 'Batter';
     const cleanBat = editBattingStyleInput || userProfile.battingStyle || 'Right-hand Bat';
-    const cleanBowl = editBowlingStyleInput || userProfile.bowlingStyle || 'Right-arm Fast';
+    const isBowlerRole = cleanRole.toLowerCase().includes('bowl') && !cleanRole.toLowerCase().includes('bat');
+    const rawBowl = editBowlingStyleInput || userProfile.bowlingStyle || 'Right-arm Fast';
+    const cleanBowl = isBowlerRole ? (rawBowl === 'None' ? 'Right-arm Fast' : rawBowl) : 'None';
     if (!isAuthenticated) {
       setAuthName(cleanName);
       setAuthJersey(cleanJersey);
@@ -20988,9 +20990,9 @@ function CricketAddaMain() {
                     </View>
                   </View>
 
-                  {/* Row 3: Playing Role * (4 custom badge artworks) */}
+                  {/* Row 3: Playing Role * (4 custom badge artworks, tick only, no border) */}
                   <Text style={{ color: txtMain, fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>🏏 Playing Role *</Text>
-                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
+                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
                     {[
                       { key: 'Top-Order Batter', img: require('./assets/roles/role-batsman.png') },
                       { key: 'Fast Bowler', img: require('./assets/roles/role-bowler.png') },
@@ -21002,15 +21004,16 @@ function CricketAddaMain() {
                         <TouchableOpacity
                           key={r.key}
                           activeOpacity={0.82}
-                          onPress={() => setEditRoleInput(r.key)}
+                          onPress={() => {
+                            setEditRoleInput(r.key);
+                            if (r.key === 'Fast Bowler' && (!editBowlingStyleInput || editBowlingStyleInput === 'None')) {
+                              setEditBowlingStyleInput('Right-arm Fast');
+                            }
+                          }}
                           style={{
                             flex: 1,
-                            height: 72,
-                            backgroundColor: isSel ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.22)') : 'transparent',
-                            borderColor: isSel ? '#38bdf8' : 'transparent',
-                            borderWidth: isSel ? 2 : 1,
-                            borderRadius: 11,
-                            padding: 2,
+                            height: 76,
+                            backgroundColor: 'transparent',
                             alignItems: 'center',
                             justifyContent: 'center',
                             position: 'relative',
@@ -21019,24 +21022,24 @@ function CricketAddaMain() {
                           {isSel && (
                             <View style={{
                               position: 'absolute',
-                              top: -5,
-                              right: -4,
+                              top: -4,
+                              right: 0,
                               zIndex: 5,
-                              width: 15,
-                              height: 15,
-                              borderRadius: 7.5,
+                              width: 17,
+                              height: 17,
+                              borderRadius: 8.5,
                               backgroundColor: '#0ea5e9',
                               borderWidth: 1.5,
                               borderColor: '#ffffff',
                               alignItems: 'center',
                               justifyContent: 'center',
                             }}>
-                              <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900' }}>✓</Text>
+                              <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>✓</Text>
                             </View>
                           )}
                           <Image
                             source={r.img}
-                            style={{ width: '100%', height: '100%', opacity: isSel ? 1 : 0.78 }}
+                            style={{ width: '100%', height: '100%', opacity: isSel ? 1 : 0.72 }}
                             resizeMode="contain"
                           />
                         </TouchableOpacity>
@@ -21045,8 +21048,8 @@ function CricketAddaMain() {
                   </View>
 
                   {/* Row 4a: Batting Hand * */}
-                  <View style={{ marginBottom: 6 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 3 }}>
+                  <View style={{ marginBottom: activeRoleKey === 'Fast Bowler' ? 8 : 0 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
                       <Text style={{ fontSize: 10.5 }}>🏏</Text>
                       <Text style={{ color: txtMain, fontSize: 10, fontWeight: '800' }}>Batting Hand *</Text>
                     </View>
@@ -21063,7 +21066,7 @@ function CricketAddaMain() {
                             onPress={() => setEditBattingStyleInput(b.val)}
                             style={{
                               flex: 1,
-                              height: 33,
+                              height: 36,
                               flexDirection: 'row',
                               gap: 5,
                               backgroundColor: isSel ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.22)') : fieldBgCol,
@@ -21093,8 +21096,8 @@ function CricketAddaMain() {
                                 <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900' }}>✓</Text>
                               </View>
                             )}
-                            <Text style={{ fontSize: 11.5 }}>{b.icon}</Text>
-                            <Text style={{ color: isSel ? (isLight ? '#0369a1' : '#ffffff') : txtMuted, fontSize: 10, fontWeight: isSel ? '900' : '700' }} numberOfLines={1}>
+                            <Text style={{ fontSize: 12 }}>{b.icon}</Text>
+                            <Text style={{ color: isSel ? (isLight ? '#0369a1' : '#ffffff') : txtMuted, fontSize: 10.5, fontWeight: isSel ? '900' : '700' }} numberOfLines={1}>
                               {b.label}
                             </Text>
                           </TouchableOpacity>
@@ -21103,92 +21106,69 @@ function CricketAddaMain() {
                     </View>
                   </View>
 
-                  {/* Row 4b: Bowling Style (Non-Bowl, RA Fast, RA Spin, LA Fast, LA Spin) */}
-                  <View>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 3 }}>
-                      <RealisticCricketLeatherBall size={11} />
-                      <Text style={{ color: txtMain, fontSize: 10, fontWeight: '800' }}>Bowling Style</Text>
-                    </View>
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
-                      {[
-                        { val: 'None', label: 'Non-Bowl', icon: '🚫' },
-                        { val: 'Right-arm Fast', label: 'RA Fast', is3DBall: true },
-                        { val: 'Right-arm Spin', label: 'RA Spin', is3DBall: true },
-                        { val: 'Left-arm Fast', label: 'LA Fast', is3DBall: true },
-                        { val: 'Left-arm Spin', label: 'LA Spin', is3DBall: true },
-                      ].map(bw => {
-                        const isSel = activeBowlKey === bw.val;
-                        return (
-                          <TouchableOpacity
-                            key={bw.val}
-                            activeOpacity={0.82}
-                            onPress={() => setEditBowlingStyleInput(bw.val)}
-                            style={{
-                              flex: 1,
-                              height: 39,
-                              backgroundColor: isSel ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.22)') : fieldBgCol,
-                              borderColor: isSel ? '#38bdf8' : cardBorderCol,
-                              borderWidth: isSel ? 1.5 : 1,
-                              borderRadius: 9,
-                              paddingVertical: 4,
-                              paddingHorizontal: 2,
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              position: 'relative',
-                            }}
-                          >
-                            {isSel && (
-                              <View style={{
-                                position: 'absolute',
-                                top: -5,
-                                right: -3,
-                                width: 14,
-                                height: 14,
-                                borderRadius: 7,
-                                backgroundColor: '#0ea5e9',
-                                borderWidth: 1,
-                                borderColor: '#ffffff',
+                  {/* Row 4b: Bowling Style (Only visible when Bowler is selected; RA Fast, RA Spin, LA Fast, LA Spin) */}
+                  {activeRoleKey === 'Fast Bowler' && (
+                    <View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 4 }}>
+                        <RealisticCricketLeatherBall size={11} />
+                        <Text style={{ color: txtMain, fontSize: 10, fontWeight: '800' }}>Bowling Style</Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', gap: 6 }}>
+                        {[
+                          { val: 'Right-arm Fast', label: 'RA Fast' },
+                          { val: 'Right-arm Spin', label: 'RA Spin' },
+                          { val: 'Left-arm Fast', label: 'LA Fast' },
+                          { val: 'Left-arm Spin', label: 'LA Spin' },
+                        ].map(bw => {
+                          const isSel = activeBowlKey === bw.val;
+                          return (
+                            <TouchableOpacity
+                              key={bw.val}
+                              activeOpacity={0.82}
+                              onPress={() => setEditBowlingStyleInput(bw.val)}
+                              style={{
+                                flex: 1,
+                                height: 42,
+                                backgroundColor: isSel ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.22)') : fieldBgCol,
+                                borderColor: isSel ? '#38bdf8' : cardBorderCol,
+                                borderWidth: isSel ? 1.5 : 1,
+                                borderRadius: 9,
+                                paddingVertical: 4,
+                                paddingHorizontal: 3,
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                              }}>
-                                <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900' }}>✓</Text>
-                              </View>
-                            )}
-                            {bw.is3DBall ? (
+                                position: 'relative',
+                              }}
+                            >
+                              {isSel && (
+                                <View style={{
+                                  position: 'absolute',
+                                  top: -5,
+                                  right: -3,
+                                  width: 14,
+                                  height: 14,
+                                  borderRadius: 7,
+                                  backgroundColor: '#0ea5e9',
+                                  borderWidth: 1,
+                                  borderColor: '#ffffff',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}>
+                                  <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900' }}>✓</Text>
+                                </View>
+                              )}
                               <View style={{ marginBottom: 2 }}>
-                                <RealisticCricketLeatherBall size={12} />
+                                <RealisticCricketLeatherBall size={12.5} />
                               </View>
-                            ) : (
-                              <Text style={{ fontSize: 11, marginBottom: 1 }}>{bw.icon}</Text>
-                            )}
-                            <Text style={{ color: isSel ? (isLight ? '#0369a1' : '#ffffff') : txtMuted, fontSize: 8.8, fontWeight: isSel ? '900' : '700' }} numberOfLines={1}>
-                              {bw.label}
-                            </Text>
-                          </TouchableOpacity>
-                        );
-                      })}
+                              <Text style={{ color: isSel ? (isLight ? '#0369a1' : '#ffffff') : txtMuted, fontSize: 9.5, fontWeight: isSel ? '900' : '700' }} numberOfLines={1}>
+                                {bw.label}
+                              </Text>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
                     </View>
-                  </View>
-                </View>
-
-                {/* 3. Info Banner */}
-                <View style={{
-                  backgroundColor: cardBgCol,
-                  borderColor: cardBorderCol,
-                  borderWidth: 1,
-                  borderRadius: 11,
-                  paddingVertical: 6.5,
-                  paddingHorizontal: 10,
-                  marginBottom: 7,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 7,
-                }}>
-                  <Text style={{ fontSize: 13 }}>ℹ️</Text>
-                  <Text style={{ color: txtMuted, fontSize: 10.5, flex: 1, lineHeight: 14 }}>
-                    Only required details are shown. Update other preferences anytime in{' '}
-                    <Text style={{ color: txtMain, fontWeight: '800' }}>More › Settings</Text>.
-                  </Text>
+                  )}
                 </View>
               </View>
 
