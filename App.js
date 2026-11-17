@@ -10007,7 +10007,16 @@ function CricketAddaMain() {
 
   // UNIFIED MATHEMATICAL ENGINE: Recompute entire innings state directly from delivery event log
   const derivedInningsState = useMemo(() => {
-    const candidateDeliveries = Array.isArray(scoringHistory) ? scoringHistory : [];
+    const candidateDeliveries = Array.isArray(scoringHistory)
+      ? scoringHistory
+      : (scoringHistory && typeof scoringHistory === 'object' ? Object.values(scoringHistory) : []);
+    const toSquadList = (squad, fallback = []) => {
+      if (Array.isArray(squad) && squad.length > 0) return squad;
+      if (squad && typeof squad === 'object' && Object.keys(squad).length > 0) return Object.values(squad);
+      if (Array.isArray(fallback) && fallback.length > 0) return fallback;
+      if (fallback && typeof fallback === 'object') return Object.values(fallback);
+      return [];
+    };
     const meta = {
       team1Name: match.teamA || currentMatchData?.teamA,
       team2Name: match.teamB || currentMatchData?.teamB,
@@ -10015,8 +10024,8 @@ function CricketAddaMain() {
       currentNonStriker: match.currentNonStriker,
       currentBowler: match.currentBowler,
       swapBattersOnOverEnd,
-      battingSquad: currentMatchData?.innings1?.batting || activeBattingSquad || [],
-      bowlingSquad: currentMatchData?.innings1?.bowling || activeOppBowlers || [],
+      battingSquad: toSquadList(currentMatchData?.innings1?.batting, activeBattingSquad),
+      bowlingSquad: toSquadList(currentMatchData?.innings1?.bowling, activeOppBowlers),
     };
     return deriveInningsStateFromDeliveries(candidateDeliveries, currentInnings, meta);
   }, [scoringHistory, currentInnings, match.teamA, match.teamB, match.currentStriker, match.currentNonStriker, match.currentBowler, swapBattersOnOverEnd, currentMatchData, activeBattingSquad, activeOppBowlers]);
@@ -14926,14 +14935,19 @@ function CricketAddaMain() {
     const resolvedLogoUri = baseInning.logoUri || baseInning.logo || (inningNum === 1 ? (targetMatch.logoA || targetMatch.team1Logo) : (targetMatch.logoB || targetMatch.team2Logo)) || resolveTeamLogo({ name: resolvedTeamName }, allAvailableMatchTeams, usersDb);
 
     if (Array.isArray(historyStack) && historyStack.length > 0) {
+      const toSafeSquadList = squad => {
+        if (Array.isArray(squad)) return squad;
+        if (squad && typeof squad === 'object') return Object.values(squad);
+        return [];
+      };
       const derivedInn = deriveInningsStateFromDeliveries(historyStack, inningNum, {
         team1Name: targetMatch.teamA,
         team2Name: targetMatch.teamB,
         currentStriker: isTargetActive ? (match.currentStriker || striker) : mLive?.currentStriker,
         currentNonStriker: isTargetActive ? (match.currentNonStriker || nonStriker) : mLive?.currentNonStriker,
         currentBowler: isTargetActive ? (match.currentBowler || bowler) : mLive?.currentBowler,
-        battingSquad: baseInning.batting || [],
-        bowlingSquad: baseInning.bowling || [],
+        battingSquad: toSafeSquadList(baseInning.batting),
+        bowlingSquad: toSafeSquadList(baseInning.bowling),
       });
       return {
         ...baseInning,

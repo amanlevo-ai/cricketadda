@@ -41,8 +41,15 @@ export function parseBallSymbol(sym) {
  * Pure function: derive comprehensive innings state from delivery event log.
  */
 export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1, matchMeta = {}) {
+  const toSafeArray = val => {
+    if (Array.isArray(val)) return val;
+    if (val && typeof val === 'object') return Object.values(val);
+    return [];
+  };
+
   // 1. Filter deliveries belonging strictly to this innings
-  const inningsDeliveries = (deliveries || []).filter(d => {
+  const rawDeliveries = toSafeArray(deliveries);
+  const inningsDeliveries = rawDeliveries.filter(d => {
     if (!d) return false;
     const inn = d.innings !== undefined ? Number(d.innings) : 1;
     return inn === Number(inningsNum);
@@ -66,13 +73,15 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
   const fowList = [];
   const bowlerOversTracker = {}; // bowler -> array of overs: [ { legalBalls: 0, runsConceded: 0 } ]
 
-  // Pre-populate initial squad if provided
-  const initialBatters = matchMeta.battingSquad || [];
+  // Pre-populate initial squad if provided (guaranteed safe even if an object or liveBatters was passed)
+  const initialBatters = toSafeArray(matchMeta.battingSquad);
   initialBatters.forEach(p => {
-    const name = typeof p === 'object' ? p.name : p;
-    if (name) {
-      battersMap[name] = {
-        name,
+    if (!p) return;
+    const name = typeof p === 'object' ? (p.name || p.playerName) : p;
+    if (name && typeof name === 'string' && name.trim()) {
+      const cleanName = name.trim();
+      battersMap[cleanName] = {
+        name: cleanName,
         runs: 0,
         balls: 0,
         fours: 0,
@@ -89,12 +98,14 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     }
   });
 
-  const initialBowlers = matchMeta.bowlingSquad || [];
+  const initialBowlers = toSafeArray(matchMeta.bowlingSquad);
   initialBowlers.forEach(p => {
-    const name = typeof p === 'object' ? p.name : p;
-    if (name) {
-      bowlersMap[name] = {
-        name,
+    if (!p) return;
+    const name = typeof p === 'object' ? (p.name || p.bowlerName) : p;
+    if (name && typeof name === 'string' && name.trim()) {
+      const cleanName = name.trim();
+      bowlersMap[cleanName] = {
+        name: cleanName,
         balls: 0,
         overs: '0.0',
         maidens: 0,
@@ -247,7 +258,9 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
       });
 
       if (d.incomingBatter) {
-        const inc = d.incomingBatter.trim();
+        const inc = typeof d.incomingBatter === 'string'
+          ? d.incomingBatter.trim()
+          : (d.incomingBatter?.name ? String(d.incomingBatter.name).trim() : '');
         if (inc && !battersMap[inc]) {
           battersMap[inc] = {
             name: inc,
@@ -339,8 +352,12 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     const isOverEnd = Boolean(isLegal && legalBalls > 0 && legalBalls % 6 === 0);
 
     if (isWkt) {
-      const outBatter = d.dismissedPlayerName || strikerName;
-      const incoming = d.incomingBatter ? d.incomingBatter.trim() : null;
+      const outBatter = typeof d.dismissedPlayerName === 'string'
+        ? d.dismissedPlayerName.trim()
+        : (d.dismissedPlayerName?.name || (typeof d.dismissedPlayer === 'string' ? d.dismissedPlayer.trim() : (d.dismissedPlayer?.name || strikerName)));
+      const incoming = d.incomingBatter
+        ? (typeof d.incomingBatter === 'string' ? (d.incomingBatter.trim() || null) : (d.incomingBatter?.name ? String(d.incomingBatter.name).trim() : null))
+        : null;
       if (outBatter === currentStriker) {
         currentStriker = incoming || currentNonStriker;
       } else {
@@ -443,10 +460,16 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
  */
 export function deriveMatchStateFromDeliveries(deliveries = [], matchMeta = {}) {
   const currentInnings = Number(matchMeta.currentInnings || 1);
+  const toSafeSquad = squad => {
+    if (Array.isArray(squad)) return squad;
+    if (squad && typeof squad === 'object') return Object.values(squad);
+    return [];
+  };
+
   const inn1Meta = {
     ...matchMeta,
-    battingSquad: matchMeta.team1Squad || matchMeta.innings1?.batting || [],
-    bowlingSquad: matchMeta.team2Squad || matchMeta.innings1?.bowling || [],
+    battingSquad: toSafeSquad(matchMeta.team1Squad || matchMeta.innings1?.batting),
+    bowlingSquad: toSafeSquad(matchMeta.team2Squad || matchMeta.innings1?.bowling),
     openingStriker: matchMeta.innings1OpeningStriker || matchMeta.openingStriker,
     openingNonStriker: matchMeta.innings1OpeningNonStriker || matchMeta.openingNonStriker,
     openingBowler: matchMeta.innings1OpeningBowler || matchMeta.openingBowler,
@@ -454,8 +477,8 @@ export function deriveMatchStateFromDeliveries(deliveries = [], matchMeta = {}) 
 
   const inn2Meta = {
     ...matchMeta,
-    battingSquad: matchMeta.team2Squad || matchMeta.innings2?.batting || [],
-    bowlingSquad: matchMeta.team1Squad || matchMeta.innings2?.bowling || [],
+    battingSquad: toSafeSquad(matchMeta.team2Squad || matchMeta.innings2?.batting),
+    bowlingSquad: toSafeSquad(matchMeta.team1Squad || matchMeta.innings2?.bowling),
     openingStriker: matchMeta.innings2OpeningStriker,
     openingNonStriker: matchMeta.innings2OpeningNonStriker,
     openingBowler: matchMeta.innings2OpeningBowler,
