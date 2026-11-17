@@ -1806,7 +1806,7 @@ function calculateMatchAwardsAndMVP(matchData, liveDataInnings1 = null, liveData
 
 const getResponsiveBadgePos = (wheelDimension, angleDegrees, badgeW, badgeH) => {
   const center = wheelDimension / 2;
-  const radius = wheelDimension * 0.31;
+  const radius = wheelDimension * 0.285;
   const radians = (angleDegrees * Math.PI) / 180;
   const x = center + radius * Math.sin(radians);
   const y = center - radius * Math.cos(radians);
@@ -6428,9 +6428,9 @@ function CricketAddaMain() {
 
   const modalBadgeW = Math.round(MODAL_WHEEL_SIZE * 0.18);
   const modalBadgeH = Math.round(MODAL_WHEEL_SIZE * 0.13);
-  const scorerWheelSize = Math.round(Math.min(width - 24, 336));
-  const scorerBadgeW = Math.round(scorerWheelSize * 0.22);
-  const scorerBadgeH = Math.round(scorerWheelSize * 0.138);
+  const scorerWheelSize = Math.round(Math.min(width - 32, 316));
+  const scorerBadgeW = Math.round(scorerWheelSize * 0.20);
+  const scorerBadgeH = Math.round(scorerWheelSize * 0.118);
 
 
   const updateAndPersistUserProfile = (updater) => {
@@ -15455,7 +15455,7 @@ function CricketAddaMain() {
           resizeMode="cover"
         />
 
-        <Svg height={dim} width={dim} viewBox="-160 -160 320 320">
+        <Svg height={dim} width={dim} viewBox="-170 -170 340 340">
           <Defs>
             <RadialGradient id={`wwLawnGrad_${uniqueKey}_${dim}`} cx="0" cy="0" r="140" gradientUnits="userSpaceOnUse">
               <Stop offset="0%" stopColor="#22c55e" stopOpacity={0.92} />
@@ -26677,34 +26677,18 @@ function CricketAddaMain() {
             elevation: 8,
           }}>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-              {/* Header Bar: 🎯 Select Shot Area | +4 RUNS | ✕ */}
+              {/* Header Bar: Select Shot Area | ✕ */}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ fontSize: 18 }}>🎯</Text>
-                    <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900', letterSpacing: 0.3 }}>
-                      Select Shot Area
-                    </Text>
-                  </View>
-                  <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800', marginTop: 2 }} numberOfLines={1}>
-                    ★ {striker} <Text style={{ color: '#94a3b8', fontWeight: '600' }}>(vs {bowler})</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900', letterSpacing: 0.3 }}>
+                    Select Shot Area
+                  </Text>
+                  <Text style={{ color: '#ffffff', fontSize: 12.5, fontWeight: '800', marginTop: 2 }} numberOfLines={1}>
+                    ★ {striker}
                   </Text>
                 </View>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <View style={{
-                    backgroundColor: '#0284c7',
-                    borderColor: '#38bdf8',
-                    borderWidth: 1.5,
-                    borderRadius: 14,
-                    paddingHorizontal: 11,
-                    paddingVertical: 4,
-                  }}>
-                    <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>
-                      {pendingExtraType ? `${pendingExtraType.toUpperCase()} + ` : ''}+{pendingRuns} RUNS
-                    </Text>
-                  </View>
-
+                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     style={{
@@ -26744,13 +26728,13 @@ function CricketAddaMain() {
                           top: pos.top,
                           width: scorerBadgeW,
                           height: scorerBadgeH,
-                          borderRadius: 10,
-                          backgroundColor: 'rgba(2, 6, 23, 0.88)',
+                          borderRadius: 8,
+                          backgroundColor: 'rgba(2, 6, 23, 0.92)',
                           borderColor: isSel ? '#38bdf8' : 'rgba(30, 58, 95, 0.75)',
                           borderWidth: isSel ? 1.8 : 1,
                           alignItems: 'center',
                           justifyContent: 'center',
-                          paddingVertical: 2,
+                          paddingVertical: 1,
                           paddingHorizontal: 2,
                           shadowColor: isSel ? '#38bdf8' : '#000000',
                           shadowOpacity: isSel ? 0.4 : 0.2,
@@ -26836,7 +26820,7 @@ function CricketAddaMain() {
               }}>
                 <View style={{ marginBottom: 8 }}>
                   <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '900', letterSpacing: 0.3 }}>
-                    🎯 When to show shot area?
+                    When to show shot area?
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
@@ -39487,7 +39471,7 @@ const styles = StyleSheet.create({
     borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 3,
+    paddingVertical: 1.5,
     paddingHorizontal: 2,
     zIndex: 50,
     elevation: 8,
