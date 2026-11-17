@@ -806,7 +806,7 @@ const BROADCAST_SECTORS = [
     sixes: 0,
     singlesDoubles: 2,
     radAngle: 22.5,
-    path: 'M0,0 L0,-140 A140,140 0 0,1 99,-99 Z',
+    path: 'M0,0 L0,-148 A148,148 0 0,1 105,-105 Z',
   },
   {
     id: 'square_leg',
@@ -822,7 +822,7 @@ const BROADCAST_SECTORS = [
     sixes: 0,
     singlesDoubles: 0,
     radAngle: 67.5,
-    path: 'M0,0 L99,-99 A140,140 0 0,1 140,0 Z',
+    path: 'M0,0 L105,-105 A148,148 0 0,1 148,0 Z',
   },
   {
     id: 'mid_wicket',
@@ -838,7 +838,7 @@ const BROADCAST_SECTORS = [
     sixes: 1,
     singlesDoubles: 2,
     radAngle: 112.5,
-    path: 'M0,0 L140,0 A140,140 0 0,1 99,99 Z',
+    path: 'M0,0 L148,0 A148,148 0 0,1 105,105 Z',
   },
   {
     id: 'long_on',
@@ -854,7 +854,7 @@ const BROADCAST_SECTORS = [
     sixes: 0,
     singlesDoubles: 2,
     radAngle: 157.5,
-    path: 'M0,0 L99,99 A140,140 0 0,1 0,140 Z',
+    path: 'M0,0 L105,105 A148,148 0 0,1 0,148 Z',
   },
   {
     id: 'long_off',
@@ -870,7 +870,7 @@ const BROADCAST_SECTORS = [
     sixes: 2,
     singlesDoubles: 3,
     radAngle: 202.5,
-    path: 'M0,0 L0,140 A140,140 0 0,1 -99,99 Z',
+    path: 'M0,0 L0,148 A148,148 0 0,1 -105,105 Z',
   },
   {
     id: 'cover',
@@ -886,7 +886,7 @@ const BROADCAST_SECTORS = [
     sixes: 2,
     singlesDoubles: 8,
     radAngle: 247.5,
-    path: 'M0,0 L-99,99 A140,140 0 0,1 -140,0 Z',
+    path: 'M0,0 L-105,105 A148,148 0 0,1 -148,0 Z',
   },
   {
     id: 'point',
@@ -902,7 +902,7 @@ const BROADCAST_SECTORS = [
     sixes: 0,
     singlesDoubles: 1,
     radAngle: 292.5,
-    path: 'M0,0 L-140,0 A140,140 0 0,1 -99,-99 Z',
+    path: 'M0,0 L-148,0 A148,148 0 0,1 -105,-105 Z',
   },
   {
     id: 'third_man',
@@ -918,7 +918,7 @@ const BROADCAST_SECTORS = [
     sixes: 0,
     singlesDoubles: 3,
     radAngle: 337.5,
-    path: 'M0,0 L-99,-99 A140,140 0 0,1 0,-140 Z',
+    path: 'M0,0 L-105,-105 A148,148 0 0,1 0,-148 Z',
   },
 ];
 
@@ -15433,6 +15433,112 @@ function CricketAddaMain() {
     );
   };
 
+  const renderGroundWheelSvg = (wheelDimension, selectedSectorId = null, uniqueKey = 'sc') => {
+    const dim = Math.round(wheelDimension);
+    return (
+      <Svg height={dim} width={dim} viewBox="-160 -160 320 320">
+        <Defs>
+          <RadialGradient id={`wwLawnGrad_${uniqueKey}_${dim}`} cx="0" cy="0" r="148" gradientUnits="userSpaceOnUse">
+            <Stop offset="0%" stopColor="#22c55e" stopOpacity={0.9} />
+            <Stop offset="65%" stopColor="#16a34a" stopOpacity={0.95} />
+            <Stop offset="100%" stopColor="#15803d" stopOpacity={1} />
+          </RadialGradient>
+          <LinearGradient id={`beamLeftGrad_${uniqueKey}_${dim}`} x1="0%" y1="0%" x2="100%" y2="100%">
+            <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
+            <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+          </LinearGradient>
+          <LinearGradient id={`beamRightGrad_${uniqueKey}_${dim}`} x1="100%" y1="0%" x2="0%" y2="100%">
+            <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
+            <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+          </LinearGradient>
+        </Defs>
+
+        {/* Stadium Floodlight Beams (Top-Left & Top-Right) */}
+        <G transform="translate(-142, -145)">
+          <Polygon points="0,0 75,100 125,75 5,5" fill={`url(#beamLeftGrad_${uniqueKey}_${dim})`} opacity={0.45} />
+          <Rect x="-8" y="-4" width="22" height="13" rx="2" fill="#0369a1" stroke="#38bdf8" strokeWidth="1" transform="rotate(35)" />
+          <Circle cx="-1" cy="0" r="1.5" fill="#ffffff" />
+          <Circle cx="3.5" cy="2" r="1.5" fill="#ffffff" />
+          <Circle cx="8" cy="4" r="1.5" fill="#ffffff" />
+          <Circle cx="-2.5" cy="4.5" r="1.5" fill="#ffffff" />
+          <Circle cx="2" cy="6.5" r="1.5" fill="#ffffff" />
+          <Circle cx="6.5" cy="8.5" r="1.5" fill="#ffffff" />
+        </G>
+
+        <G transform="translate(142, -145)">
+          <Polygon points="0,0 -75,100 -125,75 -5,5" fill={`url(#beamRightGrad_${uniqueKey}_${dim})`} opacity={0.45} />
+          <Rect x="-14" y="-4" width="22" height="13" rx="2" fill="#0369a1" stroke="#38bdf8" strokeWidth="1" transform="rotate(-35)" />
+          <Circle cx="1" cy="0" r="1.5" fill="#ffffff" />
+          <Circle cx="-3.5" cy="2" r="1.5" fill="#ffffff" />
+          <Circle cx="-8" cy="4" r="1.5" fill="#ffffff" />
+          <Circle cx="2.5" cy="4.5" r="1.5" fill="#ffffff" />
+          <Circle cx="-2" cy="6.5" r="1.5" fill="#ffffff" />
+          <Circle cx="-6.5" cy="8.5" r="1.5" fill="#ffffff" />
+        </G>
+
+        {/* Outfield Grass & Single Clean Cyan Boundary (Orange border removed!) */}
+        <Circle cx="0" cy="0" r="148" fill="#15803d" stroke="#38bdf8" strokeWidth="2.5" />
+
+        {/* Concentric Mowed Lawn Outfield Rings (Expanded up to 148px) */}
+        <Circle cx="0" cy="0" r="130" fill="#16a34a" />
+        <Circle cx="0" cy="0" r="112" fill="#15803d" />
+        <Circle cx="0" cy="0" r="94" fill="#16a34a" />
+        <Circle cx="0" cy="0" r="76" fill="#15803d" />
+        <Circle cx="0" cy="0" r="58" fill="#16a34a" />
+        <Circle cx="0" cy="0" r="40" fill="#15803d" />
+        <Circle cx="0" cy="0" r="148" fill={`url(#wwLawnGrad_${uniqueKey}_${dim})`} opacity={0.32} />
+
+        {/* Active Sector Fill Highlight (Glowing Cyan Wedge) */}
+        {BROADCAST_SECTORS.map(sec => {
+          if (selectedSectorId !== sec.id) return null;
+          return (
+            <Path
+              key={`act_slice_${sec.id}`}
+              d={sec.path}
+              fill="#0284c7"
+              fillOpacity={0.82}
+              stroke="#38bdf8"
+              strokeWidth={2.5}
+            />
+          );
+        })}
+
+        {/* Sector Dividing Lines (White, Radiating From Center to 148px Boundary) */}
+        <Line x1="0" y1="0" x2="0" y2="-148" stroke="#ffffff" strokeWidth="1.6" />
+        <Line x1="0" y1="0" x2="105" y2="-105" stroke="#ffffff" strokeWidth="1.6" />
+        <Line x1="0" y1="0" x2="148" y2="0" stroke="#ffffff" strokeWidth="1.6" />
+        <Line x1="0" y1="0" x2="105" y2="105" stroke="#ffffff" strokeWidth="1.6" />
+        <Line x1="0" y1="0" x2="0" y2="148" stroke="#ffffff" strokeWidth="1.6" />
+        <Line x1="0" y1="0" x2="-105" y2="105" stroke="#ffffff" strokeWidth="1.6" />
+        <Line x1="0" y1="0" x2="-148" y2="0" stroke="#ffffff" strokeWidth="1.6" />
+        <Line x1="0" y1="0" x2="-105" y2="-105" stroke="#ffffff" strokeWidth="1.6" />
+
+        {/* White 30-Yard Inner Circle */}
+        <Circle cx="0" cy="0" r="54" fill="none" stroke="rgba(255, 255, 255, 0.88)" strokeWidth="1.6" />
+
+        {/* Center Pitch & Stumps */}
+        <Rect x="-10" y="-30" width="20" height="60" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
+        <Rect x="-8.5" y="-28.5" width="17" height="57" rx="1.5" fill="#fef08a" opacity={0.5} />
+
+        {/* Creases */}
+        <Line x1="-9" y1="-22" x2="9" y2="-22" stroke="#ffffff" strokeWidth="1.5" />
+        <Line x1="-9" y1="22" x2="9" y2="22" stroke="#ffffff" strokeWidth="1.5" />
+
+        {/* Top Stumps & Bails */}
+        <Line x1="-3.5" y1="-28" x2="-3.5" y2="-22" stroke="#ffffff" strokeWidth="1.2" />
+        <Line x1="0" y1="-28" x2="0" y2="-22" stroke="#ffffff" strokeWidth="1.2" />
+        <Line x1="3.5" y1="-28" x2="3.5" y2="-22" stroke="#ffffff" strokeWidth="1.2" />
+        <Line x1="-4.5" y1="-28" x2="4.5" y2="-28" stroke="#ffffff" strokeWidth="1.2" />
+
+        {/* Bottom Stumps & Bails */}
+        <Line x1="-3.5" y1="22" x2="-3.5" y2="28" stroke="#ffffff" strokeWidth="1.2" />
+        <Line x1="0" y1="22" x2="0" y2="28" stroke="#ffffff" strokeWidth="1.2" />
+        <Line x1="3.5" y1="22" x2="3.5" y2="28" stroke="#ffffff" strokeWidth="1.2" />
+        <Line x1="-4.5" y1="28" x2="4.5" y2="28" stroke="#ffffff" strokeWidth="1.2" />
+      </Svg>
+    );
+  };
+
   const renderEmbeddedWagonWheel = () => {
     const historyStack = (activeMatchId === currentMatchData?.id && (scoringHistory || []).length > 0)
       ? scoringHistory
@@ -15511,42 +15617,7 @@ function CricketAddaMain() {
 
         {/* 220px Wagon Wheel Stage Container without hardware clipping bugs */}
         <View style={{ width: 220, height: 220, alignSelf: 'center', alignItems: 'center', justifyContent: 'center' }}>
-          <Svg height={220} width={220} viewBox="-160 -160 320 320">
-            {/* Outer Boundary Rope */}
-            <Circle cx="0" cy="0" r="152" fill="#fef08a" stroke="#ca8a04" strokeWidth="2.5" />
-            {/* Outfield Grass (Solid Green Fill with Stroke so it ALWAYS renders reliably) */}
-            <Circle cx="0" cy="0" r="142" fill="#15803d" stroke="#166534" strokeWidth="2" />
-
-            {/* Sector Boundary Dividing Lines */}
-            <Line x1="0" y1="-142" x2="0" y2="142" stroke="rgba(0, 0, 0, 0.75)" strokeWidth="2" />
-            <Line x1="-142" y1="0" x2="142" y2="0" stroke="rgba(0, 0, 0, 0.75)" strokeWidth="2" />
-            <Line x1="-100" y1="-100" x2="100" y2="100" stroke="rgba(0, 0, 0, 0.75)" strokeWidth="2" />
-            <Line x1="100" y1="-100" x2="-100" y2="100" stroke="rgba(0, 0, 0, 0.75)" strokeWidth="2" />
-
-            {/* Active Selected Sector Slice Highlight */}
-            {dynamicSectors.map(sec => {
-              if (activeZone.id !== sec.id) return null;
-              return (
-                <Path
-                  key={`emb_act_slice_${sec.id}`}
-                  d={sec.path}
-                  fill="rgba(255, 255, 255, 0.45)"
-                  stroke="#ffffff"
-                  strokeWidth={2.5}
-                />
-              );
-            })}
-
-            {/* 30-Yard Circle */}
-            <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255, 255, 255, 0.85)" strokeWidth="1.8" />
-            {/* Pitch Rectangle */}
-            <Rect x="-6" y="-28" width="12" height="56" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
-            {/* Crease lines */}
-            <Line x1="-6" y1="-18" x2="6" y2="-18" stroke="#ffffff" strokeWidth="1.2" />
-            <Line x1="-6" y1="18" x2="6" y2="18" stroke="#ffffff" strokeWidth="1.2" />
-            {/* Center Wicket Point */}
-            <Circle cx="0" cy="0" r="4.5" fill="#ffffff" stroke="#000000" strokeWidth="1.5" />
-          </Svg>
+          {renderGroundWheelSvg(220, activeZone?.id, 'emb')}
         </View>
 
         {/* Selected Sector Details Capsule */}
@@ -24897,44 +24968,7 @@ function CricketAddaMain() {
 
               {/* LARGE WAGON WHEEL STAGE CONTAINER */}
               <View style={[styles.wheelContainerRelative, { width: FULL_WHEEL_SIZE, height: FULL_WHEEL_SIZE, borderRadius: FULL_WHEEL_SIZE / 2, alignSelf: 'center' }]}>
-                <Svg height={FULL_WHEEL_SIZE} width={FULL_WHEEL_SIZE} viewBox="-160 -160 320 320">
-                  <Defs>
-                    <RadialGradient id="wwLawnGrad" cx="0" cy="0" r="145" gradientUnits="userSpaceOnUse">
-                      <Stop offset="0%" stopColor="#4ade80" />
-                      <Stop offset="65%" stopColor="#22c55e" />
-                      <Stop offset="100%" stopColor="#15803d" />
-                    </RadialGradient>
-                  </Defs>
-
-                  <Circle cx="0" cy="0" r="150" fill="#fef9c3" stroke="#fef08a" strokeWidth="6" />
-                  <Circle cx="0" cy="0" r="144" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.5" />
-                  <Circle cx="0" cy="0" r="140" fill="url(#wwLawnGrad)" stroke="#166534" strokeWidth="2" />
-
-                  <Line x1="0" y1="-140" x2="0" y2="140" stroke="#000000" strokeWidth="2" />
-                  <Line x1="-140" y1="0" x2="140" y2="0" stroke="#000000" strokeWidth="2" />
-                  <Line x1="-99" y1="-99" x2="99" y2="99" stroke="#000000" strokeWidth="2" />
-                  <Line x1="99" y1="-99" x2="-99" y2="99" stroke="#000000" strokeWidth="2" />
-
-                  {dynamicSectors.map(sec => {
-                    const isSelected = activeZone.id === sec.id;
-                    if (!isSelected) return null;
-                    return (
-                      <Path
-                        key={`active_slice_${sec.id}`}
-                        d={sec.path}
-                        fill="rgba(255, 255, 255, 0.45)"
-                        stroke="#ffffff"
-                        strokeWidth={3}
-                      />
-                    );
-                  })}
-
-                  <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="1.8" />
-                  <Rect x="-6" y="-28" width="12" height="56" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
-                  <Line x1="-6" y1="-18" x2="6" y2="-18" stroke="#ffffff" strokeWidth="1.2" />
-                  <Line x1="-6" y1="18" x2="6" y2="18" stroke="#ffffff" strokeWidth="1.2" />
-                  <Circle cx="0" cy="0" r="4.5" fill="#ffffff" stroke="#000000" strokeWidth="1.5" />
-                </Svg>
+                {renderGroundWheelSvg(FULL_WHEEL_SIZE, activeZone?.id, 'match')}
 
                 {dynamicSectors.map(sec => {
                   const pos = getResponsiveBadgePos(FULL_WHEEL_SIZE, sec.angle, mainBadgeW, mainBadgeH);
@@ -26310,40 +26344,7 @@ function CricketAddaMain() {
 
                 <View style={{ alignItems: 'center', marginVertical: 8 }}>
                   <View style={[styles.wheelContainerRelative, { width: MODAL_WHEEL_SIZE, height: MODAL_WHEEL_SIZE, borderRadius: MODAL_WHEEL_SIZE / 2, alignSelf: 'center' }]}>
-                    <Svg height={MODAL_WHEEL_SIZE} width={MODAL_WHEEL_SIZE} viewBox="-160 -160 320 320">
-                      <Defs>
-                        <RadialGradient id="bwLawnGrad" cx="0" cy="0" r="145" gradientUnits="userSpaceOnUse">
-                          <Stop offset="0%" stopColor="#4ade80" />
-                          <Stop offset="65%" stopColor="#22c55e" />
-                          <Stop offset="100%" stopColor="#15803d" />
-                        </RadialGradient>
-                      </Defs>
-                      <Circle cx="0" cy="0" r="150" fill="#fef9c3" stroke="#fef08a" strokeWidth="5" />
-                      <Circle cx="0" cy="0" r="144" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.2" />
-                      <Circle cx="0" cy="0" r="140" fill="url(#bwLawnGrad)" stroke="#166534" strokeWidth="2" />
-                      <Line x1="0" y1="-140" x2="0" y2="140" stroke="#000000" strokeWidth="1.8" />
-                      <Line x1="-140" y1="0" x2="140" y2="0" stroke="#000000" strokeWidth="1.8" />
-                      <Line x1="-99" y1="-99" x2="99" y2="99" stroke="#000000" strokeWidth="1.8" />
-                      <Line x1="99" y1="-99" x2="-99" y2="99" stroke="#000000" strokeWidth="1.8" />
-
-                      {selectedBowlerDetails.sectorBreakdown.map(sec => {
-                        const isSel = bowlerWheelZone.id === sec.id;
-                        if (!isSel) return null;
-                        return (
-                          <Path
-                            key={`bw_act_${sec.id}`}
-                            d={sec.path}
-                            fill="rgba(255, 255, 255, 0.45)"
-                            stroke="#ffffff"
-                            strokeWidth={3}
-                          />
-                        );
-                      })}
-
-                      <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" />
-                      <Rect x="-5.5" y="-28" width="11" height="56" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
-                      <Circle cx="0" cy="0" r="3.5" fill="#ffffff" stroke="#000000" strokeWidth="1" />
-                    </Svg>
+                    {renderGroundWheelSvg(MODAL_WHEEL_SIZE, bowlerWheelZone?.id, 'bowler')}
 
                     {selectedBowlerDetails.sectorBreakdown.map(sec => {
                       const pos = getResponsiveBadgePos(MODAL_WHEEL_SIZE, sec.angle, modalBadgeW, modalBadgeH);
@@ -26586,39 +26587,7 @@ function CricketAddaMain() {
                 <Text style={[styles.modalSectionTitle, { marginTop: 16 }]}>🎯 {selectedBatterDetails.name.split(' ')[0]}'s WAGON WHEEL</Text>
                 <View style={{ alignItems: 'center', marginVertical: 8 }}>
                   <View style={[styles.wheelContainerRelative, { width: MODAL_WHEEL_SIZE, height: MODAL_WHEEL_SIZE, borderRadius: MODAL_WHEEL_SIZE / 2, alignSelf: 'center' }]}>
-                    <Svg height={MODAL_WHEEL_SIZE} width={MODAL_WHEEL_SIZE} viewBox="-160 -160 320 320">
-                      <Defs>
-                        <RadialGradient id="bLawnGrad" cx="0" cy="0" r="145" gradientUnits="userSpaceOnUse">
-                          <Stop offset="0%" stopColor="#4ade80" />
-                          <Stop offset="65%" stopColor="#22c55e" />
-                          <Stop offset="100%" stopColor="#15803d" />
-                        </RadialGradient>
-                      </Defs>
-                      <Circle cx="0" cy="0" r="150" fill="#fef9c3" stroke="#fef08a" strokeWidth="5" />
-                      <Circle cx="0" cy="0" r="144" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.2" />
-                      <Circle cx="0" cy="0" r="140" fill="url(#bLawnGrad)" stroke="#166534" strokeWidth="2" />
-                      <Line x1="0" y1="-140" x2="0" y2="140" stroke="#000000" strokeWidth="1.8" />
-                      <Line x1="-140" y1="0" x2="140" y2="0" stroke="#000000" strokeWidth="1.8" />
-                      <Line x1="-99" y1="-99" x2="99" y2="99" stroke="#000000" strokeWidth="1.8" />
-                      <Line x1="99" y1="-99" x2="-99" y2="99" stroke="#000000" strokeWidth="1.8" />
-
-                      {selectedBatterDetails.sectorBreakdown.map(sec => {
-                        const isSel = batterWheelZone.id === sec.id;
-                        if (!isSel) return null;
-                        return (
-                          <Path
-                            key={`b_act_${sec.id}`}
-                            d={sec.path}
-                            fill="rgba(255, 255, 255, 0.45)"
-                            stroke="#ffffff"
-                            strokeWidth={3}
-                          />
-                        );
-                      })}
-                      <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" />
-                      <Rect x="-5.5" y="-28" width="11" height="56" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
-                      <Circle cx="0" cy="0" r="3.5" fill="#ffffff" stroke="#000000" strokeWidth="1" />
-                    </Svg>
+                    {renderGroundWheelSvg(MODAL_WHEEL_SIZE, batterWheelZone?.id, 'batter')}
 
                     {selectedBatterDetails.sectorBreakdown.map(sec => {
                       const pos = getResponsiveBadgePos(MODAL_WHEEL_SIZE, sec.angle, modalBadgeW, modalBadgeH);
@@ -26776,104 +26745,7 @@ function CricketAddaMain() {
               {/* 8-SECTOR WAGON WHEEL STAGE WITH STADIUM FLOODLIGHTS & STRIPED OUTFIELD */}
               <View style={{ alignItems: 'center', marginVertical: 4, position: 'relative' }}>
                 <View style={[styles.wheelContainerRelative, { width: scorerWheelSize, height: scorerWheelSize, borderRadius: scorerWheelSize / 2, alignSelf: 'center' }]}>
-                  <Svg height={scorerWheelSize} width={scorerWheelSize} viewBox="-160 -160 320 320">
-                    <Defs>
-                      <RadialGradient id="scorerWwLawnGrad" cx="0" cy="0" r="142" gradientUnits="userSpaceOnUse">
-                        <Stop offset="0%" stopColor="#22c55e" stopOpacity={0.9} />
-                        <Stop offset="65%" stopColor="#16a34a" stopOpacity={0.95} />
-                        <Stop offset="100%" stopColor="#15803d" stopOpacity={1} />
-                      </RadialGradient>
-                      <LinearGradient id="beamLeftGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                        <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
-                        <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-                      </LinearGradient>
-                      <LinearGradient id="beamRightGrad" x1="100%" y1="0%" x2="0%" y2="100%">
-                        <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
-                        <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-                      </LinearGradient>
-                    </Defs>
-
-                    {/* Stadium Floodlight Beams (Top-Left & Top-Right) */}
-                    <G transform="translate(-142, -145)">
-                      <Polygon points="0,0 75,100 125,75 5,5" fill="url(#beamLeftGrad)" opacity={0.45} />
-                      <Rect x="-8" y="-4" width="22" height="13" rx="2" fill="#0369a1" stroke="#38bdf8" strokeWidth="1" transform="rotate(35)" />
-                      <Circle cx="-1" cy="0" r="1.5" fill="#ffffff" />
-                      <Circle cx="3.5" cy="2" r="1.5" fill="#ffffff" />
-                      <Circle cx="8" cy="4" r="1.5" fill="#ffffff" />
-                      <Circle cx="-2.5" cy="4.5" r="1.5" fill="#ffffff" />
-                      <Circle cx="2" cy="6.5" r="1.5" fill="#ffffff" />
-                      <Circle cx="6.5" cy="8.5" r="1.5" fill="#ffffff" />
-                    </G>
-
-                    <G transform="translate(142, -145)">
-                      <Polygon points="0,0 -75,100 -125,75 -5,5" fill="url(#beamRightGrad)" opacity={0.45} />
-                      <Rect x="-14" y="-4" width="22" height="13" rx="2" fill="#0369a1" stroke="#38bdf8" strokeWidth="1" transform="rotate(-35)" />
-                      <Circle cx="1" cy="0" r="1.5" fill="#ffffff" />
-                      <Circle cx="-3.5" cy="2" r="1.5" fill="#ffffff" />
-                      <Circle cx="-8" cy="4" r="1.5" fill="#ffffff" />
-                      <Circle cx="2.5" cy="4.5" r="1.5" fill="#ffffff" />
-                      <Circle cx="-2" cy="6.5" r="1.5" fill="#ffffff" />
-                      <Circle cx="-6.5" cy="8.5" r="1.5" fill="#ffffff" />
-                    </G>
-
-                    {/* Outer Cyan Glow Ring */}
-                    <Circle cx="0" cy="0" r="148" fill="none" stroke="#38bdf8" strokeWidth="3" />
-                    {/* Golden Boundary Line */}
-                    <Circle cx="0" cy="0" r="142" fill="#15803d" stroke="#facc15" strokeWidth="4" />
-
-                    {/* Concentric Mowed Lawn Outfield Rings */}
-                    <Circle cx="0" cy="0" r="124" fill="#16a34a" />
-                    <Circle cx="0" cy="0" r="106" fill="#15803d" />
-                    <Circle cx="0" cy="0" r="88" fill="#16a34a" />
-                    <Circle cx="0" cy="0" r="70" fill="#15803d" />
-                    <Circle cx="0" cy="0" r="52" fill="#16a34a" />
-                    <Circle cx="0" cy="0" r="34" fill="#15803d" />
-                    <Circle cx="0" cy="0" r="140" fill="url(#scorerWwLawnGrad)" opacity={0.35} />
-
-                    {/* Active Sector Fill Highlight (Glowing Cyan Wedge) */}
-                    {selectedScorerSector && (
-                      <Path
-                        d={selectedScorerSector.path}
-                        fill="#0284c7"
-                        fillOpacity={0.82}
-                        stroke="#38bdf8"
-                        strokeWidth={2.5}
-                      />
-                    )}
-
-                    {/* Sector Dividing Lines (White, Radiating From Center) */}
-                    <Line x1="0" y1="0" x2="0" y2="-140" stroke="#ffffff" strokeWidth="1.6" />
-                    <Line x1="0" y1="0" x2="99" y2="-99" stroke="#ffffff" strokeWidth="1.6" />
-                    <Line x1="0" y1="0" x2="140" y2="0" stroke="#ffffff" strokeWidth="1.6" />
-                    <Line x1="0" y1="0" x2="99" y2="99" stroke="#ffffff" strokeWidth="1.6" />
-                    <Line x1="0" y1="0" x2="0" y2="140" stroke="#ffffff" strokeWidth="1.6" />
-                    <Line x1="0" y1="0" x2="-99" y2="99" stroke="#ffffff" strokeWidth="1.6" />
-                    <Line x1="0" y1="0" x2="-140" y2="0" stroke="#ffffff" strokeWidth="1.6" />
-                    <Line x1="0" y1="0" x2="-99" y2="-99" stroke="#ffffff" strokeWidth="1.6" />
-
-                    {/* White 30-Yard Inner Circle */}
-                    <Circle cx="0" cy="0" r="54" fill="none" stroke="rgba(255, 255, 255, 0.88)" strokeWidth="1.6" />
-
-                    {/* Center Pitch & Stumps */}
-                    <Rect x="-10" y="-30" width="20" height="60" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
-                    <Rect x="-8.5" y="-28.5" width="17" height="57" rx="1.5" fill="#fef08a" opacity={0.5} />
-
-                    {/* Creases */}
-                    <Line x1="-9" y1="-22" x2="9" y2="-22" stroke="#ffffff" strokeWidth="1.5" />
-                    <Line x1="-9" y1="22" x2="9" y2="22" stroke="#ffffff" strokeWidth="1.5" />
-
-                    {/* Top Stumps & Bails */}
-                    <Line x1="-3.5" y1="-28" x2="-3.5" y2="-22" stroke="#ffffff" strokeWidth="1.2" />
-                    <Line x1="0" y1="-28" x2="0" y2="-22" stroke="#ffffff" strokeWidth="1.2" />
-                    <Line x1="3.5" y1="-28" x2="3.5" y2="-22" stroke="#ffffff" strokeWidth="1.2" />
-                    <Line x1="-4.5" y1="-28" x2="4.5" y2="-28" stroke="#ffffff" strokeWidth="1.2" />
-
-                    {/* Bottom Stumps & Bails */}
-                    <Line x1="-3.5" y1="22" x2="-3.5" y2="28" stroke="#ffffff" strokeWidth="1.2" />
-                    <Line x1="0" y1="22" x2="0" y2="28" stroke="#ffffff" strokeWidth="1.2" />
-                    <Line x1="3.5" y1="22" x2="3.5" y2="28" stroke="#ffffff" strokeWidth="1.2" />
-                    <Line x1="-4.5" y1="28" x2="4.5" y2="28" stroke="#ffffff" strokeWidth="1.2" />
-                  </Svg>
+                  {renderGroundWheelSvg(scorerWheelSize, selectedScorerSector?.id, 'scorer')}
 
                   {/* Native Floating Sector Badges */}
                   {BROADCAST_SECTORS.map(sec => {
@@ -26980,12 +26852,9 @@ function CricketAddaMain() {
                 padding: 10,
                 marginBottom: 10,
               }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <Text style={{ color: '#cbd5e1', fontSize: 10.5, fontWeight: '900', letterSpacing: 0.3 }}>
-                    WHEEL PROMPT FREQUENCY:
-                  </Text>
-                  <Text style={{ color: '#64748b', fontSize: 10.5, fontWeight: '600' }}>
-                    When to show shot area?
+                <View style={{ marginBottom: 8 }}>
+                  <Text style={{ color: '#cbd5e1', fontSize: 11.5, fontWeight: '900', letterSpacing: 0.3 }}>
+                    🎯 When to show shot area?
                   </Text>
                 </View>
                 <View style={{ flexDirection: 'row', gap: 6 }}>
