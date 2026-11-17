@@ -5286,6 +5286,8 @@ function CricketAddaMain() {
   const [universalQrScannerVisible, setUniversalQrScannerVisible] = useState(false);
   const [qrScanPurpose, setQrScanPurpose] = useState('add_team_a');
   const [activeMatchId, setActiveMatchId] = useState(null);
+  const [activeScoringSessionMatchId, setActiveScoringSessionMatchId] = useState(null);
+  const [dismissedMiniScorerMatchId, setDismissedMiniScorerMatchId] = useState(null);
   const [scorecardInning, setScorecardInning] = useState(1);
   const [scorecardTab, setScorecardTab] = useState('scorecard'); // 'scorecard' | 'mvp'
   const [viewerActiveSubTab, setViewerActiveSubTab] = useState('commentary'); // 'commentary' | 'scorecard' | 'wheel'
@@ -5296,6 +5298,14 @@ function CricketAddaMain() {
     || (matchesDb && Object.values(matchesDb)[0])
     || Object.values(MATCH_DATABASE)[0]
     || EMPTY_MATCH_TEMPLATE;
+
+  // Track active scoring session so floating mini bar can resume from any tab
+  useEffect(() => {
+    if (activeTab === 'scorer' && activeMatchId) {
+      setActiveScoringSessionMatchId(activeMatchId);
+      setDismissedMiniScorerMatchId(null);
+    }
+  }, [activeTab, activeMatchId]);
   const [userProfile, setUserProfile] = useState({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
   const [userCareerData, setUserCareerData] = useState(USER_CAREER_DATA);
   const [liveCommentaryList, setLiveCommentaryList] = useState([]);
@@ -26421,121 +26431,281 @@ function CricketAddaMain() {
       )}
 
       {/* ========================================================================= */}
-      {/* NATIVE BOTTOM NAVIGATION BAR (MATCHING MOCKUP & VIEWER DESIGN)            */}
+      {/* FLOATING MINI-SCORER BAR + BOTTOM NAVIGATION BAR                         */}
       {/* ========================================================================= */}
-      {activeTab === 'scorer' && !isOfficialScorer ? (
-        /* SPECTATOR VIEWER BOTTOM NAVIGATION (MATCHING SCREENSHOT) */
-        <View style={[styles.bottomNavBar, { backgroundColor: currentTheme.bottomNavBg || '#020617', borderTopColor: currentTheme.navBorder || '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
-          {/* 1. Live */}
-          <TouchableOpacity
-            style={styles.bottomNavTab}
-            onPress={() => setViewerActiveSubTab('commentary')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.bottomNavIcon, { color: '#0284c7' }]}>🏠</Text>
-            <Text style={[styles.bottomNavLabel, { color: '#0284c7', fontWeight: '900' }]}>Live</Text>
-            <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />
-          </TouchableOpacity>
+      <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 999 }} pointerEvents="box-none">
+        {/* Floating Mini-Scorer Bar: Instant 1-tap return to scoring from any tab */}
+        {(() => {
+          const effectiveScoringMatchId = activeScoringSessionMatchId || (activeMatchId && !isMatchCompleted(currentMatchData) ? activeMatchId : null);
+          const effectiveScoringMatch = effectiveScoringMatchId ? (matchesDb?.[effectiveScoringMatchId] || MATCH_DATABASE?.[effectiveScoringMatchId] || (effectiveScoringMatchId === activeMatchId ? currentMatchData : null)) : null;
 
-          {/* 2. Scorecard (Opens Dedicated Window As Requested) */}
-          <TouchableOpacity
-            style={styles.bottomNavTab}
-            onPress={() => openMatchScorecard(activeMatchId)}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.bottomNavIcon, { color: '#94a3b8' }]}>📋</Text>
-            <Text style={[styles.bottomNavLabel, { color: '#94a3b8', fontWeight: '900' }]}>Scorecard</Text>
-          </TouchableOpacity>
+          const showMiniScorerBar = Boolean(
+            activeTab !== 'scorer' &&
+            effectiveScoringMatchId &&
+            effectiveScoringMatch &&
+            !isMatchCompleted(effectiveScoringMatch) &&
+            dismissedMiniScorerMatchId !== effectiveScoringMatchId &&
+            (isOfficialScorer || (Array.isArray(myScoringMatchIds) && myScoringMatchIds.includes(effectiveScoringMatchId)) || effectiveScoringMatch.status === 'live' || effectiveScoringMatch.isLive)
+          );
 
-          {/* 3. Commentary */}
-          <TouchableOpacity
-            style={styles.bottomNavTab}
-            onPress={() => setViewerActiveSubTab('commentary')}
-            activeOpacity={0.8}
-          >
-            <Text style={[styles.bottomNavIcon, viewerActiveSubTab === 'commentary' && { color: '#0284c7' }]}>💬</Text>
-            <Text style={[styles.bottomNavLabel, viewerActiveSubTab === 'commentary' ? { color: '#0284c7', fontWeight: '900' } : { color: '#94a3b8' }]}>Commentary</Text>
-            {viewerActiveSubTab === 'commentary' && <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />}
-          </TouchableOpacity>
+          if (!showMiniScorerBar) return null;
 
-          {/* 4. Info */}
-          <TouchableOpacity
-            style={styles.bottomNavTab}
-            onPress={() => setScorerActionsModalVisible(true)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.bottomNavIcon}>ℹ️</Text>
-            <Text style={[styles.bottomNavLabel, { color: '#94a3b8' }]}>Info</Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-      <View style={[styles.bottomNavBar, { backgroundColor: currentTheme.bottomNavBg || '#020617', borderTopColor: currentTheme.navBorder || '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
-        {/* 1. Home */}
-        <TouchableOpacity
-          style={styles.bottomNavTab}
-          onPress={() => {
-            navigateTo('matches');
-            setMatchFilter('all');
-          }}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.bottomNavIcon, activeTab === 'matches' && matchFilter === 'all' && { color: '#22c55e' }]}>🏠</Text>
-          <Text style={[styles.bottomNavLabel, activeTab === 'matches' && matchFilter === 'all' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Home</Text>
-          {activeTab === 'matches' && matchFilter === 'all' && <View style={styles.bottomNavActiveBar} />}
-        </TouchableOpacity>
+          const miniInn = effectiveScoringMatch?.currentInnings || effectiveScoringMatch?.liveState?.currentInnings || 1;
+          const miniTeam1 = effectiveScoringMatch?.innings1?.team || effectiveScoringMatch?.teamA || 'Team 1';
+          const miniTeam2 = effectiveScoringMatch?.innings2?.team || effectiveScoringMatch?.teamB || 'Team 2';
+          const miniBatTeam = miniInn === 1 ? miniTeam1 : miniTeam2;
+          const miniBowlTeam = miniInn === 1 ? miniTeam2 : miniTeam1;
 
-        {/* 2. Matches */}
-        <TouchableOpacity
-          style={styles.bottomNavTab}
-          onPress={() => {
-            navigateTo('matches');
-            setMatchFilter('live');
-          }}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.bottomNavIcon, activeTab === 'matches' && matchFilter !== 'all' && { color: '#22c55e' }]}>🏏</Text>
-          <Text style={[styles.bottomNavLabel, activeTab === 'matches' && matchFilter !== 'all' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Matches</Text>
-          {activeTab === 'matches' && matchFilter !== 'all' && <View style={styles.bottomNavActiveBar} />}
-        </TouchableOpacity>
+          let miniRuns = 0;
+          let miniWkts = 0;
+          let miniOvers = '0.0';
+          if (effectiveScoringMatchId === activeMatchId && reconciledScore) {
+            miniRuns = reconciledScore.runs;
+            miniWkts = reconciledScore.wickets;
+            miniOvers = reconciledScore.oversStr;
+          } else if (effectiveScoringMatch?.liveState) {
+            miniRuns = effectiveScoringMatch.liveState.runs ?? 0;
+            miniWkts = effectiveScoringMatch.liveState.wickets ?? 0;
+            miniOvers = effectiveScoringMatch.liveState.oversStr ?? '0.0';
+          } else {
+            const innObj = miniInn === 1 ? effectiveScoringMatch?.innings1 : effectiveScoringMatch?.innings2;
+            miniRuns = innObj?.runs ?? 0;
+            miniWkts = innObj?.wickets ?? 0;
+            miniOvers = innObj?.overs ?? '0.0';
+          }
 
-        {/* 3. Teams */}
-        <TouchableOpacity
-          style={styles.bottomNavTab}
-          onPress={() => navigateTo('teams')}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.bottomNavIcon, activeTab === 'teams' && { color: '#22c55e' }]}>👥</Text>
-          <Text style={[styles.bottomNavLabel, activeTab === 'teams' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Teams</Text>
-          {activeTab === 'teams' && <View style={styles.bottomNavActiveBar} />}
-        </TouchableOpacity>
+          const target = effectiveScoringMatch?.target || (effectiveScoringMatch?.innings1?.runs ? effectiveScoringMatch.innings1.runs + 1 : null);
+          const miniSubText = miniInn === 2 && target
+            ? `Target: ${target} (Need ${Math.max(0, target - miniRuns)} runs)`
+            : `vs ${miniBowlTeam}`;
 
-        {/* 4. Stats */}
-        <TouchableOpacity
-          style={styles.bottomNavTab}
-          onPress={() => {
-            setInspectedStatsPlayer(null);
-            setReturnToTeamDetail(null);
-            navigateTo('profile');
-          }}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.bottomNavIcon, (activeTab === 'profile' || activeTab === 'scorecard') && { color: '#22c55e' }]}>📊</Text>
-          <Text style={[styles.bottomNavLabel, (activeTab === 'profile' || activeTab === 'scorecard') ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Stats</Text>
-          {(activeTab === 'profile' || activeTab === 'scorecard') && <View style={styles.bottomNavActiveBar} />}
-        </TouchableOpacity>
+          const isLight = currentTheme.isLight;
+          const barBg = isLight ? '#ffffff' : (currentTheme.id === 'emerald' ? '#063828' : currentTheme.id === 'crimson' ? '#2a0c10' : currentTheme.id === 'sapphire' ? '#0a1e3f' : '#081728');
+          const barBorder = currentTheme.primary || '#0284c7';
+          const txtColor = isLight ? '#0f172a' : '#ffffff';
+          const scoreColor = isLight ? '#0284c7' : '#38bdf8';
+          const mutedColor = isLight ? '#64748b' : '#94a3b8';
 
-        {/* 5. More */}
-        <TouchableOpacity
-          style={styles.bottomNavTab}
-          onPress={() => navigateTo('settings')}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.bottomNavIcon, activeTab === 'settings' && { color: '#22c55e' }]}>⚙️</Text>
-          <Text style={[styles.bottomNavLabel, activeTab === 'settings' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>More</Text>
-          {activeTab === 'settings' && <View style={styles.bottomNavActiveBar} />}
-        </TouchableOpacity>
+          return (
+            <View pointerEvents="auto" style={{ width: '100%', paddingHorizontal: 10, paddingBottom: 6 }}>
+              <TouchableOpacity
+                activeOpacity={0.88}
+                onPress={() => navigateTo('scorer', effectiveScoringMatchId)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: barBg,
+                  borderWidth: 1.5,
+                  borderColor: barBorder,
+                  borderRadius: 14,
+                  paddingVertical: 7,
+                  paddingHorizontal: 12,
+                  shadowColor: barBorder,
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.35,
+                  shadowRadius: 6,
+                  elevation: 8,
+                  gap: 8,
+                }}
+              >
+                {/* Left: Pulsing LIVE pill + Batting team & score */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7, flex: 1 }}>
+                  <View style={{
+                    backgroundColor: '#dc2626',
+                    paddingHorizontal: 5,
+                    paddingVertical: 2,
+                    borderRadius: 4,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 3,
+                  }}>
+                    <View style={{ width: 5, height: 5, borderRadius: 2.5, backgroundColor: '#ffffff' }} />
+                    <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900', letterSpacing: 0.5 }}>LIVE</Text>
+                  </View>
+
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                      <Text style={{ color: txtColor, fontSize: 13, fontWeight: '900' }} numberOfLines={1}>
+                        {miniBatTeam}
+                      </Text>
+                      <Text style={{ color: scoreColor, fontSize: 13.5, fontWeight: '900' }}>
+                        {miniRuns}/{miniWkts}
+                      </Text>
+                      <Text style={{ color: mutedColor, fontSize: 11, fontWeight: '700' }}>
+                        ({miniOvers} ov)
+                      </Text>
+                    </View>
+                    <Text style={{ color: mutedColor, fontSize: 10.5, fontWeight: '600' }} numberOfLines={1}>
+                      {miniSubText}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* Right: Resume Button + Dismiss Cross */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={{
+                    backgroundColor: currentTheme.primary || '#22c55e',
+                    paddingHorizontal: 10,
+                    paddingVertical: 5.5,
+                    borderRadius: 9,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4,
+                    shadowColor: currentTheme.primary || '#22c55e',
+                    shadowOffset: { width: 0, height: 2 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 3,
+                    elevation: 4,
+                  }}>
+                    <Text style={{ fontSize: 11 }}>🏏</Text>
+                    <Text style={{
+                      color: currentTheme.primaryText || '#ffffff',
+                      fontSize: 11.5,
+                      fontWeight: '900',
+                      letterSpacing: 0.3,
+                    }}>
+                      Resume
+                    </Text>
+                    <Text style={{ color: currentTheme.primaryText || '#ffffff', fontSize: 11, fontWeight: '900' }}>❯</Text>
+                  </View>
+
+                  <TouchableOpacity
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    onPress={(e) => {
+                      e?.stopPropagation?.();
+                      setDismissedMiniScorerMatchId(effectiveScoringMatchId);
+                    }}
+                    style={{
+                      padding: 4,
+                      borderRadius: 10,
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: mutedColor, fontSize: 13, fontWeight: '900' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableOpacity>
+            </View>
+          );
+        })()}
+
+        {/* Existing Bottom Navigation Bar */}
+        {activeTab === 'scorer' && !isOfficialScorer ? (
+          /* SPECTATOR VIEWER BOTTOM NAVIGATION (MATCHING SCREENSHOT) */
+          <View pointerEvents="auto" style={[styles.bottomNavBar, { position: 'relative', backgroundColor: currentTheme.bottomNavBg || '#020617', borderTopColor: currentTheme.navBorder || '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
+            {/* 1. Live */}
+            <TouchableOpacity
+              style={styles.bottomNavTab}
+              onPress={() => setViewerActiveSubTab('commentary')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.bottomNavIcon, { color: '#0284c7' }]}>🏠</Text>
+              <Text style={[styles.bottomNavLabel, { color: '#0284c7', fontWeight: '900' }]}>Live</Text>
+              <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />
+            </TouchableOpacity>
+
+            {/* 2. Scorecard (Opens Dedicated Window As Requested) */}
+            <TouchableOpacity
+              style={styles.bottomNavTab}
+              onPress={() => openMatchScorecard(activeMatchId)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.bottomNavIcon, { color: '#94a3b8' }]}>📋</Text>
+              <Text style={[styles.bottomNavLabel, { color: '#94a3b8', fontWeight: '900' }]}>Scorecard</Text>
+            </TouchableOpacity>
+
+            {/* 3. Commentary */}
+            <TouchableOpacity
+              style={styles.bottomNavTab}
+              onPress={() => setViewerActiveSubTab('commentary')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.bottomNavIcon, viewerActiveSubTab === 'commentary' && { color: '#0284c7' }]}>💬</Text>
+              <Text style={[styles.bottomNavLabel, viewerActiveSubTab === 'commentary' ? { color: '#0284c7', fontWeight: '900' } : { color: '#94a3b8' }]}>Commentary</Text>
+              {viewerActiveSubTab === 'commentary' && <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />}
+            </TouchableOpacity>
+
+            {/* 4. Info */}
+            <TouchableOpacity
+              style={styles.bottomNavTab}
+              onPress={() => setScorerActionsModalVisible(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.bottomNavIcon}>ℹ️</Text>
+              <Text style={[styles.bottomNavLabel, { color: '#94a3b8' }]}>Info</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <View pointerEvents="auto" style={[styles.bottomNavBar, { position: 'relative', backgroundColor: currentTheme.bottomNavBg || '#020617', borderTopColor: currentTheme.navBorder || '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
+            {/* 1. Home */}
+            <TouchableOpacity
+              style={styles.bottomNavTab}
+              onPress={() => {
+                navigateTo('matches');
+                setMatchFilter('all');
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.bottomNavIcon, activeTab === 'matches' && matchFilter === 'all' && { color: '#22c55e' }]}>🏠</Text>
+              <Text style={[styles.bottomNavLabel, activeTab === 'matches' && matchFilter === 'all' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Home</Text>
+              {activeTab === 'matches' && matchFilter === 'all' && <View style={styles.bottomNavActiveBar} />}
+            </TouchableOpacity>
+
+            {/* 2. Matches */}
+            <TouchableOpacity
+              style={styles.bottomNavTab}
+              onPress={() => {
+                navigateTo('matches');
+                setMatchFilter('live');
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.bottomNavIcon, activeTab === 'matches' && matchFilter !== 'all' && { color: '#22c55e' }]}>🏏</Text>
+              <Text style={[styles.bottomNavLabel, activeTab === 'matches' && matchFilter !== 'all' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Matches</Text>
+              {activeTab === 'matches' && matchFilter !== 'all' && <View style={styles.bottomNavActiveBar} />}
+            </TouchableOpacity>
+
+            {/* 3. Teams */}
+            <TouchableOpacity
+              style={styles.bottomNavTab}
+              onPress={() => navigateTo('teams')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.bottomNavIcon, activeTab === 'teams' && { color: '#22c55e' }]}>👥</Text>
+              <Text style={[styles.bottomNavLabel, activeTab === 'teams' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Teams</Text>
+              {activeTab === 'teams' && <View style={styles.bottomNavActiveBar} />}
+            </TouchableOpacity>
+
+            {/* 4. Stats */}
+            <TouchableOpacity
+              style={styles.bottomNavTab}
+              onPress={() => {
+                setInspectedStatsPlayer(null);
+                setReturnToTeamDetail(null);
+                navigateTo('profile');
+              }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.bottomNavIcon, (activeTab === 'profile' || activeTab === 'scorecard') && { color: '#22c55e' }]}>📊</Text>
+              <Text style={[styles.bottomNavLabel, (activeTab === 'profile' || activeTab === 'scorecard') ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Stats</Text>
+              {(activeTab === 'profile' || activeTab === 'scorecard') && <View style={styles.bottomNavActiveBar} />}
+            </TouchableOpacity>
+
+            {/* 5. More */}
+            <TouchableOpacity
+              style={styles.bottomNavTab}
+              onPress={() => navigateTo('settings')}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.bottomNavIcon, activeTab === 'settings' && { color: '#22c55e' }]}>⚙️</Text>
+              <Text style={[styles.bottomNavLabel, activeTab === 'settings' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>More</Text>
+              {activeTab === 'settings' && <View style={styles.bottomNavActiveBar} />}
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
-      )}
 
       {/* JOIN MATCH WITH CODE MODAL */}
       <Modal visible={joinMatchModalVisible} transparent animationType="fade">
