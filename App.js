@@ -86,6 +86,7 @@ import Svg, {
   Stop,
   Polygon,
   Ellipse,
+  G,
 } from 'react-native-svg';
 
 const { width, height } = Dimensions.get('window');
@@ -6427,9 +6428,9 @@ function CricketAddaMain() {
 
   const modalBadgeW = Math.round(MODAL_WHEEL_SIZE * 0.165);
   const modalBadgeH = Math.round(MODAL_WHEEL_SIZE * 0.115);
-  const scorerWheelSize = Math.round(Math.min(width - 36, 310));
-  const scorerBadgeW = Math.round(scorerWheelSize * 0.165);
-  const scorerBadgeH = Math.round(scorerWheelSize * 0.115);
+  const scorerWheelSize = Math.round(Math.min(width - 32, 310));
+  const scorerBadgeW = Math.round(scorerWheelSize * 0.205);
+  const scorerBadgeH = Math.round(scorerWheelSize * 0.125);
 
 
   const updateAndPersistUserProfile = (updater) => {
@@ -26708,229 +26709,392 @@ function CricketAddaMain() {
 
       {/* MODAL 4: INTERACTIVE 8-SECTOR WAGON WHEEL POPUP FOR SCORER */}
       <Modal visible={wheelModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
-        <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
-          <View style={[styles.modalCard, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingHorizontal: 12, paddingVertical: 10, borderRadius: 16 }]}>
+        <View style={[styles.modalOverlay, { paddingTop: topInset + 8, paddingBottom: bottomInset + 8 }]}>
+          <View style={{
+            width: Math.min(width - 16, 440),
+            maxHeight: safeModalCardMaxHeight,
+            backgroundColor: '#030a16',
+            borderColor: '#0284c7',
+            borderWidth: 2,
+            borderRadius: 20,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            shadowColor: '#38bdf8',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.35,
+            shadowRadius: 12,
+            elevation: 8,
+          }}>
             <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
-              <View style={[styles.photoPickerHeader, { marginBottom: 4 }]}>
-                <View style={{ flex: 1 }}>
+              {/* Header Bar: 🎯 Select Shot Area | +4 RUNS | ✕ */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={[styles.photoPickerTitle, { color: '#38bdf8', fontSize: 15 }]}>🎯 Select Shot Area</Text>
-                    <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 }}>
-                      <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900' }}>
-                        {pendingExtraType ? `${pendingExtraType.toUpperCase()} + ` : ''}+{pendingRuns} RUNS
-                      </Text>
-                    </View>
+                    <Text style={{ fontSize: 18 }}>🎯</Text>
+                    <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900', letterSpacing: 0.3 }}>
+                      Select Shot Area
+                    </Text>
                   </View>
-                  <Text style={[styles.photoPickerSub, { fontSize: 10.5, marginTop: 1 }]} numberOfLines={1}>
-                    ★ {striker} <Text style={{ color: '#64748b' }}>(vs {bowler})</Text>
+                  <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '800', marginTop: 2 }} numberOfLines={1}>
+                    ★ {striker} <Text style={{ color: '#94a3b8', fontWeight: '600' }}>(vs {bowler})</Text>
                   </Text>
                 </View>
-                <TouchableOpacity style={styles.closeRoundBtn} onPress={() => confirmWheelShot(true)}>
-                  <Text style={styles.closeRoundBtnText}>✕</Text>
-                </TouchableOpacity>
+
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{
+                    backgroundColor: '#0284c7',
+                    borderColor: '#38bdf8',
+                    borderWidth: 1.5,
+                    borderRadius: 14,
+                    paddingHorizontal: 11,
+                    paddingVertical: 4,
+                  }}>
+                    <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }}>
+                      {pendingExtraType ? `${pendingExtraType.toUpperCase()} + ` : ''}+{pendingRuns} RUNS
+                    </Text>
+                  </View>
+
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    style={{
+                      width: 32,
+                      height: 32,
+                      borderRadius: 16,
+                      backgroundColor: 'rgba(30, 41, 59, 0.85)',
+                      borderColor: '#334155',
+                      borderWidth: 1,
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    onPress={() => confirmWheelShot(true)}
+                  >
+                    <Text style={{ color: '#94a3b8', fontSize: 15, fontWeight: '900' }}>✕</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
 
-              {/* 8-SECTOR WAGON WHEEL STAGE */}
-              <View style={{ alignItems: 'center', marginVertical: 4 }}>
+              {/* 8-SECTOR WAGON WHEEL STAGE WITH STADIUM FLOODLIGHTS & STRIPED OUTFIELD */}
+              <View style={{ alignItems: 'center', marginVertical: 4, position: 'relative' }}>
                 <View style={[styles.wheelContainerRelative, { width: scorerWheelSize, height: scorerWheelSize, borderRadius: scorerWheelSize / 2, alignSelf: 'center' }]}>
                   <Svg height={scorerWheelSize} width={scorerWheelSize} viewBox="-160 -160 320 320">
                     <Defs>
-                      <RadialGradient id="scorerWwLawnGrad" cx="0" cy="0" r="145" gradientUnits="userSpaceOnUse">
-                        <Stop offset="0%" stopColor="#4ade80" />
-                        <Stop offset="65%" stopColor="#22c55e" />
-                        <Stop offset="100%" stopColor="#15803d" />
+                      <RadialGradient id="scorerWwLawnGrad" cx="0" cy="0" r="142" gradientUnits="userSpaceOnUse">
+                        <Stop offset="0%" stopColor="#22c55e" stopOpacity={0.9} />
+                        <Stop offset="65%" stopColor="#16a34a" stopOpacity={0.95} />
+                        <Stop offset="100%" stopColor="#15803d" stopOpacity={1} />
                       </RadialGradient>
+                      <LinearGradient id="beamLeftGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
+                        <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+                      </LinearGradient>
+                      <LinearGradient id="beamRightGrad" x1="100%" y1="0%" x2="0%" y2="100%">
+                        <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.4} />
+                        <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
+                      </LinearGradient>
                     </Defs>
 
-                    <Circle cx="0" cy="0" r="150" fill="#fef9c3" stroke="#fef08a" strokeWidth="5" />
-                    <Circle cx="0" cy="0" r="144" fill="#fef08a" stroke="#ca8a04" strokeWidth="1.2" />
-                    <Circle cx="0" cy="0" r="140" fill="url(#scorerWwLawnGrad)" stroke="#166534" strokeWidth="2" />
+                    {/* Stadium Floodlight Beams (Top-Left & Top-Right) */}
+                    <G transform="translate(-142, -145)">
+                      <Polygon points="0,0 75,100 125,75 5,5" fill="url(#beamLeftGrad)" opacity={0.45} />
+                      <Rect x="-8" y="-4" width="22" height="13" rx="2" fill="#0369a1" stroke="#38bdf8" strokeWidth="1" transform="rotate(35)" />
+                      <Circle cx="-1" cy="0" r="1.5" fill="#ffffff" />
+                      <Circle cx="3.5" cy="2" r="1.5" fill="#ffffff" />
+                      <Circle cx="8" cy="4" r="1.5" fill="#ffffff" />
+                      <Circle cx="-2.5" cy="4.5" r="1.5" fill="#ffffff" />
+                      <Circle cx="2" cy="6.5" r="1.5" fill="#ffffff" />
+                      <Circle cx="6.5" cy="8.5" r="1.5" fill="#ffffff" />
+                    </G>
 
-                    <Line x1="0" y1="-140" x2="0" y2="140" stroke="#000000" strokeWidth="1.8" />
-                    <Line x1="-140" y1="0" x2="140" y2="0" stroke="#000000" strokeWidth="1.8" />
-                    <Line x1="-99" y1="-99" x2="99" y2="99" stroke="#000000" strokeWidth="1.8" />
-                    <Line x1="99" y1="-99" x2="-99" y2="99" stroke="#000000" strokeWidth="1.8" />
+                    <G transform="translate(142, -145)">
+                      <Polygon points="0,0 -75,100 -125,75 -5,5" fill="url(#beamRightGrad)" opacity={0.45} />
+                      <Rect x="-14" y="-4" width="22" height="13" rx="2" fill="#0369a1" stroke="#38bdf8" strokeWidth="1" transform="rotate(-35)" />
+                      <Circle cx="1" cy="0" r="1.5" fill="#ffffff" />
+                      <Circle cx="-3.5" cy="2" r="1.5" fill="#ffffff" />
+                      <Circle cx="-8" cy="4" r="1.5" fill="#ffffff" />
+                      <Circle cx="2.5" cy="4.5" r="1.5" fill="#ffffff" />
+                      <Circle cx="-2" cy="6.5" r="1.5" fill="#ffffff" />
+                      <Circle cx="-6.5" cy="8.5" r="1.5" fill="#ffffff" />
+                    </G>
 
-                    {/* Active Sector Fill Highlight */}
+                    {/* Outer Cyan Glow Ring */}
+                    <Circle cx="0" cy="0" r="148" fill="none" stroke="#38bdf8" strokeWidth="3" />
+                    {/* Golden Boundary Line */}
+                    <Circle cx="0" cy="0" r="142" fill="#15803d" stroke="#facc15" strokeWidth="4" />
+
+                    {/* Concentric Mowed Lawn Outfield Rings */}
+                    <Circle cx="0" cy="0" r="124" fill="#16a34a" />
+                    <Circle cx="0" cy="0" r="106" fill="#15803d" />
+                    <Circle cx="0" cy="0" r="88" fill="#16a34a" />
+                    <Circle cx="0" cy="0" r="70" fill="#15803d" />
+                    <Circle cx="0" cy="0" r="52" fill="#16a34a" />
+                    <Circle cx="0" cy="0" r="34" fill="#15803d" />
+                    <Circle cx="0" cy="0" r="140" fill="url(#scorerWwLawnGrad)" opacity={0.35} />
+
+                    {/* Active Sector Fill Highlight (Glowing Cyan Wedge) */}
                     {selectedScorerSector && (
                       <Path
                         d={selectedScorerSector.path}
-                        fill="rgba(255, 255, 255, 0.45)"
-                        stroke="#ffffff"
-                        strokeWidth={3}
+                        fill="#0284c7"
+                        fillOpacity={0.82}
+                        stroke="#38bdf8"
+                        strokeWidth={2.5}
                       />
                     )}
 
-                    <Ellipse cx="0" cy="0" rx="46" ry="58" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="1.5" />
-                    <Rect x="-5.5" y="-28" width="11" height="56" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
-                    <Circle cx="0" cy="0" r="3.5" fill="#ffffff" stroke="#000000" strokeWidth="1" />
+                    {/* Sector Dividing Lines (White, Radiating From Center) */}
+                    <Line x1="0" y1="0" x2="0" y2="-140" stroke="#ffffff" strokeWidth="1.6" />
+                    <Line x1="0" y1="0" x2="99" y2="-99" stroke="#ffffff" strokeWidth="1.6" />
+                    <Line x1="0" y1="0" x2="140" y2="0" stroke="#ffffff" strokeWidth="1.6" />
+                    <Line x1="0" y1="0" x2="99" y2="99" stroke="#ffffff" strokeWidth="1.6" />
+                    <Line x1="0" y1="0" x2="0" y2="140" stroke="#ffffff" strokeWidth="1.6" />
+                    <Line x1="0" y1="0" x2="-99" y2="99" stroke="#ffffff" strokeWidth="1.6" />
+                    <Line x1="0" y1="0" x2="-140" y2="0" stroke="#ffffff" strokeWidth="1.6" />
+                    <Line x1="0" y1="0" x2="-99" y2="-99" stroke="#ffffff" strokeWidth="1.6" />
+
+                    {/* White 30-Yard Inner Circle */}
+                    <Circle cx="0" cy="0" r="54" fill="none" stroke="rgba(255, 255, 255, 0.88)" strokeWidth="1.6" />
+
+                    {/* Center Pitch & Stumps */}
+                    <Rect x="-10" y="-30" width="20" height="60" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
+                    <Rect x="-8.5" y="-28.5" width="17" height="57" rx="1.5" fill="#fef08a" opacity={0.5} />
+
+                    {/* Creases */}
+                    <Line x1="-9" y1="-22" x2="9" y2="-22" stroke="#ffffff" strokeWidth="1.5" />
+                    <Line x1="-9" y1="22" x2="9" y2="22" stroke="#ffffff" strokeWidth="1.5" />
+
+                    {/* Top Stumps & Bails */}
+                    <Line x1="-3.5" y1="-28" x2="-3.5" y2="-22" stroke="#ffffff" strokeWidth="1.2" />
+                    <Line x1="0" y1="-28" x2="0" y2="-22" stroke="#ffffff" strokeWidth="1.2" />
+                    <Line x1="3.5" y1="-28" x2="3.5" y2="-22" stroke="#ffffff" strokeWidth="1.2" />
+                    <Line x1="-4.5" y1="-28" x2="4.5" y2="-28" stroke="#ffffff" strokeWidth="1.2" />
+
+                    {/* Bottom Stumps & Bails */}
+                    <Line x1="-3.5" y1="22" x2="-3.5" y2="28" stroke="#ffffff" strokeWidth="1.2" />
+                    <Line x1="0" y1="22" x2="0" y2="28" stroke="#ffffff" strokeWidth="1.2" />
+                    <Line x1="3.5" y1="22" x2="3.5" y2="28" stroke="#ffffff" strokeWidth="1.2" />
+                    <Line x1="-4.5" y1="28" x2="4.5" y2="28" stroke="#ffffff" strokeWidth="1.2" />
                   </Svg>
 
-                  {/* Native Touch Badges On Sectors */}
+                  {/* Native Floating Sector Badges */}
                   {BROADCAST_SECTORS.map(sec => {
                     const pos = getResponsiveBadgePos(scorerWheelSize, sec.angle, scorerBadgeW, scorerBadgeH);
                     const isSel = selectedScorerSector && selectedScorerSector.id === sec.id;
+                    const lines = sec.name.toUpperCase().split(' ');
                     return (
                       <TouchableOpacity
                         key={`sc_badge_${sec.id}`}
-                        activeOpacity={0.75}
-                        style={[
-                          styles.nativeWheelBadge,
-                          {
-                            left: pos.left,
-                            top: pos.top,
-                            width: scorerBadgeW,
-                            height: scorerBadgeH,
-                          },
-                          isSel && styles.nativeWheelBadgeActive,
-                        ]}
+                        activeOpacity={0.82}
+                        style={{
+                          position: 'absolute',
+                          left: pos.left,
+                          top: pos.top,
+                          width: scorerBadgeW,
+                          height: scorerBadgeH,
+                          borderRadius: 10,
+                          backgroundColor: 'rgba(2, 6, 23, 0.88)',
+                          borderColor: isSel ? '#38bdf8' : 'rgba(30, 58, 95, 0.75)',
+                          borderWidth: isSel ? 1.8 : 1,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          paddingVertical: 2,
+                          paddingHorizontal: 2,
+                          shadowColor: isSel ? '#38bdf8' : '#000000',
+                          shadowOpacity: isSel ? 0.4 : 0.2,
+                          shadowRadius: 4,
+                          elevation: 3,
+                        }}
                         onPress={() => setSelectedScorerSector(sec)}
                       >
-                        <Text style={[styles.badgeShortName, isSel && styles.badgeShortNameActive]}>
-                          {sec.shortName}
-                        </Text>
-                        <Text style={[styles.badgeRuns, isSel && styles.badgeRunsActive, { fontSize: 11, marginVertical: 0 }]}>
-                          {isSel ? '✓' : ''}
-                        </Text>
+                        {lines.map((l, lIdx) => (
+                          <Text
+                            key={lIdx}
+                            style={{
+                              color: '#ffffff',
+                              fontSize: lines.length > 1 ? 9.5 : 10.5,
+                              fontWeight: '900',
+                              textAlign: 'center',
+                              lineHeight: lines.length > 1 ? 11 : 13,
+                              letterSpacing: 0.3,
+                            }}
+                            numberOfLines={1}
+                          >
+                            {l}
+                          </Text>
+                        ))}
+                        {isSel && (
+                          <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '900', marginTop: 1, lineHeight: 11 }}>
+                            ✓
+                          </Text>
+                        )}
                       </TouchableOpacity>
                     );
                   })}
                 </View>
               </View>
 
-              {/* QUICK HORIZONTAL SCROLL SECTOR CHIPS */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 4 }}>
-                <View style={{ flexDirection: 'row', gap: 6, paddingHorizontal: 2 }}>
-                  {BROADCAST_SECTORS.map(sec => {
-                    const isSel = selectedScorerSector && selectedScorerSector.id === sec.id;
-                    return (
-                      <TouchableOpacity
-                        key={`sc_chip_${sec.id}`}
-                        style={[
-                          styles.dropOptionChip,
-                          { paddingHorizontal: 8, paddingVertical: 4 },
-                          isSel && styles.dropOptionChipActive,
-                          isSel && { borderColor: '#38bdf8', backgroundColor: '#0c4a6e' }
-                        ]}
-                        onPress={() => setSelectedScorerSector(sec)}
-                      >
-                        <Text style={[styles.dropOptionChipText, { fontSize: 10.5 }, isSel && { color: '#7dd3fc', fontWeight: '900' }]}>
-                          {isSel ? '✓ ' : ''}{sec.name}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
-              </ScrollView>
-
-              {/* SELECTED SECTOR DETAILS BREAKDOWN (COMPACT INLINE) */}
-              <View style={[styles.modalAreaDetailsCard, { marginTop: 4, padding: 8, borderColor: '#38bdf8', borderWidth: 1.5 }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
-                    <Text style={[{ color: '#38bdf8', fontSize: 11.5, fontWeight: 'bold' }]} numberOfLines={1}>
-                      📍 {selectedScorerSector ? selectedScorerSector.name.toUpperCase() : 'TAP WHEEL OR CHIP TO SELECT'}
-                    </Text>
-                    <Text style={[{ color: '#94a3b8', fontSize: 9.5, marginTop: 1 }]} numberOfLines={1}>
-                      🎯 {selectedScorerSector ? selectedScorerSector.shot : 'Select where the ball traveled'}
-                    </Text>
-                  </View>
-                  <View style={{ backgroundColor: '#0c4a6e', borderColor: '#38bdf8', borderWidth: 1, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>
-                    <Text style={{ color: '#7dd3fc', fontSize: 10.5, fontWeight: '900' }}>+{pendingRuns} RUNS</Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* QUICK PROMPT PREFERENCE SELECTOR (All Shots | 4s & 6s Only | Turn OFF) */}
+              {/* SELECTED SECTOR DETAILS BREAKDOWN */}
               <View style={{
-                backgroundColor: '#0a1d33',
-                borderRadius: 10,
-                borderWidth: 1,
-                borderColor: '#1e3a5f',
-                padding: 7,
-                marginTop: 6,
-                marginBottom: 4,
+                backgroundColor: 'rgba(9, 20, 38, 0.95)',
+                borderColor: '#0284c7',
+                borderWidth: 1.5,
+                borderRadius: 14,
+                paddingHorizontal: 14,
+                paddingVertical: 10,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                marginTop: 8,
+                marginBottom: 8,
               }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
-                    🎯 WHEEL PROMPT FREQUENCY:
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', letterSpacing: 0.5 }}>
+                    {selectedScorerSector ? selectedScorerSector.name.toUpperCase() : 'SELECT SHOT AREA'}
                   </Text>
-                  <Text style={{ color: wheelTriggerMode === 'boundaries' ? '#34d399' : wheelTriggerMode === 'all' ? '#38bdf8' : '#f87171', fontSize: 9.5, fontWeight: '900' }}>
-                    {wheelTriggerMode === 'boundaries' ? '4s & 6s ONLY (0-3 OFF)' : wheelTriggerMode === 'all' ? 'ALL RUNS (0-6)' : 'OFF'}
+                  <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '600', marginTop: 2 }}>
+                    {selectedScorerSector ? selectedScorerSector.shot : 'Tap any sector on the wheel'}
                   </Text>
                 </View>
-                <View style={{ flexDirection: 'row', gap: 5 }}>
+                <View style={{ width: 1, height: 32, backgroundColor: '#1e3a5f', marginHorizontal: 12 }} />
+                <View style={{
+                  backgroundColor: '#0284c7',
+                  borderColor: '#38bdf8',
+                  borderWidth: 1.5,
+                  borderRadius: 14,
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
+                    {pendingExtraType ? `${pendingExtraType.toUpperCase()} + ` : ''}+{pendingRuns} RUNS
+                  </Text>
+                </View>
+              </View>
+
+              {/* WHEEL PROMPT FREQUENCY */}
+              <View style={{
+                backgroundColor: 'rgba(7, 21, 38, 0.85)',
+                borderColor: '#1e3a5f',
+                borderWidth: 1.2,
+                borderRadius: 14,
+                padding: 10,
+                marginBottom: 10,
+              }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <Text style={{ color: '#cbd5e1', fontSize: 10.5, fontWeight: '900', letterSpacing: 0.3 }}>
+                    WHEEL PROMPT FREQUENCY:
+                  </Text>
+                  <Text style={{ color: '#64748b', fontSize: 10.5, fontWeight: '600' }}>
+                    When to show shot area?
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 6 }}>
                   {/* Option 1: All Shots */}
                   <TouchableOpacity
-                    activeOpacity={0.75}
+                    activeOpacity={0.8}
                     onPress={() => updateWheelTriggerMode('all')}
                     style={{
                       flex: 1,
-                      paddingVertical: 6,
-                      borderRadius: 6,
-                      backgroundColor: wheelTriggerMode === 'all' ? '#0284c7' : '#071526',
-                      borderWidth: 1,
+                      paddingVertical: 9,
+                      borderRadius: 10,
+                      backgroundColor: wheelTriggerMode === 'all' ? '#0284c7' : '#08172b',
                       borderColor: wheelTriggerMode === 'all' ? '#38bdf8' : '#1e3a5f',
+                      borderWidth: wheelTriggerMode === 'all' ? 1.5 : 1,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: wheelTriggerMode === 'all' ? '#ffffff' : '#94a3b8', fontSize: 10, fontWeight: '800' }}>
-                      All Shots
+                    <Text style={{ color: wheelTriggerMode === 'all' ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: wheelTriggerMode === 'all' ? '900' : '700' }}>
+                      All Shots{wheelTriggerMode === 'all' ? ' ✓' : ''}
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Option 2: 4s & 6s Only (Off for 0, 1, 2, 3) */}
+                  {/* Option 2: 4s & 6s Only */}
                   <TouchableOpacity
-                    activeOpacity={0.75}
+                    activeOpacity={0.8}
                     onPress={() => updateWheelTriggerMode('boundaries')}
                     style={{
-                      flex: 1.25,
-                      paddingVertical: 6,
-                      borderRadius: 6,
-                      backgroundColor: wheelTriggerMode === 'boundaries' ? '#059669' : '#071526',
-                      borderWidth: 1,
-                      borderColor: wheelTriggerMode === 'boundaries' ? '#34d399' : '#1e3a5f',
+                      flex: 1.2,
+                      paddingVertical: 9,
+                      borderRadius: 10,
+                      backgroundColor: wheelTriggerMode === 'boundaries' ? '#0284c7' : '#08172b',
+                      borderColor: wheelTriggerMode === 'boundaries' ? '#38bdf8' : '#1e3a5f',
+                      borderWidth: wheelTriggerMode === 'boundaries' ? 1.5 : 1,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: wheelTriggerMode === 'boundaries' ? '#ffffff' : '#94a3b8', fontSize: 10, fontWeight: '800' }}>
-                      4s & 6s Only
+                    <Text style={{ color: wheelTriggerMode === 'boundaries' ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: wheelTriggerMode === 'boundaries' ? '900' : '700' }}>
+                      4s & 6s Only{wheelTriggerMode === 'boundaries' ? ' ✓' : ''}
                     </Text>
                   </TouchableOpacity>
 
-                  {/* Option 3: Complete OFF */}
+                  {/* Option 3: Turn Off */}
                   <TouchableOpacity
-                    activeOpacity={0.75}
+                    activeOpacity={0.8}
                     onPress={() => {
                       updateWheelTriggerMode('off');
                       confirmWheelShot(true);
                     }}
                     style={{
                       flex: 1,
-                      paddingVertical: 6,
-                      borderRadius: 6,
-                      backgroundColor: 'rgba(239, 68, 68, 0.15)',
-                      borderWidth: 1,
-                      borderColor: 'rgba(239, 68, 68, 0.4)',
+                      paddingVertical: 9,
+                      borderRadius: 10,
+                      backgroundColor: wheelTriggerMode === 'off' ? 'rgba(239, 68, 68, 0.2)' : '#08172b',
+                      borderColor: wheelTriggerMode === 'off' ? '#ef4444' : '#1e3a5f',
+                      borderWidth: wheelTriggerMode === 'off' ? 1.5 : 1,
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
                   >
-                    <Text style={{ color: '#fca5a5', fontSize: 10, fontWeight: '800' }}>
-                      Turn OFF ✕
+                    <Text style={{ color: wheelTriggerMode === 'off' ? '#fca5a5' : '#94a3b8', fontSize: 11, fontWeight: wheelTriggerMode === 'off' ? '900' : '700' }}>
+                      Turn Off
                     </Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
               {/* ACTION BUTTONS */}
-              <View style={[styles.modalBtnRow, { marginTop: 6, marginBottom: 2 }]}>
-                <TouchableOpacity style={[styles.skipBtn, { paddingVertical: 9 }]} onPress={() => confirmWheelShot(true)}>
-                  <Text style={styles.skipBtnText}>Skip Area</Text>
+              <View style={{ flexDirection: 'row', gap: 8, marginTop: 2, marginBottom: 2 }}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#0c1e36',
+                    borderColor: '#1e3a5f',
+                    borderWidth: 1.5,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                  onPress={() => confirmWheelShot(true)}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '800' }}>Skip Area</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.confirmBtn, { backgroundColor: '#10b981', paddingVertical: 9 }]} onPress={() => confirmWheelShot(false)}>
-                  <Text style={[styles.confirmBtnText, { color: '#020617', fontWeight: '900' }]}>Confirm Shot 🚀</Text>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  style={{
+                    flex: 1.5,
+                    backgroundColor: '#16a34a',
+                    borderColor: '#22c55e',
+                    borderWidth: 1.5,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                    shadowColor: '#22c55e',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 6,
+                    elevation: 4,
+                  }}
+                  onPress={() => confirmWheelShot(false)}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900' }}>Confirm Shot ✓</Text>
                 </TouchableOpacity>
               </View>
             </ScrollView>
