@@ -18488,18 +18488,12 @@ function CricketAddaMain() {
           contentContainerStyle={{ paddingBottom: statsSubTab === 'career' ? (bottomInset + 85) : 4 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* Top Section Header ("Player Stats") */}
+          {/* Top Section Header ("Player Stats" - Matching Settings style: Centered, transparent, clean) */}
           <View style={{
-            backgroundColor: cardBg,
-            paddingVertical: 6,
+            paddingTop: 4,
+            paddingBottom: 2,
             paddingHorizontal: 14,
-            borderBottomWidth: 1,
-            borderBottomColor: cardBorder,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
             position: 'relative',
-            gap: 8,
           }}>
             {isViewingOtherPlayer && (
               <TouchableOpacity
@@ -18507,32 +18501,39 @@ function CricketAddaMain() {
                 onPress={handleBackPress}
                 style={{
                   position: 'absolute',
-                  left: 12,
+                  left: 14,
+                  top: 4,
                   flexDirection: 'row',
                   alignItems: 'center',
                   gap: 4,
                   backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#0f233c',
                   borderColor: cardBorder,
                   borderWidth: 1,
-                  borderRadius: 8,
-                  paddingHorizontal: 9,
-                  paddingVertical: 4,
+                  borderRadius: 16,
+                  paddingHorizontal: 10,
+                  paddingVertical: 4.5,
+                  zIndex: 5,
                 }}
               >
-                <Text style={{ color: '#e2e8f0', fontSize: 12, fontWeight: '800' }}>← Back</Text>
+                <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#e2e8f0', fontSize: 11.5, fontWeight: '800' }}>← Back</Text>
               </TouchableOpacity>
             )}
-            <Svg width={18} height={15} viewBox="0 0 18 15" fill="none" style={{ marginTop: -2 }}>
-              <Rect x="1" y="7" width="4" height="7.5" rx="1" fill="#0284c7" />
-              <Rect x="7" y="3.5" width="4" height="11" rx="1" fill="#0ea5e9" />
-              <Rect x="13" y="0.5" width="4" height="14" rx="1" fill="#38bdf8" />
-            </Svg>
-            <Text style={{ color: txtPrimary, fontSize: 18, lineHeight: 22, includeFontPadding: false, fontWeight: '900', letterSpacing: 0.3 }}>
-              Player Stats
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 }}>
+              <Svg width={20} height={17} viewBox="0 0 18 15" fill="none" style={{ marginTop: -1 }}>
+                <Rect x="1" y="7" width="4" height="7.5" rx="1" fill="#0284c7" />
+                <Rect x="7" y="3.5" width="4" height="11" rx="1" fill="#0ea5e9" />
+                <Rect x="13" y="0.5" width="4" height="14" rx="1" fill="#38bdf8" />
+              </Svg>
+              <Text style={{ color: txtPrimary, fontSize: 21, fontWeight: '900', letterSpacing: 0.2 }}>
+                Player Stats
+              </Text>
+            </View>
+            <Text style={{ color: txtMuted, fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
+              Track your career stats, match records & performance
             </Text>
           </View>
 
-          <View style={{ paddingHorizontal: 10, paddingTop: 7 }}>
+          <View style={{ paddingHorizontal: 10, paddingTop: 2 }}>
             {/* 1. PLAYER IDENTITY & TOP KPI HEADER CARD */}
             <View style={{
               backgroundColor: cardBg,
@@ -21780,15 +21781,12 @@ function CricketAddaMain() {
               contentContainerStyle={{ paddingBottom: bottomInset + 95 }}
               showsVerticalScrollIndicator={false}
             >
-              {/* 1. TOP HEADER BANNER (Matching app dark theme across all pages) */}
+              {/* 1. TOP HEADER (Matching Settings style: Centered, transparent, clean) */}
               <View style={{
-                backgroundColor: currentTheme.isLight ? '#ffffff' : '#071526',
-                paddingTop: 12,
-                paddingBottom: 12,
+                paddingTop: 4,
+                paddingBottom: 2,
                 paddingHorizontal: 14,
-                alignItems: 'center',
-                borderBottomWidth: 1,
-                borderBottomColor: currentTheme.isLight ? '#e2e8f0' : '#1e3a5f',
+                position: 'relative',
               }}>
                 {/* Compact Create Team pill on top-right */}
                 <TouchableOpacity
@@ -21796,8 +21794,8 @@ function CricketAddaMain() {
                   activeOpacity={0.85}
                   style={{
                     position: 'absolute',
-                    right: 12,
-                    top: 11,
+                    right: 14,
+                    top: 4,
                     backgroundColor: '#0284c7',
                     borderColor: '#38bdf8',
                     borderWidth: 1,
@@ -21814,20 +21812,20 @@ function CricketAddaMain() {
                   <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }}>Create</Text>
                 </TouchableOpacity>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 }}>
                   <Svg width={20} height={20} viewBox="0 0 24 24" fill="none">
                     <Path d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z" fill={currentTheme.isLight ? '#0f172a' : '#ffffff'} />
                   </Svg>
-                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 19, fontWeight: '900', letterSpacing: 0.3 }}>
+                  <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 21, fontWeight: '900', letterSpacing: 0.2 }}>
                     My Teams
                   </Text>
                 </View>
-                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11.5, fontWeight: '600', marginTop: 2, textAlign: 'center' }}>
+                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
                   Teams you created and teams you play for
                 </Text>
               </View>
 
-              <View style={{ paddingHorizontal: 12, paddingTop: 10 }}>
+              <View style={{ paddingHorizontal: 12, paddingTop: 2 }}>
                 {/* 2. 3-SEGMENT CAPSULE FILTER BAR (All Teams | My Teams | Playing For) */}
                 <View style={{
                   flexDirection: 'row',
