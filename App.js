@@ -6444,48 +6444,202 @@ function CricketAddaMain() {
     setUserProfile(prev => {
       const safePrev = prev || {};
       const updated = typeof updater === 'function' ? updater(safePrev) : { ...safePrev, ...updater };
+      const oldName = String(safePrev?.name || authName || '').trim();
+      const newName = String(updated?.name || '').trim();
+      const cleanPhone = String(updated?.phone || authPhone || '').replace(/[^0-9]/g, '');
+      const currentEmail = String(updated?.email || authEmail || '').toLowerCase().trim();
+
       AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(updated)).catch(() => {});
 
-      // 1. Sync to usersDb
+      // Keep React auth states in immediate sync
+      if (newName) setAuthName(newName);
+      if (updated?.jersey) setAuthJersey(updated.jersey);
+      if (cleanPhone) setAuthPhone(cleanPhone);
+      if (updated?.role) setAuthRole(updated.role);
+      if (updated?.battingStyle) setAuthBattingStyle(updated.battingStyle);
+      if (updated?.bowlingStyle) setAuthBowlingStyle(updated.bowlingStyle);
+
+      // 1. Sync to usersDb (both u.name and u.profile)
       setUsersDb(prevUsers => {
         if (!Array.isArray(prevUsers)) return prevUsers || [];
-        const currentEmail = String(updated?.email || authEmail || '').toLowerCase();
-        const currentPhone = String(updated?.phone || authPhone || '').replace(/[^0-9]/g, '');
+        let matchedInDb = false;
         const updatedList = prevUsers.map(u => {
           if (!u) return null;
-          const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase();
+          const uEmail = String(u.email || (u.profile && u.profile.email) || '').toLowerCase().trim();
           const uPhone = String((u.profile && u.profile.phone) || u.phone || '').replace(/[^0-9]/g, '');
-          if ((currentEmail && uEmail === currentEmail) || (currentPhone && uPhone === currentPhone)) {
+          const uName = String(u.name || (u.profile && u.profile.name) || '').trim().toLowerCase();
+          const isMatch = (currentEmail && uEmail === currentEmail) ||
+                          (cleanPhone && uPhone && cleanPhone === uPhone) ||
+                          (oldName && uName === oldName.toLowerCase());
+          if (isMatch) {
+            matchedInDb = true;
             return {
               ...u,
+              name: newName || u.name,
+              phone: cleanPhone || u.phone,
+              jersey: updated?.jersey || u.jersey,
+              role: updated?.role || u.role,
+              battingStyle: updated?.battingStyle || u.battingStyle,
+              bowlingStyle: updated?.bowlingStyle || u.bowlingStyle,
               avatarUri: updated?.avatarUri || u.avatarUri,
-              profile: { ...(u.profile || {}), ...updated },
+              profile: { ...(u.profile || {}), ...updated, name: newName || updated.name },
             };
           }
           return u;
         }).filter(Boolean);
+
+        if (!matchedInDb && newName) {
+          updatedList.unshift({
+            id: updated.id || `usr_${cleanPhone || Date.now()}`,
+            name: newName,
+            email: currentEmail,
+            phone: cleanPhone,
+            jersey: updated.jersey || '#18',
+            role: updated.role || 'Top-Order Batter',
+            battingStyle: updated.battingStyle || 'Right Hand Bat',
+            bowlingStyle: updated.bowlingStyle || 'Right Arm Medium',
+            avatarUri: updated.avatarUri || null,
+            profile: updated,
+          });
+        }
         AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updatedList)).catch(() => {});
         syncUsersToFirebase(updatedList).catch(() => {});
         return updatedList;
       });
 
-      // 2. Sync to registeredPlayers so squad lists and player tags update immediately
+      // 2. Sync to registeredPlayers so squad lists, rosters and player pickers update immediately
       setRegisteredPlayers(prevPlayers => {
         if (!Array.isArray(prevPlayers)) return prevPlayers || [];
-        const currentName = String(updated?.name || '').trim().toLowerCase();
-        const currentPhone = String(updated?.phone || authPhone || '').replace(/[^0-9]/g, '');
+        let matchedPlayer = false;
+        const oldLower = oldName ? oldName.toLowerCase() : '';
+        const newLower = newName ? newName.toLowerCase() : '';
         const updatedList = prevPlayers.map(p => {
           if (!p) return null;
           const pName = String(p.name || '').trim().toLowerCase();
           const pPhone = String(p.phone || '').replace(/[^0-9]/g, '');
-          if ((currentPhone && pPhone === currentPhone) || (currentName && pName === currentName)) {
-            return { ...p, avatarUri: updated?.avatarUri || p.avatarUri };
+          const isMatch = (cleanPhone && pPhone && cleanPhone === pPhone) ||
+                          (newLower && pName === newLower) ||
+                          (oldLower && (pName === oldLower || pName.includes(oldLower) || oldLower.includes(pName)));
+          if (isMatch) {
+            matchedPlayer = true;
+            return {
+              ...p,
+              name: newName || p.name,
+              phone: cleanPhone || p.phone,
+              jersey: updated?.jersey || p.jersey,
+              role: updated?.role || p.role,
+              battingStyle: updated?.battingStyle || p.battingStyle,
+              bowlingStyle: updated?.bowlingStyle || p.bowlingStyle,
+              avatarUri: updated?.avatarUri || p.avatarUri,
+            };
           }
           return p;
         }).filter(Boolean);
+
+        if (!matchedPlayer && newName) {
+          updatedList.unshift({
+            id: updated.id || `p_${Date.now()}`,
+            name: newName,
+            phone: cleanPhone,
+            jersey: updated.jersey || '#18',
+            role: updated.role || 'Top-Order Batter',
+            battingStyle: updated.battingStyle || 'Right Hand Bat',
+            bowlingStyle: updated.bowlingStyle || 'Right Arm Medium',
+            avatarUri: updated.avatarUri || null,
+          });
+        }
         AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updatedList)).catch(() => {});
         return updatedList;
       });
+
+      // 3. Cascade updated player name to registeredTeams (captain, createdBy, and squads)
+      if (oldName && newName && oldName.toLowerCase() !== newName.toLowerCase()) {
+        const oldLower = oldName.toLowerCase();
+        setRegisteredTeams(prevTeams => {
+          if (!Array.isArray(prevTeams)) return prevTeams || [];
+          let hasChange = false;
+          const updatedTeams = prevTeams.map(t => {
+            if (!t) return t;
+            let teamChanged = false;
+            let cap = t.captain;
+            if (cap && (cap.toLowerCase().trim() === oldLower || cap.toLowerCase().trim().replace(' (c)', '') === oldLower)) {
+              cap = newName;
+              teamChanged = true;
+            }
+            let createdBy = t.createdBy;
+            if (createdBy && createdBy.toLowerCase().trim() === oldLower) {
+              createdBy = newName;
+              teamChanged = true;
+            }
+            let squad = t.squad;
+            if (Array.isArray(squad)) {
+              squad = squad.map(p => {
+                if (typeof p === 'string') {
+                  const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
+                  if (cleanP.toLowerCase() === oldLower) {
+                    teamChanged = true;
+                    return p.replace(cleanP, newName);
+                  }
+                  return p;
+                } else if (p && typeof p === 'object') {
+                  const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
+                  if (pClean.toLowerCase() === oldLower || (p.phone && cleanPhone && p.phone === cleanPhone)) {
+                    teamChanged = true;
+                    return { ...p, name: newName, avatarUri: updated?.avatarUri || p.avatarUri };
+                  }
+                  return p;
+                }
+                return p;
+              });
+            }
+            if (teamChanged) {
+              hasChange = true;
+              return { ...t, captain: cap, createdBy, squad };
+            }
+            return t;
+          });
+          if (hasChange) {
+            AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updatedTeams)).catch(() => {});
+            syncTeamsToFirebase(updatedTeams).catch(() => {});
+            return updatedTeams;
+          }
+          return prevTeams;
+        });
+      }
+
+      // 4. Cascade updated player name to matches in matchesDb
+      if (oldName && newName && oldName.toLowerCase() !== newName.toLowerCase()) {
+        const oldLower = oldName.toLowerCase();
+        setMatchesDb(prevMatches => {
+          if (!prevMatches || typeof prevMatches !== 'object') return prevMatches;
+          let hasChange = false;
+          const updatedMatches = { ...prevMatches };
+          Object.keys(updatedMatches).forEach(mId => {
+            const m = updatedMatches[mId];
+            if (m) {
+              let matchChanged = false;
+              let cName = m.creatorName;
+              if (cName && cName.toLowerCase().trim() === oldLower) {
+                cName = newName;
+                matchChanged = true;
+              }
+              let sName = m.scorerName;
+              if (sName && sName.toLowerCase().trim() === oldLower) {
+                sName = newName;
+                matchChanged = true;
+              }
+              if (matchChanged) {
+                hasChange = true;
+                updatedMatches[mId] = { ...m, creatorName: cName, scorerName: sName };
+              }
+            }
+          });
+          if (hasChange) {
+            AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedMatches)).catch(() => {});
+          }
+          return hasChange ? updatedMatches : prevMatches;
+        });
+      }
 
       syncSingleUserProfileToFirebase(updated, updated?.email || authEmail).catch(() => {});
 
@@ -6709,11 +6863,9 @@ function CricketAddaMain() {
     setEditNameInput(targetName);
     setEditJerseyInput(targetJersey);
     setEditRoleInput(targetRole);
-    if (!isAuthenticated) {
-      setAuthName(targetName);
-      setAuthJersey(targetJersey);
-      setAuthRole(targetRole);
-    }
+    setAuthName(targetName);
+    setAuthJersey(targetJersey);
+    setAuthRole(targetRole);
     setPhotoPickerVisible(false);
     showAppToast(`Star avatar "${p.name}" selected! 🌟`, '🎉', 'success');
   };
@@ -6740,24 +6892,25 @@ function CricketAddaMain() {
 
   // Save Full Profile Edits
   const saveProfileEdits = () => {
-    const cleanName = editNameInput.trim() || (!isAuthenticated && authName ? authName : userProfile.name);
-    const cleanJersey = editJerseyInput.trim() || (!isAuthenticated && authJersey ? authJersey : userProfile.jersey);
+    const cleanName = editNameInput.trim() || userProfile.name || authName;
+    const cleanJersey = editJerseyInput.trim() || userProfile.jersey || authJersey;
     const cleanPhone = (editPhoneInput || '').trim();
-    const rawRole = (editRoleInput || (!isAuthenticated && authRole ? authRole : userProfile.role) || 'Batter').trim();
+    const rawRole = (editRoleInput || userProfile.role || authRole || 'Batter').trim();
     const cleanRole = rawRole.replace(/\s*\((Right-hand Bat|Left-hand Bat|Right-hand|Left-hand)\)\s*$/i, '').trim() || 'Batter';
     const cleanBat = editBattingStyleInput || userProfile.battingStyle || 'Right-hand Bat';
     const rawBowl = editBowlingStyleInput || userProfile.bowlingStyle || 'Right-arm Fast';
     const cleanBowl = roleNeedsBowling(cleanRole) ? (rawBowl === 'None' ? 'Right-arm Fast' : rawBowl) : 'None';
-    if (!isAuthenticated) {
-      setAuthName(cleanName);
-      setAuthJersey(cleanJersey);
-      setAuthRole(cleanRole);
-      setAuthBattingStyle(cleanBat);
-      setAuthBowlingStyle(cleanBowl);
-    }
+
+    // Keep auth state variables always in full sync
+    setAuthName(cleanName);
+    setAuthJersey(cleanJersey);
+    setAuthRole(cleanRole);
+    setAuthBattingStyle(cleanBat);
+    setAuthBowlingStyle(cleanBowl);
     if (cleanPhone) {
       setAuthPhone(cleanPhone);
     }
+
     updateAndPersistUserProfile(prev => ({
       ...prev,
       name: cleanName,
@@ -7408,8 +7561,30 @@ function CricketAddaMain() {
             fetchFirebaseUsers().then(cloudUsers => {
               if (Array.isArray(cloudUsers) && (cloudUsers || []).length > 0) {
                 const cleanUsers = cloudUsers.filter(Boolean);
-                setUsersDb(cleanUsers);
-                AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(cleanUsers)).catch(() => {});
+                const activeEmail = (activeAccountProfile?.email || userProfile?.email || authEmail || '').toLowerCase().trim();
+                const activePhone = String(activeAccountProfile?.phone || userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '');
+                const activeName = (activeAccountProfile?.name || userProfile?.name || authName || '').trim();
+                const mergedUsers = cleanUsers.map(u => {
+                  if (!u) return null;
+                  const uEmail = String(u.email || u.profile?.email || '').toLowerCase().trim();
+                  const uPhone = String(u.phone || u.profile?.phone || '').replace(/[^0-9]/g, '');
+                  if ((activeEmail && uEmail === activeEmail) || (activePhone && uPhone === activePhone)) {
+                    if (activeName) {
+                      return {
+                        ...u,
+                        name: activeName,
+                        jersey: userProfile?.jersey || u.jersey,
+                        role: userProfile?.role || u.role,
+                        phone: userProfile?.phone || u.phone,
+                        avatarUri: userProfile?.avatarUri || u.avatarUri,
+                        profile: { ...(u.profile || {}), ...userProfile, name: activeName },
+                      };
+                    }
+                  }
+                  return u;
+                }).filter(Boolean);
+                setUsersDb(mergedUsers);
+                AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(mergedUsers)).catch(() => {});
               }
             }).catch(() => {});
 
@@ -7528,6 +7703,76 @@ function CricketAddaMain() {
       AsyncStorage.setItem(STORAGE_KEYS.USER_PROFILE, JSON.stringify(userProfile)).catch(() => {});
     }
   }, [userProfile]);
+
+  // Comprehensive Profile Sync: Keep authName, registeredPlayers, usersDb & registeredTeams in 100% sync
+  useEffect(() => {
+    if (userProfile && userProfile.name && userProfile.name.trim()) {
+      const uName = userProfile.name.trim();
+      const uPhone = String(userProfile.phone || authPhone || '').replace(/[^0-9]/g, '');
+      const uEmail = String(userProfile.email || authEmail || '').toLowerCase().trim();
+
+      // 1. Sync authName fallback state
+      if (authName !== uName) {
+        setAuthName(uName);
+      }
+
+      // 2. Reconcile registeredPlayers list
+      setRegisteredPlayers(prev => {
+        if (!Array.isArray(prev) || prev.length === 0) return prev;
+        let changed = false;
+        const updated = prev.map(p => {
+          if (!p) return p;
+          const pName = String(p.name || '').trim();
+          const pPhone = String(p.phone || '').replace(/[^0-9]/g, '');
+          const isUserMatch = (uPhone && pPhone && uPhone === pPhone) ||
+                              (pName.toLowerCase() === 'amanlevo' || pName.toLowerCase() === 'aman' || pName === uName);
+          if (isUserMatch && (pName !== uName || p.avatarUri !== userProfile.avatarUri)) {
+            changed = true;
+            return {
+              ...p,
+              name: uName,
+              phone: uPhone || p.phone,
+              jersey: userProfile.jersey || p.jersey,
+              avatarUri: userProfile.avatarUri || p.avatarUri,
+            };
+          }
+          return p;
+        });
+        if (changed) {
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_PLAYERS, JSON.stringify(updated)).catch(() => {});
+          return updated;
+        }
+        return prev;
+      });
+
+      // 3. Reconcile usersDb list
+      setUsersDb(prev => {
+        if (!Array.isArray(prev) || prev.length === 0) return prev;
+        let changed = false;
+        const updated = prev.map(u => {
+          if (!u) return u;
+          const uRecordEmail = String(u.email || u.profile?.email || '').toLowerCase().trim();
+          const uRecordPhone = String(u.phone || u.profile?.phone || '').replace(/[^0-9]/g, '');
+          const isUserMatch = (uEmail && uRecordEmail === uEmail) || (uPhone && uRecordPhone === uPhone);
+          if (isUserMatch && (u.name !== uName || u.profile?.name !== uName || u.avatarUri !== userProfile.avatarUri)) {
+            changed = true;
+            return {
+              ...u,
+              name: uName,
+              avatarUri: userProfile.avatarUri || u.avatarUri,
+              profile: { ...(u.profile || {}), ...userProfile, name: uName },
+            };
+          }
+          return u;
+        });
+        if (changed) {
+          AsyncStorage.setItem(STORAGE_KEYS.USERS_DB, JSON.stringify(updated)).catch(() => {});
+          return updated;
+        }
+        return prev;
+      });
+    }
+  }, [userProfile?.name, userProfile?.avatarUri]);
 
   // 30-Day Session Heartbeat: Keep last active timestamp refreshed on active app usage
   useEffect(() => {
@@ -29887,7 +30132,7 @@ function CricketAddaMain() {
                 onPress={() => {
                   setScorerActionsModalVisible(false);
                   setTimeout(() => {
-                    triggerCelebration('six', striker || 'Amanlevo', '6', true);
+                    triggerCelebration('six', striker || userProfile?.name || 'Player', '6', true);
                   }, 200);
                 }}
                 style={{
@@ -29907,7 +30152,7 @@ function CricketAddaMain() {
                 onPress={() => {
                   setScorerActionsModalVisible(false);
                   setTimeout(() => {
-                    triggerCelebration('four', striker || 'Amanlevo', '4', true);
+                    triggerCelebration('four', striker || userProfile?.name || 'Player', '4', true);
                   }, 200);
                 }}
                 style={{
@@ -29927,7 +30172,7 @@ function CricketAddaMain() {
                 onPress={() => {
                   setScorerActionsModalVisible(false);
                   setTimeout(() => {
-                    triggerCelebration('bowled', striker || 'Amanlevo', 'OUT', true);
+                    triggerCelebration('bowled', striker || userProfile?.name || 'Player', 'OUT', true);
                   }, 200);
                 }}
                 style={{
@@ -29947,7 +30192,7 @@ function CricketAddaMain() {
                 onPress={() => {
                   setScorerActionsModalVisible(false);
                   setTimeout(() => {
-                    triggerCelebration('no_ball', striker || 'Amanlevo', 'FREE HIT', true);
+                    triggerCelebration('no_ball', striker || userProfile?.name || 'Player', 'FREE HIT', true);
                   }, 200);
                 }}
                 style={{
