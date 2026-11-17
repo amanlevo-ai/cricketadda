@@ -26186,7 +26186,7 @@ function CricketAddaMain() {
           {activeTab === 'settings' && <View style={styles.bottomNavActiveBar} />}
         </TouchableOpacity>
       </View>
-      )}
+      )
       )}
 
       {/* JOIN MATCH WITH CODE MODAL */}
