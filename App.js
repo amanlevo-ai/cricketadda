@@ -25755,40 +25755,16 @@ function CricketAddaMain() {
         ];
 
         return (
-          <ScrollView
-            style={styles.mainContent}
-            contentContainerStyle={{ paddingBottom: bottomInset + 92, paddingTop: 4 }}
-            showsVerticalScrollIndicator={false}
+          <View
+            style={[styles.mainContent, { paddingBottom: bottomInset + 75, paddingTop: 4 }]}
           >
-            {/* Header Row: Back Button + Centered Settings Title + Subtitle */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-              <TouchableOpacity
-                style={{
-                  width: 38,
-                  height: 32,
-                  borderRadius: 10,
-                  backgroundColor: isLight ? '#f1f5f9' : '#0b192c',
-                  borderColor: cardBorderCol,
-                  borderWidth: 1.2,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                onPress={goBack}
-                activeOpacity={0.8}
-              >
-                <Text style={{ color: titleColor, fontSize: 17, fontWeight: '900', marginTop: -2 }}>←</Text>
-              </TouchableOpacity>
-
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <Text style={{ fontSize: 20 }}>⚙️</Text>
-                <Text style={{ color: titleColor, fontSize: 21, fontWeight: '900', letterSpacing: 0.2 }}>Settings</Text>
-              </View>
-
-              <View style={{ width: 38 }} />
+            {/* Header: Centered Settings Title (Back arrow button removed) */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 }}>
+              <Text style={{ fontSize: 20 }}>⚙️</Text>
+              <Text style={{ color: titleColor, fontSize: 21, fontWeight: '900', letterSpacing: 0.2 }}>Settings</Text>
             </View>
 
-            <Text style={{ color: subColor, fontSize: 12, textAlign: 'center', marginBottom: 16 }}>
+            <Text style={{ color: subColor, fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
               Manage your account, app preferences and more
             </Text>
 
@@ -25857,9 +25833,9 @@ function CricketAddaMain() {
                     borderColor: isLight ? '#0284c7' : '#38bdf8',
                     borderWidth: 1.5,
                     borderRadius: 16,
-                    paddingVertical: 13,
-                    paddingHorizontal: 13,
-                    marginBottom: 14,
+                    paddingVertical: 10,
+                    paddingHorizontal: 12,
+                    marginBottom: 10,
                     flexDirection: 'row',
                     alignItems: 'center',
                     shadowColor: '#38bdf8',
@@ -25983,31 +25959,31 @@ function CricketAddaMain() {
                   borderColor: cardBorderCol,
                   borderWidth: 1.2,
                   borderRadius: 14,
-                  paddingVertical: 13,
-                  paddingHorizontal: 14,
-                  marginTop: item.extraTopGap ? 14 : 0,
-                  marginBottom: 11,
+                  paddingVertical: 10,
+                  paddingHorizontal: 13,
+                  marginTop: item.extraTopGap ? 6 : 0,
+                  marginBottom: 8,
                   flexDirection: 'row',
                   alignItems: 'center',
                 }}
               >
                 <View style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
                   backgroundColor: item.iconBg,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  marginRight: 14,
+                  marginRight: 12,
                 }}>
-                  <Text style={{ fontSize: 20 }}>{item.icon}</Text>
+                  <Text style={{ fontSize: 18 }}>{item.icon}</Text>
                 </View>
 
                 <View style={{ flex: 1, paddingRight: 10 }}>
-                  <Text style={{ color: titleColor, fontSize: 15, fontWeight: '800' }} numberOfLines={1}>
+                  <Text style={{ color: titleColor, fontSize: 14.5, fontWeight: '800' }} numberOfLines={1}>
                     {item.title}
                   </Text>
-                  <Text style={{ color: subColor, fontSize: 12, marginTop: 2 }} numberOfLines={1}>
+                  <Text style={{ color: subColor, fontSize: 11.5, marginTop: 1.5 }} numberOfLines={1}>
                     {item.subtitle}
                   </Text>
                 </View>
@@ -26015,19 +25991,19 @@ function CricketAddaMain() {
                 {item.type === 'switch' ? (
                   <View
                     style={{
-                      width: 52,
-                      height: 28,
-                      borderRadius: 14,
+                      width: 50,
+                      height: 26,
+                      borderRadius: 13,
                       backgroundColor: item.value ? '#10b981' : (isLight ? '#cbd5e1' : '#334155'),
-                      padding: 3,
+                      padding: 2.5,
                       justifyContent: 'center',
                       alignItems: item.value ? 'flex-end' : 'flex-start',
                     }}
                   >
-                    <View style={{ width: 22, height: 22, borderRadius: 11, backgroundColor: '#ffffff' }} />
+                    <View style={{ width: 20, height: 20, borderRadius: 10, backgroundColor: '#ffffff' }} />
                   </View>
                 ) : (
-                  <Text style={{ color: isLight ? '#64748b' : '#e2e8f0', fontSize: 22, fontWeight: '700' }}>›</Text>
+                  <Text style={{ color: isLight ? '#64748b' : '#e2e8f0', fontSize: 20, fontWeight: '700' }}>›</Text>
                 )}
               </TouchableOpacity>
             ))}
@@ -26041,20 +26017,20 @@ function CricketAddaMain() {
                 borderColor: '#ef4444',
                 borderWidth: 1.4,
                 borderRadius: 14,
-                paddingVertical: 14,
-                marginTop: 8,
+                paddingVertical: 11,
+                marginTop: 6,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: 10,
               }}
             >
-              <Text style={{ fontSize: 17 }}>🚪</Text>
-              <Text style={{ color: isLight ? '#dc2626' : '#f8fafc', fontSize: 15, fontWeight: '800' }}>
+              <Text style={{ fontSize: 16 }}>🚪</Text>
+              <Text style={{ color: isLight ? '#dc2626' : '#f8fafc', fontSize: 14.5, fontWeight: '800' }}>
                 Sign Out
               </Text>
             </TouchableOpacity>
-          </ScrollView>
+          </View>
         );
       })()}
 
