@@ -6422,15 +6422,15 @@ function CricketAddaMain() {
   const [wicketInspectModalVisible, setWicketInspectModalVisible] = useState(false);
   const [selectedWicketDetails, setSelectedWicketDetails] = useState(null);
 
-  // Dynamic Badge Sizes
-  const mainBadgeW = Math.round(FULL_WHEEL_SIZE * 0.165);
-  const mainBadgeH = Math.round(FULL_WHEEL_SIZE * 0.115);
+  // Dynamic Badge Sizes (Enlarged by ~2pt for high readability)
+  const mainBadgeW = Math.round(FULL_WHEEL_SIZE * 0.18);
+  const mainBadgeH = Math.round(FULL_WHEEL_SIZE * 0.13);
 
-  const modalBadgeW = Math.round(MODAL_WHEEL_SIZE * 0.165);
-  const modalBadgeH = Math.round(MODAL_WHEEL_SIZE * 0.115);
+  const modalBadgeW = Math.round(MODAL_WHEEL_SIZE * 0.18);
+  const modalBadgeH = Math.round(MODAL_WHEEL_SIZE * 0.13);
   const scorerWheelSize = Math.round(Math.min(width - 24, 336));
-  const scorerBadgeW = Math.round(scorerWheelSize * 0.205);
-  const scorerBadgeH = Math.round(scorerWheelSize * 0.125);
+  const scorerBadgeW = Math.round(scorerWheelSize * 0.22);
+  const scorerBadgeH = Math.round(scorerWheelSize * 0.138);
 
 
   const updateAndPersistUserProfile = (updater) => {
@@ -24952,12 +24952,13 @@ function CricketAddaMain() {
                   <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
                 </TouchableOpacity>
 
-                <Text style={[styles.wheelHeading, currentTheme.isLight && { color: '#0f172a' }]}>8-Sector Cricket Ground Wagon Wheel</Text>
-                <Text style={[styles.wheelSub, currentTheme.isLight && { color: '#64748b' }]}>Showing: {battingTeamName} vs {bowlingTeamName}</Text>
+                <Text style={[styles.wheelHeading, { textAlign: 'center', marginTop: 4, marginBottom: 12, fontSize: 18, fontWeight: '900' }, currentTheme.isLight && { color: '#0f172a' }]}>
+                  {battingTeamName} vs {bowlingTeamName}
+                </Text>
               </View>
 
               {/* LARGE WAGON WHEEL STAGE CONTAINER */}
-              <View style={[styles.wheelContainerRelative, { width: FULL_WHEEL_SIZE, height: FULL_WHEEL_SIZE, borderRadius: 20, alignSelf: 'center' }]}>
+              <View style={[styles.wheelContainerRelative, { width: FULL_WHEEL_SIZE, height: FULL_WHEEL_SIZE, borderRadius: 20, alignSelf: 'center', marginTop: 2 }]}>
                 {renderGroundWheelSvg(FULL_WHEEL_SIZE, activeZone?.id, 'match')}
 
                 {dynamicSectors.map(sec => {
@@ -24993,20 +24994,11 @@ function CricketAddaMain() {
                 })}
               </View>
 
-              <View style={[styles.wheelTouchPromptBar, currentTheme.isLight && { backgroundColor: '#f1f5f9', borderColor: '#cbd5e1' }, { marginHorizontal: 6 }]}>
-                <Text style={[styles.wheelTouchPromptText, currentTheme.isLight && { color: '#0284c7' }]}>
-                  👆 Tap any area on the wheel to view its detailed breakdown below
-                </Text>
-              </View>
-
-              <View style={[styles.areaDetailsMasterCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { marginHorizontal: 6, width: width - 12 }]}>
+              <View style={[styles.areaDetailsMasterCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { marginHorizontal: 6, width: width - 12, marginTop: 14 }]}>
                 <View style={styles.areaDetailsHeaderRow}>
                   <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 }}>
-                      <Text style={[styles.areaDetailsMainTitle, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>📍 {activeZone.name.toUpperCase()}</Text>
-                      <View style={styles.activeAreaPill}>
-                        <Text style={styles.activeAreaPillText}>{activeZone.angleLabel}</Text>
-                      </View>
+                      <Text style={[styles.areaDetailsMainTitle, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>{activeZone.name.toUpperCase()}</Text>
                     </View>
                     <Text style={[styles.areaDetailsSubText, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={2}>{activeZone.shot}</Text>
                   </View>
@@ -26376,7 +26368,7 @@ function CricketAddaMain() {
                 <View style={styles.modalAreaDetailsCard}>
                   <View style={styles.areaDetailsHeaderRow}>
                     <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
-                      <Text style={styles.areaDetailsMainTitle} numberOfLines={1}>📍 {bowlerWheelZone.name.toUpperCase()} SECTOR</Text>
+                      <Text style={styles.areaDetailsMainTitle} numberOfLines={1}>{bowlerWheelZone.name.toUpperCase()} SECTOR</Text>
                       <Text style={styles.areaDetailsSubText} numberOfLines={2}>
                         {bowlerWheelZone.wickets > 0 ? `🎯 ${bowlerWheelZone.wickets} Wickets Taken Here!` : 'No wickets conceded here'}
                       </Text>
@@ -26618,7 +26610,7 @@ function CricketAddaMain() {
                   <View style={styles.areaDetailsHeaderRow}>
                     <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
                       <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 }}>
-                        <Text style={styles.areaDetailsMainTitle} numberOfLines={1}>📍 {batterWheelZone.name.toUpperCase()}</Text>
+                        <Text style={styles.areaDetailsMainTitle} numberOfLines={1}>{batterWheelZone.name.toUpperCase()}</Text>
                         <View style={styles.activeAreaPill}>
                           <Text style={styles.activeAreaPillText}>{batterWheelZone.shortName}</Text>
                         </View>
@@ -39490,12 +39482,13 @@ const styles = StyleSheet.create({
   nativeWheelBadge: {
     position: 'absolute',
     borderRadius: 10,
-    backgroundColor: 'rgba(2, 6, 23, 0.88)',
+    backgroundColor: 'rgba(2, 6, 23, 0.92)',
     borderWidth: 1.2,
     borderColor: '#000000',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 2,
+    paddingVertical: 3,
+    paddingHorizontal: 2,
     zIndex: 50,
     elevation: 8,
     shadowColor: '#000',
@@ -39513,7 +39506,7 @@ const styles = StyleSheet.create({
   },
   badgeShortName: {
     color: '#cbd5e1',
-    fontSize: 7.5,
+    fontSize: 8.5,
     fontWeight: '900',
     textAlign: 'center',
   },
@@ -39522,18 +39515,18 @@ const styles = StyleSheet.create({
   },
   badgeRuns: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '900',
     marginVertical: -1,
   },
   badgeRunsActive: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 15,
   },
   badgePct: {
-    color: '#ef4444',
-    fontSize: 8,
-    fontWeight: '900',
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '800',
   },
 
   wheelTouchPromptBar: {
