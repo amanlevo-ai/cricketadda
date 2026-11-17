@@ -20996,6 +20996,9 @@ function CricketAddaMain() {
                           fontSize: 12.5,
                           fontWeight: '700',
                           paddingHorizontal: 9,
+                          paddingVertical: 0,
+                          textAlignVertical: 'center',
+                          includeFontPadding: false,
                           height: 35,
                         }}
                         value={editNameInput}
@@ -21017,6 +21020,9 @@ function CricketAddaMain() {
                           fontSize: 12.5,
                           fontWeight: '700',
                           paddingHorizontal: 9,
+                          paddingVertical: 0,
+                          textAlignVertical: 'center',
+                          includeFontPadding: false,
                           height: 35,
                         }}
                         value={editJerseyInput}
@@ -21041,6 +21047,9 @@ function CricketAddaMain() {
                           fontSize: 12,
                           fontWeight: '700',
                           paddingHorizontal: 8,
+                          paddingVertical: 0,
+                          textAlignVertical: 'center',
+                          includeFontPadding: false,
                           height: 35,
                         }}
                         value={editPhoneInput}
@@ -21065,15 +21074,15 @@ function CricketAddaMain() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                       }}>
-                        <Text style={{ color: txtMuted, fontSize: 11, flex: 1 }} numberOfLines={1}>{displayEmail}</Text>
-                        <Text style={{ fontSize: 10, marginLeft: 4 }}>🔒</Text>
+                        <Text style={{ color: txtMuted, fontSize: 11, flex: 1, textAlignVertical: 'center', includeFontPadding: false }} numberOfLines={1}>{displayEmail}</Text>
+                        <Text style={{ fontSize: 10, marginLeft: 4, textAlignVertical: 'center' }}>🔒</Text>
                       </View>
                     </View>
                   </View>
 
                   {/* Row 3: Playing Role * (4 custom badge artworks, tick only, no border) */}
                   <Text style={{ color: txtMain, fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>🏏 Playing Role *</Text>
-                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
                     {[
                       { key: 'Top-Order Batter', img: require('./assets/roles/role-batsman.png') },
                       { key: 'Fast Bowler', img: require('./assets/roles/role-bowler.png') },
@@ -21115,7 +21124,7 @@ function CricketAddaMain() {
                               alignItems: 'center',
                               justifyContent: 'center',
                             }}>
-                              <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>✓</Text>
+                              <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900', textAlignVertical: 'center', includeFontPadding: false }}>✓</Text>
                             </View>
                           )}
                           <Image
@@ -21130,10 +21139,10 @@ function CricketAddaMain() {
 
                   {/* Row 4a: Batting Hand * (Hidden when Bowler is selected) */}
                   {showBattingHand && (
-                    <View style={{ marginBottom: showBowlingStyle ? 8 : 0 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 4 }}>
-                        <Text style={{ fontSize: 10.5 }}>🏏</Text>
-                        <Text style={{ color: txtMain, fontSize: 10, fontWeight: '800' }}>Batting Hand *</Text>
+                    <View style={{ marginTop: 2, marginBottom: showBowlingStyle ? 8 : 0 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6 }}>
+                        <Text style={{ fontSize: 10.5, textAlignVertical: 'center' }}>🏏</Text>
+                        <Text style={{ color: txtMain, fontSize: 10, fontWeight: '800', textAlignVertical: 'center' }}>Batting Hand *</Text>
                       </View>
                       <View style={{ flexDirection: 'row', gap: 6 }}>
                         {[
@@ -21148,9 +21157,9 @@ function CricketAddaMain() {
                               onPress={() => setEditBattingStyleInput(b.val)}
                               style={{
                                 flex: 1,
-                                height: 36,
+                                height: 38,
                                 flexDirection: 'row',
-                                gap: 5,
+                                gap: 6,
                                 backgroundColor: isSel ? (isLight ? '#e0f2fe' : 'rgba(2, 132, 199, 0.22)') : fieldBgCol,
                                 borderColor: isSel ? '#38bdf8' : cardBorderCol,
                                 borderWidth: isSel ? 1.5 : 1,
@@ -21175,11 +21184,11 @@ function CricketAddaMain() {
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                 }}>
-                                  <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900' }}>✓</Text>
+                                  <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900', textAlignVertical: 'center', includeFontPadding: false }}>✓</Text>
                                 </View>
                               )}
-                              <Text style={{ fontSize: 12 }}>{b.icon}</Text>
-                              <Text style={{ color: isSel ? (isLight ? '#0369a1' : '#ffffff') : txtMuted, fontSize: 10.5, fontWeight: isSel ? '900' : '700' }} numberOfLines={1}>
+                              <Text style={{ fontSize: 12, textAlignVertical: 'center' }}>{b.icon}</Text>
+                              <Text style={{ color: isSel ? (isLight ? '#0369a1' : '#ffffff') : txtMuted, fontSize: 10.5, fontWeight: isSel ? '900' : '700', textAlignVertical: 'center', includeFontPadding: false }} numberOfLines={1}>
                                 {b.label}
                               </Text>
                             </TouchableOpacity>
@@ -21254,57 +21263,66 @@ function CricketAddaMain() {
                   )}
                 </View>
               </View>
-
-              {/* 4. Bottom Action Buttons: Back and Save Profile */}
-              <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={() => setPhotoPickerVisible(false)}
-                  style={{
-                    flex: 1,
-                    backgroundColor: isLight ? '#e2e8f0' : '#0b192c',
-                    borderColor: cardBorderCol,
-                    borderWidth: 1.2,
-                    borderRadius: 12,
-                    paddingVertical: 11,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row',
-                    gap: 6,
-                  }}
-                >
-                  <Text style={{ color: txtMain, fontSize: 14, fontWeight: '800' }}>
-                    ← Back
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  onPress={saveProfileEdits}
-                  style={{
-                    flex: 1.5,
-                    backgroundColor: '#16a34a',
-                    borderColor: '#22c55e',
-                    borderWidth: 1,
-                    borderRadius: 12,
-                    paddingVertical: 11,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    flexDirection: 'row',
-                    gap: 6,
-                    shadowColor: '#22c55e',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 8,
-                    elevation: 4,
-                  }}
-                >
-                  <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', letterSpacing: 0.3 }}>
-                    Save Profile ✓
-                  </Text>
-                </TouchableOpacity>
-              </View>
             </ScrollView>
+
+            {/* Fixed Bottom Action Buttons: Back & Save (Always visible, Docked above safe area) */}
+            <View style={{
+              flexDirection: 'row',
+              gap: 10,
+              paddingHorizontal: 14,
+              paddingTop: 10,
+              paddingBottom: Math.max(bottomInset, 14),
+              backgroundColor: isLight ? '#ffffff' : '#030b16',
+              borderTopWidth: 1,
+              borderTopColor: cardBorderCol,
+            }}>
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => setPhotoPickerVisible(false)}
+                style={{
+                  flex: 1,
+                  backgroundColor: isLight ? '#e2e8f0' : '#0b192c',
+                  borderColor: cardBorderCol,
+                  borderWidth: 1.2,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 6,
+                }}
+              >
+                <Text style={{ color: txtMain, fontSize: 14, fontWeight: '800', textAlignVertical: 'center', includeFontPadding: false }}>
+                  ← Back
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={saveProfileEdits}
+                style={{
+                  flex: 1.5,
+                  backgroundColor: '#16a34a',
+                  borderColor: '#22c55e',
+                  borderWidth: 1,
+                  borderRadius: 12,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 6,
+                  shadowColor: '#22c55e',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 8,
+                  elevation: 4,
+                }}
+              >
+                <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', letterSpacing: 0.3, textAlignVertical: 'center', includeFontPadding: false }}>
+                  Save Profile ✓
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         );
       })() : (
@@ -26055,7 +26073,8 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* NATIVE BOTTOM NAVIGATION BAR (MATCHING MOCKUP & VIEWER DESIGN)            */}
       {/* ========================================================================= */}
-      {activeTab === 'scorer' && !isOfficialScorer ? (
+      {!photoPickerVisible && (
+      activeTab === 'scorer' && !isOfficialScorer ? (
         /* SPECTATOR VIEWER BOTTOM NAVIGATION (MATCHING SCREENSHOT) */
         <View style={[styles.bottomNavBar, { backgroundColor: '#020617', borderTopColor: '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
           {/* 1. Live */}
@@ -26167,6 +26186,7 @@ function CricketAddaMain() {
           {activeTab === 'settings' && <View style={styles.bottomNavActiveBar} />}
         </TouchableOpacity>
       </View>
+      )}
       )}
 
       {/* JOIN MATCH WITH CODE MODAL */}
