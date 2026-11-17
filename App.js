@@ -6390,6 +6390,7 @@ function CricketAddaMain() {
   const [customUrlInput, setCustomUrlInput] = useState('');
   const [editNameInput, setEditNameInput] = useState(userProfile.name);
   const [editJerseyInput, setEditJerseyInput] = useState(userProfile.jersey);
+  const [editPhoneInput, setEditPhoneInput] = useState(userProfile.phone || '');
   const [editRoleInput, setEditRoleInput] = useState(userProfile.role);
   const [editBattingStyleInput, setEditBattingStyleInput] = useState('Right-hand Bat');
   const [editBowlingStyleInput, setEditBowlingStyleInput] = useState('Right-arm Fast');
@@ -6398,11 +6399,13 @@ function CricketAddaMain() {
   const openPhotoPicker = () => {
     const currentName = !isAuthenticated ? (authName.trim() || userProfile.name) : userProfile.name;
     const currentJersey = !isAuthenticated ? (authJersey.trim() || userProfile.jersey) : userProfile.jersey;
+    const currentPhone = userProfile?.phone || authPhone || '';
     const currentRole = !isAuthenticated ? (authRole.trim() || userProfile.role) : userProfile.role;
     const currentBat = !isAuthenticated ? (authBattingStyle || userProfile.battingStyle || 'Right-hand Bat') : (userProfile.battingStyle || 'Right-hand Bat');
     const currentBowl = !isAuthenticated ? (authBowlingStyle || userProfile.bowlingStyle || 'Right-arm Fast') : (userProfile.bowlingStyle || 'Right-arm Fast');
     setEditNameInput(currentName);
     setEditJerseyInput(currentJersey);
+    setEditPhoneInput(currentPhone);
     setEditRoleInput(currentRole);
     setEditBattingStyleInput(currentBat);
     setEditBowlingStyleInput(currentBowl);
@@ -6739,6 +6742,7 @@ function CricketAddaMain() {
   const saveProfileEdits = () => {
     const cleanName = editNameInput.trim() || (!isAuthenticated && authName ? authName : userProfile.name);
     const cleanJersey = editJerseyInput.trim() || (!isAuthenticated && authJersey ? authJersey : userProfile.jersey);
+    const cleanPhone = (editPhoneInput || '').trim();
     const rawRole = (editRoleInput || (!isAuthenticated && authRole ? authRole : userProfile.role) || 'Batter').trim();
     const cleanRole = rawRole.replace(/\s*\((Right-hand Bat|Left-hand Bat|Right-hand|Left-hand)\)\s*$/i, '').trim() || 'Batter';
     const cleanBat = editBattingStyleInput || userProfile.battingStyle || 'Right-hand Bat';
@@ -6751,10 +6755,14 @@ function CricketAddaMain() {
       setAuthBattingStyle(cleanBat);
       setAuthBowlingStyle(cleanBowl);
     }
+    if (cleanPhone) {
+      setAuthPhone(cleanPhone);
+    }
     updateAndPersistUserProfile(prev => ({
       ...prev,
       name: cleanName,
       jersey: cleanJersey,
+      phone: cleanPhone || prev.phone,
       role: `${cleanRole} (${cleanBat})`,
       battingStyle: cleanBat,
       bowlingStyle: cleanBowl,
@@ -20858,31 +20866,10 @@ function CricketAddaMain() {
               contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingBottom: 8 }}
             >
               <View>
-                {/* Sub-header Bar */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-                  <TouchableOpacity
-                    style={{
-                      width: 34,
-                      height: 29,
-                      borderRadius: 9,
-                      backgroundColor: isLight ? '#e2e8f0' : '#0b192c',
-                      borderColor: cardBorderCol,
-                      borderWidth: 1.2,
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                    onPress={() => setPhotoPickerVisible(false)}
-                  >
-                    <Text style={{ color: txtMain, fontSize: 16, fontWeight: '900', marginTop: -2 }}>←</Text>
-                  </TouchableOpacity>
-
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ fontSize: 17 }}>👤</Text>
-                    <Text style={{ color: txtMain, fontSize: 18, fontWeight: '900', letterSpacing: 0.2 }}>Edit Profile</Text>
-                  </View>
-
-                  <View style={{ width: 34 }} />
+                {/* Sub-header Bar (Back button removed, Title centered) */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', marginBottom: 2, gap: 6 }}>
+                  <Text style={{ fontSize: 17 }}>👤</Text>
+                  <Text style={{ color: txtMain, fontSize: 18, fontWeight: '900', letterSpacing: 0.2 }}>Edit Profile</Text>
                 </View>
 
                 <Text style={{ color: txtMuted, fontSize: 10.5, textAlign: 'center', marginBottom: 7 }}>
@@ -21040,24 +21027,29 @@ function CricketAddaMain() {
                     </View>
                   </View>
 
-                  {/* Row 2: Mobile Number + Email (Read-only account info) */}
+                  {/* Row 2: Mobile Number (Editable) + Email (Read-only account info) */}
                   <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '800', marginBottom: 3 }}>📞 Mobile Number</Text>
-                      <View style={{
-                        backgroundColor: fieldBgCol,
-                        borderColor: cardBorderCol,
-                        borderWidth: 1,
-                        borderRadius: 8,
-                        paddingHorizontal: 8,
-                        height: 32,
-                        flexDirection: 'row',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                      }}>
-                        <Text style={{ color: txtMuted, fontSize: 11, flex: 1 }} numberOfLines={1}>{displayPhone}</Text>
-                        <Text style={{ fontSize: 10, marginLeft: 4 }}>🔒</Text>
-                      </View>
+                      <Text style={{ color: txtMain, fontSize: 10.5, fontWeight: '800', marginBottom: 3 }}>📞 Mobile Number</Text>
+                      <TextInput
+                        style={{
+                          backgroundColor: fieldBgCol,
+                          borderColor: cardBorderCol,
+                          borderWidth: 1,
+                          borderRadius: 8,
+                          color: txtMain,
+                          fontSize: 12,
+                          fontWeight: '700',
+                          paddingHorizontal: 8,
+                          height: 35,
+                        }}
+                        value={editPhoneInput}
+                        onChangeText={setEditPhoneInput}
+                        placeholder="10-digit mobile"
+                        placeholderTextColor="#64748b"
+                        keyboardType="phone-pad"
+                        maxLength={15}
+                      />
                     </View>
 
                     <View style={{ flex: 1 }}>
@@ -21068,7 +21060,7 @@ function CricketAddaMain() {
                         borderWidth: 1,
                         borderRadius: 8,
                         paddingHorizontal: 8,
-                        height: 32,
+                        height: 35,
                         flexDirection: 'row',
                         alignItems: 'center',
                         justifyContent: 'space-between',
@@ -21263,31 +21255,55 @@ function CricketAddaMain() {
                 </View>
               </View>
 
-              {/* 4. Save Profile CTA Button */}
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={saveProfileEdits}
-                style={{
-                  backgroundColor: '#16a34a',
-                  borderColor: '#22c55e',
-                  borderWidth: 1,
-                  borderRadius: 12,
-                  paddingVertical: 11,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'row',
-                  gap: 6,
-                  shadowColor: '#22c55e',
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 4,
-                }}
-              >
-                <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', letterSpacing: 0.3 }}>
-                  Save Profile ✓
-                </Text>
-              </TouchableOpacity>
+              {/* 4. Bottom Action Buttons: Back and Save Profile */}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setPhotoPickerVisible(false)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: isLight ? '#e2e8f0' : '#0b192c',
+                    borderColor: cardBorderCol,
+                    borderWidth: 1.2,
+                    borderRadius: 12,
+                    paddingVertical: 11,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                  }}
+                >
+                  <Text style={{ color: txtMain, fontSize: 14, fontWeight: '800' }}>
+                    ← Back
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={saveProfileEdits}
+                  style={{
+                    flex: 1.5,
+                    backgroundColor: '#16a34a',
+                    borderColor: '#22c55e',
+                    borderWidth: 1,
+                    borderRadius: 12,
+                    paddingVertical: 11,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                    shadowColor: '#22c55e',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 4,
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', letterSpacing: 0.3 }}>
+                    Save Profile ✓
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           </View>
         );
