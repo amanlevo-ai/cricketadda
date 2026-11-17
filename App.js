@@ -7554,8 +7554,50 @@ function CricketAddaMain() {
             // 2. Fetch fresh cloud state
             fetchFirebaseTeams().then(cloudTeams => {
               const cleanTeams = Array.isArray(cloudTeams) ? cloudTeams.filter(t => Boolean(t) && !isTeamDeleted(t)) : [];
-              setRegisteredTeams(cleanTeams);
-              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(cleanTeams)).catch(() => {});
+              const activeName = (activeAccountProfile?.name || userProfile?.name || authName || '').trim();
+              const activePhone = String(activeAccountProfile?.phone || userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '');
+              const activeEmail = (activeAccountProfile?.email || userProfile?.email || authEmail || '').toLowerCase().trim();
+
+              const reconciledTeams = cleanTeams.map(t => {
+                if (!t) return t;
+                const isMyCreated = (activeEmail && t.createdByEmail && t.createdByEmail.toLowerCase().trim() === activeEmail) ||
+                                    (activePhone && t.createdByPhone && t.createdByPhone === activePhone) ||
+                                    (t.isCustomCreated && activeName);
+                if (isMyCreated && activeName) {
+                  let cap = t.captain;
+                  if (cap && (cap.toLowerCase() === 'amanlevo' || cap.toLowerCase() === 'aman')) {
+                    cap = activeName;
+                  }
+                  let createdBy = t.createdBy;
+                  if (createdBy && (createdBy.toLowerCase() === 'amanlevo' || createdBy.toLowerCase() === 'aman')) {
+                    createdBy = activeName;
+                  }
+                  let squad = t.squad;
+                  if (Array.isArray(squad)) {
+                    squad = squad.map((p, pIdx) => {
+                      if (typeof p === 'string') {
+                        const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
+                        if (cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman' || pIdx === 0) {
+                          return p.replace(cleanP, activeName);
+                        }
+                        return p;
+                      } else if (p && typeof p === 'object') {
+                        const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
+                        if (pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman' || pIdx === 0) {
+                          return { ...p, name: activeName, avatarUri: userProfile?.avatarUri || p.avatarUri };
+                        }
+                        return p;
+                      }
+                      return p;
+                    });
+                  }
+                  return { ...t, captain: cap, createdBy, squad };
+                }
+                return t;
+              });
+
+              setRegisteredTeams(reconciledTeams);
+              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(reconciledTeams)).catch(() => {});
             }).catch(() => {});
 
             fetchFirebaseUsers().then(cloudUsers => {
@@ -7770,6 +7812,93 @@ function CricketAddaMain() {
           return updated;
         }
         return prev;
+      });
+
+      // 4. Reconcile registeredTeams (captain, createdBy & squad players containing Amanlevo/Aman)
+      setRegisteredTeams(prev => {
+        if (!Array.isArray(prev) || prev.length === 0) return prev;
+        let changed = false;
+        const updated = prev.map(t => {
+          if (!t) return t;
+          let teamChanged = false;
+          let cap = t.captain;
+          if (cap && (cap.toLowerCase() === 'amanlevo' || cap.toLowerCase() === 'aman')) {
+            cap = uName;
+            teamChanged = true;
+          }
+          let createdBy = t.createdBy;
+          if (createdBy && (createdBy.toLowerCase() === 'amanlevo' || createdBy.toLowerCase() === 'aman')) {
+            createdBy = uName;
+            teamChanged = true;
+          }
+          let squad = t.squad;
+          if (Array.isArray(squad)) {
+            squad = squad.map((p, pIdx) => {
+              if (typeof p === 'string') {
+                const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
+                const isMatch = cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman' || (pIdx === 0 && (t.isCustomCreated || isCreatedByMe(t)));
+                if (isMatch && cleanP !== uName) {
+                  teamChanged = true;
+                  return p.replace(cleanP, uName);
+                }
+                return p;
+              } else if (p && typeof p === 'object') {
+                const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
+                const isMatch = pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman' || (pIdx === 0 && (t.isCustomCreated || isCreatedByMe(t)));
+                if (isMatch && pClean !== uName) {
+                  teamChanged = true;
+                  return { ...p, name: uName, avatarUri: userProfile.avatarUri || p.avatarUri };
+                }
+                return p;
+              }
+              return p;
+            });
+          }
+          if (teamChanged) {
+            changed = true;
+            return { ...t, captain: cap, createdBy, squad };
+          }
+          return t;
+        });
+        if (changed) {
+          AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(updated)).catch(() => {});
+          syncTeamsToFirebase(updated).catch(() => {});
+          return updated;
+        }
+        return prev;
+      });
+
+      // 5. Reconcile currently active selectedTeamDetail if open
+      setSelectedTeamDetail(cur => {
+        if (!cur) return null;
+        let changed = false;
+        let cap = cur.captain;
+        if (cap && (cap.toLowerCase() === 'amanlevo' || cap.toLowerCase() === 'aman')) {
+          cap = uName;
+          changed = true;
+        }
+        let squad = cur.squad;
+        if (Array.isArray(squad)) {
+          squad = squad.map((p, pIdx) => {
+            if (typeof p === 'string') {
+              const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
+              if (cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman' || pIdx === 0) {
+                changed = true;
+                return p.replace(cleanP, uName);
+              }
+              return p;
+            } else if (p && typeof p === 'object') {
+              const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
+              if (pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman' || pIdx === 0) {
+                changed = true;
+                return { ...p, name: uName, avatarUri: userProfile.avatarUri || p.avatarUri };
+              }
+              return p;
+            }
+            return p;
+          });
+        }
+        return changed ? { ...cur, captain: cap, squad } : cur;
       });
     }
   }, [userProfile?.name, userProfile?.avatarUri]);
@@ -16402,7 +16531,10 @@ function CricketAddaMain() {
       const formattedSquad = Array.isArray(teamToEdit.squad) && (teamToEdit.squad || []).length > 0
         ? teamToEdit.squad.map((p, idx) => {
             if (typeof p === 'string') {
-              const cleanName = p.replace(' (c)', '').replace(' (wk)', '').trim();
+              let cleanName = p.replace(' (c)', '').replace(' (wk)', '').trim();
+              if (userProfile?.name && (cleanName.toLowerCase() === 'amanlevo' || cleanName.toLowerCase() === 'aman')) {
+                cleanName = userProfile.name;
+              }
               const isCap = p.includes('(c)') || idx === 0 || cleanName === teamToEdit.captain;
               const isWk = p.includes('(wk)') || cleanName === teamToEdit.wicketkeeper;
               return {
@@ -16416,9 +16548,13 @@ function CricketAddaMain() {
                 avatarUri: PLAYER_AVATARS[cleanName] || null,
               };
             }
+            let pName = p.name || `Player ${idx + 1}`;
+            if (userProfile?.name && (pName.toLowerCase() === 'amanlevo' || pName.toLowerCase() === 'aman')) {
+              pName = userProfile.name;
+            }
             return {
               id: p.id || `p_${Date.now()}_${idx}`,
-              name: p.name || `Player ${idx + 1}`,
+              name: pName,
               phone: p.phone || '',
               role: p.role || (p.isCaptain ? 'BAT' : p.isWk ? 'WK' : 'BAT'),
               battingStyle: p.battingStyle || 'Right Hand Bat',
@@ -22323,7 +22459,10 @@ function CricketAddaMain() {
                         || (typeof capFromSquad === 'string' ? capFromSquad : capFromSquad?.name)
                         || (typeof squadArr[0] === 'string' ? squadArr[0] : squadArr[0]?.name)
                         || 'Not Assigned';
-                      const captainDisplay = String(rawCap).replace(/\s*\([^)]*\)/g, '').trim() || 'Not Assigned';
+                      let captainDisplay = String(rawCap).replace(/\s*\([^)]*\)/g, '').trim() || 'Not Assigned';
+                      if (isOwner && userProfile?.name && (captainDisplay.toLowerCase() === 'amanlevo' || captainDisplay.toLowerCase() === 'aman' || captainDisplay.toLowerCase() === (authEmail || '').split('@')[0].toLowerCase())) {
+                        captainDisplay = userProfile.name;
+                      }
 
                       // Real Matches / Win / Loss from live & saved matchesDb (zero synthetic data)
                       const teamRecord = getTeamRealRecord(t);
@@ -22730,7 +22869,10 @@ function CricketAddaMain() {
                     || (typeof capFromSq === 'string' ? capFromSq : capFromSq?.name)
                     || (typeof dSquad[0] === 'string' ? dSquad[0] : dSquad[0]?.name)
                     || 'Not Assigned';
-                  const dCaptain = String(rawCapName).replace(/\s*\([^)]*\)/g, '').trim() || 'Not Assigned';
+                  let dCaptain = String(rawCapName).replace(/\s*\([^)]*\)/g, '').trim() || 'Not Assigned';
+                  if (dIsOwner && userProfile?.name && (dCaptain.toLowerCase() === 'amanlevo' || dCaptain.toLowerCase() === 'aman' || dCaptain.toLowerCase() === (authEmail || '').split('@')[0].toLowerCase())) {
+                    dCaptain = userProfile.name;
+                  }
 
                   return (
                     <View style={{ flex: 1, backgroundColor: currentTheme.bg, paddingTop: topInset }}>
@@ -22948,8 +23090,12 @@ function CricketAddaMain() {
                             >
                             {dSquad.length > 0 ? (
                               dSquad.map((p, pIdx) => {
-                                const pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
-                                const cleanPName = pName.replace(' (c)', '').replace(' (wk)', '').trim();
+                                let pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
+                                let cleanPName = pName.replace(' (c)', '').replace(' (wk)', '').trim();
+                                if (dIsOwner && userProfile?.name && (pIdx === 0 || cleanPName.toLowerCase() === 'amanlevo' || cleanPName.toLowerCase() === 'aman' || cleanPName.toLowerCase() === (authEmail || '').split('@')[0].toLowerCase())) {
+                                  cleanPName = userProfile.name;
+                                  pName = pName.includes('(c)') ? `${userProfile.name} (c)` : (pName.includes('(wk)') ? `${userProfile.name} (wk)` : userProfile.name);
+                                }
                                 const isCap = (typeof p === 'object' && p.isCaptain) || pIdx === 0 || cleanPName === dTeam.captain || pName.includes('(c)');
                                 const isWk = (typeof p === 'object' && p.isWk) || (typeof p === 'object' && String(p.role || '').toUpperCase() === 'WK') || cleanPName === dTeam.wicketkeeper || pName.includes('(wk)');
                                 const isMe = userProfile?.name && cleanPName.toLowerCase() === userProfile.name.toLowerCase().trim();
