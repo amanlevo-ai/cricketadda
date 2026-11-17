@@ -6352,6 +6352,21 @@ function CricketAddaMain() {
     isOfficialScorerRef.current = isOfficialScorer;
   }, [isOfficialScorer]);
 
+  // Floating Mini-Scorer Bar active state & dynamic bottom offset for long scrollable pages
+  const effectiveScoringMatchId = activeScoringSessionMatchId || (activeMatchId && !isMatchCompleted(currentMatchData) ? activeMatchId : null);
+  const effectiveScoringMatch = effectiveScoringMatchId ? (matchesDb?.[effectiveScoringMatchId] || MATCH_DATABASE?.[effectiveScoringMatchId] || (effectiveScoringMatchId === activeMatchId ? currentMatchData : null)) : null;
+
+  const isMiniScorerBarActive = Boolean(
+    activeTab !== 'scorer' &&
+    effectiveScoringMatchId &&
+    effectiveScoringMatch &&
+    !isMatchCompleted(effectiveScoringMatch) &&
+    dismissedMiniScorerMatchId !== effectiveScoringMatchId &&
+    (isOfficialScorer || (Array.isArray(myScoringMatchIds) && myScoringMatchIds.includes(effectiveScoringMatchId)) || effectiveScoringMatch.status === 'live' || effectiveScoringMatch.isLive)
+  );
+
+  const miniBarExtraOffset = isMiniScorerBarActive ? 68 : 0;
+
   const isMatchCreator = useMemo(() => {
     const targetMatch = activeMatchId ? (matchesDb[activeMatchId] || match || MATCH_DATABASE[activeMatchId]) : null;
     if (!targetMatch) return false;
@@ -18882,7 +18897,7 @@ function CricketAddaMain() {
         <ScrollView
           style={styles.mainContentNoPad}
           scrollEnabled={true}
-          contentContainerStyle={{ paddingBottom: bottomInset + 85 }}
+          contentContainerStyle={{ paddingBottom: bottomInset + 85 + miniBarExtraOffset }}
           showsVerticalScrollIndicator={false}
         >
           {/* Top Section Header ("Player Stats" - Matching Settings style: Centered, transparent, clean) */}
@@ -21261,7 +21276,7 @@ function CricketAddaMain() {
               bounces={false}
               keyboardShouldPersistTaps="handled"
               style={{ flex: 1, paddingHorizontal: 12, paddingTop: 5 }}
-              contentContainerStyle={{ paddingBottom: bottomInset + 100 }}
+              contentContainerStyle={{ paddingBottom: bottomInset + 100 + miniBarExtraOffset }}
             >
               <View>
                 {/* Sub-header Bar (Back button removed, Title centered) */}
@@ -21729,7 +21744,7 @@ function CricketAddaMain() {
           <View style={{ flex: 1, backgroundColor: 'rgba(3, 9, 20, 0.88)' }}>
             <ScrollView
               style={styles.mainContentNoPad}
-              contentContainerStyle={{ paddingBottom: bottomInset + 140 }}
+              contentContainerStyle={{ paddingBottom: bottomInset + 140 + miniBarExtraOffset }}
               showsVerticalScrollIndicator={true}
               persistentScrollbar={true}
               indicatorStyle="white"
@@ -22177,7 +22192,7 @@ function CricketAddaMain() {
               <>
                 <ScrollView
                   style={styles.mainContentNoPad}
-                  contentContainerStyle={{ paddingBottom: bottomInset + 95 }}
+                  contentContainerStyle={{ paddingBottom: bottomInset + 95 + miniBarExtraOffset }}
                   showsVerticalScrollIndicator={false}
                 >
               {/* 1. TOP HEADER (Matching Settings style: Centered, transparent, clean) */}
@@ -22954,7 +22969,7 @@ function CricketAddaMain() {
                     </View>
                   </View>
 
-                  <View style={{ flex: 1, paddingHorizontal: 12, paddingTop: 10, paddingBottom: bottomInset + 75 }}>
+                  <View style={{ flex: 1, paddingHorizontal: 12, paddingTop: 10, paddingBottom: bottomInset + 75 + miniBarExtraOffset }}>
                           {/* Team Hero Card (Fixed Header, Non-Scrolling Page) */}
                           <View style={{
                             backgroundColor: 'rgba(8, 30, 56, 0.94)',
@@ -25367,7 +25382,7 @@ function CricketAddaMain() {
           const activeZone = dynamicSectors.find(s => s.id === (selectedZone?.id || 'cover')) || dynamicSectors[5];
 
           return (
-            <ScrollView style={styles.mainContentNoPad} contentContainerStyle={{ alignItems: 'center', paddingBottom: bottomInset + 80 }}>
+            <ScrollView style={styles.mainContentNoPad} contentContainerStyle={{ alignItems: 'center', paddingBottom: bottomInset + 80 + miniBarExtraOffset }}>
               <View style={{ width: '100%', paddingHorizontal: 6, paddingTop: 10 }}>
                 <TouchableOpacity
                   style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { alignSelf: 'flex-start' }]}
@@ -25463,7 +25478,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {activeTab === 'scorecard' && (
         !hasValidScorecard ? (
-          <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80, flexGrow: 1, justifyContent: 'center' }}>
+          <ScrollView style={styles.mainContent} contentContainerStyle={{ paddingBottom: bottomInset + 80 + miniBarExtraOffset, flexGrow: 1, justifyContent: 'center' }}>
             <TouchableOpacity
               style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }]}
               hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
@@ -25503,7 +25518,7 @@ function CricketAddaMain() {
             </View>
           </ScrollView>
         ) : (
-          <ScrollView style={[styles.mainContent, { paddingHorizontal: 10, paddingTop: 2 }]} contentContainerStyle={{ paddingBottom: bottomInset + 80 }}>
+          <ScrollView style={[styles.mainContent, { paddingHorizontal: 10, paddingTop: 2 }]} contentContainerStyle={{ paddingBottom: bottomInset + 80 + miniBarExtraOffset }}>
             {/* Header Row: Back (<) | Team vs Team 🔴 LIVE | Three Dots Menu (⋮) */}
             <View style={{
               flexDirection: 'row',
@@ -26149,7 +26164,7 @@ function CricketAddaMain() {
 
         return (
           <View
-            style={[styles.mainContent, { paddingBottom: bottomInset + 75, paddingTop: 4 }]}
+            style={[styles.mainContent, { paddingBottom: bottomInset + 75 + miniBarExtraOffset, paddingTop: 4 }]}
           >
             {/* Header: Centered Settings Title (Back arrow button removed) */}
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 }}>
@@ -26436,19 +26451,7 @@ function CricketAddaMain() {
       <View style={{ position: 'absolute', bottom: 0, left: 0, right: 0, zIndex: 999 }} pointerEvents="box-none">
         {/* Floating Mini-Scorer Bar: Instant 1-tap return to scoring from any tab */}
         {(() => {
-          const effectiveScoringMatchId = activeScoringSessionMatchId || (activeMatchId && !isMatchCompleted(currentMatchData) ? activeMatchId : null);
-          const effectiveScoringMatch = effectiveScoringMatchId ? (matchesDb?.[effectiveScoringMatchId] || MATCH_DATABASE?.[effectiveScoringMatchId] || (effectiveScoringMatchId === activeMatchId ? currentMatchData : null)) : null;
-
-          const showMiniScorerBar = Boolean(
-            activeTab !== 'scorer' &&
-            effectiveScoringMatchId &&
-            effectiveScoringMatch &&
-            !isMatchCompleted(effectiveScoringMatch) &&
-            dismissedMiniScorerMatchId !== effectiveScoringMatchId &&
-            (isOfficialScorer || (Array.isArray(myScoringMatchIds) && myScoringMatchIds.includes(effectiveScoringMatchId)) || effectiveScoringMatch.status === 'live' || effectiveScoringMatch.isLive)
-          );
-
-          if (!showMiniScorerBar) return null;
+          if (!isMiniScorerBarActive || !effectiveScoringMatch) return null;
 
           const miniInn = effectiveScoringMatch?.currentInnings || effectiveScoringMatch?.liveState?.currentInnings || 1;
           const miniTeam1 = effectiveScoringMatch?.innings1?.team || effectiveScoringMatch?.teamA || 'Team 1';
