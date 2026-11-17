@@ -1809,7 +1809,11 @@ const getResponsiveBadgePos = (wheelDimension, angleDegrees, badgeW, badgeH) => 
   const radius = wheelDimension * 0.285;
   const radians = (angleDegrees * Math.PI) / 180;
   const x = center + radius * Math.sin(radians);
-  const y = center - radius * Math.cos(radians);
+  let y = center - radius * Math.cos(radians);
+  // Shift Cover (247.5 deg) and Mid Wicket (112.5 deg) 2px up so they don't touch the dividing lines
+  if (Math.abs(angleDegrees - 247.5) < 1 || Math.abs(angleDegrees - 112.5) < 1) {
+    y -= 2;
+  }
   return {
     left: Math.round(x - badgeW / 2),
     top: Math.round(y - badgeH / 2),
@@ -15525,8 +15529,8 @@ function CricketAddaMain() {
           <Line x1="3.5" y1="21" x2="3.5" y2="27" stroke="#ffffff" strokeWidth="1.2" />
           <Line x1="-4.5" y1="27" x2="4.5" y2="27" stroke="#ffffff" strokeWidth="1.2" />
 
-          {/* Outer Card Glowing Cyan Rounded Rectangle Border (Matches User Reference Exactly!) */}
-          <Rect x="-168.5" y="-168.5" width="337" height="337" rx="20" ry="20" fill="none" stroke="#00f0ff" strokeWidth="3" />
+          {/* Outer Card Glowing Cyan Rounded Rectangle Border (Uniform width on all sides) */}
+          <Rect x="-167" y="-167" width="334" height="334" rx="18" ry="18" fill="none" stroke="#00f0ff" strokeWidth="2.5" />
         </Svg>
       </View>
     );
@@ -39454,8 +39458,7 @@ const styles = StyleSheet.create({
     position: 'relative',
     overflow: 'hidden',
     borderRadius: 20,
-    borderWidth: 2,
-    borderColor: '#00e5ff',
+    borderWidth: 0,
     elevation: 12,
     shadowColor: '#00e5ff',
     shadowOpacity: 0.35,
