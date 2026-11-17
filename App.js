@@ -92,10 +92,10 @@ import Svg, {
 const { width, height } = Dimensions.get('window');
 
 // Responsive Wagon Wheel & Cricket Ground sizes with clean padding to prevent side cropping
-const FULL_WHEEL_SIZE = Math.round(Math.min(width - 24, 380));
+const FULL_WHEEL_SIZE = Math.round(Math.min(width - 28, 380));
 const MODAL_WHEEL_SIZE = Math.round(Math.min(width - 48, 330));
 const USE_NATIVE_DRIVER = false;
-const GROUND_SIZE = Math.round(Math.min(width - 24, 380));
+const GROUND_SIZE = Math.round(Math.min(width - 28, 380));
 
 // ============================================================================
 // OFFICIAL PLAYER PHOTO AVATARS DATABASE
@@ -6428,7 +6428,7 @@ function CricketAddaMain() {
 
   const modalBadgeW = Math.round(MODAL_WHEEL_SIZE * 0.18);
   const modalBadgeH = Math.round(MODAL_WHEEL_SIZE * 0.13);
-  const scorerWheelSize = Math.round(Math.min(width - 32, 316));
+  const scorerWheelSize = Math.round(Math.min(width - 44, 316));
   const scorerBadgeW = Math.round(scorerWheelSize * 0.20);
   const scorerBadgeH = Math.round(scorerWheelSize * 0.118);
 
@@ -15440,7 +15440,7 @@ function CricketAddaMain() {
   const renderGroundWheelSvg = (wheelDimension, selectedSectorId = null, uniqueKey = 'sc') => {
     const dim = Math.round(wheelDimension);
     return (
-      <View style={{ width: dim, height: dim, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+      <View style={{ width: dim, height: dim, position: 'relative', alignItems: 'center', justifyContent: 'center', borderRadius: 20, overflow: 'hidden' }}>
         {/* Photorealistic Night Cricket Stadium Background with Floodlights & Crowd */}
         <Image
           source={require('./assets/stadium-wheel-bg.jpg')}
@@ -15524,6 +15524,9 @@ function CricketAddaMain() {
           <Line x1="0" y1="21" x2="0" y2="27" stroke="#ffffff" strokeWidth="1.2" />
           <Line x1="3.5" y1="21" x2="3.5" y2="27" stroke="#ffffff" strokeWidth="1.2" />
           <Line x1="-4.5" y1="27" x2="4.5" y2="27" stroke="#ffffff" strokeWidth="1.2" />
+
+          {/* Outer Card Glowing Cyan Rounded Rectangle Border (Matches User Reference Exactly!) */}
+          <Rect x="-168.5" y="-168.5" width="337" height="337" rx="20" ry="20" fill="none" stroke="#00f0ff" strokeWidth="3" />
         </Svg>
       </View>
     );
