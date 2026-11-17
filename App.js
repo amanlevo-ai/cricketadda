@@ -15436,193 +15436,92 @@ function CricketAddaMain() {
   const renderGroundWheelSvg = (wheelDimension, selectedSectorId = null, uniqueKey = 'sc') => {
     const dim = Math.round(wheelDimension);
     return (
-      <Svg height={dim} width={dim} viewBox="-160 -160 320 320">
-        <Defs>
-          {/* Deep Night Stadium Sky */}
-          <LinearGradient id={`stadiumSky_${uniqueKey}_${dim}`} x1="0%" y1="0%" x2="0%" y2="100%">
-            <Stop offset="0%" stopColor="#020817" />
-            <Stop offset="45%" stopColor="#081e3a" />
-            <Stop offset="75%" stopColor="#041224" />
-            <Stop offset="100%" stopColor="#020814" />
-          </LinearGradient>
+      <View style={{ width: dim, height: dim, position: 'relative', alignItems: 'center', justifyContent: 'center' }}>
+        {/* Photorealistic Night Cricket Stadium Background with Floodlights & Crowd */}
+        <Image
+          source={require('./assets/stadium-wheel-bg.jpg')}
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: dim,
+            height: dim,
+            borderRadius: 20,
+          }}
+          resizeMode="cover"
+        />
 
-          {/* Corner Deep Outfield Turf */}
-          <RadialGradient id={`outerGrassGrad_${uniqueKey}_${dim}`} cx="0" cy="80" r="140" gradientUnits="userSpaceOnUse">
-            <Stop offset="0%" stopColor="#0a3318" stopOpacity={0.85} />
-            <Stop offset="70%" stopColor="#041a0d" stopOpacity={0.95} />
-            <Stop offset="100%" stopColor="#020d06" stopOpacity={1} />
-          </RadialGradient>
+        <Svg height={dim} width={dim} viewBox="-160 -160 320 320">
+          <Defs>
+            <RadialGradient id={`wwLawnGrad_${uniqueKey}_${dim}`} cx="0" cy="0" r="126" gradientUnits="userSpaceOnUse">
+              <Stop offset="0%" stopColor="#22c55e" stopOpacity={0.88} />
+              <Stop offset="65%" stopColor="#16a34a" stopOpacity={0.92} />
+              <Stop offset="100%" stopColor="#15803d" stopOpacity={0.98} />
+            </RadialGradient>
+          </Defs>
 
-          {/* Mowed Lawn Center Grad */}
-          <RadialGradient id={`wwLawnGrad_${uniqueKey}_${dim}`} cx="0" cy="0" r="126" gradientUnits="userSpaceOnUse">
-            <Stop offset="0%" stopColor="#22c55e" stopOpacity={0.95} />
-            <Stop offset="65%" stopColor="#16a34a" stopOpacity={0.95} />
-            <Stop offset="100%" stopColor="#15803d" stopOpacity={1} />
-          </RadialGradient>
+          {/* 1. Outer Glowing Neon Cyan Boundary Ring & Aura */}
+          <Circle cx="0" cy="0" r="131" fill="none" stroke="#38bdf8" strokeWidth="5" strokeOpacity={0.4} />
+          <Circle cx="0" cy="0" r="126" fill="#15803d" stroke="#38bdf8" strokeWidth="2.5" />
 
-          {/* Volumetric Spotlight Beams */}
-          <LinearGradient id={`beamLeftGrad_${uniqueKey}_${dim}`} x1="0%" y1="0%" x2="70%" y2="80%">
-            <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.65} />
-            <Stop offset="25%" stopColor="#38bdf8" stopOpacity={0.35} />
-            <Stop offset="60%" stopColor="#38bdf8" stopOpacity={0.12} />
-            <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-          </LinearGradient>
-          <LinearGradient id={`beamRightGrad_${uniqueKey}_${dim}`} x1="100%" y1="0%" x2="30%" y2="80%">
-            <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.65} />
-            <Stop offset="25%" stopColor="#38bdf8" stopOpacity={0.35} />
-            <Stop offset="60%" stopColor="#38bdf8" stopOpacity={0.12} />
-            <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-          </LinearGradient>
+          {/* 2. Concentric Mowed Lawn Outfield Rings */}
+          <Circle cx="0" cy="0" r="109" fill="#16a34a" />
+          <Circle cx="0" cy="0" r="92" fill="#15803d" />
+          <Circle cx="0" cy="0" r="75" fill="#16a34a" />
+          <Circle cx="0" cy="0" r="58" fill="#15803d" />
+          <Circle cx="0" cy="0" r="41" fill="#16a34a" />
+          <Circle cx="0" cy="0" r="24" fill="#15803d" />
+          <Circle cx="0" cy="0" r="126" fill={`url(#wwLawnGrad_${uniqueKey}_${dim})`} opacity={0.32} />
 
-          {/* Floodlight Glow Flare */}
-          <RadialGradient id={`floodGlow_${uniqueKey}_${dim}`} cx="50%" cy="50%" r="50%">
-            <Stop offset="0%" stopColor="#ffffff" stopOpacity={0.95} />
-            <Stop offset="30%" stopColor="#bae6fd" stopOpacity={0.7} />
-            <Stop offset="65%" stopColor="#38bdf8" stopOpacity={0.3} />
-            <Stop offset="100%" stopColor="#0284c7" stopOpacity={0} />
-          </RadialGradient>
-        </Defs>
+          {/* 3. Active Selected Sector Slice Highlight (Glowing Cyan Wedge) */}
+          {BROADCAST_SECTORS.map(sec => {
+            if (selectedSectorId !== sec.id) return null;
+            return (
+              <Path
+                key={`act_slice_${sec.id}`}
+                d={sec.path}
+                fill="#0284c7"
+                fillOpacity={0.82}
+                stroke="#38bdf8"
+                strokeWidth={2.5}
+              />
+            );
+          })}
 
-        {/* 1. Deep Night Stadium Backdrop */}
-        <Rect x="-160" y="-160" width="320" height="320" fill={`url(#stadiumSky_${uniqueKey}_${dim})`} />
+          {/* 4. Sector Dividing Lines (White, Radiating From Center to 126px Boundary) */}
+          <Line x1="0" y1="0" x2="0" y2="-126" stroke="#ffffff" strokeWidth="1.6" />
+          <Line x1="0" y1="0" x2="89" y2="-89" stroke="#ffffff" strokeWidth="1.6" />
+          <Line x1="0" y1="0" x2="126" y2="0" stroke="#ffffff" strokeWidth="1.6" />
+          <Line x1="0" y1="0" x2="89" y2="89" stroke="#ffffff" strokeWidth="1.6" />
+          <Line x1="0" y1="0" x2="0" y2="126" stroke="#ffffff" strokeWidth="1.6" />
+          <Line x1="0" y1="0" x2="-89" y2="89" stroke="#ffffff" strokeWidth="1.6" />
+          <Line x1="0" y1="0" x2="-126" y2="0" stroke="#ffffff" strokeWidth="1.6" />
+          <Line x1="0" y1="0" x2="-89" y2="-89" stroke="#ffffff" strokeWidth="1.6" />
 
-        {/* 2. Stadium Stands, Tiers & Crowd Silhouettes */}
-        {/* Upper Left Curved Seating Tier */}
-        <Path d="M-160,-160 L-70,-160 C-95,-135 -125,-115 -142,-75 L-160,-75 Z" fill="#081e36" />
-        <Path d="M-160,-125 C-135,-110 -115,-90 -128,-55 L-160,-55 Z" fill="#0c2949" />
-        {/* Upper Left Crowd Lighting Specks */}
-        <Circle cx="-146" cy="-142" r="1.2" fill="#38bdf8" opacity={0.7} />
-        <Circle cx="-135" cy="-150" r="1" fill="#ffffff" opacity={0.8} />
-        <Circle cx="-120" cy="-146" r="1.3" fill="#60a5fa" opacity={0.6} />
-        <Circle cx="-105" cy="-153" r="1.1" fill="#ffffff" opacity={0.8} />
-        <Circle cx="-150" cy="-116" r="1.1" fill="#93c5fd" opacity={0.6} />
-        <Circle cx="-138" cy="-102" r="1.2" fill="#38bdf8" opacity={0.7} />
-        <Circle cx="-148" cy="-84" r="1" fill="#ffffff" opacity={0.7} />
+          {/* 5. White 30-Yard Inner Circle */}
+          <Circle cx="0" cy="0" r="46" fill="none" stroke="rgba(255, 255, 255, 0.88)" strokeWidth="1.6" />
 
-        {/* Upper Right Curved Seating Tier */}
-        <Path d="M160,-160 L70,-160 C95,-135 125,-115 142,-75 L160,-75 Z" fill="#081e36" />
-        <Path d="M160,-125 C135,-110 115,-90 128,-55 L160,-55 Z" fill="#0c2949" />
-        {/* Upper Right Crowd Lighting Specks */}
-        <Circle cx="146" cy="-142" r="1.2" fill="#38bdf8" opacity={0.7} />
-        <Circle cx="135" cy="-150" r="1" fill="#ffffff" opacity={0.8} />
-        <Circle cx="120" cy="-146" r="1.3" fill="#60a5fa" opacity={0.6} />
-        <Circle cx="105" cy="-153" r="1.1" fill="#ffffff" opacity={0.8} />
-        <Circle cx="150" cy="-116" r="1.1" fill="#93c5fd" opacity={0.6} />
-        <Circle cx="138" cy="-102" r="1.2" fill="#38bdf8" opacity={0.7} />
-        <Circle cx="148" cy="-84" r="1" fill="#ffffff" opacity={0.7} />
+          {/* 6. Center Pitch & Stumps */}
+          <Rect x="-8" y="-26" width="16" height="52" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
+          <Rect x="-6.5" y="-24.5" width="13" height="49" rx="1.5" fill="#fef08a" opacity={0.5} />
 
-        {/* Mid-Left & Mid-Right Seating Wings */}
-        <Path d="M-160,-55 C-128,-25 -128,25 -160,55 Z" fill="#09223e" />
-        <Path d="M160,-55 C128,-25 128,25 160,55 Z" fill="#09223e" />
+          {/* Creases */}
+          <Line x1="-7" y1="-19" x2="7" y2="-19" stroke="#ffffff" strokeWidth="1.4" />
+          <Line x1="-7" y1="19" x2="7" y2="19" stroke="#ffffff" strokeWidth="1.4" />
 
-        {/* Lower Ground Outer Grass Turf (Beyond Boundary) */}
-        <Path d="M-160,55 L-160,160 L160,160 L160,55 C120,105 50,130 0,130 C-50,130 -120,105 -160,55 Z" fill={`url(#outerGrassGrad_${uniqueKey}_${dim})`} />
+          {/* Top Stumps & Bails */}
+          <Line x1="-3" y1="-25" x2="-3" y2="-19" stroke="#ffffff" strokeWidth="1.2" />
+          <Line x1="0" y1="-25" x2="0" y2="-19" stroke="#ffffff" strokeWidth="1.2" />
+          <Line x1="3" y1="-25" x2="3" y2="-19" stroke="#ffffff" strokeWidth="1.2" />
+          <Line x1="-4" y1="-25" x2="4" y2="-25" stroke="#ffffff" strokeWidth="1.2" />
 
-        {/* 3. Volumetric Spotlight Beams Shining From Towers */}
-        <Polygon points="-126,-126 30,70 -40,145 -155,-60" fill={`url(#beamLeftGrad_${uniqueKey}_${dim})`} opacity={0.55} />
-        <Polygon points="126,-126 -30,70 40,145 155,-60" fill={`url(#beamRightGrad_${uniqueKey}_${dim})`} opacity={0.55} />
-
-        {/* 4. Left Floodlight Tower & Glowing LED Array */}
-        <Circle cx="-126" cy="-126" r="26" fill={`url(#floodGlow_${uniqueKey}_${dim})`} />
-        <G transform="translate(-126, -126)">
-          <Line x1="0" y1="0" x2="-22" y2="-22" stroke="#475569" strokeWidth="3" />
-          <Rect x="-15" y="-11" width="30" height="22" rx="3" fill="#021329" stroke="#38bdf8" strokeWidth="1.4" transform="rotate(38)" />
-          {/* 12 LED Lamps */}
-          <Circle cx="-9" cy="-5" r="1.8" fill="#ffffff" />
-          <Circle cx="-3" cy="-5" r="1.8" fill="#ffffff" />
-          <Circle cx="3" cy="-5" r="1.8" fill="#ffffff" />
-          <Circle cx="9" cy="-5" r="1.8" fill="#ffffff" />
-          <Circle cx="-9" cy="0" r="1.8" fill="#ffffff" />
-          <Circle cx="-3" cy="0" r="1.8" fill="#ffffff" />
-          <Circle cx="3" cy="0" r="1.8" fill="#ffffff" />
-          <Circle cx="9" cy="0" r="1.8" fill="#ffffff" />
-          <Circle cx="-9" cy="5" r="1.8" fill="#ffffff" />
-          <Circle cx="-3" cy="5" r="1.8" fill="#ffffff" />
-          <Circle cx="3" cy="5" r="1.8" fill="#ffffff" />
-          <Circle cx="9" cy="5" r="1.8" fill="#ffffff" />
-        </G>
-
-        {/* 5. Right Floodlight Tower & Glowing LED Array */}
-        <Circle cx="126" cy="-126" r="26" fill={`url(#floodGlow_${uniqueKey}_${dim})`} />
-        <G transform="translate(126, -126)">
-          <Line x1="0" y1="0" x2="22" y2="-22" stroke="#475569" strokeWidth="3" />
-          <Rect x="-15" y="-11" width="30" height="22" rx="3" fill="#021329" stroke="#38bdf8" strokeWidth="1.4" transform="rotate(-38)" />
-          {/* 12 LED Lamps */}
-          <Circle cx="-9" cy="-5" r="1.8" fill="#ffffff" />
-          <Circle cx="-3" cy="-5" r="1.8" fill="#ffffff" />
-          <Circle cx="3" cy="-5" r="1.8" fill="#ffffff" />
-          <Circle cx="9" cy="-5" r="1.8" fill="#ffffff" />
-          <Circle cx="-9" cy="0" r="1.8" fill="#ffffff" />
-          <Circle cx="-3" cy="0" r="1.8" fill="#ffffff" />
-          <Circle cx="3" cy="0" r="1.8" fill="#ffffff" />
-          <Circle cx="9" cy="0" r="1.8" fill="#ffffff" />
-          <Circle cx="-9" cy="5" r="1.8" fill="#ffffff" />
-          <Circle cx="-3" cy="5" r="1.8" fill="#ffffff" />
-          <Circle cx="3" cy="5" r="1.8" fill="#ffffff" />
-          <Circle cx="9" cy="5" r="1.8" fill="#ffffff" />
-        </G>
-
-        {/* 6. Wagon Wheel Outfield & Outer Glowing Neon Cyan Boundary Ring */}
-        <Circle cx="0" cy="0" r="130" fill="none" stroke="#38bdf8" strokeWidth="4.5" strokeOpacity={0.4} />
-        <Circle cx="0" cy="0" r="126" fill="#15803d" stroke="#38bdf8" strokeWidth="2.5" />
-
-        {/* 7. Concentric Mowed Lawn Outfield Rings (Radius 126 down to 24) */}
-        <Circle cx="0" cy="0" r="109" fill="#16a34a" />
-        <Circle cx="0" cy="0" r="92" fill="#15803d" />
-        <Circle cx="0" cy="0" r="75" fill="#16a34a" />
-        <Circle cx="0" cy="0" r="58" fill="#15803d" />
-        <Circle cx="0" cy="0" r="41" fill="#16a34a" />
-        <Circle cx="0" cy="0" r="24" fill="#15803d" />
-        <Circle cx="0" cy="0" r="126" fill={`url(#wwLawnGrad_${uniqueKey}_${dim})`} opacity={0.32} />
-
-        {/* 8. Active Selected Sector Slice Highlight (Glowing Cyan Wedge) */}
-        {BROADCAST_SECTORS.map(sec => {
-          if (selectedSectorId !== sec.id) return null;
-          return (
-            <Path
-              key={`act_slice_${sec.id}`}
-              d={sec.path}
-              fill="#0284c7"
-              fillOpacity={0.82}
-              stroke="#38bdf8"
-              strokeWidth={2.5}
-            />
-          );
-        })}
-
-        {/* 9. Sector Dividing Lines (White, Radiating From Center to 126px Boundary) */}
-        <Line x1="0" y1="0" x2="0" y2="-126" stroke="#ffffff" strokeWidth="1.6" />
-        <Line x1="0" y1="0" x2="89" y2="-89" stroke="#ffffff" strokeWidth="1.6" />
-        <Line x1="0" y1="0" x2="126" y2="0" stroke="#ffffff" strokeWidth="1.6" />
-        <Line x1="0" y1="0" x2="89" y2="89" stroke="#ffffff" strokeWidth="1.6" />
-        <Line x1="0" y1="0" x2="0" y2="126" stroke="#ffffff" strokeWidth="1.6" />
-        <Line x1="0" y1="0" x2="-89" y2="89" stroke="#ffffff" strokeWidth="1.6" />
-        <Line x1="0" y1="0" x2="-126" y2="0" stroke="#ffffff" strokeWidth="1.6" />
-        <Line x1="0" y1="0" x2="-89" y2="-89" stroke="#ffffff" strokeWidth="1.6" />
-
-        {/* 10. White 30-Yard Inner Circle */}
-        <Circle cx="0" cy="0" r="46" fill="none" stroke="rgba(255, 255, 255, 0.88)" strokeWidth="1.6" />
-
-        {/* 11. Center Pitch & Stumps */}
-        <Rect x="-8" y="-26" width="16" height="52" rx="2" fill="#fde047" stroke="#ca8a04" strokeWidth="1" />
-        <Rect x="-6.5" y="-24.5" width="13" height="49" rx="1.5" fill="#fef08a" opacity={0.5} />
-
-        {/* Creases */}
-        <Line x1="-7" y1="-19" x2="7" y2="-19" stroke="#ffffff" strokeWidth="1.4" />
-        <Line x1="-7" y1="19" x2="7" y2="19" stroke="#ffffff" strokeWidth="1.4" />
-
-        {/* Top Stumps & Bails */}
-        <Line x1="-3" y1="-25" x2="-3" y2="-19" stroke="#ffffff" strokeWidth="1.2" />
-        <Line x1="0" y1="-25" x2="0" y2="-19" stroke="#ffffff" strokeWidth="1.2" />
-        <Line x1="3" y1="-25" x2="3" y2="-19" stroke="#ffffff" strokeWidth="1.2" />
-        <Line x1="-4" y1="-25" x2="4" y2="-25" stroke="#ffffff" strokeWidth="1.2" />
-
-        {/* Bottom Stumps & Bails */}
-        <Line x1="-3" y1="19" x2="-3" y2="25" stroke="#ffffff" strokeWidth="1.2" />
-        <Line x1="0" y1="19" x2="0" y2="25" stroke="#ffffff" strokeWidth="1.2" />
-        <Line x1="3" y1="19" x2="3" y2="25" stroke="#ffffff" strokeWidth="1.2" />
-        <Line x1="-4" y1="25" x2="4" y2="25" stroke="#ffffff" strokeWidth="1.2" />
-      </Svg>
+          {/* Bottom Stumps & Bails */}
+          <Line x1="-3" y1="19" x2="-3" y2="25" stroke="#ffffff" strokeWidth="1.2" />
+          <Line x1="0" y1="19" x2="0" y2="25" stroke="#ffffff" strokeWidth="1.2" />
+          <Line x1="3" y1="19" x2="3" y2="25" stroke="#ffffff" strokeWidth="1.2" />
+          <Line x1="-4" y1="25" x2="4" y2="25" stroke="#ffffff" strokeWidth="1.2" />
+        </Svg>
+      </View>
     );
   };
 
