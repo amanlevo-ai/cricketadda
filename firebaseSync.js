@@ -631,6 +631,11 @@ export async function syncMatchToFirebaseDirect(matchId, matchState) {
     delete payload.liveOvers;
     delete payload.scoringHistory; // Deliveries live under /balls
 
+    // Explicitly nullify celebrationEvent if not present so stale celebrations (like No Ball) never linger
+    if (payload.celebrationEvent === undefined) {
+      payload.celebrationEvent = null;
+    }
+
     await update(ref(db, `matches/${id}`), payload);
     return true;
   } catch (err) {

@@ -6428,7 +6428,7 @@ function CricketAddaMain() {
 
   const modalBadgeW = Math.round(MODAL_WHEEL_SIZE * 0.165);
   const modalBadgeH = Math.round(MODAL_WHEEL_SIZE * 0.115);
-  const scorerWheelSize = Math.round(Math.min(width - 32, 310));
+  const scorerWheelSize = Math.round(Math.min(width - 24, 336));
   const scorerBadgeW = Math.round(scorerWheelSize * 0.205);
   const scorerBadgeH = Math.round(scorerWheelSize * 0.125);
 
@@ -9242,20 +9242,23 @@ function CricketAddaMain() {
       lastCelebrationIdRef.current = null;
     } else if ((!isSelfSender || viewerSimulated) && !isOfficialScorer) {
       // 1. Direct celebrationEvent payload from scorer or cloud sync
-      if (d.celebrationEvent && d.celebrationEvent.id && d.celebrationEvent.id !== lastCelebrationIdRef?.current) {
-        if (lastCelebrationIdRef) lastCelebrationIdRef.current = d.celebrationEvent.id;
-        const cType = (d.celebrationEvent.type === 'noBall' || d.celebrationEvent.type === 'nb' || d.celebrationEvent.type === 'NB')
-          ? 'no_ball'
-          : d.celebrationEvent.type;
-        triggerCelebration(
-          cType,
-          d.celebrationEvent.player,
-          d.celebrationEvent.runs,
-          true,
-          d.celebrationEvent.teamFlag || d.battingTeamFlag,
-          d.celebrationEvent.teamName || d.battingTeamName
-        );
+      if (d.celebrationEvent && d.celebrationEvent.id) {
+        if (d.celebrationEvent.id !== lastCelebrationIdRef?.current) {
+          if (lastCelebrationIdRef) lastCelebrationIdRef.current = d.celebrationEvent.id;
+          const cType = (d.celebrationEvent.type === 'noBall' || d.celebrationEvent.type === 'nb' || d.celebrationEvent.type === 'NB')
+            ? 'no_ball'
+            : d.celebrationEvent.type;
+          triggerCelebration(
+            cType,
+            d.celebrationEvent.player,
+            d.celebrationEvent.runs,
+            true,
+            d.celebrationEvent.teamFlag || d.battingTeamFlag,
+            d.celebrationEvent.teamName || d.battingTeamName
+          );
+        }
       } else {
+        if (lastCelebrationIdRef) lastCelebrationIdRef.current = null;
         // 2. Resilient Ball-by-Ball Delivery Stream Detection (4s, 6s, Wickets, No Balls)
         const deliveries = Array.isArray(d.scoringHistory) && d.scoringHistory.length > 0
           ? d.scoringHistory
@@ -9445,6 +9448,7 @@ function CricketAddaMain() {
         overs: payloadInnings === 2 ? payloadOvers : '0.0',
         balls: payloadInnings === 2 ? payloadBalls : 0,
       },
+      celebrationEvent: customPayload.celebrationEvent !== undefined ? customPayload.celebrationEvent : null,
       ...customPayload,
     };
 
@@ -15458,73 +15462,11 @@ function CricketAddaMain() {
               <Stop offset="65%" stopColor="#16a34a" stopOpacity={0.95} />
               <Stop offset="100%" stopColor="#15803d" stopOpacity={1} />
             </RadialGradient>
-            <LinearGradient id={`beamLeftGrad_${uniqueKey}_${dim}`} x1="0%" y1="0%" x2="70%" y2="80%">
-              <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.7} />
-              <Stop offset="30%" stopColor="#38bdf8" stopOpacity={0.35} />
-              <Stop offset="70%" stopColor="#38bdf8" stopOpacity={0.12} />
-              <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-            </LinearGradient>
-            <LinearGradient id={`beamRightGrad_${uniqueKey}_${dim}`} x1="100%" y1="0%" x2="30%" y2="80%">
-              <Stop offset="0%" stopColor="#38bdf8" stopOpacity={0.7} />
-              <Stop offset="30%" stopColor="#38bdf8" stopOpacity={0.35} />
-              <Stop offset="70%" stopColor="#38bdf8" stopOpacity={0.12} />
-              <Stop offset="100%" stopColor="#38bdf8" stopOpacity={0} />
-            </LinearGradient>
-            <RadialGradient id={`floodGlow_${uniqueKey}_${dim}`} cx="50%" cy="50%" r="50%">
-              <Stop offset="0%" stopColor="#ffffff" stopOpacity={0.98} />
-              <Stop offset="35%" stopColor="#bae6fd" stopOpacity={0.75} />
-              <Stop offset="65%" stopColor="#38bdf8" stopOpacity={0.35} />
-              <Stop offset="100%" stopColor="#0284c7" stopOpacity={0} />
-            </RadialGradient>
           </Defs>
 
-          {/* Stadium Corner Floodlight Beams (Projecting from extreme corners) */}
-          <Polygon points="-146,-146 30,70 -40,145 -155,-60" fill={`url(#beamLeftGrad_${uniqueKey}_${dim})`} opacity={0.6} />
-          <Polygon points="146,-146 -30,70 40,145 155,-60" fill={`url(#beamRightGrad_${uniqueKey}_${dim})`} opacity={0.6} />
-
-          {/* Left Floodlight Tower (Touching Top-Left Corner) */}
-          <Circle cx="-146" cy="-146" r="26" fill={`url(#floodGlow_${uniqueKey}_${dim})`} />
-          <G transform="translate(-146, -146)">
-            <Line x1="0" y1="0" x2="-14" y2="-14" stroke="#475569" strokeWidth="3" />
-            <Rect x="-14" y="-10" width="28" height="20" rx="3" fill="#021329" stroke="#00f0ff" strokeWidth="1.5" transform="rotate(38)" />
-            {/* 12 LED Lamps */}
-            <Circle cx="-8" cy="-5" r="1.7" fill="#ffffff" />
-            <Circle cx="-3" cy="-5" r="1.7" fill="#ffffff" />
-            <Circle cx="3" cy="-5" r="1.7" fill="#ffffff" />
-            <Circle cx="8" cy="-5" r="1.7" fill="#ffffff" />
-            <Circle cx="-8" cy="0" r="1.7" fill="#ffffff" />
-            <Circle cx="-3" cy="0" r="1.7" fill="#ffffff" />
-            <Circle cx="3" cy="0" r="1.8" fill="#ffffff" />
-            <Circle cx="8" cy="0" r="1.8" fill="#ffffff" />
-            <Circle cx="-8" cy="5" r="1.7" fill="#ffffff" />
-            <Circle cx="-3" cy="5" r="1.7" fill="#ffffff" />
-            <Circle cx="3" cy="5" r="1.7" fill="#ffffff" />
-            <Circle cx="8" cy="5" r="1.7" fill="#ffffff" />
-          </G>
-
-          {/* Right Floodlight Tower (Touching Top-Right Corner) */}
-          <Circle cx="146" cy="-146" r="26" fill={`url(#floodGlow_${uniqueKey}_${dim})`} />
-          <G transform="translate(146, -146)">
-            <Line x1="0" y1="0" x2="14" y2="-14" stroke="#475569" strokeWidth="3" />
-            <Rect x="-14" y="-10" width="28" height="20" rx="3" fill="#021329" stroke="#00f0ff" strokeWidth="1.5" transform="rotate(-38)" />
-            {/* 12 LED Lamps */}
-            <Circle cx="-8" cy="-5" r="1.7" fill="#ffffff" />
-            <Circle cx="-3" cy="-5" r="1.7" fill="#ffffff" />
-            <Circle cx="3" cy="-5" r="1.7" fill="#ffffff" />
-            <Circle cx="8" cy="-5" r="1.7" fill="#ffffff" />
-            <Circle cx="-8" cy="0" r="1.7" fill="#ffffff" />
-            <Circle cx="-3" cy="0" r="1.7" fill="#ffffff" />
-            <Circle cx="3" cy="0" r="1.8" fill="#ffffff" />
-            <Circle cx="8" cy="0" r="1.8" fill="#ffffff" />
-            <Circle cx="-8" cy="5" r="1.7" fill="#ffffff" />
-            <Circle cx="-3" cy="5" r="1.7" fill="#ffffff" />
-            <Circle cx="3" cy="5" r="1.7" fill="#ffffff" />
-            <Circle cx="8" cy="5" r="1.7" fill="#ffffff" />
-          </G>
-
-          {/* 1. Solid Vibrant Cyan Outer Boundary (NO TRANSPARENCY!) */}
+          {/* 1. Dual Boundary Rings: Outer Solid Neon Cyan & Inner Gold Rope (NO TRANSPARENCY!) */}
           <Circle cx="0" cy="0" r="143" fill="none" stroke="#00f0ff" strokeWidth="3" />
-          <Circle cx="0" cy="0" r="140" fill="#15803d" stroke="#38bdf8" strokeWidth="2.5" />
+          <Circle cx="0" cy="0" r="140" fill="#15803d" stroke="#facc15" strokeWidth="2.8" />
 
           {/* 2. Concentric Mowed Lawn Outfield Rings (Radius 140 down to 32) */}
           <Circle cx="0" cy="0" r="122" fill="#16a34a" />
