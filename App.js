@@ -8603,16 +8603,22 @@ function CricketAddaMain() {
         closeUnifiedAddPlayerModal();
         return true;
       }
-      if (selectedTeamDetail) {
-        setSelectedTeamDetail(null);
+      if (playerPendingRemoveConfirm) {
+        setPlayerPendingRemoveConfirm(null);
         return true;
       }
-      if (activeTab === 'profile' && inspectedStatsPlayer) {
+      if (inspectedStatsPlayer) {
         const backTeam = returnToTeamDetail;
         setInspectedStatsPlayer(null);
-        setReturnToTeamDetail(null);
-        navigateTo('teams');
-        if (backTeam) setSelectedTeamDetail(backTeam);
+        if (backTeam && activeTab !== 'teams') {
+          setReturnToTeamDetail(null);
+          navigateTo('teams');
+          setSelectedTeamDetail(backTeam);
+        }
+        return true;
+      }
+      if (selectedTeamDetail) {
+        setSelectedTeamDetail(null);
         return true;
       }
       if (navHistory.length > 1) {
@@ -18865,8 +18871,8 @@ function CricketAddaMain() {
       <View style={{ flex: 1, backgroundColor: currentTheme.bg }}>
         <ScrollView
           style={styles.mainContentNoPad}
-          scrollEnabled={statsSubTab === 'career'}
-          contentContainerStyle={{ paddingBottom: statsSubTab === 'career' ? (bottomInset + 85) : 4 }}
+          scrollEnabled={true}
+          contentContainerStyle={{ paddingBottom: bottomInset + 85 }}
           showsVerticalScrollIndicator={false}
         >
           {/* Top Section Header ("Player Stats" - Matching Settings style: Centered, transparent, clean) */}
@@ -22157,11 +22163,13 @@ function CricketAddaMain() {
 
         return (
           <View style={{ flex: 1, backgroundColor: currentTheme.bg }}>
-            <ScrollView
-              style={styles.mainContentNoPad}
-              contentContainerStyle={{ paddingBottom: bottomInset + 95 }}
-              showsVerticalScrollIndicator={false}
-            >
+            {!selectedTeamDetail && (
+              <>
+                <ScrollView
+                  style={styles.mainContentNoPad}
+                  contentContainerStyle={{ paddingBottom: bottomInset + 95 }}
+                  showsVerticalScrollIndicator={false}
+                >
               {/* 1. TOP HEADER (Matching Settings style: Centered, transparent, clean) */}
               <View style={{
                 paddingTop: 4,
@@ -22832,127 +22840,111 @@ function CricketAddaMain() {
                   })()}
                 </TouchableOpacity>
               </Modal>
+            </>
+          )}
 
-              {/* Team Details Dedicated New Window Modal (Instant zero-flash inner Player Stats switch) */}
-              <Modal
-                visible={Boolean(selectedTeamDetail)}
-                animationType="slide"
-                transparent={false}
-                statusBarTranslucent={true}
-                onRequestClose={() => {
-                  if (guestModalVisible) {
-                    closeUnifiedAddPlayerModal();
-                  } else if (playerPendingRemoveConfirm) {
-                    setPlayerPendingRemoveConfirm(null);
-                  } else if (inspectedStatsPlayer) {
-                    setInspectedStatsPlayer(null);
-                  } else {
-                    setSelectedTeamDetail(null);
-                  }
-                }}
-              >
-                {selectedTeamDetail && (inspectedStatsPlayer ? (
-                  <View style={{ flex: 1, backgroundColor: currentTheme.bg, paddingTop: topInset }}>
-                    {renderPlayerStatsView({
-                      isModalView: true,
-                      onCloseModalView: () => setInspectedStatsPlayer(null),
-                    })}
+          {selectedTeamDetail && (inspectedStatsPlayer ? (
+            <View style={{ flex: 1, backgroundColor: currentTheme.bg }}>
+              {renderPlayerStatsView({
+                isModalView: true,
+                onCloseModalView: () => setInspectedStatsPlayer(null),
+              })}
+            </View>
+          ) : (() => {
+            const dTeam = (registeredTeams || []).find(x => x.id === selectedTeamDetail.id) || selectedTeamDetail;
+            const dIsOwner = isCreatedByMe(dTeam);
+            const dIsMember = isPlayingInTeam(dTeam);
+            const dSquad = Array.isArray(dTeam.squad) ? dTeam.squad : [];
+            const dRec = getTeamRealRecord(dTeam);
+            const capFromSq = dSquad.find(p => (typeof p === 'object' && p.isCaptain) || String(typeof p === 'string' ? p : p?.name || '').includes('(c)'));
+            const rawCapName = dTeam.captain
+              || (typeof capFromSq === 'string' ? capFromSq : capFromSq?.name)
+              || (typeof dSquad[0] === 'string' ? dSquad[0] : dSquad[0]?.name)
+              || 'Not Assigned';
+            let dCaptain = String(rawCapName).replace(/\s*\([^)]*\)/g, '').trim() || 'Not Assigned';
+            if (dIsOwner && userProfile?.name && (dCaptain.toLowerCase() === 'amanlevo' || dCaptain.toLowerCase() === 'aman' || dCaptain.toLowerCase() === (authEmail || '').split('@')[0].toLowerCase())) {
+              dCaptain = userProfile.name;
+            }
+
+            return (
+              <View style={{ flex: 1, backgroundColor: currentTheme.bg }}>
+                {/* Window Top Bar */}
+                  <View style={{
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    paddingHorizontal: 12,
+                    paddingVertical: 10,
+                    borderBottomWidth: 1,
+                    borderBottomColor: '#1e3a5f',
+                    backgroundColor: '#071526',
+                  }}>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setInspectedStatsPlayer(null);
+                        setSelectedTeamDetail(null);
+                      }}
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 9,
+                        backgroundColor: '#0f2544',
+                        borderWidth: 1,
+                        borderColor: '#38bdf8',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: -2 }}>‹</Text>
+                    </TouchableOpacity>
+
+                    <Text style={{ color: '#ffffff', fontSize: 16.5, fontWeight: '900', flex: 1, marginHorizontal: 10 }} numberOfLines={1}>
+                      {dTeam.name}
+                    </Text>
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setReturnToTeamDetail(dTeam);
+                          setSelectedTeamDetail(null);
+                          openTeamQrCode(dTeam);
+                        }}
+                        style={{
+                          backgroundColor: 'rgba(16, 185, 129, 0.16)',
+                          borderColor: '#10b981',
+                          borderWidth: 1,
+                          borderRadius: 8,
+                          paddingHorizontal: 9,
+                          paddingVertical: 6,
+                        }}
+                      >
+                        <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '800' }}>🪪 QR</Text>
+                      </TouchableOpacity>
+
+                      {dIsOwner && (
+                        <TouchableOpacity
+                          onPress={() => {
+                            setReturnToTeamDetail(dTeam);
+                            setSelectedTeamDetail(null);
+                            openNewTeamModal('teamA', '', dTeam);
+                          }}
+                          style={{
+                            backgroundColor: '#0284c7',
+                            borderColor: '#38bdf8',
+                            borderWidth: 1,
+                            borderRadius: 8,
+                            paddingHorizontal: 10,
+                            paddingVertical: 6,
+                          }}
+                        >
+                          <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }}>✏️ Edit</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
                   </View>
-                ) : (() => {
-                  const dTeam = (registeredTeams || []).find(x => x.id === selectedTeamDetail.id) || selectedTeamDetail;
-                  const dIsOwner = isCreatedByMe(dTeam);
-                  const dIsMember = isPlayingInTeam(dTeam);
-                  const dSquad = Array.isArray(dTeam.squad) ? dTeam.squad : [];
-                  const dRec = getTeamRealRecord(dTeam);
-                  const capFromSq = dSquad.find(p => (typeof p === 'object' && p.isCaptain) || String(typeof p === 'string' ? p : p?.name || '').includes('(c)'));
-                  const rawCapName = dTeam.captain
-                    || (typeof capFromSq === 'string' ? capFromSq : capFromSq?.name)
-                    || (typeof dSquad[0] === 'string' ? dSquad[0] : dSquad[0]?.name)
-                    || 'Not Assigned';
-                  let dCaptain = String(rawCapName).replace(/\s*\([^)]*\)/g, '').trim() || 'Not Assigned';
-                  if (dIsOwner && userProfile?.name && (dCaptain.toLowerCase() === 'amanlevo' || dCaptain.toLowerCase() === 'aman' || dCaptain.toLowerCase() === (authEmail || '').split('@')[0].toLowerCase())) {
-                    dCaptain = userProfile.name;
-                  }
 
-                  return (
-                    <View style={{ flex: 1, backgroundColor: currentTheme.bg, paddingTop: topInset }}>
-                      {/* Window Top Bar */}
-                        <View style={{
-                          flexDirection: 'row',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          paddingHorizontal: 12,
-                          paddingVertical: 10,
-                          borderBottomWidth: 1,
-                          borderBottomColor: '#1e3a5f',
-                          backgroundColor: '#071526',
-                        }}>
-                          <TouchableOpacity
-                            onPress={() => {
-                              setInspectedStatsPlayer(null);
-                              setSelectedTeamDetail(null);
-                            }}
-                            style={{
-                              width: 36,
-                              height: 36,
-                              borderRadius: 9,
-                              backgroundColor: '#0f2544',
-                              borderWidth: 1,
-                              borderColor: '#38bdf8',
-                              justifyContent: 'center',
-                              alignItems: 'center',
-                            }}
-                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          >
-                            <Text style={{ color: '#ffffff', fontSize: 20, fontWeight: '900', marginTop: -2 }}>‹</Text>
-                          </TouchableOpacity>
-
-                          <Text style={{ color: '#ffffff', fontSize: 16.5, fontWeight: '900', flex: 1, marginHorizontal: 10 }} numberOfLines={1}>
-                            {dTeam.name}
-                          </Text>
-
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                            <TouchableOpacity
-                              onPress={() => {
-                                setReturnToTeamDetail(dTeam);
-                                setSelectedTeamDetail(null);
-                                openTeamQrCode(dTeam);
-                              }}
-                              style={{
-                                backgroundColor: 'rgba(16, 185, 129, 0.16)',
-                                borderColor: '#10b981',
-                                borderWidth: 1,
-                                borderRadius: 8,
-                                paddingHorizontal: 9,
-                                paddingVertical: 6,
-                              }}
-                            >
-                              <Text style={{ color: '#34d399', fontSize: 11.5, fontWeight: '800' }}>🪪 QR</Text>
-                            </TouchableOpacity>
-
-                            {dIsOwner && (
-                              <TouchableOpacity
-                                onPress={() => {
-                                  setReturnToTeamDetail(dTeam);
-                                  setSelectedTeamDetail(null);
-                                  openNewTeamModal('teamA', '', dTeam);
-                                }}
-                                style={{
-                                  backgroundColor: '#0284c7',
-                                  borderColor: '#38bdf8',
-                                  borderWidth: 1,
-                                  borderRadius: 8,
-                                  paddingHorizontal: 10,
-                                  paddingVertical: 6,
-                                }}
-                              >
-                                <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '800' }}>✏️ Edit</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        </View>
-
-                        <View style={{ flex: 1, paddingHorizontal: 12, paddingTop: 12, paddingBottom: Math.max(bottomInset, 12) }}>
+                  <View style={{ flex: 1, paddingHorizontal: 12, paddingTop: 10, paddingBottom: bottomInset + 75 }}>
                           {/* Team Hero Card (Fixed Header, Non-Scrolling Page) */}
                           <View style={{
                             backgroundColor: 'rgba(8, 30, 56, 0.94)',
@@ -23445,7 +23437,6 @@ function CricketAddaMain() {
                       </View>
                   );
                 })())}
-              </Modal>
             </View>
         );
       })()}
