@@ -20863,7 +20863,7 @@ function CricketAddaMain() {
               bounces={false}
               keyboardShouldPersistTaps="handled"
               style={{ flex: 1, paddingHorizontal: 12, paddingTop: 5 }}
-              contentContainerStyle={{ flexGrow: 1, justifyContent: 'space-between', paddingBottom: 8 }}
+              contentContainerStyle={{ paddingBottom: bottomInset + 100 }}
             >
               <View>
                 {/* Sub-header Bar (Back button removed, Title centered) */}
@@ -21263,66 +21263,57 @@ function CricketAddaMain() {
                   )}
                 </View>
               </View>
+
+              {/* 4. Bottom Action Buttons: Back and Save Profile */}
+              <View style={{ flexDirection: 'row', gap: 10, marginTop: 14, marginBottom: 16 }}>
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={() => setPhotoPickerVisible(false)}
+                  style={{
+                    flex: 1,
+                    backgroundColor: isLight ? '#e2e8f0' : '#0b192c',
+                    borderColor: cardBorderCol,
+                    borderWidth: 1.2,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                  }}
+                >
+                  <Text style={{ color: txtMain, fontSize: 14, fontWeight: '800', textAlignVertical: 'center', includeFontPadding: false }}>
+                    ← Back
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  activeOpacity={0.85}
+                  onPress={saveProfileEdits}
+                  style={{
+                    flex: 1.5,
+                    backgroundColor: '#16a34a',
+                    borderColor: '#22c55e',
+                    borderWidth: 1,
+                    borderRadius: 12,
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexDirection: 'row',
+                    gap: 6,
+                    shadowColor: '#22c55e',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 4,
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', letterSpacing: 0.3, textAlignVertical: 'center', includeFontPadding: false }}>
+                    Save Profile ✓
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
-
-            {/* Fixed Bottom Action Buttons: Back & Save (Always visible, Docked above safe area) */}
-            <View style={{
-              flexDirection: 'row',
-              gap: 10,
-              paddingHorizontal: 14,
-              paddingTop: 10,
-              paddingBottom: Math.max(bottomInset, 14),
-              backgroundColor: isLight ? '#ffffff' : '#030b16',
-              borderTopWidth: 1,
-              borderTopColor: cardBorderCol,
-            }}>
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={() => setPhotoPickerVisible(false)}
-                style={{
-                  flex: 1,
-                  backgroundColor: isLight ? '#e2e8f0' : '#0b192c',
-                  borderColor: cardBorderCol,
-                  borderWidth: 1.2,
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'row',
-                  gap: 6,
-                }}
-              >
-                <Text style={{ color: txtMain, fontSize: 14, fontWeight: '800', textAlignVertical: 'center', includeFontPadding: false }}>
-                  ← Back
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                activeOpacity={0.85}
-                onPress={saveProfileEdits}
-                style={{
-                  flex: 1.5,
-                  backgroundColor: '#16a34a',
-                  borderColor: '#22c55e',
-                  borderWidth: 1,
-                  borderRadius: 12,
-                  paddingVertical: 12,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'row',
-                  gap: 6,
-                  shadowColor: '#22c55e',
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 4,
-                }}
-              >
-                <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: '900', letterSpacing: 0.3, textAlignVertical: 'center', includeFontPadding: false }}>
-                  Save Profile ✓
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
         );
       })() : (
@@ -26073,8 +26064,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* NATIVE BOTTOM NAVIGATION BAR (MATCHING MOCKUP & VIEWER DESIGN)            */}
       {/* ========================================================================= */}
-      {!photoPickerVisible && (
-      activeTab === 'scorer' && !isOfficialScorer ? (
+      {activeTab === 'scorer' && !isOfficialScorer ? (
         /* SPECTATOR VIEWER BOTTOM NAVIGATION (MATCHING SCREENSHOT) */
         <View style={[styles.bottomNavBar, { backgroundColor: '#020617', borderTopColor: '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
           {/* 1. Live */}
@@ -26186,7 +26176,6 @@ function CricketAddaMain() {
           {activeTab === 'settings' && <View style={styles.bottomNavActiveBar} />}
         </TouchableOpacity>
       </View>
-      )
       )}
 
       {/* JOIN MATCH WITH CODE MODAL */}
