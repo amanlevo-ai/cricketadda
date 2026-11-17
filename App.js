@@ -9292,7 +9292,7 @@ function CricketAddaMain() {
                 latestBall.extraType === 'nb' ||
                 latestBall.extraType === 'no_ball' ||
                 String(latestBall.ballSymbol || '').toLowerCase().includes('nb') ||
-                latestBall.nbRunType
+                Boolean(latestBall.isNoBall)
               );
               const batterName = latestBall.striker || d.currentStriker || striker || 'Batter';
               const outName = latestBall.dismissedPlayerName || batterName;
@@ -11073,7 +11073,7 @@ function CricketAddaMain() {
     customDismissalType = null,
     dismissedPlayerName = null,
     wicketFielderName = null,
-    nbRunType = 'bat', // 'bat' | 'bye' | 'legBye'
+    nbRunType = null, // only used for noBall: 'bat' | 'bye' | 'legBye'
     overthrowRuns = 0,
     incomingBatterName = null,
     dismissalDescParam = null
@@ -11240,7 +11240,7 @@ function CricketAddaMain() {
       runsOffBat: batterRunsAdded,
       extraType: extraType || 'none',
       extraPenalty: extraPenalty || (extraType === 'wide' || extraType === 'noBall' ? 1 : 0),
-      nbRunType: nbRunType || null,
+      nbRunType: (extraType === 'noBall' || extraType === 'nb' || extraType === 'no_ball') ? (nbRunType || 'bat') : null,
       overthrowRuns: otRuns || 0,
       isLegalDelivery: Boolean(isLegalDelivery),
       ballSymbol: ballSymbol,
@@ -11774,7 +11774,7 @@ function CricketAddaMain() {
         runsOffBat: batterRunsAdded,
         extraType: extraType || 'none',
         extraPenalty: extraPenalty || (extraType === 'wide' || extraType === 'noBall' ? 1 : 0),
-        nbRunType: nbRunType || null,
+        nbRunType: (extraType === 'noBall' || extraType === 'nb' || extraType === 'no_ball') ? (nbRunType || 'bat') : null,
         overthrowRuns: otRuns || 0,
         isLegalDelivery: Boolean(isLegalDelivery),
         ballSymbol: ballSymbol,
