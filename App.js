@@ -8383,10 +8383,10 @@ function CricketAddaMain() {
           }
 
           // Real-time automatic scoring resumption when scoring duty is delegated across devices
-          const curUid = activeAccountProfile?.id || userProfile?.id;
-          const curPhone = String(activeAccountProfile?.phone || userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
-          const curEmail = (activeAccountProfile?.email || userProfile?.email || authEmail || '').toLowerCase().trim();
-          const curName = (activeAccountProfile?.name || userProfile?.name || authName || '').toLowerCase().trim();
+          const curUid = userProfile?.id;
+          const curPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
+          const curEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
+          const curName = (userProfile?.name || authName || '').toLowerCase().trim();
 
           const delegatedIds = [];
           Object.entries(next).forEach(([mId, m]) => {
