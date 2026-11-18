@@ -24315,7 +24315,7 @@ function CricketAddaMain() {
                     <ScrollView
                       style={{ flex: 1 }}
                       showsVerticalScrollIndicator={false}
-                      contentContainerStyle={{ paddingBottom: 20 }}
+                      contentContainerStyle={{ paddingBottom: bottomInset + 80 }}
                     >
                       <View style={{
                         backgroundColor: '#071526',
@@ -24436,7 +24436,7 @@ function CricketAddaMain() {
                     <ScrollView
                       style={{ flex: 1 }}
                       showsVerticalScrollIndicator={false}
-                      contentContainerStyle={{ paddingBottom: 20 }}
+                      contentContainerStyle={{ paddingBottom: bottomInset + 80 }}
                     >
                       {renderEmbeddedScorecard()}
                     </ScrollView>
@@ -26584,7 +26584,7 @@ function CricketAddaMain() {
                   </View>
                 </View>
 
-                {/* Right: Resume Button + Dismiss Cross */}
+                {/* Right: Action Button (Resume for Scorer, View Match for Spectator) + Dismiss Cross */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                   <View style={{
                     backgroundColor: currentTheme.primary || '#22c55e',
@@ -26600,14 +26600,14 @@ function CricketAddaMain() {
                     shadowRadius: 3,
                     elevation: 4,
                   }}>
-                    <Text style={{ fontSize: 11 }}>🏏</Text>
+                    <Text style={{ fontSize: 11 }}>{isOfficialScorer ? '🏏' : '👁️'}</Text>
                     <Text style={{
                       color: currentTheme.primaryText || '#ffffff',
                       fontSize: 11.5,
                       fontWeight: '900',
                       letterSpacing: 0.3,
                     }}>
-                      Resume
+                      {isOfficialScorer ? 'Resume' : 'View Match'}
                     </Text>
                     <Text style={{ color: currentTheme.primaryText || '#ffffff', fontSize: 11, fontWeight: '900' }}>❯</Text>
                   </View>
@@ -26633,120 +26633,73 @@ function CricketAddaMain() {
           );
         })()}
 
-        {/* Existing Bottom Navigation Bar */}
-        {activeTab === 'scorer' && !isOfficialScorer ? (
-          /* SPECTATOR VIEWER BOTTOM NAVIGATION (MATCHING SCREENSHOT) */
-          <View pointerEvents="auto" style={[styles.bottomNavBar, { position: 'relative', backgroundColor: currentTheme.bottomNavBg || '#020617', borderTopColor: currentTheme.navBorder || '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
-            {/* 1. Live */}
-            <TouchableOpacity
-              style={styles.bottomNavTab}
-              onPress={() => setViewerActiveSubTab('commentary')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.bottomNavIcon, { color: '#0284c7' }]}>🏠</Text>
-              <Text style={[styles.bottomNavLabel, { color: '#0284c7', fontWeight: '900' }]}>Live</Text>
-              <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />
-            </TouchableOpacity>
+        {/* Bottom Navigation Bar: Uniform across All Views (Home, Matches, Teams, Stats, More) */}
+        <View pointerEvents="auto" style={[styles.bottomNavBar, { position: 'relative', backgroundColor: currentTheme.bottomNavBg || '#020617', borderTopColor: currentTheme.navBorder || '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
+          {/* 1. Home */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => {
+              navigateTo('matches');
+              setMatchFilter('all');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bottomNavIcon, activeTab === 'matches' && matchFilter === 'all' && { color: currentTheme.primary || '#22c55e' }]}>🏠</Text>
+            <Text style={[styles.bottomNavLabel, activeTab === 'matches' && matchFilter === 'all' ? { color: currentTheme.primary || '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Home</Text>
+            {activeTab === 'matches' && matchFilter === 'all' && <View style={[styles.bottomNavActiveBar, { backgroundColor: currentTheme.primary || '#22c55e' }]} />}
+          </TouchableOpacity>
 
-            {/* 2. Scorecard (Opens Dedicated Window As Requested) */}
-            <TouchableOpacity
-              style={styles.bottomNavTab}
-              onPress={() => openMatchScorecard(activeMatchId)}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.bottomNavIcon, { color: '#94a3b8' }]}>📋</Text>
-              <Text style={[styles.bottomNavLabel, { color: '#94a3b8', fontWeight: '900' }]}>Scorecard</Text>
-            </TouchableOpacity>
+          {/* 2. Matches */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => {
+              navigateTo('matches');
+              setMatchFilter('live');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bottomNavIcon, ((activeTab === 'matches' && matchFilter !== 'all') || activeTab === 'scorer') && { color: currentTheme.primary || '#22c55e' }]}>🏏</Text>
+            <Text style={[styles.bottomNavLabel, ((activeTab === 'matches' && matchFilter !== 'all') || activeTab === 'scorer') ? { color: currentTheme.primary || '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Matches</Text>
+            {((activeTab === 'matches' && matchFilter !== 'all') || activeTab === 'scorer') && <View style={[styles.bottomNavActiveBar, { backgroundColor: currentTheme.primary || '#22c55e' }]} />}
+          </TouchableOpacity>
 
-            {/* 3. Commentary */}
-            <TouchableOpacity
-              style={styles.bottomNavTab}
-              onPress={() => setViewerActiveSubTab('commentary')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.bottomNavIcon, viewerActiveSubTab === 'commentary' && { color: '#0284c7' }]}>💬</Text>
-              <Text style={[styles.bottomNavLabel, viewerActiveSubTab === 'commentary' ? { color: '#0284c7', fontWeight: '900' } : { color: '#94a3b8' }]}>Commentary</Text>
-              {viewerActiveSubTab === 'commentary' && <View style={[styles.bottomNavActiveBar, { backgroundColor: '#0284c7' }]} />}
-            </TouchableOpacity>
+          {/* 3. Teams */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => navigateTo('teams')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bottomNavIcon, activeTab === 'teams' && { color: currentTheme.primary || '#22c55e' }]}>👥</Text>
+            <Text style={[styles.bottomNavLabel, activeTab === 'teams' ? { color: currentTheme.primary || '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Teams</Text>
+            {activeTab === 'teams' && <View style={[styles.bottomNavActiveBar, { backgroundColor: currentTheme.primary || '#22c55e' }]} />}
+          </TouchableOpacity>
 
-            {/* 4. Info */}
-            <TouchableOpacity
-              style={styles.bottomNavTab}
-              onPress={() => setScorerActionsModalVisible(true)}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.bottomNavIcon}>ℹ️</Text>
-              <Text style={[styles.bottomNavLabel, { color: '#94a3b8' }]}>Info</Text>
-            </TouchableOpacity>
-          </View>
-        ) : (
-          <View pointerEvents="auto" style={[styles.bottomNavBar, { position: 'relative', backgroundColor: currentTheme.bottomNavBg || '#020617', borderTopColor: currentTheme.navBorder || '#0f172a', paddingBottom: Math.max(bottomInset, 6) }]}>
-            {/* 1. Home */}
-            <TouchableOpacity
-              style={styles.bottomNavTab}
-              onPress={() => {
-                navigateTo('matches');
-                setMatchFilter('all');
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.bottomNavIcon, activeTab === 'matches' && matchFilter === 'all' && { color: '#22c55e' }]}>🏠</Text>
-              <Text style={[styles.bottomNavLabel, activeTab === 'matches' && matchFilter === 'all' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Home</Text>
-              {activeTab === 'matches' && matchFilter === 'all' && <View style={styles.bottomNavActiveBar} />}
-            </TouchableOpacity>
+          {/* 4. Stats */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => {
+              setInspectedStatsPlayer(null);
+              setReturnToTeamDetail(null);
+              navigateTo('profile');
+            }}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bottomNavIcon, (activeTab === 'profile' || activeTab === 'scorecard') && { color: currentTheme.primary || '#22c55e' }]}>📊</Text>
+            <Text style={[styles.bottomNavLabel, (activeTab === 'profile' || activeTab === 'scorecard') ? { color: currentTheme.primary || '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Stats</Text>
+            {(activeTab === 'profile' || activeTab === 'scorecard') && <View style={[styles.bottomNavActiveBar, { backgroundColor: currentTheme.primary || '#22c55e' }]} />}
+          </TouchableOpacity>
 
-            {/* 2. Matches */}
-            <TouchableOpacity
-              style={styles.bottomNavTab}
-              onPress={() => {
-                navigateTo('matches');
-                setMatchFilter('live');
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.bottomNavIcon, activeTab === 'matches' && matchFilter !== 'all' && { color: '#22c55e' }]}>🏏</Text>
-              <Text style={[styles.bottomNavLabel, activeTab === 'matches' && matchFilter !== 'all' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Matches</Text>
-              {activeTab === 'matches' && matchFilter !== 'all' && <View style={styles.bottomNavActiveBar} />}
-            </TouchableOpacity>
-
-            {/* 3. Teams */}
-            <TouchableOpacity
-              style={styles.bottomNavTab}
-              onPress={() => navigateTo('teams')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.bottomNavIcon, activeTab === 'teams' && { color: '#22c55e' }]}>👥</Text>
-              <Text style={[styles.bottomNavLabel, activeTab === 'teams' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Teams</Text>
-              {activeTab === 'teams' && <View style={styles.bottomNavActiveBar} />}
-            </TouchableOpacity>
-
-            {/* 4. Stats */}
-            <TouchableOpacity
-              style={styles.bottomNavTab}
-              onPress={() => {
-                setInspectedStatsPlayer(null);
-                setReturnToTeamDetail(null);
-                navigateTo('profile');
-              }}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.bottomNavIcon, (activeTab === 'profile' || activeTab === 'scorecard') && { color: '#22c55e' }]}>📊</Text>
-              <Text style={[styles.bottomNavLabel, (activeTab === 'profile' || activeTab === 'scorecard') ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>Stats</Text>
-              {(activeTab === 'profile' || activeTab === 'scorecard') && <View style={styles.bottomNavActiveBar} />}
-            </TouchableOpacity>
-
-            {/* 5. More */}
-            <TouchableOpacity
-              style={styles.bottomNavTab}
-              onPress={() => navigateTo('settings')}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.bottomNavIcon, activeTab === 'settings' && { color: '#22c55e' }]}>⚙️</Text>
-              <Text style={[styles.bottomNavLabel, activeTab === 'settings' ? { color: '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>More</Text>
-              {activeTab === 'settings' && <View style={styles.bottomNavActiveBar} />}
-            </TouchableOpacity>
-          </View>
-        )}
+          {/* 5. More */}
+          <TouchableOpacity
+            style={styles.bottomNavTab}
+            onPress={() => navigateTo('settings')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.bottomNavIcon, activeTab === 'settings' && { color: currentTheme.primary || '#22c55e' }]}>⚙️</Text>
+            <Text style={[styles.bottomNavLabel, activeTab === 'settings' ? { color: currentTheme.primary || '#22c55e', fontWeight: '900' } : { color: '#94a3b8' }]}>More</Text>
+            {activeTab === 'settings' && <View style={[styles.bottomNavActiveBar, { backgroundColor: currentTheme.primary || '#22c55e' }]} />}
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* JOIN MATCH WITH CODE MODAL */}
