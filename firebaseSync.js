@@ -74,6 +74,87 @@ export function initFirebase(customConfig = null) {
   return true;
 }
 
+// ============================================================================
+// IMMUTABLE UNIQUE ID ARCHITECTURE
+// Standardized IDs for registered players, users, scorers & creators
+// ============================================================================
+export const KNOWN_USER_IDS = {
+  AMAN_PHONE: 'usr_9780425527',
+  AMAN_ALIAS: 'usr_amandeep',
+  AMAN_LEGACY: 'usr_1792728393426',
+  WPARDEEP_ID: 'usr_1793432528758',
+  WPARDEEP_ALIAS: 'usr_wpardeep',
+};
+
+/**
+ * Normalizes user/player identity to an immutable Unique ID.
+ * Resolves aliases and guarantees deterministic IDs across the app.
+ */
+export function normalizeUserId(id, email, phone, name) {
+  const cleanEmail = (email || '').toLowerCase().trim();
+  const cleanPhone = String(phone || '').replace(/[^0-9]/g, '').slice(-10);
+  const cleanName = (name || '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  const cleanId = String(id || '').trim();
+
+  // 1. Amandeep / Amanlevo identity mapping
+  if (
+    cleanEmail === 'amanlevo@gmail.com' ||
+    cleanPhone === '9780425527' ||
+    cleanName === 'amandeep' ||
+    cleanName === 'amanlevo' ||
+    cleanId === 'usr_9780425527' ||
+    cleanId === 'usr_amandeep' ||
+    cleanId === 'usr_1792728393426'
+  ) {
+    return 'usr_9780425527';
+  }
+
+  // 2. Wpardeepkaur identity mapping
+  if (
+    cleanEmail === 'wpardeepkaur@gmail.com' ||
+    cleanName.includes('wpardeep') ||
+    cleanId === 'usr_1793432528758' ||
+    cleanId === 'usr_wpardeep'
+  ) {
+    return 'usr_1793432528758';
+  }
+
+  // 3. Existing valid ID
+  if (cleanId && cleanId.length > 2 && cleanId !== 'undefined' && cleanId !== 'null') {
+    return cleanId;
+  }
+
+  // 4. Phone-based ID
+  if (cleanPhone && cleanPhone.length === 10) {
+    return `usr_${cleanPhone}`;
+  }
+
+  // 5. Fallback ID
+  return `usr_${Date.now()}`;
+}
+
+/**
+ * Checks whether two user IDs match, resolving known aliases.
+ */
+export function isSameUserOrAlias(id1, id2) {
+  if (!id1 || !id2) return false;
+  const s1 = String(id1).trim();
+  const s2 = String(id2).trim();
+  if (s1 === s2) return true;
+
+  const norm1 = normalizeUserId(s1);
+  const norm2 = normalizeUserId(s2);
+  if (norm1 === norm2) return true;
+
+  const amanIds = ['usr_9780425527', 'usr_amandeep', 'usr_1792728393426'];
+  if (amanIds.includes(s1) && amanIds.includes(s2)) return true;
+
+  const wpardeepIds = ['usr_1793432528758', 'usr_wpardeep'];
+  if (wpardeepIds.includes(s1) && wpardeepIds.includes(s2)) return true;
+
+  return false;
+}
+
 /**
  * Checks connectivity to Firebase Realtime Database with timeout & latency measurement
  */
@@ -486,6 +567,11 @@ export async function recordBallDeliveryAtomic(matchId, ballData) {
     if (ballData.nextBowler !== undefined) multiPathUpdates.currentBowler = ballData.nextBowler;
     else if (ballData.bowler !== undefined) multiPathUpdates.currentBowler = ballData.bowler;
 
+    if (ballData.strikerId) multiPathUpdates.currentStrikerId = ballData.strikerId;
+    if (ballData.nonStrikerId) multiPathUpdates.currentNonStrikerId = ballData.nonStrikerId;
+    if (ballData.bowlerId) multiPathUpdates.currentBowlerId = ballData.bowlerId;
+    if (ballData.scorerId) multiPathUpdates.activeScorerId = ballData.scorerId;
+
     if (ballData.lastOverBowler !== undefined) multiPathUpdates.lastOverBowler = ballData.lastOverBowler;
     if (ballData.status) multiPathUpdates.status = ballData.status;
     if (ballData.celebrationEvent) {
@@ -590,13 +676,23 @@ export async function transferScorerDutyAtomic(matchId, scorerData) {
 
     const isReturningToCreator = scorerData.isScoringDelegated === false;
     const isDelegatedValue = !isReturningToCreator;
+    const resolvedScorerId = normalizeUserId(
+      scorerData.id || scorerData.scorerId,
+      scorerData.email,
+      scorerData.phone,
+      scorerData.name
+    );
+
+    const fullScorerObj = {
+      ...scorerData,
+      id: resolvedScorerId,
+      assignedAt: Date.now(),
+    };
 
     await update(ref(db, `matches/${id}`), {
-      activeScorer: {
-        ...scorerData,
-        assignedAt: Date.now(),
-      },
-      scorerId: scorerData.id || scorerData.scorerId || null,
+      activeScorer: fullScorerObj,
+      activeScorerId: resolvedScorerId,
+      scorerId: resolvedScorerId,
       scorerName: scorerData.name || scorerData.scorerName || 'Scorer',
       scorerEmail: scorerData.email || scorerData.scorerEmail || null,
       scorerPhone: scorerData.phone || scorerData.scorerPhone || null,
@@ -605,11 +701,9 @@ export async function transferScorerDutyAtomic(matchId, scorerData) {
       delegatedAt: Date.now(),
       delegatedTo: isDelegatedValue ? (scorerData.name || 'Scorer') : null,
       lastUpdatedAt: Date.now(),
-      'match/activeScorer': {
-        ...scorerData,
-        assignedAt: Date.now(),
-      },
-      'match/scorerId': scorerData.id || scorerData.scorerId || null,
+      'match/activeScorer': fullScorerObj,
+      'match/activeScorerId': resolvedScorerId,
+      'match/scorerId': resolvedScorerId,
       'match/scorerName': scorerData.name || scorerData.scorerName || 'Scorer',
       'match/scorerEmail': scorerData.email || scorerData.scorerEmail || null,
       'match/scorerPhone': scorerData.phone || scorerData.scorerPhone || null,
@@ -1394,7 +1488,12 @@ export async function searchCloudPlayerByPhone(phoneDigits) {
         const res = await fetch(`${baseUrl}/registered_players/${key}.json`);
         if (res.ok) {
           const data = await res.json();
-          if (data && typeof data === 'object' && data.name) return data;
+          if (data && typeof data === 'object' && data.name) {
+            return {
+              ...data,
+              id: normalizeUserId(data.id, data.email, cleanPhone, data.name),
+            };
+          }
         }
       } catch (_) {}
     }
@@ -1413,7 +1512,13 @@ export async function searchCloudPlayerByPhone(phoneDigits) {
         if (!candidatePhone) return false;
         return candidatePhone === cleanPhone || (candidatePhone.length >= 10 && last10.length >= 10 && candidatePhone.slice(-10) === last10);
       });
-      if (match) return match.profile || match;
+      if (match) {
+        const prof = match.profile || match;
+        return {
+          ...prof,
+          id: normalizeUserId(prof.id || match.id, prof.email || match.email, cleanPhone, prof.name || match.name),
+        };
+      }
     }
     // 3. Fallback check in /teams.json (players in team squads)
     try {
@@ -1428,7 +1533,12 @@ export async function searchCloudPlayerByPhone(phoneDigits) {
               const pPhone = String(p.phone || p.mobile || p.phoneNumber || '').replace(/[^0-9]/g, '');
               return pPhone && (pPhone === cleanPhone || (pPhone.length >= 10 && last10.length >= 10 && pPhone.slice(-10) === last10));
             });
-            if (sqMatch && sqMatch.name) return sqMatch;
+            if (sqMatch && sqMatch.name) {
+              return {
+                ...sqMatch,
+                id: normalizeUserId(sqMatch.id, sqMatch.email, cleanPhone, sqMatch.name),
+              };
+            }
           }
         }
       }

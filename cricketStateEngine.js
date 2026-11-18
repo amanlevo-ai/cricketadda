@@ -78,9 +78,11 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
   initialBatters.forEach(p => {
     if (!p) return;
     const name = typeof p === 'object' ? (p.name || p.playerName) : p;
+    const pId = typeof p === 'object' ? (p.id || p.playerId || null) : null;
     if (name && typeof name === 'string' && name.trim()) {
       const cleanName = name.trim();
       battersMap[cleanName] = {
+        id: pId,
         name: cleanName,
         runs: 0,
         balls: 0,
@@ -102,9 +104,11 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
   initialBowlers.forEach(p => {
     if (!p) return;
     const name = typeof p === 'object' ? (p.name || p.bowlerName) : p;
+    const pId = typeof p === 'object' ? (p.id || p.playerId || null) : null;
     if (name && typeof name === 'string' && name.trim()) {
       const cleanName = name.trim();
       bowlersMap[cleanName] = {
+        id: pId,
         name: cleanName,
         balls: 0,
         overs: '0.0',
@@ -191,6 +195,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
 
     if (!battersMap[strikerName]) {
       battersMap[strikerName] = {
+        id: d.strikerId || null,
         name: strikerName,
         runs: 0,
         balls: 0,
@@ -205,6 +210,8 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
         strikeRate: '0.0',
         battingOrder: Object.keys(battersMap).length + 1,
       };
+    } else if (d.strikerId && !battersMap[strikerName].id) {
+      battersMap[strikerName].id = d.strikerId;
     }
 
     // Batter ball faced: counts on all deliveries EXCEPT wides and penalty
@@ -298,6 +305,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
 
     if (!bowlersMap[bowlerName]) {
       bowlersMap[bowlerName] = {
+        id: d.bowlerId || null,
         name: bowlerName,
         balls: 0,
         overs: '0.0',
@@ -310,6 +318,8 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
         sixesConceded: 0,
         style: 'Right-arm Medium',
       };
+    } else if (d.bowlerId && !bowlersMap[bowlerName].id) {
+      bowlersMap[bowlerName].id = d.bowlerId;
     }
 
     if (isLegal) {
