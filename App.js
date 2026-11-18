@@ -9636,6 +9636,20 @@ function CricketAddaMain() {
     const resolvedLogoA = d.logoA || d.match?.logoA || d.innings1?.logoUri || '';
     const resolvedLogoB = d.logoB || d.match?.logoB || d.innings2?.logoUri || '';
 
+    const effIsDelegated = d.isScoringDelegated !== undefined
+      ? Boolean(d.isScoringDelegated)
+      : (d.match?.isScoringDelegated !== undefined ? Boolean(d.match.isScoringDelegated) : undefined);
+    const effDelegatedTo = d.delegatedTo || d.match?.delegatedTo || undefined;
+    const effDelegatedFrom = d.delegatedFrom || d.match?.delegatedFrom || undefined;
+    const effScorerName = d.scorerName || d.match?.scorerName || d.activeScorer?.name || effDelegatedTo || undefined;
+    const effScorerId = d.scorerId || d.match?.scorerId || d.activeScorer?.id || undefined;
+    const effScorerEmail = d.scorerEmail || d.match?.scorerEmail || d.activeScorer?.email || undefined;
+    const effScorerPhone = d.scorerPhone || d.match?.scorerPhone || d.activeScorer?.phone || undefined;
+    const effCreatorName = d.creatorName || d.match?.creatorName || undefined;
+    const effCreatorId = d.creatorId || d.match?.creatorId || undefined;
+    const effCreatorPhone = d.creatorPhone || d.match?.creatorPhone || undefined;
+    const effCreatorEmail = d.creatorEmail || d.match?.creatorEmail || undefined;
+
     setMatch(prev => ({
       ...prev,
       ...(d.match || {}),
@@ -9649,6 +9663,17 @@ function CricketAddaMain() {
       currentStriker: d.currentStriker || d.match?.currentStriker || prev.currentStriker || '',
       currentNonStriker: d.currentNonStriker || d.match?.currentNonStriker || prev.currentNonStriker || '',
       currentBowler: d.currentBowler || d.match?.currentBowler || prev.currentBowler || '',
+      ...(effIsDelegated !== undefined ? { isScoringDelegated: effIsDelegated } : {}),
+      ...(effDelegatedTo ? { delegatedTo: effDelegatedTo } : {}),
+      ...(effDelegatedFrom ? { delegatedFrom: effDelegatedFrom } : {}),
+      ...(effScorerName ? { scorerName: effScorerName } : {}),
+      ...(effScorerId ? { scorerId: effScorerId } : {}),
+      ...(effScorerEmail ? { scorerEmail: effScorerEmail } : {}),
+      ...(effScorerPhone ? { scorerPhone: effScorerPhone } : {}),
+      ...(effCreatorName ? { creatorName: effCreatorName } : {}),
+      ...(effCreatorId ? { creatorId: effCreatorId } : {}),
+      ...(effCreatorPhone ? { creatorPhone: effCreatorPhone } : {}),
+      ...(effCreatorEmail ? { creatorEmail: effCreatorEmail } : {}),
     }));
     if (Array.isArray(d.liveCommentaryList)) setLiveCommentaryList(d.liveCommentaryList);
     if (d.liveBatters && typeof d.liveBatters === 'object') {
@@ -9679,6 +9704,17 @@ function CricketAddaMain() {
           teamB: effTeamB,
           logoA: effLogoA,
           logoB: effLogoB,
+          ...(effIsDelegated !== undefined ? { isScoringDelegated: effIsDelegated } : (existingMatch.isScoringDelegated !== undefined ? { isScoringDelegated: existingMatch.isScoringDelegated } : {})),
+          ...(effDelegatedTo ? { delegatedTo: effDelegatedTo } : (existingMatch.delegatedTo ? { delegatedTo: existingMatch.delegatedTo } : {})),
+          ...(effDelegatedFrom ? { delegatedFrom: effDelegatedFrom } : (existingMatch.delegatedFrom ? { delegatedFrom: existingMatch.delegatedFrom } : {})),
+          ...(effScorerName ? { scorerName: effScorerName } : (existingMatch.scorerName ? { scorerName: existingMatch.scorerName } : {})),
+          ...(effScorerId ? { scorerId: effScorerId } : (existingMatch.scorerId ? { scorerId: existingMatch.scorerId } : {})),
+          ...(effScorerEmail ? { scorerEmail: effScorerEmail } : (existingMatch.scorerEmail ? { scorerEmail: existingMatch.scorerEmail } : {})),
+          ...(effScorerPhone ? { scorerPhone: effScorerPhone } : (existingMatch.scorerPhone ? { scorerPhone: existingMatch.scorerPhone } : {})),
+          ...(effCreatorName ? { creatorName: effCreatorName } : (existingMatch.creatorName ? { creatorName: existingMatch.creatorName } : {})),
+          ...(effCreatorId ? { creatorId: effCreatorId } : (existingMatch.creatorId ? { creatorId: existingMatch.creatorId } : {})),
+          ...(effCreatorPhone ? { creatorPhone: effCreatorPhone } : (existingMatch.creatorPhone ? { creatorPhone: existingMatch.creatorPhone } : {})),
+          ...(effCreatorEmail ? { creatorEmail: effCreatorEmail } : (existingMatch.creatorEmail ? { creatorEmail: existingMatch.creatorEmail } : {})),
           auditMode: d.auditMode !== undefined ? d.auditMode : ((d.match && d.match.auditMode) ?? existingMatch.auditMode),
           isPausedForAudit: d.isPausedForAudit !== undefined ? d.isPausedForAudit : ((d.match && d.match.isPausedForAudit) ?? existingMatch.isPausedForAudit),
           liveRuns: typeof d.liveRuns === 'number' ? d.liveRuns : existingMatch.liveRuns,
@@ -9893,6 +9929,26 @@ function CricketAddaMain() {
     const teamBFlag = match?.flagB || currentMatchInDb.flagB || (currentInnings === 2 ? battingTeamFlag : bowlingTeamFlag);
     const matchTitle = match?.title || currentMatchInDb.title || `${teamAName} vs ${teamBName}`;
 
+    // Preserve and anchor scoring delegation across every broadcast so creator never accidentally reclaims on over finish
+    const isDelegated = customPayload.isScoringDelegated !== undefined
+      ? Boolean(customPayload.isScoringDelegated)
+      : Boolean(currentMatchInDb.isScoringDelegated || match?.isScoringDelegated);
+    const delegatedTo = customPayload.delegatedTo || currentMatchInDb.delegatedTo || match?.delegatedTo || (isDelegated ? (currentMatchInDb.scorerName || match?.scorerName) : null);
+    const delegatedFrom = customPayload.delegatedFrom || currentMatchInDb.delegatedFrom || match?.delegatedFrom || (isDelegated ? (currentMatchInDb.creatorName || match?.creatorName) : null);
+    const currentActiveScorer = customPayload.activeScorer || currentMatchInDb.activeScorer || activeScorer || null;
+
+    const currentScorerName = customPayload.scorerName || (isDelegated ? (currentMatchInDb.scorerName || match?.scorerName || delegatedTo) : (match?.scorerName || currentMatchInDb.scorerName || userProfile?.name || authName || ''));
+    const currentScorerId = customPayload.scorerId || (isDelegated ? (currentMatchInDb.scorerId || match?.scorerId) : (match?.scorerId || currentMatchInDb.scorerId || userProfile?.id));
+    const currentScorerEmail = customPayload.scorerEmail || (isDelegated ? (currentMatchInDb.scorerEmail || match?.scorerEmail) : (match?.scorerEmail || currentMatchInDb.scorerEmail || userProfile?.email || authEmail || ''));
+    const currentScorerPhone = customPayload.scorerPhone || (isDelegated ? (currentMatchInDb.scorerPhone || match?.scorerPhone) : (match?.scorerPhone || currentMatchInDb.scorerPhone || userProfile?.phone || authPhone || ''));
+    const currentScorerDeviceId = customPayload.scorerDeviceId || (isDelegated ? (currentMatchInDb.scorerDeviceId || match?.scorerDeviceId) : (match?.scorerDeviceId || currentMatchInDb.scorerDeviceId || clientIdRef?.current));
+
+    const currentCreatorName = match?.creatorName || currentMatchInDb.creatorName || (isDelegated ? (currentMatchInDb.creatorName || delegatedFrom || 'Creator') : (userProfile?.name || authName || ''));
+    const currentCreatorId = match?.creatorId || currentMatchInDb.creatorId || userProfile?.id;
+    const currentCreatorPhone = match?.creatorPhone || currentMatchInDb.creatorPhone || userProfile?.phone || authPhone || '';
+    const currentCreatorEmail = match?.creatorEmail || currentMatchInDb.creatorEmail || userProfile?.email || authEmail || '';
+    const currentCreatorDeviceId = match?.creatorDeviceId || currentMatchInDb.creatorDeviceId || clientIdRef?.current;
+
     // Keep lastAppliedRemoteSyncRef in sync with local broadcasts so incoming stale echoes are dropped
     const payloadBalls = customPayload.liveBalls !== undefined ? customPayload.liveBalls : liveBalls;
     const payloadRuns = customPayload.liveRuns !== undefined ? customPayload.liveRuns : liveRuns;
@@ -9914,6 +9970,10 @@ function CricketAddaMain() {
       isReset: false,
       forceResetAt: null,
       isUndoAction: false,
+      isScoringDelegated: isDelegated,
+      delegatedTo,
+      delegatedFrom,
+      activeScorer: currentActiveScorer,
       teamA: teamAName,
       teamB: teamBName,
       flagA: teamAFlag,
@@ -9934,9 +9994,18 @@ function CricketAddaMain() {
       lastActionTimestamp: customPayload.lastActionTimestamp || lastLocalActionTimeRef.current || Date.now(),
       matchVersion: customPayload.matchVersion || localMatchVersionRef.current || 0,
       lastUpdatedAt: customPayload.lastUpdatedAt || lastLocalActionTimeRef.current || Date.now(),
-      activeScorer,
       currentInnings,
       firstInningsSummary,
+      creatorId: currentCreatorId,
+      creatorDeviceId: currentCreatorDeviceId,
+      creatorPhone: currentCreatorPhone,
+      creatorEmail: currentCreatorEmail,
+      creatorName: currentCreatorName,
+      scorerId: currentScorerId,
+      scorerDeviceId: currentScorerDeviceId,
+      scorerPhone: currentScorerPhone,
+      scorerEmail: currentScorerEmail,
+      scorerName: currentScorerName,
       match: {
         ...(match || {}),
         title: matchTitle,
@@ -9952,27 +10021,21 @@ function CricketAddaMain() {
         lastActionTimestamp: customPayload.lastActionTimestamp || lastLocalActionTimeRef.current || Date.now(),
         matchVersion: customPayload.matchVersion || localMatchVersionRef.current || 0,
         lastUpdatedAt: customPayload.lastUpdatedAt || lastLocalActionTimeRef.current || Date.now(),
-        creatorId: match?.creatorId || currentMatchInDb.creatorId || userProfile?.id,
-        creatorDeviceId: match?.creatorDeviceId || currentMatchInDb.creatorDeviceId || clientIdRef?.current,
-        creatorPhone: match?.creatorPhone || currentMatchInDb.creatorPhone || userProfile?.phone || authPhone || '',
-        creatorEmail: match?.creatorEmail || currentMatchInDb.creatorEmail || userProfile?.email || authEmail || '',
-        creatorName: match?.creatorName || currentMatchInDb.creatorName || userProfile?.name || authName || '',
-        scorerId: match?.scorerId || currentMatchInDb.scorerId || userProfile?.id,
-        scorerDeviceId: match?.scorerDeviceId || currentMatchInDb.scorerDeviceId || clientIdRef?.current,
-        scorerPhone: match?.scorerPhone || currentMatchInDb.scorerPhone || userProfile?.phone || authPhone || '',
-        scorerEmail: match?.scorerEmail || currentMatchInDb.scorerEmail || userProfile?.email || authEmail || '',
-        scorerName: match?.scorerName || currentMatchInDb.scorerName || userProfile?.name || authName || '',
+        isScoringDelegated: isDelegated,
+        delegatedTo,
+        delegatedFrom,
+        activeScorer: currentActiveScorer,
+        creatorId: currentCreatorId,
+        creatorDeviceId: currentCreatorDeviceId,
+        creatorPhone: currentCreatorPhone,
+        creatorEmail: currentCreatorEmail,
+        creatorName: currentCreatorName,
+        scorerId: currentScorerId,
+        scorerDeviceId: currentScorerDeviceId,
+        scorerPhone: currentScorerPhone,
+        scorerEmail: currentScorerEmail,
+        scorerName: currentScorerName,
       },
-      creatorId: match?.creatorId || currentMatchInDb.creatorId || userProfile?.id,
-      creatorDeviceId: match?.creatorDeviceId || currentMatchInDb.creatorDeviceId || clientIdRef?.current,
-      creatorPhone: match?.creatorPhone || currentMatchInDb.creatorPhone || userProfile?.phone || authPhone || '',
-      creatorEmail: match?.creatorEmail || currentMatchInDb.creatorEmail || userProfile?.email || authEmail || '',
-      creatorName: match?.creatorName || currentMatchInDb.creatorName || userProfile?.name || authName || '',
-      scorerId: match?.scorerId || currentMatchInDb.scorerId || userProfile?.id,
-      scorerDeviceId: match?.scorerDeviceId || currentMatchInDb.scorerDeviceId || clientIdRef?.current,
-      scorerPhone: match?.scorerPhone || currentMatchInDb.scorerPhone || userProfile?.phone || authPhone || '',
-      scorerEmail: match?.scorerEmail || currentMatchInDb.scorerEmail || userProfile?.email || authEmail || '',
-      scorerName: match?.scorerName || currentMatchInDb.scorerName || userProfile?.name || authName || '',
       senderClientId: clientIdRef?.current || '',
       liveCommentaryList: customPayload.liveCommentaryList || liveCommentaryList,
       liveBatters: customPayload.liveBatters || liveBatters,
@@ -12990,6 +13053,7 @@ function CricketAddaMain() {
       };
 
       setMatchesDb(prev => ({ ...prev, [activeMatchId]: updatedMatch }));
+      setMatch(prev => ({ ...prev, ...updatedMatch }));
       AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...matchesDb, [activeMatchId]: updatedMatch })).catch(() => {});
 
       // Concurrency-safe atomic scorer handover via runTransaction()

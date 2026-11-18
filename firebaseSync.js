@@ -585,6 +585,18 @@ export async function transferScorerDutyAtomic(matchId, scorerData) {
       delegatedAt: Date.now(),
       delegatedTo: scorerData.name || 'Scorer',
       lastUpdatedAt: Date.now(),
+      'match/activeScorer': {
+        ...scorerData,
+        assignedAt: Date.now(),
+      },
+      'match/scorerId': scorerData.id || scorerData.scorerId || null,
+      'match/scorerName': scorerData.name || scorerData.scorerName || 'Scorer',
+      'match/scorerEmail': scorerData.email || scorerData.scorerEmail || null,
+      'match/scorerPhone': scorerData.phone || scorerData.scorerPhone || null,
+      'match/scorerDeviceId': scorerData.deviceId || scorerData.scorerDeviceId || null,
+      'match/isScoringDelegated': true,
+      'match/delegatedAt': Date.now(),
+      'match/delegatedTo': scorerData.name || 'Scorer',
     });
 
     console.log(`[FirebaseSync] 🟢 Scorer duty transferred to ${scorerData.name || 'new scorer'} on match ${id}`);
