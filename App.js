@@ -5308,6 +5308,10 @@ function CricketAddaMain() {
     }
   }, [activeTab, activeMatchId]);
   const [userProfile, setUserProfile] = useState({ name: '', jersey: '#1', role: 'Top-Order Batter', avatarUri: null });
+  const userProfileRef = useRef(userProfile);
+  useEffect(() => {
+    userProfileRef.current = userProfile;
+  }, [userProfile]);
   const [userCareerData, setUserCareerData] = useState(USER_CAREER_DATA);
   const [liveCommentaryList, setLiveCommentaryList] = useState([]);
   const [liveBatters, setLiveBatters] = useState({});
@@ -8383,10 +8387,10 @@ function CricketAddaMain() {
           }
 
           // Real-time automatic scoring resumption when scoring duty is delegated across devices
-          const curUid = userProfileRef?.current?.id || userProfile?.id;
-          const curPhone = String(userProfileRef?.current?.phone || userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
-          const curEmail = (userProfileRef?.current?.email || userProfile?.email || authEmail || '').toLowerCase().trim();
-          const curName = (userProfileRef?.current?.name || userProfile?.name || authName || '').toLowerCase().trim();
+          const curUid = activeAccountProfile?.id || userProfileRef?.current?.id || userProfile?.id;
+          const curPhone = String(activeAccountProfile?.phone || userProfileRef?.current?.phone || userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
+          const curEmail = (activeAccountProfile?.email || userProfileRef?.current?.email || userProfile?.email || authEmail || '').toLowerCase().trim();
+          const curName = (activeAccountProfile?.name || userProfileRef?.current?.name || userProfile?.name || authName || '').toLowerCase().trim();
 
           const delegatedIds = [];
           Object.entries(next).forEach(([mId, m]) => {
