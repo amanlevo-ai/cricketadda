@@ -6241,6 +6241,7 @@ function CricketAddaMain() {
     const uEmail = (userProfile?.email || authEmail || '').toLowerCase().trim();
     const uPhone = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const uId = userProfile?.id;
+    const uName = (userProfile?.name || authName || '').toLowerCase().trim();
     const myDeviceId = clientIdRef?.current || '';
 
     const matchObj = targetMatch.match || {};
@@ -6264,33 +6265,49 @@ function CricketAddaMain() {
 
     const assignedId = targetMatch.scorerId || matchObj.scorerId || targetMatch.activeScorer?.id || matchObj.activeScorer?.id;
     const assignedDeviceId = targetMatch.scorerDeviceId || matchObj.scorerDeviceId || targetMatch.activeScorer?.deviceId || matchObj.activeScorer?.deviceId;
+    const assignedName = String(
+      targetMatch.scorerName ||
+      matchObj.scorerName ||
+      targetMatch.activeScorer?.name ||
+      matchObj.activeScorer?.name ||
+      ''
+    ).toLowerCase().trim();
 
     // Match creator credentials
     const creatorPhone = String(targetMatch.creatorPhone || matchObj.creatorPhone || '').replace(/[^0-9]/g, '').slice(-10);
     const creatorEmail = (targetMatch.creatorEmail || matchObj.creatorEmail || '').toLowerCase().trim();
     const creatorId = targetMatch.creatorId || matchObj.creatorId;
     const creatorDeviceId = targetMatch.creatorDeviceId || matchObj.creatorDeviceId;
+    const creatorName = String(targetMatch.creatorName || matchObj.creatorName || '').toLowerCase().trim();
 
     // Check authoritative creator identity match
     const isCurrentUserCreator = Boolean(
       (creatorId && uId && String(creatorId) === String(uId)) ||
       (creatorPhone && uPhone && creatorPhone === uPhone) ||
       (creatorEmail && uEmail && creatorEmail === uEmail) ||
-      (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId)
+      (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) ||
+      (creatorName && uName && (creatorName === uName || creatorName.replace(/\s+/g, '') === uName.replace(/\s+/g, '')))
     );
 
-    // Check authoritative assigned scorer identity match
+    // Check authoritative assigned scorer identity match (ID, Phone, Email, Device ID, or Name)
     const isCurrentUserAssignedScorer = Boolean(
       (assignedId && uId && String(assignedId) === String(uId)) ||
       (assignedPhone && uPhone && assignedPhone === uPhone) ||
       (assignedEmail && uEmail && assignedEmail === uEmail) ||
-      (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId)
+      (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) ||
+      (assignedName && uName && (
+        assignedName === uName ||
+        assignedName.replace(/\s+/g, '') === uName.replace(/\s+/g, '') ||
+        assignedName.replace(/[^a-z0-9]/g, '') === uName.replace(/[^a-z0-9]/g, '')
+      ))
     );
 
     // Check if scoring duty is currently delegated away from creator to someone else
     const isDelegated = Boolean(
       targetMatch.isScoringDelegated ||
-      matchObj.isScoringDelegated
+      matchObj.isScoringDelegated ||
+      (assignedName && creatorName && assignedName !== creatorName) ||
+      (assignedId && creatorId && String(assignedId) !== String(creatorId))
     );
 
     if (isDelegated) {
@@ -6348,9 +6365,19 @@ function CricketAddaMain() {
   }, [activeMatchId]);
 
   const isOfficialScorerRef = useRef(isOfficialScorer);
+  const prevIsOfficialScorerRef = useRef(isOfficialScorer);
   useEffect(() => {
     isOfficialScorerRef.current = isOfficialScorer;
-  }, [isOfficialScorer]);
+    if (!prevIsOfficialScorerRef.current && isOfficialScorer && activeMatchId) {
+      showAppToast('🤝 Scoring rights received! You are now the Official Scorer.', '🏏', 'success');
+      setMyScoringMatchIds(prev => {
+        const updated = Array.from(new Set([...(prev || []), activeMatchId]));
+        AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
+        return updated;
+      });
+    }
+    prevIsOfficialScorerRef.current = isOfficialScorer;
+  }, [isOfficialScorer, activeMatchId]);
 
   // Floating Mini-Scorer Bar active state & dynamic bottom offset for long scrollable pages
   const effectiveScoringMatchId = activeScoringSessionMatchId || (activeMatchId && !isMatchCompleted(currentMatchData) ? activeMatchId : null);
@@ -12824,24 +12851,41 @@ function CricketAddaMain() {
 
   const transferScoringToPlayer = (player, teamName = null, teamFlag = null, customPhone = null, customAvatar = null) => {
     const isPlayerObj = player && typeof player === 'object';
-    const playerName = isPlayerObj ? (player.name || 'Scorer') : String(player || 'Scorer').trim();
-    const playerRole = isPlayerObj ? (player.role || 'Player') : 'Player';
-    const playerPhone = customPhone || (isPlayerObj ? (player.phone || '') : '') || '';
+    const rawPlayerName = isPlayerObj ? (player.name || 'Scorer') : String(player || 'Scorer').trim();
+    const cleanPlayerName = rawPlayerName.trim();
+
+    // Look up real cloud user / registered player profile by name to resolve their true ID, email, phone, and device ID
+    const foundUser = (usersDb || []).find(u => {
+      if (!u) return false;
+      const p = u.profile || u;
+      if (!p || !p.name) return false;
+      return p.name.trim().toLowerCase() === cleanPlayerName.toLowerCase();
+    });
+    const foundUserProfile = foundUser?.profile || foundUser;
+    const foundRegistered = (registeredPlayers || []).find(rp => rp && rp.name && rp.name.trim().toLowerCase() === cleanPlayerName.toLowerCase());
+    const matchedProfile = foundUserProfile || foundRegistered || (isPlayerObj ? player : null);
+
+    const playerName = cleanPlayerName;
+    const playerRole = (matchedProfile && matchedProfile.role) || (isPlayerObj ? player.role : null) || 'Player';
+    const playerPhone = customPhone || (matchedProfile && matchedProfile.phone) || (isPlayerObj ? player.phone : '') || '';
     const cleanPhoneDigits = String(playerPhone).replace(/[^0-9]/g, '').slice(-10);
-    const playerEmail = (isPlayerObj ? (player.email || '') : '') || '';
+    const playerEmail = ((matchedProfile && matchedProfile.email) || (isPlayerObj ? player.email : '') || '').toLowerCase().trim();
+    const playerDeviceId = (matchedProfile && (matchedProfile.deviceId || matchedProfile.clientId)) || (isPlayerObj && (player.deviceId || player.clientId)) || null;
+
     const resolvedTeamName = teamName || (transferSelectedTeam === 'bowling' ? bowlingTeamName : battingTeamName);
     const resolvedTeamFlag = teamFlag || (transferSelectedTeam === 'bowling' ? bowlingTeamFlag : battingTeamFlag);
-    
-    // Resolve avatar
-    const avatar = customAvatar || (isPlayerObj ? player.avatarUri : null) || getPlayerAvatarUri(playerName) || PLAYER_AVATARS[playerName] || null;
 
-    const resolvedScorerId = (isPlayerObj && player.id) || (cleanPhoneDigits ? `usr_${cleanPhoneDigits}` : `usr_${playerName.replace(/\s+/g, '_').toLowerCase()}_${Date.now()}`);
+    // Resolve avatar
+    const avatar = customAvatar || (matchedProfile && matchedProfile.avatarUri) || (isPlayerObj ? player.avatarUri : null) || getPlayerAvatarUri(playerName) || PLAYER_AVATARS[playerName] || null;
+
+    const resolvedScorerId = (matchedProfile && matchedProfile.id) || (isPlayerObj && player.id) || (cleanPhoneDigits ? `usr_${cleanPhoneDigits}` : `usr_${playerName.replace(/\s+/g, '_').toLowerCase()}`);
 
     const newScorerObj = {
       id: resolvedScorerId,
       name: playerName,
       phone: cleanPhoneDigits || playerPhone,
       email: playerEmail,
+      deviceId: playerDeviceId,
       role: `${playerRole} & Official Scorer`,
       team: resolvedTeamName,
       flag: resolvedTeamFlag,
@@ -12867,10 +12911,11 @@ function CricketAddaMain() {
         scorerPhone: cleanPhoneDigits || playerPhone,
         scorerEmail: playerEmail,
         scorerId: resolvedScorerId,
-        scorerDeviceId: (isPlayerObj && (player.deviceId || player.clientId)) || null,
+        scorerDeviceId: playerDeviceId,
         isScoringDelegated: true,
         delegatedAt: Date.now(),
         delegatedFrom: myName,
+        delegatedTo: playerName,
         // Original match creator identity preserved for record
         creatorDeviceId: existingMatch.creatorDeviceId || clientIdRef?.current || '',
         creatorId: existingMatch.creatorId || myId,
@@ -12921,10 +12966,12 @@ function CricketAddaMain() {
     broadcastMatchState({
       activeScorer: newScorerObj,
       isScoringDelegated: true,
+      delegatedTo: playerName,
       scorerName: playerName,
       scorerPhone: cleanPhoneDigits || playerPhone,
       scorerEmail: playerEmail,
       scorerId: resolvedScorerId,
+      scorerDeviceId: playerDeviceId,
       liveCommentaryList: [transferComm, ...liveCommentaryList],
     });
 

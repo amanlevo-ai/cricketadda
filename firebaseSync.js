@@ -572,11 +572,18 @@ export async function transferScorerDutyAtomic(matchId, scorerData) {
     }
 
     await update(ref(db, `matches/${id}`), {
+      activeScorer: {
+        ...scorerData,
+        assignedAt: Date.now(),
+      },
       scorerId: scorerData.id || scorerData.scorerId || null,
       scorerName: scorerData.name || scorerData.scorerName || 'Scorer',
       scorerEmail: scorerData.email || scorerData.scorerEmail || null,
       scorerPhone: scorerData.phone || scorerData.scorerPhone || null,
       scorerDeviceId: scorerData.deviceId || scorerData.scorerDeviceId || null,
+      isScoringDelegated: true,
+      delegatedAt: Date.now(),
+      delegatedTo: scorerData.name || 'Scorer',
       lastUpdatedAt: Date.now(),
     });
 
