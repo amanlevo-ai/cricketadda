@@ -9658,9 +9658,31 @@ function CricketAddaMain() {
       }
       lastCelebrationIdRef.current = null;
     } else if ((!isSelfSender || viewerSimulated) && !isOfficialScorer) {
+      // Robust helper to get deliveries sorted strictly by sequence
+      const getSortedDeliveries = () => {
+        if (Array.isArray(d.scoringHistory) && d.scoringHistory.length > 0) return d.scoringHistory;
+        if (d.balls && typeof d.balls === 'object') {
+          return Object.values(d.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0));
+        }
+        return [];
+      };
+
       // 1. Direct celebrationEvent payload from scorer or cloud sync
       if (d.celebrationEvent && d.celebrationEvent.id) {
-        if (d.celebrationEvent.id !== lastCelebrationIdRef?.current) {
+        // Protect against stale No-Ball Free-Hit celebration if current delivery is a Wide ball
+        const currentDeliveries = getSortedDeliveries();
+        const latestB = currentDeliveries.length > 0 ? currentDeliveries[currentDeliveries.length - 1] : null;
+        const isLatestWide = Boolean(
+          latestB && (
+            latestB.extraType === 'wide' ||
+            latestB.extraType === 'wd' ||
+            String(latestB.ballSymbol || '').toLowerCase().startsWith('wd')
+          )
+        );
+
+        if (isLatestWide && (d.celebrationEvent.type === 'no_ball' || d.celebrationEvent.type === 'noBall' || d.celebrationEvent.type === 'nb')) {
+          dismissCelebration();
+        } else if (d.celebrationEvent.id !== lastCelebrationIdRef?.current) {
           if (lastCelebrationIdRef) lastCelebrationIdRef.current = d.celebrationEvent.id;
           const cType = (d.celebrationEvent.type === 'noBall' || d.celebrationEvent.type === 'nb' || d.celebrationEvent.type === 'NB')
             ? 'no_ball'
@@ -9677,9 +9699,7 @@ function CricketAddaMain() {
       } else {
         if (lastCelebrationIdRef) lastCelebrationIdRef.current = null;
         // 2. Resilient Ball-by-Ball Delivery Stream Detection (4s, 6s, Wickets, No Balls)
-        const deliveries = Array.isArray(d.scoringHistory) && d.scoringHistory.length > 0
-          ? d.scoringHistory
-          : (d.balls && typeof d.balls === 'object' ? Object.values(d.balls) : []);
+        const deliveries = getSortedDeliveries();
 
         const prevCount = lastDeliveriesCountRef.current || 0;
         const curCount = deliveries.length;
@@ -9705,39 +9725,55 @@ function CricketAddaMain() {
 
             // Only fire if initial sync was established (prevents old balls from popping when viewing scorecard cold)
             if (hasInitializedViewerSyncRef?.current) {
+              const isWide = Boolean(
+                latestBall.extraType === 'wide' ||
+                latestBall.extraType === 'wd' ||
+                String(latestBall.ballSymbol || '').toLowerCase().startsWith('wd')
+              );
               const runsVal = Number(latestBall.runsOffBat !== undefined ? latestBall.runsOffBat : (latestBall.runs || 0));
-              const isWkt = Boolean(latestBall.isWkt || latestBall.ballSymbol === 'W' || String(latestBall.ballSymbol || '').includes('W'));
-              const isNoBall = Boolean(
+              const isWkt = Boolean(
+                latestBall.isWkt ||
+                latestBall.ballSymbol === 'W' ||
+                (!isWide && latestBall.ballSymbol && !String(latestBall.ballSymbol).toUpperCase().includes('WD') && String(latestBall.ballSymbol).toUpperCase().includes('W'))
+              );
+              const isNoBall = !isWide && Boolean(
                 latestBall.extraType === 'noBall' ||
                 latestBall.extraType === 'nb' ||
                 latestBall.extraType === 'no_ball' ||
-                String(latestBall.ballSymbol || '').toLowerCase().includes('nb') ||
+                (String(latestBall.ballSymbol || '').toLowerCase().includes('nb') && !isWide) ||
                 Boolean(latestBall.isNoBall)
               );
               const batterName = latestBall.striker || d.currentStriker || striker || 'Batter';
               const outName = latestBall.dismissedPlayerName || batterName;
 
-              if (runsVal === 6 && !isWkt) {
-                const sixType = latestBall.shotSector?.id === 'mid_wicket'
-                  ? 'six_helicopter'
-                  : ['long_on', 'long_off'].includes(latestBall.shotSector?.id)
-                  ? 'six_straight'
-                  : ['fine_leg', 'third_man'].includes(latestBall.shotSector?.id)
-                  ? 'six_ramp'
-                  : 'six';
-                triggerCelebration(sixType, batterName, '6', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
-              } else if (runsVal === 4 && !isWkt) {
-                const fourType = ['cover', 'long_off', 'long_on'].includes(latestBall.shotSector?.id)
-                  ? 'four_drive'
-                  : ['mid_wicket', 'square_leg'].includes(latestBall.shotSector?.id)
-                  ? 'four_pull'
-                  : 'four';
-                triggerCelebration(fourType, batterName, '4', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
-              } else if (isWkt) {
-                const wktType = latestBall.dismissalType || 'bowled';
+              // Wide delivery must NEVER trigger 4s, 6s, regular Wicket, or No-Ball Free Hit celebration
+              if (!isWide) {
+                if (runsVal === 6 && !isWkt) {
+                  const sixType = latestBall.shotSector?.id === 'mid_wicket'
+                    ? 'six_helicopter'
+                    : ['long_on', 'long_off'].includes(latestBall.shotSector?.id)
+                    ? 'six_straight'
+                    : ['fine_leg', 'third_man'].includes(latestBall.shotSector?.id)
+                    ? 'six_ramp'
+                    : 'six';
+                  triggerCelebration(sixType, batterName, '6', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
+                } else if (runsVal === 4 && !isWkt) {
+                  const fourType = ['cover', 'long_off', 'long_on'].includes(latestBall.shotSector?.id)
+                    ? 'four_drive'
+                    : ['mid_wicket', 'square_leg'].includes(latestBall.shotSector?.id)
+                    ? 'four_pull'
+                    : 'four';
+                  triggerCelebration(fourType, batterName, '4', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
+                } else if (isWkt) {
+                  const wktType = latestBall.dismissalType || 'bowled';
+                  triggerCelebration(wktType, outName, 'OUT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
+                } else if (isNoBall) {
+                  triggerCelebration('no_ball', batterName, 'FREE HIT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
+                }
+              } else if (latestBall.isWkt) {
+                // Rare case: run-out or stumping on a wide delivery
+                const wktType = latestBall.dismissalType || 'run_out';
                 triggerCelebration(wktType, outName, 'OUT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
-              } else if (isNoBall) {
-                triggerCelebration('no_ball', batterName, 'FREE HIT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
               }
             } else {
               if (hasInitializedViewerSyncRef) hasInitializedViewerSyncRef.current = true;
@@ -10275,6 +10311,7 @@ function CricketAddaMain() {
     match.currentBowler ||
     currentMatchData?.currentBowler ||
     currentMatchData?.liveState?.currentBowler ||
+    (lastCompletedOverBowler || null) ||
     (isMidOver ? lastHistDelivery?.bowler : null) ||
     (needsNewBowler ? (nextBowler || activeOppBowlers.find(b => b.toLowerCase() !== (lastCompletedOverBowler || '').toLowerCase()) || activeOppBowlers[0]) : null) ||
     (!lastCompletedOverBowler || currentMatchData?.innings1?.bowling?.[0]?.name?.toLowerCase() !== lastCompletedOverBowler.toLowerCase() ? currentMatchData?.innings1?.bowling?.[0]?.name : null) ||
@@ -12171,7 +12208,9 @@ function CricketAddaMain() {
             liveCommentaryList: updatedCommentaryList,
             firstInningsSummary,
             lastOverStats,
+            celebrationEvent: celebrationEvent || null,
           },
+          celebrationEvent: celebrationEvent || null,
           lastUpdatedAt: Date.now(),
         };
         const nextDb = { ...prev, [activeMatchId]: updatedMatch };

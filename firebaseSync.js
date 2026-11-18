@@ -384,7 +384,7 @@ export function enrichMatchWithDerivedState(rawMatch) {
     crr: activeScore.crr,
     currentStriker: rawMatch.currentStriker || activeScore.currentStriker,
     currentNonStriker: rawMatch.currentNonStriker || activeScore.currentNonStriker,
-    currentBowler: rawMatch.currentBowler || activeScore.currentBowler,
+    currentBowler: rawMatch.currentBowler || activeScore.currentBowler || activeScore.lastOverBowler || '',
     lastOverBowler: rawMatch.lastOverBowler || activeScore.lastOverBowler,
     liveBatters: activeScore.liveBatters,
     liveBowlerStats: activeScore.liveBowlerStats,

@@ -135,6 +135,8 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
   }
 
   // 2. Replay all delivery events sequentially
+  let curReplayOverIdx = 0;
+  let legalBallsInCurReplayOver = 0;
   inningsDeliveries.forEach((d, idx) => {
     const addedRuns = Number(d.addedRuns !== undefined ? d.addedRuns : (d.runs !== undefined ? d.runs : 0)) || 0;
     const overthrowRuns = Number(d.overthrowRuns || 0);
@@ -142,8 +144,17 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     const isLegal = d.isLegalDelivery !== false && extraType !== 'wide' && extraType !== 'noBall' && extraType !== 'penalty';
     const isWkt = Boolean(d.isWkt);
 
+    d._overIdx = curReplayOverIdx;
+
     totalRuns += addedRuns;
-    if (isLegal) legalBalls += 1;
+    if (isLegal) {
+      legalBalls += 1;
+      legalBallsInCurReplayOver += 1;
+      if (legalBallsInCurReplayOver === 6) {
+        curReplayOverIdx += 1;
+        legalBallsInCurReplayOver = 0;
+      }
+    }
     if (isWkt) totalWickets += 1;
 
     // --- Extras Accounting ---
@@ -393,25 +404,26 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
   });
 
   // Extract current over deliveries
-  const legalInCurOver = legalBalls % 6;
+  // Standard Cricket Broadcast Rule: When an over finishes (6 legal balls), retain the full completed over
+  // until the new over's first delivery is bowled. Once new deliveries occur, start fresh with the new over.
   const thisOverSymbols = [];
   if (inningsDeliveries.length > 0) {
-    let collectedLegal = 0;
-    for (let i = inningsDeliveries.length - 1; i >= 0; i--) {
+    const hasCurrentOverDeliveries = inningsDeliveries.some(d => d && d._overIdx === curReplayOverIdx);
+    const targetOverIdx = hasCurrentOverDeliveries ? curReplayOverIdx : Math.max(0, curReplayOverIdx - 1);
+
+    for (let i = 0; i < inningsDeliveries.length; i++) {
       const d = inningsDeliveries[i];
-      if (!d) continue;
-      const isLeg = d.isLegalDelivery !== false && d.extraType !== 'wide' && d.extraType !== 'noBall' && d.extraType !== 'penalty';
-      if (legalInCurOver === 0 && legalBalls > 0) {
-        // Over has just ended; if new bowler not yet confirmed, show empty for upcoming over
-        // unless there were non-legal deliveries bowled in the new over
-        if (isLeg) break;
-        if (d.ballSymbol) thisOverSymbols.unshift(d.ballSymbol);
-      } else {
-        if (isLeg) {
-          if (collectedLegal >= legalInCurOver) break;
-          collectedLegal++;
+      if (d && d._overIdx === targetOverIdx) {
+        let sym = d.ballSymbol;
+        if (!sym) {
+          if (d.isWkt) sym = 'W';
+          else if (d.extraType === 'wide') sym = (d.addedRuns || 1) > 1 ? `Wd+${(d.addedRuns || 1) - 1}` : 'Wd';
+          else if (d.extraType === 'noBall') sym = (d.addedRuns || 1) > 1 ? `Nb+${(d.addedRuns || 1) - 1}` : 'Nb';
+          else if (d.extraType === 'bye') sym = `${d.addedRuns || 1}B`;
+          else if (d.extraType === 'legBye') sym = `${d.addedRuns || 1}LB`;
+          else sym = String(d.runsOffBat !== undefined ? d.runsOffBat : (d.addedRuns || 0));
         }
-        if (d.ballSymbol) thisOverSymbols.unshift(d.ballSymbol);
+        if (sym) thisOverSymbols.push(sym);
       }
     }
   }
