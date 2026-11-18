@@ -588,6 +588,9 @@ export async function transferScorerDutyAtomic(matchId, scorerData) {
       throw new Error('Scorer transfer transaction aborted');
     }
 
+    const isReturningToCreator = scorerData.isScoringDelegated === false;
+    const isDelegatedValue = !isReturningToCreator;
+
     await update(ref(db, `matches/${id}`), {
       activeScorer: {
         ...scorerData,
@@ -598,9 +601,9 @@ export async function transferScorerDutyAtomic(matchId, scorerData) {
       scorerEmail: scorerData.email || scorerData.scorerEmail || null,
       scorerPhone: scorerData.phone || scorerData.scorerPhone || null,
       scorerDeviceId: scorerData.deviceId || scorerData.scorerDeviceId || null,
-      isScoringDelegated: true,
+      isScoringDelegated: isDelegatedValue,
       delegatedAt: Date.now(),
-      delegatedTo: scorerData.name || 'Scorer',
+      delegatedTo: isDelegatedValue ? (scorerData.name || 'Scorer') : null,
       lastUpdatedAt: Date.now(),
       'match/activeScorer': {
         ...scorerData,
@@ -611,9 +614,9 @@ export async function transferScorerDutyAtomic(matchId, scorerData) {
       'match/scorerEmail': scorerData.email || scorerData.scorerEmail || null,
       'match/scorerPhone': scorerData.phone || scorerData.scorerPhone || null,
       'match/scorerDeviceId': scorerData.deviceId || scorerData.scorerDeviceId || null,
-      'match/isScoringDelegated': true,
+      'match/isScoringDelegated': isDelegatedValue,
       'match/delegatedAt': Date.now(),
-      'match/delegatedTo': scorerData.name || 'Scorer',
+      'match/delegatedTo': isDelegatedValue ? (scorerData.name || 'Scorer') : null,
     });
 
     console.log(`[FirebaseSync] 🟢 Scorer duty transferred to ${scorerData.name || 'new scorer'} on match ${id}`);

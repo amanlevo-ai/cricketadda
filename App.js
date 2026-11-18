@@ -6321,16 +6321,32 @@ function CricketAddaMain() {
       isAssignedNameMatch
     );
 
+    // Check if assigned scorer is the match creator (e.g. Creator's player name in squad or transferred back to creator)
+    const isAssignedToCreator = Boolean(
+      (assignedName && creatorName && (
+        assignedName === creatorName ||
+        cleanAssigned === cleanCreator ||
+        cleanCreator.includes(cleanAssigned) ||
+        cleanAssigned.includes(cleanCreator)
+      )) ||
+      (assignedEmail && creatorEmail && assignedEmail === creatorEmail) ||
+      (assignedId && creatorId && String(assignedId) === String(creatorId))
+    );
+
+    // If scoring is currently with or transferred back to the match creator:
+    if (isAssignedToCreator && isCurrentUserCreator) {
+      targetMatch.isJoinedAsSpectator = false;
+      targetMatch.isSpectating = false;
+      return true;
+    }
+
     // Check if scoring duty is currently delegated away from creator to someone else
     const isDelegated = Boolean(
-      targetMatch.isScoringDelegated ||
-      matchObj.isScoringDelegated ||
-      (assignedName && creatorName && assignedName !== creatorName) ||
-      (assignedId && creatorId && String(assignedId) !== String(creatorId))
+      (targetMatch.isScoringDelegated || matchObj.isScoringDelegated) && !isAssignedToCreator
     );
 
     if (isDelegated) {
-      // If delegated, ONLY the designated delegated user can score!
+      // If delegated away, ONLY the designated delegated user can score!
       if (isCurrentUserAssignedScorer) {
         targetMatch.isJoinedAsSpectator = false;
         targetMatch.isSpectating = false;
@@ -13066,17 +13082,35 @@ function CricketAddaMain() {
       if (!u) return false;
       const p = u.profile || u;
       if (!p || !p.name) return false;
-      return p.name.trim().toLowerCase() === cleanPlayerName.toLowerCase();
+      const uname = p.name.trim().toLowerCase();
+      const uemail = (p.email || '').toLowerCase().trim();
+      const target = cleanPlayerName.toLowerCase();
+      return (
+        uname === target ||
+        uname.includes(target) ||
+        target.includes(uname) ||
+        (uemail && uemail.split('@')[0] === target)
+      );
     });
     const foundUserProfile = foundUser?.profile || foundUser;
     const foundRegistered = (registeredPlayers || []).find(rp => rp && rp.name && rp.name.trim().toLowerCase() === cleanPlayerName.toLowerCase());
     const matchedProfile = foundUserProfile || foundRegistered || (isPlayerObj ? player : null);
 
+    const existingMatch = (matchesDb && matchesDb[activeMatchId]) || {};
+    const cleanTargetPlayer = cleanPlayerName.replace(/[^a-z0-9]/g, '').toLowerCase();
+    const cleanCreatorOnMatch = String(existingMatch.creatorName || match?.creatorName || '').replace(/[^a-z0-9]/g, '').toLowerCase();
+    const creatorEmailOnMatch = (existingMatch.creatorEmail || match?.creatorEmail || '').toLowerCase().trim();
+
+    const isTransferringToCreator = Boolean(
+      (cleanCreatorOnMatch && (cleanCreatorOnMatch === cleanTargetPlayer || cleanCreatorOnMatch.includes(cleanTargetPlayer) || cleanTargetPlayer.includes(cleanCreatorOnMatch))) ||
+      (creatorEmailOnMatch && (creatorEmailOnMatch.split('@')[0] === cleanTargetPlayer || creatorEmailOnMatch.includes(cleanTargetPlayer)))
+    );
+
     const playerName = cleanPlayerName;
     const playerRole = (matchedProfile && matchedProfile.role) || (isPlayerObj ? player.role : null) || 'Player';
-    const playerPhone = customPhone || (matchedProfile && matchedProfile.phone) || (isPlayerObj ? player.phone : '') || '';
+    const playerPhone = customPhone || (matchedProfile && matchedProfile.phone) || (isPlayerObj ? player.phone : '') || (isTransferringToCreator ? existingMatch.creatorPhone : '') || '';
     const cleanPhoneDigits = String(playerPhone).replace(/[^0-9]/g, '').slice(-10);
-    const playerEmail = ((matchedProfile && matchedProfile.email) || (isPlayerObj ? player.email : '') || '').toLowerCase().trim();
+    const playerEmail = ((matchedProfile && matchedProfile.email) || (isPlayerObj ? player.email : '') || (isTransferringToCreator ? creatorEmailOnMatch : '') || '').toLowerCase().trim();
     const playerDeviceId = (matchedProfile && (matchedProfile.deviceId || matchedProfile.clientId)) || (isPlayerObj && (player.deviceId || player.clientId)) || null;
 
     const resolvedTeamName = teamName || (transferSelectedTeam === 'bowling' ? bowlingTeamName : battingTeamName);
@@ -13085,7 +13119,7 @@ function CricketAddaMain() {
     // Resolve avatar
     const avatar = customAvatar || (matchedProfile && matchedProfile.avatarUri) || (isPlayerObj ? player.avatarUri : null) || getPlayerAvatarUri(playerName) || PLAYER_AVATARS[playerName] || null;
 
-    const resolvedScorerId = (matchedProfile && matchedProfile.id) || (isPlayerObj && player.id) || (cleanPhoneDigits ? `usr_${cleanPhoneDigits}` : `usr_${playerName.replace(/\s+/g, '_').toLowerCase()}`);
+    const resolvedScorerId = (matchedProfile && matchedProfile.id) || (isPlayerObj && player.id) || (isTransferringToCreator ? (existingMatch.creatorId || match?.creatorId) : null) || (cleanPhoneDigits ? `usr_${cleanPhoneDigits}` : `usr_${playerName.replace(/\s+/g, '_').toLowerCase()}`);
 
     const newScorerObj = {
       id: resolvedScorerId,
@@ -13110,7 +13144,6 @@ function CricketAddaMain() {
 
     // Persist to match record
     if (activeMatchId) {
-      const existingMatch = (matchesDb && matchesDb[activeMatchId]) || {};
       const updatedMatch = {
         ...existingMatch,
         activeScorer: newScorerObj,
@@ -13119,10 +13152,10 @@ function CricketAddaMain() {
         scorerEmail: playerEmail,
         scorerId: resolvedScorerId,
         scorerDeviceId: playerDeviceId,
-        isScoringDelegated: true,
+        isScoringDelegated: !isTransferringToCreator,
         delegatedAt: Date.now(),
-        delegatedFrom: myName,
-        delegatedTo: playerName,
+        delegatedFrom: isTransferringToCreator ? null : myName,
+        delegatedTo: isTransferringToCreator ? null : playerName,
         // Original match creator identity preserved for record
         creatorDeviceId: existingMatch.creatorDeviceId || clientIdRef?.current || '',
         creatorId: existingMatch.creatorId || myId,
@@ -13132,12 +13165,20 @@ function CricketAddaMain() {
       };
 
       setMatchesDb(prev => ({ ...prev, [activeMatchId]: updatedMatch }));
-      setMatch(prev => ({ ...prev, ...updatedMatch }));
+      setMatch(prev => ({
+        ...prev,
+        ...updatedMatch,
+        isJoinedAsSpectator: true,
+        isSpectating: true,
+      }));
       AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...matchesDb, [activeMatchId]: updatedMatch })).catch(() => {});
 
       // Concurrency-safe atomic scorer handover via runTransaction()
       if (isFirebaseConfigured()) {
-        transferScorerDutyAtomic(activeMatchId, newScorerObj).then(res => {
+        transferScorerDutyAtomic(activeMatchId, {
+          ...newScorerObj,
+          isScoringDelegated: !isTransferringToCreator,
+        }).then(res => {
           if (res && res.success) {
             console.log('[CloudRTDB] 🟢 Scorer duty transferred atomically via runTransaction()');
             showAppToast(`Scoring transferred to ${playerName} 🤝`, '🤝', 'success');
@@ -13173,8 +13214,9 @@ function CricketAddaMain() {
     // Broadcast scoring transfer state to all devices over Firebase RTDB
     broadcastMatchState({
       activeScorer: newScorerObj,
-      isScoringDelegated: true,
-      delegatedTo: playerName,
+      isScoringDelegated: !isTransferringToCreator,
+      delegatedTo: isTransferringToCreator ? null : playerName,
+      delegatedFrom: isTransferringToCreator ? null : myName,
       scorerName: playerName,
       scorerPhone: cleanPhoneDigits || playerPhone,
       scorerEmail: playerEmail,
