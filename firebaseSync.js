@@ -373,9 +373,26 @@ export function enrichMatchWithDerivedState(rawMatch) {
   const derived = deriveMatchStateFromDeliveries(deliveries, rawMatch);
   const activeScore = derived.activeScore || {};
 
+  // 2b. Sanitize nested rawMatch.match (if present) so stale nested balls/scoringHistory never pollute consumers
+  let sanitizedMatchObj = rawMatch.match && typeof rawMatch.match === 'object' ? { ...rawMatch.match } : null;
+  if (sanitizedMatchObj) {
+    delete sanitizedMatchObj.balls;
+    delete sanitizedMatchObj.scoringHistory;
+    delete sanitizedMatchObj.liveRuns;
+    delete sanitizedMatchObj.liveBalls;
+    delete sanitizedMatchObj.liveWickets;
+    delete sanitizedMatchObj.liveOvers;
+    delete sanitizedMatchObj.liveThisOver;
+    delete sanitizedMatchObj.innings1;
+    delete sanitizedMatchObj.innings2;
+    delete sanitizedMatchObj.liveBatters;
+    delete sanitizedMatchObj.liveBowlerStats;
+  }
+
   // 3. Return enriched match with computed figures (never storing derived totals to DB)
   return {
     ...rawMatch,
+    ...(sanitizedMatchObj ? { match: sanitizedMatchObj } : {}),
     liveRuns: activeScore.runs,
     liveWickets: activeScore.wickets,
     liveBalls: activeScore.balls,

@@ -7806,12 +7806,31 @@ function CricketAddaMain() {
                       const mCreatorId = m.creatorId || m.match?.creatorId;
                       const mCreatorName = (m.creatorName || m.match?.creatorName || '').toLowerCase().trim();
 
-                      if (
-                        (uId && mCreatorId && String(mCreatorId) === String(uId)) ||
-                        (uPhone && mCreatorPhone && mCreatorPhone === uPhone) ||
-                        (uEmail && mCreatorEmail && mCreatorEmail === uEmail) ||
-                        (uName && mCreatorName && mCreatorName === uName && uName !== 'match creator')
-                      ) {
+                      const mScorerPhone = String(m.scorerPhone || m.match?.scorerPhone || m.activeScorer?.phone || '').replace(/[^0-9]/g, '').slice(-10);
+                      const mScorerEmail = (m.scorerEmail || m.match?.scorerEmail || m.activeScorer?.email || '').toLowerCase().trim();
+                      const mScorerId = m.scorerId || m.match?.scorerId || m.activeScorer?.id;
+                      const mScorerName = (m.scorerName || m.match?.scorerName || m.activeScorer?.name || m.delegatedTo || '').toLowerCase().trim();
+
+                      const isDelegatedMatch = Boolean(m.isScoringDelegated || m.match?.isScoringDelegated);
+                      const isDelegatedScorerMatch = Boolean(
+                        isDelegatedMatch && (
+                          (uId && mScorerId && String(mScorerId) === String(uId)) ||
+                          (uPhone && mScorerPhone && mScorerPhone === uPhone) ||
+                          (uEmail && mScorerEmail && mScorerEmail === uEmail) ||
+                          (uName && mScorerName && (mScorerName === uName || mScorerName.includes(uName) || uName.includes(mScorerName)))
+                        )
+                      );
+
+                      const isCreatorMatch = Boolean(
+                        !isDelegatedMatch && (
+                          (uId && mCreatorId && String(mCreatorId) === String(uId)) ||
+                          (uPhone && mCreatorPhone && mCreatorPhone === uPhone) ||
+                          (uEmail && mCreatorEmail && mCreatorEmail === uEmail) ||
+                          (uName && mCreatorName && mCreatorName === uName && uName !== 'match creator')
+                        )
+                      );
+
+                      if (isDelegatedScorerMatch || isCreatorMatch) {
                         userOwnedMatchIds.push(mId);
                       }
                     }
@@ -8362,6 +8381,43 @@ function CricketAddaMain() {
             setActiveMatchId(null);
             AsyncStorage.removeItem(STORAGE_KEYS.ACTIVE_MATCH_ID).catch(() => {});
           }
+
+          // Real-time automatic scoring resumption when scoring duty is delegated across devices
+          const curUid = userProfileRef?.current?.id || userProfile?.id;
+          const curPhone = String(userProfileRef?.current?.phone || userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
+          const curEmail = (userProfileRef?.current?.email || userProfile?.email || authEmail || '').toLowerCase().trim();
+          const curName = (userProfileRef?.current?.name || userProfile?.name || authName || '').toLowerCase().trim();
+
+          const delegatedIds = [];
+          Object.entries(next).forEach(([mId, m]) => {
+            if (!m) return;
+            const mScorerId = m.scorerId || m.activeScorer?.id;
+            const mScorerPhone = String(m.scorerPhone || m.activeScorer?.phone || '').replace(/[^0-9]/g, '').slice(-10);
+            const mScorerEmail = (m.scorerEmail || m.activeScorer?.email || '').toLowerCase().trim();
+            const mScorerName = (m.scorerName || m.activeScorer?.name || m.delegatedTo || '').toLowerCase().trim();
+            if (m.isScoringDelegated) {
+              const isMeScorer = Boolean(
+                (curUid && mScorerId && String(mScorerId) === String(curUid)) ||
+                (curPhone && mScorerPhone && mScorerPhone === curPhone) ||
+                (curEmail && mScorerEmail && mScorerEmail === curEmail) ||
+                (curName && mScorerName && (mScorerName === curName || mScorerName.includes(curName) || curName.includes(mScorerName)))
+              );
+              if (isMeScorer) {
+                delegatedIds.push(mId);
+                if (m.activeScorer) {
+                  setActiveScorer(m.activeScorer);
+                }
+              }
+            }
+          });
+          if (delegatedIds.length > 0) {
+            setMyScoringMatchIds(prevIds => {
+              const updated = Array.from(new Set([...(prevIds || []), ...delegatedIds]));
+              AsyncStorage.setItem(STORAGE_KEYS.MY_SCORING_MATCHES, JSON.stringify(updated)).catch(() => {});
+              return updated;
+            });
+          }
+
           return next;
         }
         return prev;
@@ -9650,9 +9706,25 @@ function CricketAddaMain() {
     const effCreatorPhone = d.creatorPhone || d.match?.creatorPhone || undefined;
     const effCreatorEmail = d.creatorEmail || d.match?.creatorEmail || undefined;
 
+    // Strip stateful / numerical sub-properties from d.match so it can NEVER pollute live derived state
+    const {
+      balls: _mb,
+      scoringHistory: _msh,
+      liveRuns: _mlr,
+      liveBalls: _mlb,
+      liveWickets: _mlw,
+      liveOvers: _mlo,
+      liveThisOver: _mlto,
+      liveBatters: _mlbat,
+      liveBowlerStats: _mlbw,
+      innings1: _minn1,
+      innings2: _minn2,
+      ...safeMatchMeta
+    } = d.match || {};
+
     setMatch(prev => ({
       ...prev,
-      ...(d.match || {}),
+      ...safeMatchMeta,
       teamA: resolvedTeamA || prev.teamA || '',
       teamB: resolvedTeamB || prev.teamB || '',
       logoA: resolvedLogoA || prev.logoA || '',
@@ -9698,8 +9770,9 @@ function CricketAddaMain() {
         const effLogoB = resolvedLogoB || existingMatch.logoB || existingMatch.match?.logoB || '';
         const updatedMatch = {
           ...existingMatch,
-          ...(d.match || {}),
+          ...safeMatchMeta,
           id: d.activeMatchId,
+          balls: (d.balls && typeof d.balls === 'object') ? d.balls : existingMatch.balls,
           teamA: effTeamA,
           teamB: effTeamB,
           logoA: effLogoA,
@@ -10007,17 +10080,23 @@ function CricketAddaMain() {
       scorerEmail: currentScorerEmail,
       scorerName: currentScorerName,
       match: {
-        ...(match || {}),
         title: matchTitle,
         teamA: teamAName,
         teamB: teamBName,
         flagA: teamAFlag,
         flagB: teamBFlag,
+        format: match?.format || currentMatchInDb.format || 'T20',
+        totalOvers: match?.totalOvers || match?.overs || currentMatchInDb.totalOvers || 20,
+        venue: match?.venue || currentMatchInDb.venue || '',
+        tournament: match?.tournament || currentMatchInDb.tournament || '',
         liveRuns: payloadRuns,
         liveWickets: payloadWkts,
         liveBalls: payloadBalls,
         liveOvers: payloadOvers,
         liveThisOver: payloadThisOver,
+        currentStriker: match?.currentStriker || '',
+        currentNonStriker: match?.currentNonStriker || '',
+        currentBowler: match?.currentBowler || '',
         lastActionTimestamp: customPayload.lastActionTimestamp || lastLocalActionTimeRef.current || Date.now(),
         matchVersion: customPayload.matchVersion || localMatchVersionRef.current || 0,
         lastUpdatedAt: customPayload.lastUpdatedAt || lastLocalActionTimeRef.current || Date.now(),
@@ -14698,6 +14777,8 @@ function CricketAddaMain() {
         ...(MATCH_DATABASE[resolvedMatchId] || {}),
         ...(prev || {}),
         ...targetMatch,
+        innings1: { ...(targetMatch.innings1 || {}), ...derived.innings1 },
+        innings2: { ...(targetMatch.innings2 || {}), ...derived.innings2 },
         currentStriker: derived.activeScore.currentStriker || targetMatch.currentStriker || prev?.currentStriker || '',
         currentNonStriker: derived.activeScore.currentNonStriker || targetMatch.currentNonStriker || prev?.currentNonStriker || '',
         currentBowler: derived.activeScore.currentBowler || targetMatch.currentBowler || prev?.currentBowler || '',
@@ -26703,10 +26784,14 @@ function CricketAddaMain() {
           let miniWkts = effWkts;
           let miniOvers = effOvers;
 
-          if (effectiveScoringMatchId === activeMatchId && reconciledScore && (reconciledScore.balls >= effBalls || effBalls === 0)) {
+          if (isOfficialScorer && effectiveScoringMatchId === activeMatchId && reconciledScore && (reconciledScore.balls >= effBalls || effBalls === 0)) {
             miniRuns = reconciledScore.runs;
             miniWkts = reconciledScore.wickets;
             miniOvers = reconciledScore.oversStr;
+          } else if (effBalls > 0 || effRuns > 0) {
+            miniRuns = effRuns;
+            miniWkts = effWkts;
+            miniOvers = effOvers;
           }
 
           const target = effectiveScoringMatch?.target || (effectiveScoringMatch?.innings1?.runs ? effectiveScoringMatch.innings1.runs + 1 : null);
