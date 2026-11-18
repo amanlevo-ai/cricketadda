@@ -5035,6 +5035,7 @@ function CricketAddaMain() {
   const lastResetConsumedAtRef = useRef(0);
   const localMatchVersionRef = useRef(0);
   const lastLocalActionTimeRef = useRef(0);
+  const scoringHistoryRef = useRef([]);
   const [syncConnected, setSyncConnected] = useState(false);
 
   const [matchFilter, setMatchFilter] = useState('all');
@@ -6263,13 +6264,16 @@ function CricketAddaMain() {
       ''
     ).toLowerCase().trim();
 
-    const assignedId = targetMatch.scorerId || matchObj.scorerId || targetMatch.activeScorer?.id || matchObj.activeScorer?.id;
+    const assignedId = targetMatch.scorerId || matchObj.scorerId || targetMatch.activeScorer?.id || matchObj.activeScorer?.id || (activeScorer?.authorizedMatchId === targetMatch.id ? activeScorer.id : null);
     const assignedDeviceId = targetMatch.scorerDeviceId || matchObj.scorerDeviceId || targetMatch.activeScorer?.deviceId || matchObj.activeScorer?.deviceId;
     const assignedName = String(
       targetMatch.scorerName ||
       matchObj.scorerName ||
       targetMatch.activeScorer?.name ||
       matchObj.activeScorer?.name ||
+      targetMatch.delegatedTo ||
+      matchObj.delegatedTo ||
+      (activeScorer?.authorizedMatchId === targetMatch.id ? activeScorer.name : '') ||
       ''
     ).toLowerCase().trim();
 
@@ -6281,25 +6285,40 @@ function CricketAddaMain() {
     const creatorName = String(targetMatch.creatorName || matchObj.creatorName || '').toLowerCase().trim();
 
     // Check authoritative creator identity match
+    const cleanCreator = creatorName.replace(/[^a-z0-9]/g, '');
+    const cleanUName = uName.replace(/[^a-z0-9]/g, '');
+    const isCreatorNameMatch = Boolean(
+      cleanCreator && cleanUName && (
+        cleanCreator === cleanUName ||
+        cleanCreator.includes(cleanUName) ||
+        cleanUName.includes(cleanCreator)
+      )
+    );
+
     const isCurrentUserCreator = Boolean(
       (creatorId && uId && String(creatorId) === String(uId)) ||
       (creatorPhone && uPhone && creatorPhone === uPhone) ||
       (creatorEmail && uEmail && creatorEmail === uEmail) ||
       (creatorDeviceId && myDeviceId && creatorDeviceId === myDeviceId) ||
-      (creatorName && uName && (creatorName === uName || creatorName.replace(/\s+/g, '') === uName.replace(/\s+/g, '')))
+      isCreatorNameMatch
     );
 
     // Check authoritative assigned scorer identity match (ID, Phone, Email, Device ID, or Name)
+    const cleanAssigned = assignedName.replace(/[^a-z0-9]/g, '');
+    const isAssignedNameMatch = Boolean(
+      cleanAssigned && cleanUName && (
+        cleanAssigned === cleanUName ||
+        cleanAssigned.includes(cleanUName) ||
+        cleanUName.includes(cleanAssigned)
+      )
+    );
+
     const isCurrentUserAssignedScorer = Boolean(
       (assignedId && uId && String(assignedId) === String(uId)) ||
       (assignedPhone && uPhone && assignedPhone === uPhone) ||
       (assignedEmail && uEmail && assignedEmail === uEmail) ||
       (assignedDeviceId && myDeviceId && assignedDeviceId === myDeviceId) ||
-      (assignedName && uName && (
-        assignedName === uName ||
-        assignedName.replace(/\s+/g, '') === uName.replace(/\s+/g, '') ||
-        assignedName.replace(/[^a-z0-9]/g, '') === uName.replace(/[^a-z0-9]/g, '')
-      ))
+      isAssignedNameMatch
     );
 
     // Check if scoring duty is currently delegated away from creator to someone else
@@ -6312,12 +6331,19 @@ function CricketAddaMain() {
 
     if (isDelegated) {
       // If delegated, ONLY the designated delegated user can score!
-      return isCurrentUserAssignedScorer;
+      if (isCurrentUserAssignedScorer) {
+        targetMatch.isJoinedAsSpectator = false;
+        targetMatch.isSpectating = false;
+        return true;
+      }
+      return false;
     }
 
     // --- NON-DELEGATED MATCH (CREATOR / OFFICIAL SCORER OWNS SCORING RIGHTS) ---
     // If either creator identity or assigned scorer identity matches the current user/device:
     if (isCurrentUserCreator || isCurrentUserAssignedScorer) {
+      targetMatch.isJoinedAsSpectator = false;
+      targetMatch.isSpectating = false;
       return true;
     }
 
@@ -6983,6 +7009,33 @@ function CricketAddaMain() {
       setActiveMatchId(matchId);
       if (tab === 'scorecard') {
         setScorecardInning(1);
+      }
+      if (tab === 'scorer') {
+        const targetMatch = matchesDb?.[matchId] || MATCH_DATABASE?.[matchId];
+        if (targetMatch) {
+          const targetDeliveries = targetMatch.balls && typeof targetMatch.balls === 'object'
+            ? Object.values(targetMatch.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0))
+            : (Array.isArray(targetMatch.scoringHistory) ? targetMatch.scoringHistory : (targetMatch.liveState?.scoringHistory || []));
+          if (targetDeliveries.length > 0 && targetDeliveries.length >= (scoringHistoryRef.current?.length || 0)) {
+            setScoringHistory(targetDeliveries);
+            const derived = deriveMatchStateFromDeliveries(targetDeliveries, targetMatch);
+            setLiveRuns(derived.activeScore.runs);
+            setLiveWickets(derived.activeScore.wickets);
+            setLiveBalls(derived.activeScore.balls);
+            setLiveThisOver(derived.activeScore.thisOver);
+            setLiveBatters(derived.activeScore.liveBatters);
+            setLiveBowlerStats(derived.activeScore.liveBowlerStats);
+            setMatch(prev => ({
+              ...(MATCH_DATABASE[matchId] || {}),
+              ...(prev || {}),
+              ...targetMatch,
+              currentStriker: derived.activeScore.currentStriker || targetMatch.currentStriker || prev?.currentStriker || '',
+              currentNonStriker: derived.activeScore.currentNonStriker || targetMatch.currentNonStriker || prev?.currentNonStriker || '',
+              currentBowler: derived.activeScore.currentBowler || targetMatch.currentBowler || prev?.currentBowler || '',
+              id: matchId,
+            }));
+          }
+        }
       }
     }
     setNavHistory(prev => {
@@ -8243,10 +8296,12 @@ function CricketAddaMain() {
             next[mId] = { ...existing, ...mData };
             hasChanges = true;
 
-            // Synchronize active match screen instantly if this match is open on spectator devices.
-            // Official scorer uses local derived state + dedicated subscribeToFirebaseMatch listener;
-            // skipping here completely prevents double-update collisions and "This Over" pill flicker.
-            if (mId === activeMatchIdRef.current && !isOfficialScorerRef.current) {
+            // Synchronize active match screen instantly if this match is open.
+            // Accepts authoritative cloud sync if:
+            // 1. Spectator device
+            // 2. Cloud has more deliveries than local cache (initial load, app reopened, or scoring transferred)
+            // 3. Cloud is strictly newer or undo action
+            if (mId === activeMatchIdRef.current) {
               const cloudDeliveries = Array.isArray(mData.scoringHistory)
                 ? mData.scoringHistory
                 : (mData.balls && typeof mData.balls === 'object' ? Object.values(mData.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0)) : []);
@@ -8257,13 +8312,9 @@ function CricketAddaMain() {
               const localVersion = Number(localMatchVersionRef.current || 0);
               const isUndoSignal = Boolean(mData.isUndoAction);
 
-              // RECONCILIATION ORDER:
-              // 1. Spectators always accept authoritative cloud sync.
-              // 2. Official scorer accepts if:
-              //    - Cloud has a newer version or newer action timestamp (cloudTime > localTime + 300)
-              //    - Or Cloud is ahead in ball count (e.g. initial load / app reopened)
-              //    - Or an explicit Undo occurred (isUndoSignal)
-              //    NEVER drops into delayed same-action echoes (zero blink/flicker!).
+              const localDeliveriesCount = Array.isArray(scoringHistoryRef.current) ? scoringHistoryRef.current.length : 0;
+              const isCloudAheadInBalls = cloudDeliveries.length > localDeliveriesCount;
+
               const isCloudStrictlyNewer = Boolean(
                 (cloudVersion > 0 && localVersion > 0 && cloudVersion > localVersion) ||
                 (cloudTime > 0 && localTime > 0 && (cloudTime - localTime > 300)) ||
@@ -8271,7 +8322,7 @@ function CricketAddaMain() {
                 (cloudBallsCount > (lastAppliedRemoteSyncRef.current?.balls || 0))
               );
 
-              const shouldSync = !isOfficialScorerRef.current || isCloudStrictlyNewer || isUndoSignal;
+              const shouldSync = !isOfficialScorerRef.current || isCloudAheadInBalls || isCloudStrictlyNewer || isUndoSignal;
 
               if (shouldSync) {
                 if (cloudTime > localTime) lastLocalActionTimeRef.current = cloudTime;
@@ -8472,6 +8523,7 @@ function CricketAddaMain() {
   const [extraCustomInput, setExtraCustomInput] = useState('');
   const [otCustomInput, setOtCustomInput] = useState(''); // 'bat' | 'bye' | 'legBye' | 'wide' | 'noBall'
   const [scoringHistory, setScoringHistory] = useState([]);
+  scoringHistoryRef.current = scoringHistory;
   const [lastShotSector, setLastShotSector] = useState(null); // Shot area selected on wagon wheel
 
   // Innings Management State & Modals
@@ -9525,40 +9577,53 @@ function CricketAddaMain() {
 
     isApplyingRemoteSyncRef.current = true;
     if (d.activeMatchId) setActiveMatchId(d.activeMatchId);
-    if (Array.isArray(d.scoringHistory)) {
-      setScoringHistory(d.scoringHistory);
-      if (d.scoringHistory.length > 0) {
-        const derived = deriveMatchStateFromDeliveries(d.scoringHistory, d.match || d);
-        setLiveRuns(derived.activeScore.runs);
-        setLiveWickets(derived.activeScore.wickets);
-        setLiveBalls(derived.activeScore.balls);
-        setLiveThisOver(derived.activeScore.thisOver);
-        setLiveBatters(derived.activeScore.liveBatters);
-        setLiveBowlerStats(derived.activeScore.liveBowlerStats);
-      } else {
-        if (typeof d.liveRuns === 'number') setLiveRuns(d.liveRuns);
-        if (typeof d.liveWickets === 'number') setLiveWickets(d.liveWickets);
-        if (typeof d.liveBalls === 'number') setLiveBalls(d.liveBalls);
-        if (Array.isArray(d.liveThisOver)) setLiveThisOver(d.liveThisOver);
-      }
+    const candidateDeliveries = Array.isArray(d.scoringHistory)
+      ? d.scoringHistory
+      : (d.balls && typeof d.balls === 'object'
+          ? Object.values(d.balls).sort((a, b) => (Number(a.seq) || 0) - (Number(b.seq) || 0))
+          : (Array.isArray(d.liveState?.scoringHistory) ? d.liveState.scoringHistory : []));
+
+    if (candidateDeliveries.length > 0) {
+      setScoringHistory(candidateDeliveries);
+      const derived = deriveMatchStateFromDeliveries(candidateDeliveries, d.match || d);
+      setLiveRuns(derived.activeScore.runs);
+      setLiveWickets(derived.activeScore.wickets);
+      setLiveBalls(derived.activeScore.balls);
+      setLiveThisOver(derived.activeScore.thisOver);
+      setLiveBatters(derived.activeScore.liveBatters);
+      setLiveBowlerStats(derived.activeScore.liveBowlerStats);
     } else {
       if (typeof d.liveRuns === 'number') setLiveRuns(d.liveRuns);
       if (typeof d.liveWickets === 'number') setLiveWickets(d.liveWickets);
       if (typeof d.liveBalls === 'number') setLiveBalls(d.liveBalls);
       if (Array.isArray(d.liveThisOver)) setLiveThisOver(d.liveThisOver);
-      else if (isResetSignal || d.liveBalls === 0) setLiveThisOver([]);
-      if (isResetSignal || d.liveBalls === 0) setScoringHistory([]);
+      else if (isResetSignal) setLiveThisOver([]);
+      if (isResetSignal) setScoringHistory([]);
     }
     if (d.activeScorer) {
       const myDevId = clientIdRef?.current || '';
       const myPh = String(userProfile?.phone || authPhone || '').replace(/[^0-9]/g, '').slice(-10);
       const myEm = (userProfile?.email || authEmail || '').toLowerCase().trim();
       const myUid = userProfile?.id;
+      const myName = (userProfile?.name || authName || '').toLowerCase().trim();
+      const targetScorerName = String(d.activeScorer.name || d.scorerName || '').toLowerCase().trim();
+      const cleanTargetScorer = targetScorerName.replace(/[^a-z0-9]/g, '');
+      const cleanMyName = myName.replace(/[^a-z0-9]/g, '');
+
+      const isNameMatch = Boolean(
+        cleanTargetScorer && cleanMyName && (
+          cleanTargetScorer === cleanMyName ||
+          cleanTargetScorer.includes(cleanMyName) ||
+          cleanMyName.includes(cleanTargetScorer)
+        )
+      );
+
       const isTargetThisDevice = Boolean(
         (d.activeScorer.deviceId && d.activeScorer.deviceId === myDevId) ||
         (d.activeScorer.phone && myPh && String(d.activeScorer.phone).replace(/[^0-9]/g, '').slice(-10) === myPh) ||
         (d.activeScorer.email && myEm && d.activeScorer.email.toLowerCase().trim() === myEm) ||
-        (d.activeScorer.id && myUid && d.activeScorer.id === myUid)
+        (d.activeScorer.id && myUid && d.activeScorer.id === myUid) ||
+        isNameMatch
       );
       if (isTargetThisDevice) {
         setActiveScorer(d.activeScorer);
@@ -14565,6 +14630,15 @@ function CricketAddaMain() {
       setLiveThisOver(derived.activeScore.thisOver);
       setLiveBatters(derived.activeScore.liveBatters);
       setLiveBowlerStats(derived.activeScore.liveBowlerStats);
+      setMatch(prev => ({
+        ...(MATCH_DATABASE[resolvedMatchId] || {}),
+        ...(prev || {}),
+        ...targetMatch,
+        currentStriker: derived.activeScore.currentStriker || targetMatch.currentStriker || prev?.currentStriker || '',
+        currentNonStriker: derived.activeScore.currentNonStriker || targetMatch.currentNonStriker || prev?.currentNonStriker || '',
+        currentBowler: derived.activeScore.currentBowler || targetMatch.currentBowler || prev?.currentBowler || '',
+        id: resolvedMatchId,
+      }));
     } else {
       setLiveRuns(targetMatch.liveRuns ?? targetMatch.liveState?.liveRuns ?? 0);
       setLiveWickets(targetMatch.liveWickets ?? targetMatch.liveState?.liveWickets ?? 0);
@@ -18723,8 +18797,18 @@ function CricketAddaMain() {
         setLiveThisOver(derived.activeScore.thisOver);
         setLiveBatters(derived.activeScore.liveBatters);
         setLiveBowlerStats(derived.activeScore.liveBowlerStats);
+        setMatch(prev => ({
+          ...(MATCH_DATABASE[resolvedMatchId] || {}),
+          ...(prev || {}),
+          ...targetMatch,
+          currentStriker: derived.activeScore.currentStriker || targetMatch.currentStriker || prev?.currentStriker || '',
+          currentNonStriker: derived.activeScore.currentNonStriker || targetMatch.currentNonStriker || prev?.currentNonStriker || '',
+          currentBowler: derived.activeScore.currentBowler || targetMatch.currentBowler || prev?.currentBowler || '',
+          id: resolvedMatchId,
+        }));
+      } else {
+        setMatch(prev => ({ ...prev, id: resolvedMatchId }));
       }
-      setMatch(prev => ({ ...prev, id: resolvedMatchId }));
       navigateTo('scorer', resolvedMatchId);
       return;
     }
@@ -26545,22 +26629,20 @@ function CricketAddaMain() {
           const miniBatTeam = miniInn === 1 ? miniTeam1 : miniTeam2;
           const miniBowlTeam = miniInn === 1 ? miniTeam2 : miniTeam1;
 
-          let miniRuns = 0;
-          let miniWkts = 0;
-          let miniOvers = '0.0';
-          if (effectiveScoringMatchId === activeMatchId && reconciledScore) {
+          const innObj = miniInn === 1 ? effectiveScoringMatch?.innings1 : effectiveScoringMatch?.innings2;
+          const effRuns = effectiveScoringMatch?.liveRuns ?? effectiveScoringMatch?.liveState?.runs ?? innObj?.runs ?? 0;
+          const effBalls = effectiveScoringMatch?.liveBalls ?? effectiveScoringMatch?.liveState?.balls ?? 0;
+          const effOvers = effectiveScoringMatch?.liveOvers ?? effectiveScoringMatch?.liveState?.oversStr ?? innObj?.overs ?? '0.0';
+          const effWkts = effectiveScoringMatch?.liveWickets ?? effectiveScoringMatch?.liveState?.wickets ?? innObj?.wickets ?? 0;
+
+          let miniRuns = effRuns;
+          let miniWkts = effWkts;
+          let miniOvers = effOvers;
+
+          if (effectiveScoringMatchId === activeMatchId && reconciledScore && (reconciledScore.balls >= effBalls || effBalls === 0)) {
             miniRuns = reconciledScore.runs;
             miniWkts = reconciledScore.wickets;
             miniOvers = reconciledScore.oversStr;
-          } else if (effectiveScoringMatch?.liveState) {
-            miniRuns = effectiveScoringMatch.liveState.runs ?? 0;
-            miniWkts = effectiveScoringMatch.liveState.wickets ?? 0;
-            miniOvers = effectiveScoringMatch.liveState.oversStr ?? '0.0';
-          } else {
-            const innObj = miniInn === 1 ? effectiveScoringMatch?.innings1 : effectiveScoringMatch?.innings2;
-            miniRuns = innObj?.runs ?? 0;
-            miniWkts = innObj?.wickets ?? 0;
-            miniOvers = innObj?.overs ?? '0.0';
           }
 
           const target = effectiveScoringMatch?.target || (effectiveScoringMatch?.innings1?.runs ? effectiveScoringMatch.innings1.runs + 1 : null);
