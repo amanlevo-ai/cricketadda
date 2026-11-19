@@ -36799,14 +36799,7 @@ function CricketAddaMain() {
                     padding: 12,
                     marginBottom: 14,
                   }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                      <View style={{ backgroundColor: '#0284c7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 5 }}>
-                        <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>✓ REGISTERED PLAYER FOUND</Text>
-                      </View>
-                      <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: 'bold' }}>📞 +91 {transferPhoneInput}</Text>
-                    </View>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                       <PlayerAvatar
                         name={transferPhoneSearchResult.name}
                         size={44}
@@ -36817,13 +36810,13 @@ function CricketAddaMain() {
                         <Text style={{ color: '#ffffff', fontSize: 15, fontWeight: 'bold' }}>
                           {transferPhoneSearchResult.name}
                         </Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 11 }}>
-                          Role: {transferPhoneSearchResult.role || 'Player'} {transferPhoneSearchResult.jersey ? `• #${transferPhoneSearchResult.jersey}` : ''}
+                        <Text style={{ color: '#94a3b8', fontSize: 11, marginTop: 2 }}>
+                          Role: {transferPhoneSearchResult.role || 'Player'}{transferPhoneSearchResult.jersey ? ` • #${String(transferPhoneSearchResult.jersey).replace(/^#+/, '')}` : ''} • 📞 +91 {transferPhoneInput}
                         </Text>
                       </View>
                     </View>
 
-                    {/* Team Assignment Selector */}
+                    {/* Team Assignment Selector with SmartTeamLogo */}
                     <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: 'bold', marginBottom: 6 }}>
                       ASSIGN TO MATCH TEAM:
                     </Text>
@@ -36831,36 +36824,62 @@ function CricketAddaMain() {
                       <TouchableOpacity
                         style={{
                           flex: 1,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
                           backgroundColor: transferSelectedTeam === 'batting' ? '#064e3b' : '#0f172a',
                           borderColor: transferSelectedTeam === 'batting' ? '#10b981' : '#334155',
                           borderWidth: 1.2,
                           borderRadius: 8,
                           paddingVertical: 7,
                           paddingHorizontal: 8,
-                          alignItems: 'center',
                         }}
                         onPress={() => setTransferSelectedTeam('batting')}
                       >
+                        <SmartTeamLogo
+                          team={{
+                            name: battingTeamName,
+                            flag: battingTeamFlag,
+                            logoUri: match?.logoA || (matchesDb && matchesDb[activeMatchId]?.logoA) || currentMatchData?.logoA,
+                          }}
+                          style={{ width: 18, height: 18, borderRadius: 9 }}
+                          flagStyle={{ fontSize: 13 }}
+                          fallbackFlag={battingTeamFlag || '🏏'}
+                        />
                         <Text style={{ color: transferSelectedTeam === 'batting' ? '#6ee7b7' : '#94a3b8', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
-                          {battingTeamFlag} {battingTeamName}
+                          {battingTeamName}
                         </Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         style={{
                           flex: 1,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
                           backgroundColor: transferSelectedTeam === 'bowling' ? '#0284c7' : '#0f172a',
                           borderColor: transferSelectedTeam === 'bowling' ? '#38bdf8' : '#334155',
                           borderWidth: 1.2,
                           borderRadius: 8,
                           paddingVertical: 7,
                           paddingHorizontal: 8,
-                          alignItems: 'center',
                         }}
                         onPress={() => setTransferSelectedTeam('bowling')}
                       >
+                        <SmartTeamLogo
+                          team={{
+                            name: bowlingTeamName,
+                            flag: bowlingTeamFlag,
+                            logoUri: match?.logoB || (matchesDb && matchesDb[activeMatchId]?.logoB) || currentMatchData?.logoB,
+                          }}
+                          style={{ width: 18, height: 18, borderRadius: 9 }}
+                          flagStyle={{ fontSize: 13 }}
+                          fallbackFlag={bowlingTeamFlag || '⚔️'}
+                        />
                         <Text style={{ color: transferSelectedTeam === 'bowling' ? '#bae6fd' : '#94a3b8', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
-                          {bowlingTeamFlag} {bowlingTeamName}
+                          {bowlingTeamName}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -36947,36 +36966,62 @@ function CricketAddaMain() {
                       <TouchableOpacity
                         style={{
                           flex: 1,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
                           backgroundColor: transferSelectedTeam === 'batting' ? '#064e3b' : '#0f172a',
                           borderColor: transferSelectedTeam === 'batting' ? '#10b981' : '#334155',
                           borderWidth: 1.2,
                           borderRadius: 8,
                           paddingVertical: 7,
                           paddingHorizontal: 8,
-                          alignItems: 'center',
                         }}
                         onPress={() => setTransferSelectedTeam('batting')}
                       >
+                        <SmartTeamLogo
+                          team={{
+                            name: battingTeamName,
+                            flag: battingTeamFlag,
+                            logoUri: match?.logoA || (matchesDb && matchesDb[activeMatchId]?.logoA) || currentMatchData?.logoA,
+                          }}
+                          style={{ width: 18, height: 18, borderRadius: 9 }}
+                          flagStyle={{ fontSize: 13 }}
+                          fallbackFlag={battingTeamFlag || '🏏'}
+                        />
                         <Text style={{ color: transferSelectedTeam === 'batting' ? '#6ee7b7' : '#94a3b8', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
-                          {battingTeamFlag} {battingTeamName}
+                          {battingTeamName}
                         </Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         style={{
                           flex: 1,
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: 6,
                           backgroundColor: transferSelectedTeam === 'bowling' ? '#0284c7' : '#0f172a',
                           borderColor: transferSelectedTeam === 'bowling' ? '#38bdf8' : '#334155',
                           borderWidth: 1.2,
                           borderRadius: 8,
                           paddingVertical: 7,
                           paddingHorizontal: 8,
-                          alignItems: 'center',
                         }}
                         onPress={() => setTransferSelectedTeam('bowling')}
                       >
+                        <SmartTeamLogo
+                          team={{
+                            name: bowlingTeamName,
+                            flag: bowlingTeamFlag,
+                            logoUri: match?.logoB || (matchesDb && matchesDb[activeMatchId]?.logoB) || currentMatchData?.logoB,
+                          }}
+                          style={{ width: 18, height: 18, borderRadius: 9 }}
+                          flagStyle={{ fontSize: 13 }}
+                          fallbackFlag={bowlingTeamFlag || '⚔️'}
+                        />
                         <Text style={{ color: transferSelectedTeam === 'bowling' ? '#bae6fd' : '#94a3b8', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
-                          {bowlingTeamFlag} {bowlingTeamName}
+                          {bowlingTeamName}
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -37257,7 +37302,7 @@ function CricketAddaMain() {
               <View style={styles.scannedPlayerProfileContainer}>
                 <View style={styles.scannedPlayerSuccessBanner}>
                   <Text style={{ color: '#10b981', fontSize: 12.5, fontWeight: '900' }}>
-                    {qrScanPurpose === 'transfer_scorer' ? '🤝 SCORER CANDIDATE VERIFIED' : '📷 PLAYER PASSPORT SCANNED'}
+                    {qrScanPurpose === 'transfer_scorer' ? 'SCORER PLAYER VERIFIED' : '📷 PLAYER PASSPORT SCANNED'}
                   </Text>
                 </View>
 
@@ -37292,7 +37337,7 @@ function CricketAddaMain() {
                         </View>
                         {scannedPlayerProfile.jersey ? (
                           <View style={styles.playerJerseyPill}>
-                            <Text style={styles.playerJerseyPillText}>#{scannedPlayerProfile.jersey}</Text>
+                            <Text style={styles.playerJerseyPillText}>#{String(scannedPlayerProfile.jersey).replace(/^#+/, '')}</Text>
                           </View>
                         ) : null}
                       </View>
