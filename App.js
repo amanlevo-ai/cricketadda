@@ -12777,6 +12777,38 @@ function CricketAddaMain() {
       }
 
       const activePurpose = explicitPurpose || qrScanPurpose;
+
+      // PRIORITY 1: SCORER TRANSFER VIA QR SCAN (IMMEDIATE LIVE TRANSFER)
+      if (activePurpose === 'transfer_scorer') {
+        const pName = data.name || data.playerName || data.scorerName || (typeof payloadStr === 'string' && !payloadStr.startsWith('{') ? payloadStr : 'Player');
+        const pPhone = (data.phone || data.mobile || '').replace(/[^0-9]/g, '');
+        const pEmail = data.email || '';
+        const targetId = normalizeUserId(data.id || data.scorerId, pEmail, pPhone, pName);
+        const targetTeam = data.team || (transferSelectedTeam === 'bowling' ? bowlingTeamName : battingTeamName);
+        const targetFlag = data.flag || (transferSelectedTeam === 'bowling' ? bowlingTeamFlag : battingTeamFlag);
+        const targetAvatar = data.avatarUri || data.avatar || PLAYER_AVATARS[pName] || null;
+
+        setScannedPlayerProfile(null);
+        setUniversalQrScannerVisible(false);
+        setScorerTransferModalVisible(false);
+
+        transferScoringToPlayer(
+          {
+            id: targetId,
+            name: pName,
+            phone: pPhone,
+            email: pEmail,
+            role: 'Official Scorer',
+            avatarUri: targetAvatar,
+          },
+          targetTeam,
+          targetFlag,
+          pPhone,
+          targetAvatar
+        );
+        return;
+      }
+
       const isPlayerType = data.type === 'player_pass' || data.type === 'player' || data.type === 'profile' || activePurpose === 'add_squad_player' || activePurpose === 'scan_player_xi_1' || activePurpose === 'scan_player_xi_2';
 
       if (isPlayerType) {
@@ -37335,19 +37367,45 @@ function CricketAddaMain() {
                     </View>
                   </View>
 
-                  {/* ADD TO TEAM BUTTON */}
+                  {/* ADD TO TEAM OR TRANSFER SCORER BUTTON */}
                   <TouchableOpacity
                     style={[
                       styles.playerProfileAddBtn,
-                      newTeamSquad.some(p => p.name.toLowerCase() === scannedPlayerProfile.name.toLowerCase() || (scannedPlayerProfile.phone && p.phone === scannedPlayerProfile.phone)) && styles.playerProfileAddBtnDisabled
+                      qrScanPurpose === 'transfer_scorer'
+                        ? { backgroundColor: '#10b981', borderColor: '#34d399' }
+                        : (newTeamSquad.some(p => p.name.toLowerCase() === scannedPlayerProfile.name.toLowerCase() || (scannedPlayerProfile.phone && p.phone === scannedPlayerProfile.phone)) && styles.playerProfileAddBtnDisabled)
                     ]}
-                    disabled={newTeamSquad.some(p => p.name.toLowerCase() === scannedPlayerProfile.name.toLowerCase() || (scannedPlayerProfile.phone && p.phone === scannedPlayerProfile.phone))}
-                    onPress={() => handleAddScannedPlayerToSquad(scannedPlayerProfile)}
+                    disabled={qrScanPurpose !== 'transfer_scorer' && newTeamSquad.some(p => p.name.toLowerCase() === scannedPlayerProfile.name.toLowerCase() || (scannedPlayerProfile.phone && p.phone === scannedPlayerProfile.phone))}
+                    onPress={() => {
+                      if (qrScanPurpose === 'transfer_scorer') {
+                        setScannedPlayerProfile(null);
+                        setUniversalQrScannerVisible(false);
+                        setScorerTransferModalVisible(false);
+                        transferScoringToPlayer(
+                          {
+                            id: scannedPlayerProfile.id,
+                            name: scannedPlayerProfile.name,
+                            phone: scannedPlayerProfile.phone,
+                            email: scannedPlayerProfile.email || '',
+                            role: 'Official Scorer',
+                            avatarUri: scannedPlayerProfile.avatarUri,
+                          },
+                          transferSelectedTeam === 'bowling' ? bowlingTeamName : battingTeamName,
+                          transferSelectedTeam === 'bowling' ? bowlingTeamFlag : battingTeamFlag,
+                          scannedPlayerProfile.phone,
+                          scannedPlayerProfile.avatarUri
+                        );
+                        return;
+                      }
+                      handleAddScannedPlayerToSquad(scannedPlayerProfile);
+                    }}
                   >
                     <Text style={styles.playerProfileAddBtnText}>
-                      {newTeamSquad.some(p => p.name.toLowerCase() === scannedPlayerProfile.name.toLowerCase() || (scannedPlayerProfile.phone && p.phone === scannedPlayerProfile.phone))
-                        ? '✓ Already in Squad'
-                        : '➕ Add to Team'}
+                      {qrScanPurpose === 'transfer_scorer'
+                        ? `⇄ Transfer Scoring to ${scannedPlayerProfile.name}`
+                        : (newTeamSquad.some(p => p.name.toLowerCase() === scannedPlayerProfile.name.toLowerCase() || (scannedPlayerProfile.phone && p.phone === scannedPlayerProfile.phone))
+                          ? '✓ Already in Squad'
+                          : '➕ Add to Team')}
                     </Text>
                   </TouchableOpacity>
                 </View>
