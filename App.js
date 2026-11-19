@@ -36478,231 +36478,203 @@ function CricketAddaMain() {
                     return resolvedName.toLowerCase().includes(q) || rawName.toLowerCase().includes(q);
                   });
 
+                  const isBattingTab = transferSelectedTeam === 'batting';
+                  const currentTabTeamName = isBattingTab ? battingTeamName : bowlingTeamName;
+                  const currentTabTeamFlag = isBattingTab ? battingTeamFlag : bowlingTeamFlag;
+                  const displayedPlayers = isBattingTab ? filteredBatters : filteredBowlers;
+
                   return (
-                    <View style={{ flex: 1, flexDirection: 'row', gap: 8, marginBottom: 8 }}>
-                      {/* LEFT COLUMN: BATTING TEAM (GREEN THEME) */}
-                      <View style={{
-                        flex: 1,
-                        backgroundColor: '#041d17',
-                        borderColor: '#10b981',
-                        borderWidth: 1.5,
-                        borderRadius: 14,
-                        padding: 8,
-                        display: 'flex',
-                      }}>
-                        {/* Fixed Column Header with Team Pic/Logo */}
-                        <View style={{ alignItems: 'center', marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(16, 185, 129, 0.25)' }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
-                            <SmartTeamLogo
-                              team={{
-                                name: battingTeamName,
-                                flag: battingTeamFlag,
-                                logoUri: match?.logoA || (matchesDb && matchesDb[activeMatchId]?.logoA) || currentMatchData?.logoA,
-                              }}
-                              style={{ width: 22, height: 22, borderRadius: 11 }}
-                              flagStyle={{ fontSize: 14 }}
-                              fallbackFlag={battingTeamFlag || '🏏'}
-                            />
-                            <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900' }} numberOfLines={1}>
-                              {battingTeamName} Squad
-                            </Text>
-                          </View>
-                          <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginTop: 4 }}>
-                            <Text style={{ color: '#34d399', fontSize: 9.5, fontWeight: '800' }}>
-                              {filteredBatters.length} Players
-                            </Text>
-                          </View>
-                        </View>
+                    <View style={{ flex: 1, display: 'flex', marginBottom: 8 }}>
+                      {/* TEAM TABS (FULL-WIDTH MODERN SELECTOR WITHOUT COUNT BADGES) */}
+                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                        {/* TAB 1: BATTING TEAM */}
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => setTransferSelectedTeam('batting')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 7,
+                            paddingVertical: 9,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            backgroundColor: isBattingTab ? '#064e3b' : '#071f1a',
+                            borderColor: isBattingTab ? '#10b981' : '#134e4a',
+                            borderWidth: 1.5,
+                            shadowColor: isBattingTab ? '#10b981' : 'transparent',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 5,
+                            elevation: isBattingTab ? 3 : 0,
+                          }}
+                        >
+                          <SmartTeamLogo
+                            team={{
+                              name: battingTeamName,
+                              flag: battingTeamFlag,
+                              logoUri: match?.logoA || (matchesDb && matchesDb[activeMatchId]?.logoA) || currentMatchData?.logoA,
+                            }}
+                            style={{ width: 22, height: 22, borderRadius: 11 }}
+                            flagStyle={{ fontSize: 13 }}
+                            fallbackFlag={battingTeamFlag || '🏏'}
+                          />
+                          <Text
+                            style={{
+                              color: isBattingTab ? '#ffffff' : '#94a3b8',
+                              fontSize: 12.5,
+                              fontWeight: isBattingTab ? '900' : '700',
+                            }}
+                            numberOfLines={1}
+                          >
+                            {battingTeamName}
+                          </Text>
+                        </TouchableOpacity>
 
-                        {/* INTERNAL SCROLLVIEW FOR BATTING SQUAD */}
-                        <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-                          {filteredBatters.map(({ rawName, resolvedName, pObj }, idx) => {
-                            const isCurrent = activeScorer.name === resolvedName || activeScorer.name === rawName;
-                            const regP = pObj || (registeredPlayers || []).find(rp => rp && (rp.name?.toLowerCase() === resolvedName.toLowerCase() || rp.name?.toLowerCase() === rawName.toLowerCase()));
-                            const pRole = regP?.role || 'Player';
-                            const pAvatar = getPlayerAvatarUri(resolvedName) || getPlayerAvatarUri(rawName) || regP?.avatarUri || null;
-                            const isSelected = selectedTransferPlayer?.player?.name === resolvedName || selectedTransferPlayer?.player?.name === rawName || (selectedTransferPlayer?.player?.id && regP?.id && selectedTransferPlayer.player.id === regP.id);
-
-                            return (
-                              <TouchableOpacity
-                                key={`trans_p1_${resolvedName}_${idx}`}
-                                activeOpacity={isCurrent ? 1 : 0.8}
-                                onPress={() => {
-                                  if (isCurrent) return;
-                                  setSelectedTransferPlayer(isSelected ? null : {
-                                    player: { id: regP?.id || resolvedName, name: resolvedName, role: pRole, avatarUri: pAvatar, phone: regP?.phone, email: regP?.email },
-                                    teamName: battingTeamName,
-                                    teamFlag: battingTeamFlag,
-                                    phone: regP?.phone,
-                                    avatar: pAvatar,
-                                  });
-                                }}
-                                style={{
-                                  backgroundColor: isSelected ? 'rgba(16, 185, 129, 0.25)' : (isCurrent ? 'rgba(2, 132, 199, 0.15)' : '#07241c'),
-                                  borderColor: isSelected ? '#10b981' : (isCurrent ? '#0284c7' : '#134e4a'),
-                                  borderWidth: isSelected ? 1.5 : 1,
-                                  borderRadius: 8,
-                                  padding: 6,
-                                  marginBottom: 5,
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                }}
-                              >
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 4 }}>
-                                  <PlayerAvatar
-                                    name={resolvedName}
-                                    size={28}
-                                    customUri={pAvatar}
-                                    borderColor={isSelected ? '#10b981' : '#38bdf8'}
-                                  />
-                                  <View style={{ flex: 1 }}>
-                                    <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
-                                      {resolvedName}
-                                    </Text>
-                                    <Text style={{ color: '#94a3b8', fontSize: 9 }} numberOfLines={1}>
-                                      {isCurrent ? 'ACTIVE' : pRole}
-                                    </Text>
-                                  </View>
-                                </View>
-
-                                {/* Checkbox / Badge */}
-                                {isCurrent ? (
-                                  <View style={{ backgroundColor: '#0284c7', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1.5 }}>
-                                    <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900' }}>✓</Text>
-                                  </View>
-                                ) : (
-                                  <View style={{
-                                    width: 18,
-                                    height: 18,
-                                    borderRadius: 4,
-                                    borderColor: isSelected ? '#10b981' : '#475569',
-                                    borderWidth: 1.5,
-                                    backgroundColor: isSelected ? '#10b981' : 'transparent',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                  }}>
-                                    {isSelected && (
-                                      <Text style={{ color: '#022c22', fontSize: 11, fontWeight: '900' }}>✓</Text>
-                                    )}
-                                  </View>
-                                )}
-                              </TouchableOpacity>
-                            );
-                          })}
-                        </ScrollView>
+                        {/* TAB 2: BOWLING TEAM */}
+                        <TouchableOpacity
+                          activeOpacity={0.8}
+                          onPress={() => setTransferSelectedTeam('bowling')}
+                          style={{
+                            flex: 1,
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 7,
+                            paddingVertical: 9,
+                            paddingHorizontal: 8,
+                            borderRadius: 12,
+                            backgroundColor: !isBattingTab ? '#4c1d95' : '#1e1136',
+                            borderColor: !isBattingTab ? '#a855f7' : '#3b1d6b',
+                            borderWidth: 1.5,
+                            shadowColor: !isBattingTab ? '#a855f7' : 'transparent',
+                            shadowOffset: { width: 0, height: 2 },
+                            shadowOpacity: 0.35,
+                            shadowRadius: 5,
+                            elevation: !isBattingTab ? 3 : 0,
+                          }}
+                        >
+                          <SmartTeamLogo
+                            team={{
+                              name: bowlingTeamName,
+                              flag: bowlingTeamFlag,
+                              logoUri: match?.logoB || (matchesDb && matchesDb[activeMatchId]?.logoB) || currentMatchData?.logoB,
+                            }}
+                            style={{ width: 22, height: 22, borderRadius: 11 }}
+                            flagStyle={{ fontSize: 13 }}
+                            fallbackFlag={bowlingTeamFlag || '⚔️'}
+                          />
+                          <Text
+                            style={{
+                              color: !isBattingTab ? '#ffffff' : '#94a3b8',
+                              fontSize: 12.5,
+                              fontWeight: !isBattingTab ? '900' : '700',
+                            }}
+                            numberOfLines={1}
+                          >
+                            {bowlingTeamName}
+                          </Text>
+                        </TouchableOpacity>
                       </View>
 
-                      {/* RIGHT COLUMN: BOWLING TEAM (PURPLE THEME) */}
+                      {/* ACTIVE TEAM'S SQUAD CONTAINER (FULL WIDTH WITH INTERNAL SCROLL) */}
                       <View style={{
                         flex: 1,
-                        backgroundColor: '#170c2a',
-                        borderColor: '#a855f7',
+                        backgroundColor: isBattingTab ? '#041d17' : '#140b24',
+                        borderColor: isBattingTab ? '#10b981' : '#a855f7',
                         borderWidth: 1.5,
                         borderRadius: 14,
                         padding: 8,
-                        display: 'flex',
                       }}>
-                        {/* Fixed Column Header with Team Pic/Logo */}
-                        <View style={{ alignItems: 'center', marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(168, 85, 247, 0.25)' }}>
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
-                            <SmartTeamLogo
-                              team={{
-                                name: bowlingTeamName,
-                                flag: bowlingTeamFlag,
-                                logoUri: match?.logoB || (matchesDb && matchesDb[activeMatchId]?.logoB) || currentMatchData?.logoB,
-                              }}
-                              style={{ width: 22, height: 22, borderRadius: 11 }}
-                              flagStyle={{ fontSize: 14 }}
-                              fallbackFlag={bowlingTeamFlag || '⚔️'}
-                            />
-                            <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900' }} numberOfLines={1}>
-                              {bowlingTeamName} Squad
-                            </Text>
-                          </View>
-                          <View style={{ backgroundColor: '#4c1d95', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginTop: 4 }}>
-                            <Text style={{ color: '#d8b4fe', fontSize: 9.5, fontWeight: '800' }}>
-                              {filteredBowlers.length} Players
-                            </Text>
-                          </View>
-                        </View>
-
-                        {/* INTERNAL SCROLLVIEW FOR BOWLING SQUAD */}
                         <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-                          {filteredBowlers.map(({ rawName, resolvedName, pObj }, idx) => {
-                            const isCurrent = activeScorer.name === resolvedName || activeScorer.name === rawName;
-                            const regP = pObj || (registeredPlayers || []).find(rp => rp && (rp.name?.toLowerCase() === resolvedName.toLowerCase() || rp.name?.toLowerCase() === rawName.toLowerCase()));
-                            const pRole = regP?.role || 'Player';
-                            const pAvatar = getPlayerAvatarUri(resolvedName) || getPlayerAvatarUri(rawName) || regP?.avatarUri || null;
-                            const isSelected = selectedTransferPlayer?.player?.name === resolvedName || selectedTransferPlayer?.player?.name === rawName || (selectedTransferPlayer?.player?.id && regP?.id && selectedTransferPlayer.player.id === regP.id);
+                          {displayedPlayers.length === 0 ? (
+                            <View style={{ paddingVertical: 30, alignItems: 'center', justifyContent: 'center' }}>
+                              <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: '600' }}>
+                                No registered players found
+                              </Text>
+                            </View>
+                          ) : (
+                            displayedPlayers.map(({ rawName, resolvedName, pObj }, idx) => {
+                              const isCurrent = activeScorer.name === resolvedName || activeScorer.name === rawName;
+                              const regP = pObj || (registeredPlayers || []).find(rp => rp && (rp.name?.toLowerCase() === resolvedName.toLowerCase() || rp.name?.toLowerCase() === rawName.toLowerCase()));
+                              const pRole = regP?.role || 'Player';
+                              const pAvatar = getPlayerAvatarUri(resolvedName) || getPlayerAvatarUri(rawName) || regP?.avatarUri || null;
+                              const isSelected = selectedTransferPlayer?.player?.name === resolvedName || selectedTransferPlayer?.player?.name === rawName || (selectedTransferPlayer?.player?.id && regP?.id && selectedTransferPlayer.player.id === regP.id);
 
-                            return (
-                              <TouchableOpacity
-                                key={`trans_p2_${resolvedName}_${idx}`}
-                                activeOpacity={isCurrent ? 1 : 0.8}
-                                onPress={() => {
-                                  if (isCurrent) return;
-                                  setSelectedTransferPlayer(isSelected ? null : {
-                                    player: { id: regP?.id || resolvedName, name: resolvedName, role: pRole, avatarUri: pAvatar, phone: regP?.phone, email: regP?.email },
-                                    teamName: bowlingTeamName,
-                                    teamFlag: bowlingTeamFlag,
-                                    phone: regP?.phone,
-                                    avatar: pAvatar,
-                                  });
-                                }}
-                                style={{
-                                  backgroundColor: isSelected ? 'rgba(168, 85, 247, 0.25)' : (isCurrent ? 'rgba(2, 132, 199, 0.15)' : '#20103b'),
-                                  borderColor: isSelected ? '#a855f7' : (isCurrent ? '#0284c7' : '#3b1d6b'),
-                                  borderWidth: isSelected ? 1.5 : 1,
-                                  borderRadius: 8,
-                                  padding: 6,
-                                  marginBottom: 5,
-                                  flexDirection: 'row',
-                                  alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                }}
-                              >
-                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 4 }}>
-                                  <PlayerAvatar
-                                    name={resolvedName}
-                                    size={28}
-                                    customUri={pAvatar}
-                                    borderColor={isSelected ? '#a855f7' : '#38bdf8'}
-                                  />
-                                  <View style={{ flex: 1 }}>
-                                    <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
-                                      {resolvedName}
-                                    </Text>
-                                    <Text style={{ color: '#94a3b8', fontSize: 9 }} numberOfLines={1}>
-                                      {isCurrent ? 'ACTIVE' : pRole}
-                                    </Text>
-                                  </View>
-                                </View>
-
-                                {/* Checkbox / Badge */}
-                                {isCurrent ? (
-                                  <View style={{ backgroundColor: '#0284c7', borderRadius: 4, paddingHorizontal: 4, paddingVertical: 1.5 }}>
-                                    <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900' }}>✓</Text>
-                                  </View>
-                                ) : (
-                                  <View style={{
-                                    width: 18,
-                                    height: 18,
-                                    borderRadius: 4,
-                                    borderColor: isSelected ? '#a855f7' : '#475569',
-                                    borderWidth: 1.5,
-                                    backgroundColor: isSelected ? '#a855f7' : 'transparent',
+                              return (
+                                <TouchableOpacity
+                                  key={`trans_p_${currentTabTeamName}_${resolvedName}_${idx}`}
+                                  activeOpacity={isCurrent ? 1 : 0.8}
+                                  onPress={() => {
+                                    if (isCurrent) return;
+                                    setSelectedTransferPlayer(isSelected ? null : {
+                                      player: { id: regP?.id || resolvedName, name: resolvedName, role: pRole, avatarUri: pAvatar, phone: regP?.phone, email: regP?.email },
+                                      teamName: currentTabTeamName,
+                                      teamFlag: currentTabTeamFlag,
+                                      phone: regP?.phone,
+                                      avatar: pAvatar,
+                                    });
+                                  }}
+                                  style={{
+                                    backgroundColor: isSelected
+                                      ? (isBattingTab ? 'rgba(16, 185, 129, 0.22)' : 'rgba(168, 85, 247, 0.22)')
+                                      : (isCurrent ? 'rgba(2, 132, 199, 0.15)' : (isBattingTab ? '#07241c' : '#1c0f33')),
+                                    borderColor: isSelected
+                                      ? (isBattingTab ? '#10b981' : '#a855f7')
+                                      : (isCurrent ? '#0284c7' : (isBattingTab ? '#134e4a' : '#351859')),
+                                    borderWidth: isSelected ? 1.5 : 1,
+                                    borderRadius: 10,
+                                    paddingVertical: 8,
+                                    paddingHorizontal: 10,
+                                    marginBottom: 6,
+                                    flexDirection: 'row',
                                     alignItems: 'center',
-                                    justifyContent: 'center',
-                                  }}>
-                                    {isSelected && (
-                                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }}>✓</Text>
-                                    )}
+                                    justifyContent: 'space-between',
+                                  }}
+                                >
+                                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1, marginRight: 8 }}>
+                                    <PlayerAvatar
+                                      name={resolvedName}
+                                      size={36}
+                                      customUri={pAvatar}
+                                      borderColor={isSelected ? (isBattingTab ? '#10b981' : '#a855f7') : '#38bdf8'}
+                                    />
+                                    <View style={{ flex: 1 }}>
+                                      <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: 'bold' }} numberOfLines={1}>
+                                        {resolvedName}
+                                      </Text>
+                                      <Text style={{ color: isCurrent ? '#38bdf8' : '#94a3b8', fontSize: 11, fontWeight: isCurrent ? '700' : '500' }} numberOfLines={1}>
+                                        {isCurrent ? 'Current Active Scorer' : pRole}
+                                      </Text>
+                                    </View>
                                   </View>
-                                )}
-                              </TouchableOpacity>
-                            );
-                          })}
+
+                                  {/* Checkbox / Badge */}
+                                  {isCurrent ? (
+                                    <View style={{ backgroundColor: '#0284c7', borderRadius: 6, paddingHorizontal: 7, paddingVertical: 3 }}>
+                                      <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>ACTIVE</Text>
+                                    </View>
+                                  ) : (
+                                    <View style={{
+                                      width: 22,
+                                      height: 22,
+                                      borderRadius: 6,
+                                      borderColor: isSelected ? (isBattingTab ? '#10b981' : '#a855f7') : '#475569',
+                                      borderWidth: 1.8,
+                                      backgroundColor: isSelected ? (isBattingTab ? '#10b981' : '#a855f7') : 'transparent',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                    }}>
+                                      {isSelected && (
+                                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>✓</Text>
+                                      )}
+                                    </View>
+                                  )}
+                                </TouchableOpacity>
+                              );
+                            })
+                          )}
                         </ScrollView>
                       </View>
                     </View>
