@@ -570,7 +570,6 @@ export async function recordBallDeliveryAtomic(matchId, ballData) {
     if (ballData.strikerId) multiPathUpdates.currentStrikerId = ballData.strikerId;
     if (ballData.nonStrikerId) multiPathUpdates.currentNonStrikerId = ballData.nonStrikerId;
     if (ballData.bowlerId) multiPathUpdates.currentBowlerId = ballData.bowlerId;
-    if (ballData.scorerId) multiPathUpdates.activeScorerId = ballData.scorerId;
 
     if (ballData.lastOverBowler !== undefined) multiPathUpdates.lastOverBowler = ballData.lastOverBowler;
     if (ballData.status) multiPathUpdates.status = ballData.status;
