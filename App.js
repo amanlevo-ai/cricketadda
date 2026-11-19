@@ -31120,7 +31120,7 @@ function CricketAddaMain() {
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: currentTheme.isLight ? '#ede9fe' : 'rgba(139, 92, 246, 0.2)', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ fontSize: 20 }}>{currentInnings === 1 ? '🏁' : '🌧️'}</Text>
+                    <Text style={{ fontSize: 20 }}>🏁</Text>
                   </View>
                   <View>
                     <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 16, fontWeight: '900' }}>
@@ -31414,28 +31414,33 @@ function CricketAddaMain() {
                       </Text>
                     </View>
 
-                    <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#6b21a8' : '#c7d2fe' }}>
-                      DLS Formula: <Text style={{ fontWeight: 'bold' }}>Resource R1 ({preview.r1}%) vs R2 ({preview.r2}%)</Text> • Par: <Text style={{ fontWeight: 'bold', color: '#fde047' }}>{preview.parScore}</Text>
-                    </Text>
-
+                    {/* DLS Stats & Bowler Quota Card Section */}
                     <View style={{
-                      flexDirection: 'row',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      gap: 12,
                       borderTopWidth: 1,
                       borderTopColor: currentTheme.isLight ? '#e9d5ff' : '#312e81',
                       marginTop: 8,
                       paddingTop: 8,
                       width: '100%',
+                      alignItems: 'center',
                     }}>
-                      <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#6d28d9' : '#c4b5fd', fontWeight: '600' }}>
-                        Req Rate: <Text style={{ fontWeight: 'bold' }}>{preview.rrr} rpo</Text>
+                      <Text style={{ fontSize: 11.5, color: currentTheme.isLight ? '#6d28d9' : '#c4b5fd', fontWeight: '700' }}>
+                        Required Run Rate: <Text style={{ fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }}>{preview.rrr} rpo</Text>
                       </Text>
-                      <Text style={{ color: '#94a3b8', fontSize: 10 }}>•</Text>
-                      <Text style={{ fontSize: 11, color: '#f59e0b', fontWeight: 'bold' }}>
-                        Quota: {preview.bowlerQuota?.quotaText || 'N/A'}
-                      </Text>
+                      {preview.bowlerQuota?.quotaText ? (
+                        <View style={{
+                          marginTop: 6,
+                          backgroundColor: currentTheme.isLight ? 'rgba(109, 40, 217, 0.08)' : 'rgba(139, 92, 246, 0.15)',
+                          paddingHorizontal: 10,
+                          paddingVertical: 4,
+                          borderRadius: 6,
+                          alignSelf: 'stretch',
+                          alignItems: 'center',
+                        }}>
+                          <Text style={{ fontSize: 10.5, color: '#f59e0b', fontWeight: 'bold', textAlign: 'center' }}>
+                            ⚡ Bowler Quota: {preview.bowlerQuota.quotaText}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
 
                     {safeOv < 5 && origOv <= 20 && (
@@ -31457,11 +31462,11 @@ function CricketAddaMain() {
                 </Text>
               </View>
 
-              {/* Quick Overs Selection Chips */}
-              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              {/* Quick Overs Selection Chips (4 equal columns, centered fit) */}
+              <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
                 {(() => {
                   const origOv = match.totalOvers || match.overs || 20;
-                  const candidates = [origOv, 15, 12, 10, 8, 5];
+                  const candidates = [origOv, 15, 12, 10];
                   const uniqueList = candidates.filter((val, idx) => candidates.indexOf(val) === idx && val <= origOv);
                   return uniqueList.map(ov => {
                     const isSel = String(ov) === dlsRevisedOversInput;
@@ -31470,8 +31475,11 @@ function CricketAddaMain() {
                       <TouchableOpacity
                         key={`quick_ov_${ov}`}
                         style={{
-                          paddingHorizontal: 12,
-                          paddingVertical: 7,
+                          flex: 1,
+                          paddingVertical: 8,
+                          paddingHorizontal: 2,
+                          alignItems: 'center',
+                          justifyContent: 'center',
                           borderRadius: 8,
                           backgroundColor: isSel
                             ? (earlyEndTargetMode === 'local' ? '#10b981' : '#8b5cf6')
@@ -31481,8 +31489,8 @@ function CricketAddaMain() {
                         }}
                         onPress={() => setDlsRevisedOversInput(String(ov))}
                       >
-                        <Text style={{ color: isSel ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#cbd5e1'), fontSize: 12, fontWeight: '800' }}>
-                          {ov} ov{isFull ? ' (Full)' : ''}
+                        <Text style={{ color: isSel ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#cbd5e1'), fontSize: 11.5, fontWeight: '800', textAlign: 'center' }}>
+                          {ov} ov{isFull ? '\n(Full)' : ''}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -31566,10 +31574,8 @@ function CricketAddaMain() {
                     handleApplyDLSReduction();
                   }}
                 >
-                  <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>
-                    {earlyEndTargetMode === 'local'
-                      ? (currentInnings === 1 ? '🏁 End 1st Innings & Start Chase' : '✓ Revise Target Overs')
-                      : (currentInnings === 1 ? '🌧️ Apply DLS & End 1st Innings' : '🌧️ Apply DLS Target')}
+                  <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
+                    {currentInnings === 1 ? 'Start 2nd Inning' : (earlyEndTargetMode === 'local' ? '✓ Revise Target Overs' : 'Apply DLS Target')}
                   </Text>
                 </TouchableOpacity>
               </View>
