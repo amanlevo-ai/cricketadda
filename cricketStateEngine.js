@@ -8,6 +8,70 @@
  * ============================================================================
  */
 
+export const KNOWN_PLAYER_ALIASES = {
+  'usr_9780425527': ['amandeep', 'amanlevo', 'aman', 'usr_amandeep', 'usr_1792728393426', 'amanlevo@gmail.com', '9780425527'],
+  'usr_1793432528758': ['wpardeepkaur', 'wpardeep', 'usr_wpardeep', 'wpardeepkaur@gmail.com'],
+};
+
+export const KNOWN_PLAYER_CANONICAL_NAMES = {
+  'usr_9780425527': 'Amandeep',
+  'usr_1793432528758': 'Wpardeepkaur',
+};
+
+export function normalizePlayerId(id, name, phone, email) {
+  const cleanId = String(id || '').trim();
+  const cleanName = String(name || '').replace(/\s*\([^)]*\)/g, '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');
+  const cleanPhone = String(phone || '').replace(/[^0-9]/g, '').slice(-10);
+  const cleanEmail = String(email || '').toLowerCase().trim();
+
+  for (const [canonicalId, aliases] of Object.entries(KNOWN_PLAYER_ALIASES)) {
+    if (cleanId === canonicalId) return canonicalId;
+    for (const alias of aliases) {
+      const cleanAlias = alias.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (
+        (cleanId && cleanId.toLowerCase() === cleanAlias) ||
+        (cleanName && (cleanName === cleanAlias || cleanName.startsWith(cleanAlias) || cleanAlias.startsWith(cleanName))) ||
+        (cleanPhone && cleanPhone === cleanAlias) ||
+        (cleanEmail && cleanEmail === cleanAlias)
+      ) {
+        return canonicalId;
+      }
+    }
+  }
+
+  if (cleanId && cleanId.length > 2 && cleanId !== 'undefined' && cleanId !== 'null') {
+    return cleanId;
+  }
+  if (cleanPhone && cleanPhone.length === 10) {
+    return `usr_${cleanPhone}`;
+  }
+  return null;
+}
+
+export function isSamePlayerOrAlias(p1, p2) {
+  if (!p1 || !p2) return false;
+  const id1 = typeof p1 === 'object' ? (p1.id || p1.playerId) : null;
+  const name1 = typeof p1 === 'object' ? (p1.name || p1.playerName || p1.striker || p1.bowler) : p1;
+  const phone1 = typeof p1 === 'object' ? p1.phone : null;
+  const email1 = typeof p1 === 'object' ? p1.email : null;
+
+  const id2 = typeof p2 === 'object' ? (p2.id || p2.playerId) : null;
+  const name2 = typeof p2 === 'object' ? (p2.name || p2.playerName || p2.striker || p2.bowler) : p2;
+  const phone2 = typeof p2 === 'object' ? p2.phone : null;
+  const email2 = typeof p2 === 'object' ? p2.email : null;
+
+  const normId1 = normalizePlayerId(id1, name1, phone1, email1);
+  const normId2 = normalizePlayerId(id2, name2, phone2, email2);
+
+  if (normId1 && normId2 && normId1 === normId2) return true;
+
+  const sName1 = String(name1 || '').replace(/\s*\([^)]*\)/g, '').toLowerCase().trim();
+  const sName2 = String(name2 || '').replace(/\s*\([^)]*\)/g, '').toLowerCase().trim();
+  if (sName1 && sName2 && sName1 === sName2) return true;
+
+  return false;
+}
+
 export function parseBallSymbol(sym) {
   if (!sym) return { runs: 0, isLegal: true, isWkt: false, extraType: 'none' };
   const s = String(sym).trim();
@@ -81,8 +145,9 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     const pId = typeof p === 'object' ? (p.id || p.playerId || null) : null;
     if (name && typeof name === 'string' && name.trim()) {
       const cleanName = name.trim();
+      const normId = normalizePlayerId(pId, cleanName, typeof p === 'object' ? p.phone : null, typeof p === 'object' ? p.email : null);
       battersMap[cleanName] = {
-        id: pId,
+        id: normId || pId,
         name: cleanName,
         runs: 0,
         balls: 0,
@@ -107,8 +172,9 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     const pId = typeof p === 'object' ? (p.id || p.playerId || null) : null;
     if (name && typeof name === 'string' && name.trim()) {
       const cleanName = name.trim();
+      const normId = normalizePlayerId(pId, cleanName, typeof p === 'object' ? p.phone : null, typeof p === 'object' ? p.email : null);
       bowlersMap[cleanName] = {
-        id: pId,
+        id: normId || pId,
         name: cleanName,
         balls: 0,
         overs: '0.0',
@@ -124,6 +190,95 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     }
   });
 
+  // Dynamic entity finders resolving player aliases & unique IDs
+  const findBatterEntry = (name, pId) => {
+    if (!name && !pId) return null;
+    if (name && battersMap[name]) return battersMap[name];
+    for (const key of Object.keys(battersMap)) {
+      const b = battersMap[key];
+      if (isSamePlayerOrAlias(b, { id: pId, name })) {
+        return b;
+      }
+    }
+    return null;
+  };
+
+  const getOrCreateBatter = (rawName, pId) => {
+    const cleanName = (rawName || 'Batter').trim();
+    const existing = findBatterEntry(cleanName, pId);
+    if (existing) {
+      if (pId && !existing.id) {
+        existing.id = normalizePlayerId(pId, cleanName) || pId;
+      }
+      return existing;
+    }
+    const normId = normalizePlayerId(pId, cleanName);
+    const resolvedName = (matchMeta && matchMeta.canonicalPlayerNames && normId && matchMeta.canonicalPlayerNames[normId]) ||
+      (normId && KNOWN_PLAYER_CANONICAL_NAMES[normId]) ||
+      cleanName;
+    const newEntry = {
+      id: normId || pId || null,
+      name: resolvedName,
+      runs: 0,
+      balls: 0,
+      fours: 0,
+      sixes: 0,
+      dots: 0,
+      singles: 0,
+      doubles: 0,
+      triples: 0,
+      isNotOut: true,
+      dismissal: 'batting *',
+      strikeRate: '0.0',
+      battingOrder: Object.keys(battersMap).length + 1,
+    };
+    battersMap[resolvedName] = newEntry;
+    return newEntry;
+  };
+
+  const findBowlerEntry = (name, pId) => {
+    if (!name && !pId) return null;
+    if (name && bowlersMap[name]) return bowlersMap[name];
+    for (const key of Object.keys(bowlersMap)) {
+      const bw = bowlersMap[key];
+      if (isSamePlayerOrAlias(bw, { id: pId, name })) {
+        return bw;
+      }
+    }
+    return null;
+  };
+
+  const getOrCreateBowler = (rawName, pId) => {
+    const cleanName = (rawName || 'Bowler').trim();
+    const existing = findBowlerEntry(cleanName, pId);
+    if (existing) {
+      if (pId && !existing.id) {
+        existing.id = normalizePlayerId(pId, cleanName) || pId;
+      }
+      return existing;
+    }
+    const normId = normalizePlayerId(pId, cleanName);
+    const resolvedName = (matchMeta && matchMeta.canonicalPlayerNames && normId && matchMeta.canonicalPlayerNames[normId]) ||
+      (normId && KNOWN_PLAYER_CANONICAL_NAMES[normId]) ||
+      cleanName;
+    const newEntry = {
+      id: normId || pId || null,
+      name: resolvedName,
+      balls: 0,
+      overs: '0.0',
+      maidens: 0,
+      runs: 0,
+      wickets: 0,
+      econ: '0.0',
+      dots: 0,
+      foursConceded: 0,
+      sixesConceded: 0,
+      style: 'Right-arm Medium',
+    };
+    bowlersMap[resolvedName] = newEntry;
+    return newEntry;
+  };
+
   // Track crease
   let currentStriker = matchMeta.openingStriker || matchMeta.currentStriker || null;
   let currentNonStriker = matchMeta.openingNonStriker || matchMeta.currentNonStriker || null;
@@ -131,11 +286,13 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
   let lastOverBowler = null;
 
   // Set opening batters to 'batting *'
-  if (currentStriker && battersMap[currentStriker]) {
-    battersMap[currentStriker].dismissal = 'batting *';
+  if (currentStriker) {
+    const sB = findBatterEntry(currentStriker);
+    if (sB) sB.dismissal = 'batting *';
   }
-  if (currentNonStriker && battersMap[currentNonStriker]) {
-    battersMap[currentNonStriker].dismissal = 'batting *';
+  if (currentNonStriker) {
+    const nsB = findBatterEntry(currentNonStriker);
+    if (nsB) nsB.dismissal = 'batting *';
   }
 
   // 2. Replay all delivery events sequentially
@@ -190,33 +347,16 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
 
     // --- Batter Accounting ---
     const strikerName = d.striker || currentStriker || 'Batter';
-    currentStriker = strikerName;
-    if (d.nonStriker) currentNonStriker = d.nonStriker;
-
-    if (!battersMap[strikerName]) {
-      battersMap[strikerName] = {
-        id: d.strikerId || null,
-        name: strikerName,
-        runs: 0,
-        balls: 0,
-        fours: 0,
-        sixes: 0,
-        dots: 0,
-        singles: 0,
-        doubles: 0,
-        triples: 0,
-        isNotOut: true,
-        dismissal: 'batting *',
-        strikeRate: '0.0',
-        battingOrder: Object.keys(battersMap).length + 1,
-      };
-    } else if (d.strikerId && !battersMap[strikerName].id) {
-      battersMap[strikerName].id = d.strikerId;
+    const strikerBatter = getOrCreateBatter(strikerName, d.strikerId);
+    currentStriker = strikerBatter.name;
+    if (d.nonStriker) {
+      const nonStrikerBatter = getOrCreateBatter(d.nonStriker, d.nonStrikerId);
+      currentNonStriker = nonStrikerBatter.name;
     }
 
     // Batter ball faced: counts on all deliveries EXCEPT wides and penalty
     if (extraType !== 'wide' && extraType !== 'penalty') {
-      battersMap[strikerName].balls += 1;
+      strikerBatter.balls += 1;
     }
 
     // Runs off bat
@@ -232,98 +372,50 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
       }
     }
 
-    battersMap[strikerName].runs += runsOffBat;
-    if (runsOffBat === 0 && extraType !== 'wide' && extraType !== 'penalty') battersMap[strikerName].dots += 1;
-    else if (runsOffBat === 1) battersMap[strikerName].singles += 1;
-    else if (runsOffBat === 2) battersMap[strikerName].doubles += 1;
-    else if (runsOffBat === 3) battersMap[strikerName].triples += 1;
-    else if (runsOffBat === 4) battersMap[strikerName].fours += 1;
-    else if (runsOffBat === 6) battersMap[strikerName].sixes += 1;
+    strikerBatter.runs += runsOffBat;
+    if (runsOffBat === 0 && extraType !== 'wide' && extraType !== 'penalty') strikerBatter.dots += 1;
+    else if (runsOffBat === 1) strikerBatter.singles += 1;
+    else if (runsOffBat === 2) strikerBatter.doubles += 1;
+    else if (runsOffBat === 3) strikerBatter.triples += 1;
+    else if (runsOffBat === 4) strikerBatter.fours += 1;
+    else if (runsOffBat === 6) strikerBatter.sixes += 1;
 
-    const bCount = battersMap[strikerName].balls;
-    battersMap[strikerName].strikeRate = bCount > 0 ? ((battersMap[strikerName].runs / bCount) * 100).toFixed(1) : '0.0';
+    const bCount = strikerBatter.balls;
+    strikerBatter.strikeRate = bCount > 0 ? ((strikerBatter.runs / bCount) * 100).toFixed(1) : '0.0';
 
     // Wicket handling on batter
     if (isWkt) {
       const dismissed = d.dismissedPlayerName || d.dismissedPlayer || strikerName;
-      if (!battersMap[dismissed]) {
-        battersMap[dismissed] = {
-          name: dismissed,
-          runs: 0,
-          balls: 0,
-          fours: 0,
-          sixes: 0,
-          dots: 0,
-          singles: 0,
-          doubles: 0,
-          triples: 0,
-          isNotOut: false,
-          dismissal: 'out',
-          strikeRate: '0.0',
-          battingOrder: Object.keys(battersMap).length + 1,
-        };
-      }
-      battersMap[dismissed].isNotOut = false;
-      battersMap[dismissed].dismissal = d.dismissalDesc || d.dismissalType || 'out';
+      const dismissedBatter = getOrCreateBatter(dismissed, d.dismissedPlayerId || (isSamePlayerOrAlias(dismissed, strikerName) ? d.strikerId : null));
+      dismissedBatter.isNotOut = false;
+      dismissedBatter.dismissal = d.dismissalDesc || d.dismissalType || 'out';
 
       const ovText = `${Math.floor(legalBalls / 6)}.${legalBalls % 6}`;
       fowList.push({
         wktNum: totalWickets,
         score: totalRuns,
         overs: ovText,
-        player: dismissed,
-        dismissal: battersMap[dismissed].dismissal,
+        player: dismissedBatter.name,
+        dismissal: dismissedBatter.dismissal,
       });
 
       if (d.incomingBatter) {
         const inc = typeof d.incomingBatter === 'string'
           ? d.incomingBatter.trim()
           : (d.incomingBatter?.name ? String(d.incomingBatter.name).trim() : '');
-        if (inc && !battersMap[inc]) {
-          battersMap[inc] = {
-            name: inc,
-            runs: 0,
-            balls: 0,
-            fours: 0,
-            sixes: 0,
-            dots: 0,
-            singles: 0,
-            doubles: 0,
-            triples: 0,
-            isNotOut: true,
-            dismissal: 'batting *',
-            strikeRate: '0.0',
-            battingOrder: Object.keys(battersMap).length + 1,
-          };
+        if (inc) {
+          getOrCreateBatter(inc, d.incomingBatterId || (typeof d.incomingBatter === 'object' ? d.incomingBatter.id : null));
         }
       }
     }
 
     // --- Bowler Accounting ---
     const bowlerName = d.bowler || currentBowler || 'Bowler';
-    currentBowler = bowlerName;
-
-    if (!bowlersMap[bowlerName]) {
-      bowlersMap[bowlerName] = {
-        id: d.bowlerId || null,
-        name: bowlerName,
-        balls: 0,
-        overs: '0.0',
-        maidens: 0,
-        runs: 0,
-        wickets: 0,
-        econ: '0.0',
-        dots: 0,
-        foursConceded: 0,
-        sixesConceded: 0,
-        style: 'Right-arm Medium',
-      };
-    } else if (d.bowlerId && !bowlersMap[bowlerName].id) {
-      bowlersMap[bowlerName].id = d.bowlerId;
-    }
+    const bowlerObj = getOrCreateBowler(bowlerName, d.bowlerId);
+    currentBowler = bowlerObj.name;
 
     if (isLegal) {
-      bowlersMap[bowlerName].balls += 1;
+      bowlerObj.balls += 1;
     }
 
     // Runs conceded by bowler: all added runs EXCEPT byes, leg-byes, and penalties!
@@ -331,34 +423,35 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     if (extraType !== 'bye' && extraType !== 'legBye' && extraType !== 'penalty') {
       runsConceded = addedRuns;
     }
-    bowlersMap[bowlerName].runs += runsConceded;
+    bowlerObj.runs += runsConceded;
 
     if (runsConceded === 0 && isLegal) {
-      bowlersMap[bowlerName].dots += 1;
+      bowlerObj.dots += 1;
     }
     if (runsOffBat === 4 || (runsConceded === 4 && runsOffBat === 0)) {
-      bowlersMap[bowlerName].foursConceded += 1;
+      bowlerObj.foursConceded += 1;
     }
     if (runsOffBat === 6 || (runsConceded === 6 && runsOffBat === 0)) {
-      bowlersMap[bowlerName].sixesConceded += 1;
+      bowlerObj.sixesConceded += 1;
     }
 
     // Bowler wickets: only credited for bowler dismissals (NOT run out, obstructing, retired)
     const isBowlerWkt = isWkt && d.dismissalType !== 'run_out' && d.dismissalType !== 'retired' && d.dismissalType !== 'obstructing';
     if (isBowlerWkt) {
-      bowlersMap[bowlerName].wickets += 1;
+      bowlerObj.wickets += 1;
     }
 
-    const bwBalls = bowlersMap[bowlerName].balls;
-    bowlersMap[bowlerName].overs = `${Math.floor(bwBalls / 6)}.${bwBalls % 6}`;
-    bowlersMap[bowlerName].econ = bwBalls > 0 ? ((bowlersMap[bowlerName].runs / bwBalls) * 6).toFixed(1) : '0.0';
+    const bwBalls = bowlerObj.balls;
+    bowlerObj.overs = `${Math.floor(bwBalls / 6)}.${bwBalls % 6}`;
+    bowlerObj.econ = bwBalls > 0 ? ((bowlerObj.runs / bwBalls) * 6).toFixed(1) : '0.0';
 
     // Track maidens
-    if (!bowlerOversTracker[bowlerName]) bowlerOversTracker[bowlerName] = [];
-    let curBwOver = bowlerOversTracker[bowlerName][bowlerOversTracker[bowlerName].length - 1];
+    const bTrackerKey = bowlerObj.name;
+    if (!bowlerOversTracker[bTrackerKey]) bowlerOversTracker[bTrackerKey] = [];
+    let curBwOver = bowlerOversTracker[bTrackerKey][bowlerOversTracker[bTrackerKey].length - 1];
     if (!curBwOver || curBwOver.isFinished) {
       curBwOver = { legalBalls: 0, runsConceded: 0, isFinished: false };
-      bowlerOversTracker[bowlerName].push(curBwOver);
+      bowlerOversTracker[bTrackerKey].push(curBwOver);
     }
     curBwOver.runsConceded += runsConceded;
     if (isLegal) {
@@ -379,7 +472,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
       const incoming = d.incomingBatter
         ? (typeof d.incomingBatter === 'string' ? (d.incomingBatter.trim() || null) : (d.incomingBatter?.name ? String(d.incomingBatter.name).trim() : null))
         : null;
-      if (outBatter === currentStriker) {
+      if (isSamePlayerOrAlias(outBatter, currentStriker)) {
         currentStriker = incoming || currentNonStriker;
       } else {
         currentNonStriker = incoming || currentStriker;
@@ -402,7 +495,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     }
 
     if (isOverEnd) {
-      lastOverBowler = bowlerName;
+      lastOverBowler = bowlerObj.name;
     }
   });
 
@@ -490,8 +583,8 @@ export function deriveMatchStateFromDeliveries(deliveries = [], matchMeta = {}) 
 
   const inn1Meta = {
     ...matchMeta,
-    battingSquad: toSafeSquad(matchMeta.team1Squad || matchMeta.innings1?.batting),
-    bowlingSquad: toSafeSquad(matchMeta.team2Squad || matchMeta.innings1?.bowling),
+    battingSquad: toSafeSquad(matchMeta.team1Squad || matchMeta.battingSquad || matchMeta.innings1?.batting),
+    bowlingSquad: toSafeSquad(matchMeta.team2Squad || matchMeta.bowlingSquad || matchMeta.innings1?.bowling),
     openingStriker: matchMeta.innings1OpeningStriker || matchMeta.openingStriker,
     openingNonStriker: matchMeta.innings1OpeningNonStriker || matchMeta.openingNonStriker,
     openingBowler: matchMeta.innings1OpeningBowler || matchMeta.openingBowler,

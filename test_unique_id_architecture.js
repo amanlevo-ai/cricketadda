@@ -202,6 +202,65 @@ assert.strictEqual(bowlerRecord.runs, 5, 'Bowler conceded 5 runs');
 
 console.log('  ✅ PASSED: Delivery logging preserves player IDs & scorecards retain IDs\n');
 
+// -----------------------------------------------------------------------------
+// TEST 5: Player Rename / Alias Replay Consolidation (Amanlevo -> Amandeep)
+// -----------------------------------------------------------------------------
+console.log('📋 TEST 5: Player Rename / Alias Replay Consolidation (Amanlevo -> Amandeep)...');
+
+const renameDeliveries = [
+  // 3 overs of Amanlevo batting
+  { striker: 'Amanlevo', strikerId: 'usr_9780425527', bowler: 'Javgga', addedRuns: 4, runsOffBat: 4, isLegalDelivery: true },
+  { striker: 'Amanlevo', strikerId: 'usr_9780425527', bowler: 'Javgga', addedRuns: 1, runsOffBat: 1, isLegalDelivery: true },
+  { striker: 'Amanlevo', strikerId: 'usr_9780425527', bowler: 'Javgga', addedRuns: 0, runsOffBat: 0, isLegalDelivery: true },
+  { striker: 'Amanlevo', strikerId: 'usr_9780425527', bowler: 'Javgga', addedRuns: 4, runsOffBat: 4, isLegalDelivery: true },
+  // Wicket falls for Amanlevo
+  {
+    striker: 'Amanlevo',
+    strikerId: 'usr_9780425527',
+    bowler: 'Javgga',
+    isWkt: true,
+    dismissedPlayerName: 'Amanlevo',
+    dismissalDesc: 'b Javgga',
+    addedRuns: 0,
+    runsOffBat: 0,
+    isLegalDelivery: true,
+    incomingBatter: 'Rahul',
+  },
+];
+
+// Squad has updated profile name 'Amandeep'
+const derivedRenamed = deriveMatchStateFromDeliveries(renameDeliveries, {
+  battingSquad: [
+    { id: 'usr_9780425527', name: 'Amandeep', role: 'BAT' },
+    { id: 'usr_darshan', name: 'Darshan singh', role: 'BAT' },
+    { id: 'usr_rahul', name: 'Rahul', role: 'BAT' },
+  ],
+  bowlingSquad: [{ id: 'usr_javgga', name: 'Javgga', role: 'BOWL' }],
+  openingStriker: 'Amandeep',
+  openingNonStriker: 'Darshan singh',
+  openingBowler: 'Javgga',
+});
+
+// 1. Should have exactly ONE record for Amandeep, and ZERO separate records for Amanlevo
+const amandeepRecords = derivedRenamed.innings1.batting.filter(b => b.name === 'Amandeep');
+const amanlevoRecords = derivedRenamed.innings1.batting.filter(b => b.name === 'Amanlevo');
+
+assert.strictEqual(amandeepRecords.length, 1, 'Exactly one scorecard entry for Amandeep');
+assert.strictEqual(amanlevoRecords.length, 0, 'Zero duplicate entries for Amanlevo');
+
+// 2. Amandeep must have the 9 runs, 5 balls, 2 fours, and dismissal 'b Javgga'
+assert.strictEqual(amandeepRecords[0].runs, 9, 'Amandeep credited with 9 runs');
+assert.strictEqual(amandeepRecords[0].balls, 5, 'Amandeep credited with 5 balls');
+assert.strictEqual(amandeepRecords[0].fours, 2, 'Amandeep credited with 2 fours');
+assert.strictEqual(amandeepRecords[0].dismissal, 'b Javgga', 'Amandeep marked as b Javgga');
+assert.strictEqual(amandeepRecords[0].isNotOut, false, 'Amandeep marked as out');
+
+// 3. Fall of Wickets must show canonical name 'Amandeep'
+assert.strictEqual(derivedRenamed.innings1.fallOfWickets.length, 1, '1 Fall of Wicket recorded');
+assert.strictEqual(derivedRenamed.innings1.fallOfWickets[0].player, 'Amandeep', 'FOW displays canonical name Amandeep instead of alias Amanlevo');
+
+console.log('  ✅ PASSED: Historical deliveries under old alias merge 100% seamlessly into canonical player!\n');
+
 console.log('================================================================');
 console.log('🎉 ALL UNIQUE ID ARCHITECTURE TESTS PASSED WITH 100% SUCCESS!');
 console.log('================================================================\n');

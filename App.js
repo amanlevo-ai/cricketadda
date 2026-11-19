@@ -8024,6 +8024,98 @@ function CricketAddaMain() {
         }
         return changed ? { ...cur, captain: cap, squad } : cur;
       });
+
+      // 6. Reconcile active match state & crease players
+      setMatch(prevMatch => {
+        if (!prevMatch) return prevMatch;
+        let mChanged = false;
+        let newSt = prevMatch.currentStriker;
+        let newNonSt = prevMatch.currentNonStriker;
+        let newBw = prevMatch.currentBowler;
+        if (newSt && isSameUserOrAlias(newSt, uName)) { newSt = uName; mChanged = true; }
+        if (newNonSt && isSameUserOrAlias(newNonSt, uName)) { newNonSt = uName; mChanged = true; }
+        if (newBw && isSameUserOrAlias(newBw, uName)) { newBw = uName; mChanged = true; }
+
+        const mapSquad = sq => {
+          if (!Array.isArray(sq)) return sq;
+          return sq.map(p => {
+            if (typeof p === 'string' && isSameUserOrAlias(p, uName)) { mChanged = true; return uName; }
+            if (p && typeof p === 'object' && isSameUserOrAlias(p.name, uName)) { mChanged = true; return { ...p, name: uName, avatarUri: userProfile.avatarUri || p.avatarUri }; }
+            return p;
+          });
+        };
+
+        const newT1Sq = mapSquad(prevMatch.team1Squad);
+        const newT2Sq = mapSquad(prevMatch.team2Squad);
+
+        if (!mChanged) return prevMatch;
+        return {
+          ...prevMatch,
+          currentStriker: newSt,
+          currentNonStriker: newNonSt,
+          currentBowler: newBw,
+          team1Squad: newT1Sq,
+          team2Squad: newT2Sq,
+        };
+      });
+
+      // 7. Reconcile liveBatters state (consolidate alias keys into canonical name)
+      setLiveBatters(prev => {
+        if (!prev || typeof prev !== 'object') return prev;
+        let bChanged = false;
+        const updated = {};
+        Object.keys(prev).forEach(k => {
+          if (isSameUserOrAlias(k, uName) && k !== uName) {
+            bChanged = true;
+            updated[uName] = { ...(prev[uName] || prev[k]), name: uName };
+          } else if (!updated[k]) {
+            updated[k] = prev[k];
+          }
+        });
+        return bChanged ? updated : prev;
+      });
+
+      // 8. Reconcile liveBowlerStats state
+      setLiveBowlerStats(prev => {
+        if (!prev || typeof prev !== 'object') return prev;
+        let bwChanged = false;
+        const updated = {};
+        Object.keys(prev).forEach(k => {
+          if (isSameUserOrAlias(k, uName) && k !== uName) {
+            bwChanged = true;
+            updated[uName] = { ...(prev[uName] || prev[k]), name: uName };
+          } else if (!updated[k]) {
+            updated[k] = prev[k];
+          }
+        });
+        return bwChanged ? updated : prev;
+      });
+
+      // 9. Reconcile active scoringHistory deliveries
+      setScoringHistory(prevHist => {
+        if (!Array.isArray(prevHist) || prevHist.length === 0) return prevHist;
+        let hChanged = false;
+        const updatedHist = prevHist.map(d => {
+          if (!d) return d;
+          let dChanged = false;
+          let st = d.striker;
+          let nonSt = d.nonStriker;
+          let bw = d.bowler;
+          let dP = d.dismissedPlayer;
+          let dPN = d.dismissedPlayerName;
+          if (st && isSameUserOrAlias(st, uName) && st !== uName) { st = uName; dChanged = true; }
+          if (nonSt && isSameUserOrAlias(nonSt, uName) && nonSt !== uName) { nonSt = uName; dChanged = true; }
+          if (bw && isSameUserOrAlias(bw, uName) && bw !== uName) { bw = uName; dChanged = true; }
+          if (dP && isSameUserOrAlias(dP, uName) && dP !== uName) { dP = uName; dChanged = true; }
+          if (dPN && isSameUserOrAlias(dPN, uName) && dPN !== uName) { dPN = uName; dChanged = true; }
+          if (dChanged) {
+            hChanged = true;
+            return { ...d, striker: st, nonStriker: nonSt, bowler: bw, dismissedPlayer: dP, dismissedPlayerName: dPN };
+          }
+          return d;
+        });
+        return hChanged ? updatedHist : prevHist;
+      });
     }
   }, [userProfile?.name, userProfile?.avatarUri]);
 
@@ -10327,9 +10419,14 @@ function CricketAddaMain() {
     if (!playerName) return null;
     const clean = String(playerName).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
     
-    // 1. Current user profile
+    // 1. Current user profile (with alias & unique ID resolution)
     const userClean = (userProfile?.name || authName || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
-    if (userClean && (clean === userClean || clean.includes(userClean) || userClean.includes(clean))) {
+    if (
+      (userClean && (clean === userClean || clean.includes(userClean) || userClean.includes(clean))) ||
+      (userProfile?.name && isSameUserOrAlias(clean, userProfile.name)) ||
+      (userProfile?.id && isSameUserOrAlias(clean, userProfile.id)) ||
+      isSameUserOrAlias(clean, 'usr_9780425527')
+    ) {
       if (userProfile?.avatarUri) return userProfile.avatarUri;
     }
 
@@ -15231,7 +15328,10 @@ function CricketAddaMain() {
           const wRuns = w.liveRuns !== undefined ? w.liveRuns : 0;
           const wBalls = w.liveBalls !== undefined ? w.liveBalls : 0;
           const wOv = `${Math.floor(wBalls / 6)}.${wBalls % 6} ov`;
-          const pName = w.dismissedPlayerName || w.striker || 'Batter';
+          const rawPName = w.dismissedPlayerName || w.striker || 'Batter';
+          const pName = (userProfile?.name && isSameUserOrAlias(rawPName, userProfile.name))
+            ? userProfile.name
+            : rawPName;
           return `${wNum}-${wRuns} (${pName}, ${wOv})`;
         }).join(', ');
       }
@@ -15288,6 +15388,22 @@ function CricketAddaMain() {
       if (b && b.name) battersMap.set(String(b.name).toLowerCase(), { ...b });
     });
 
+    // Helper to find matching batter key across aliases and IDs
+    const findExistingKey = (name, pId) => {
+      const clean = String(name || '').trim().toLowerCase();
+      if (battersMap.has(clean)) return clean;
+      for (const [k, v] of battersMap.entries()) {
+        if (
+          isSameUserOrAlias(k, clean) ||
+          isSameUserOrAlias(v?.id, pId || name) ||
+          isSameUserOrAlias(v?.name, name)
+        ) {
+          return k;
+        }
+      }
+      return clean;
+    };
+
     const activeMap = forcedBattersMap || liveBatters;
     const curSt = activeStriker || match.currentStriker || striker;
     const curNonSt = activeNonStriker || match.currentNonStriker || nonStriker;
@@ -15295,8 +15411,9 @@ function CricketAddaMain() {
     Object.keys(activeMap || {}).forEach(bName => {
       const liveB = activeMap[bName];
       if (!liveB) return;
-      const key = bName.trim().toLowerCase();
-      const existing = battersMap.get(key) || {
+      const matchedKey = findExistingKey(bName, liveB.id);
+      const existing = battersMap.get(matchedKey) || {
+        id: liveB.id || null,
         name: bName,
         dismissal: 'yet to bat',
         runs: 0,
@@ -15311,19 +15428,23 @@ function CricketAddaMain() {
         triples: 0,
       };
 
+      const resolvedName = (userProfile?.name && isSameUserOrAlias(bName, userProfile.name))
+        ? userProfile.name
+        : (existing.name || bName);
+
       const sr = (liveB.balls || 0) > 0 ? (((liveB.runs || 0) / liveB.balls) * 100).toFixed(2) : '-';
 
-      const isDismissed = dismissedMap.has(key) || (liveB.dismissal && liveB.dismissal !== 'batting *' && liveB.dismissal !== 'yet to bat');
+      const isDismissed = dismissedMap.has(matchedKey) || dismissedMap.has(bName.trim().toLowerCase()) || (liveB.dismissal && liveB.dismissal !== 'batting *' && liveB.dismissal !== 'yet to bat');
       const isCurrentlyBatting = !isForcedHistorical && !isDismissed && (
-        (curSt && bName.trim().toLowerCase() === curSt.trim().toLowerCase()) ||
-        (curNonSt && bName.trim().toLowerCase() === curNonSt.trim().toLowerCase())
+        (curSt && isSameUserOrAlias(bName, curSt)) ||
+        (curNonSt && isSameUserOrAlias(bName, curNonSt))
       );
 
       let finalDismissal = existing.dismissal;
       let finalIsNotOut = existing.isNotOut;
 
       if (isDismissed) {
-        finalDismissal = dismissedMap.get(key) || (liveB.dismissal !== 'batting *' ? liveB.dismissal : existing.dismissal) || 'b Bowler';
+        finalDismissal = dismissedMap.get(matchedKey) || dismissedMap.get(bName.trim().toLowerCase()) || (liveB.dismissal !== 'batting *' ? liveB.dismissal : existing.dismissal) || 'b Bowler';
         finalIsNotOut = false;
       } else if (isCurrentlyBatting) {
         finalDismissal = 'batting *';
@@ -15344,9 +15465,9 @@ function CricketAddaMain() {
         }
       }
 
-      battersMap.set(key, {
+      battersMap.set(matchedKey, {
         ...existing,
-        name: bName,
+        name: resolvedName,
         runs: liveB.runs || 0,
         balls: liveB.balls || 0,
         fours: liveB.fours || 0,
@@ -15684,8 +15805,9 @@ function CricketAddaMain() {
         currentStriker: isTargetActive ? (match.currentStriker || striker) : mLive?.currentStriker,
         currentNonStriker: isTargetActive ? (match.currentNonStriker || nonStriker) : mLive?.currentNonStriker,
         currentBowler: isTargetActive ? (match.currentBowler || bowler) : mLive?.currentBowler,
-        battingSquad: toSafeSquadList(baseInning.batting),
-        bowlingSquad: toSafeSquadList(baseInning.bowling),
+        battingSquad: toSafeSquadList(baseInning.batting?.length > 0 ? baseInning.batting : (inningNum === 1 ? targetMatch.team1Squad : targetMatch.team2Squad)),
+        bowlingSquad: toSafeSquadList(baseInning.bowling?.length > 0 ? baseInning.bowling : (inningNum === 1 ? targetMatch.team2Squad : targetMatch.team1Squad)),
+        canonicalPlayerNames: userProfile?.id ? { [userProfile.id]: userProfile.name || 'Amandeep', 'usr_9780425527': userProfile.name || 'Amandeep' } : { 'usr_9780425527': 'Amandeep' },
       });
       return {
         ...baseInning,
