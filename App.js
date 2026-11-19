@@ -8693,6 +8693,9 @@ function CricketAddaMain() {
         setScannedPlayerProfile(null);
         setUniversalQrScannerVisible(false);
         restoreLastTeamDetailIfAny();
+        if (qrScanPurpose === 'transfer_scorer') {
+          setScorerTransferModalVisible(true);
+        }
         return true;
       }
       if (qrDisplayModalVisible) {
@@ -36334,14 +36337,18 @@ function CricketAddaMain() {
                   paddingVertical: 7,
                   borderRadius: 9,
                   alignItems: 'center',
-                  backgroundColor: transferTab === 'qr' ? '#0284c7' : 'transparent',
+                  backgroundColor: 'transparent',
                 }}
-                onPress={() => setTransferTab('qr')}
+                onPress={() => {
+                  setScorerTransferModalVisible(false);
+                  openUniversalQrScanner('transfer_scorer');
+                }}
+                activeOpacity={0.7}
               >
                 <Text style={{
-                  color: transferTab === 'qr' ? '#ffffff' : '#94a3b8',
+                  color: '#38bdf8',
                   fontSize: 11.5,
-                  fontWeight: transferTab === 'qr' ? '900' : '600',
+                  fontWeight: '700',
                 }}>
                   ⛶ Scan QR
                 </Text>
@@ -37036,66 +37043,23 @@ function CricketAddaMain() {
                     </TouchableOpacity>
                   </View>
                 )}
-
-                {/* Helper / Info Card */}
-                {(transferPhoneInput || '').length < 10 && (
-                  <View style={{
-                    backgroundColor: '#0f172a',
-                    borderColor: '#1e293b',
-                    borderWidth: 1,
-                    borderRadius: 10,
-                    padding: 12,
-                    marginTop: 4,
-                  }}>
-                    <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: 'bold', marginBottom: 4 }}>
-                      💡 Quick Mobile Handover:
-                    </Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 11, lineHeight: 16 }}>
-                      Enter the 10-digit mobile number of any player or scorer. Their registered profile will appear automatically for 1-tap scoring delegation.
-                    </Text>
-                  </View>
-                )}
               </ScrollView>
             )}
 
             {/* TAB 3: SCAN QR CODE */}
             {transferTab === 'qr' && (
               <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 20 }}>
-                <View style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: 32,
-                  backgroundColor: '#1e1b4b',
-                  borderColor: '#6366f1',
-                  borderWidth: 2,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  marginBottom: 14,
-                }}>
-                  <Text style={{ fontSize: 28 }}>📷</Text>
-                </View>
-                <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: 'bold', marginBottom: 6, textAlign: 'center' }}>
-                  Scan Player / Scorer QR Code
-                </Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11.5, textAlign: 'center', lineHeight: 17, marginBottom: 18, paddingHorizontal: 20 }}>
-                  Point your device camera at the recipient's Player Passport QR code or Scorer Pass to authenticate and transfer scoring rights instantly.
-                </Text>
                 <TouchableOpacity
                   style={{
-                    backgroundColor: '#4f46e5',
-                    borderColor: '#818cf8',
-                    borderWidth: 1,
-                    borderRadius: 10,
+                    backgroundColor: '#0284c7',
+                    borderColor: '#38bdf8',
+                    borderWidth: 1.5,
+                    borderRadius: 12,
                     paddingVertical: 12,
                     paddingHorizontal: 24,
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 8,
-                    shadowColor: '#4f46e5',
-                    shadowOffset: { width: 0, height: 3 },
-                    shadowOpacity: 0.3,
-                    shadowRadius: 6,
-                    elevation: 4,
                   }}
                   activeOpacity={0.8}
                   onPress={() => {
@@ -37271,6 +37235,9 @@ function CricketAddaMain() {
           setScannedPlayerProfile(null);
           setUniversalQrScannerVisible(false);
           restoreLastTeamDetailIfAny();
+          if (qrScanPurpose === 'transfer_scorer') {
+            setScorerTransferModalVisible(true);
+          }
         }}
       >
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
@@ -37308,6 +37275,9 @@ function CricketAddaMain() {
                   setScannedPlayerProfile(null);
                   setUniversalQrScannerVisible(false);
                   restoreLastTeamDetailIfAny();
+                  if (qrScanPurpose === 'transfer_scorer') {
+                    setScorerTransferModalVisible(true);
+                  }
                 }}
               >
                 <Text style={styles.wizardCloseBtnText}>✕</Text>
@@ -37501,6 +37471,9 @@ function CricketAddaMain() {
                     setScannedPlayerProfile(null);
                     setUniversalQrScannerVisible(false);
                     restoreLastTeamDetailIfAny();
+                    if (qrScanPurpose === 'transfer_scorer') {
+                      setScorerTransferModalVisible(true);
+                    }
                   }}
                 >
                   <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: 'bold' }}>Cancel Scanner</Text>
