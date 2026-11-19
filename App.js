@@ -19275,7 +19275,7 @@ function CricketAddaMain() {
         <ScrollView
           style={styles.mainContentNoPad}
           scrollEnabled={true}
-          contentContainerStyle={{ paddingBottom: bottomInset + 85 + miniBarExtraOffset }}
+          contentContainerStyle={{ paddingBottom: bottomInset + 35 + miniBarExtraOffset }}
           showsVerticalScrollIndicator={false}
         >
           {/* Top Section Header ("Player Stats" - Matching Settings style: Centered, transparent, clean) */}
@@ -19536,38 +19536,38 @@ function CricketAddaMain() {
                   borderColor: '#38bdf8',
                   borderWidth: 1.3,
                   borderRadius: 12,
-                  paddingVertical: 10,
+                  paddingVertical: 5.5,
                   paddingHorizontal: 8,
-                  marginBottom: 7,
+                  marginBottom: 5,
                   flexDirection: 'row',
                   alignItems: 'center',
                 }}>
                   <View style={{ flex: 1.35, paddingRight: 6, borderRightWidth: 1, borderRightColor: dividerCol }}>
-                    <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#bae6fd', fontSize: 11, fontWeight: '700', textAlign: 'center' }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0369a1' : '#bae6fd', fontSize: 10.5, fontWeight: '700', textAlign: 'center' }}>
                       Total Runs
                     </Text>
-                    <Text style={{ color: txtPrimary, fontSize: 24, fontWeight: '900', textAlign: 'center', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
+                    <Text style={{ color: txtPrimary, fontSize: 20, fontWeight: '900', textAlign: 'center', marginTop: 1 }} numberOfLines={1} adjustsFontSizeToFit>
                       {fmtStat(batStats.runs)}
                     </Text>
                   </View>
 
                   <View style={{ flex: 1, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: dividerCol, alignItems: 'center' }}>
-                    <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700', textAlign: 'center' }}>Balls Faced</Text>
-                    <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{fmtStat(batStats.ballsFaced)}</Text>
+                    <Text style={{ color: txtMuted, fontSize: 9.5, fontWeight: '700', textAlign: 'center' }}>Balls Faced</Text>
+                    <Text style={{ color: txtPrimary, fontSize: 14.5, fontWeight: '900', marginTop: 1.5 }}>{fmtStat(batStats.ballsFaced)}</Text>
                   </View>
 
                   <View style={{ flex: 1, paddingHorizontal: 4, borderRightWidth: 1, borderRightColor: dividerCol, alignItems: 'center' }}>
-                    <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700', textAlign: 'center' }}>Strike Rate</Text>
-                    <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{batStats.sr || '0.0'}</Text>
+                    <Text style={{ color: txtMuted, fontSize: 9.5, fontWeight: '700', textAlign: 'center' }}>Strike Rate</Text>
+                    <Text style={{ color: txtPrimary, fontSize: 14.5, fontWeight: '900', marginTop: 1.5 }}>{batStats.sr || '0.0'}</Text>
                   </View>
 
                   <View style={{ flex: 1, paddingLeft: 4, alignItems: 'center' }}>
-                    <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '700', textAlign: 'center' }}>Average</Text>
-                    <Text style={{ color: txtPrimary, fontSize: 15.5, fontWeight: '900', marginTop: 3 }}>{batStats.avg || '0.00'}</Text>
+                    <Text style={{ color: txtMuted, fontSize: 9.5, fontWeight: '700', textAlign: 'center' }}>Average</Text>
+                    <Text style={{ color: txtPrimary, fontSize: 14.5, fontWeight: '900', marginTop: 1.5 }}>{batStats.avg || '0.00'}</Text>
                   </View>
                 </View>
 
-                <View style={{ flexDirection: 'row', gap: 5, marginBottom: 7 }}>
+                <View style={{ flexDirection: 'row', gap: 5, marginBottom: 5 }}>
                   {[
                     { label: '4s', val: fmtStat(batStats.fours) },
                     { label: '6s', val: fmtStat(batStats.sixes) },
@@ -19583,14 +19583,14 @@ function CricketAddaMain() {
                         borderColor: cardBorder,
                         borderWidth: 1,
                         borderRadius: 10,
-                        paddingVertical: 7,
+                        paddingVertical: 5,
                         paddingHorizontal: 3,
                         alignItems: 'center',
                         justifyContent: 'center',
                       }}
                     >
-                      <Text style={{ color: txtMuted, fontSize: 10, fontWeight: '600' }} numberOfLines={1}>{item.label}</Text>
-                      <Text style={{ color: txtPrimary, fontSize: 15, fontWeight: '900', marginTop: 2 }} numberOfLines={1}>{item.val}</Text>
+                      <Text style={{ color: txtMuted, fontSize: 9.5, fontWeight: '600' }} numberOfLines={1}>{item.label}</Text>
+                      <Text style={{ color: txtPrimary, fontSize: 14, fontWeight: '900', marginTop: 1 }} numberOfLines={1}>{item.val}</Text>
                     </View>
                   ))}
                 </View>
@@ -19603,7 +19603,7 @@ function CricketAddaMain() {
                     borderWidth: 1,
                     borderRadius: 12,
                     paddingHorizontal: 10,
-                    paddingVertical: 5,
+                    paddingVertical: 4,
                   }}>
                     {[
                       { label: 'Highest Score', val: batStats.highScore || '0' },
@@ -19620,7 +19620,7 @@ function CricketAddaMain() {
                           flexDirection: 'row',
                           alignItems: 'center',
                           justifyContent: 'space-between',
-                          paddingVertical: 6.5,
+                          paddingVertical: 4.5,
                           borderBottomWidth: r.last ? 0 : 0.7,
                           borderBottomColor: dividerCol,
                         }}
