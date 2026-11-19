@@ -8694,7 +8694,7 @@ function CricketAddaMain() {
         setUniversalQrScannerVisible(false);
         restoreLastTeamDetailIfAny();
         if (qrScanPurpose === 'transfer_scorer') {
-          setScorerTransferModalVisible(true);
+          setTimeout(() => setScorerTransferModalVisible(true), 50);
         }
         return true;
       }
@@ -27059,7 +27059,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* MODAL 1: BOWLER OVER-BY-OVER & BOWLER WAGON WHEEL MODAL WITH PHOTO */}
       {/* ========================================================================= */}
-      <Modal visible={bowlerModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={bowlerModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), padding: 8, maxHeight: safeModalCardMaxHeight }]}>
             {selectedBowlerDetails && (
@@ -27356,7 +27356,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 3: BATTER DETAILED RUNS & WAGON WHEEL MODAL WITH PHOTO */}
-      <Modal visible={batterModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={batterModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), padding: 8, maxHeight: safeModalCardMaxHeight }]}>
             {selectedBatterDetails && (
@@ -27518,7 +27518,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 4: INTERACTIVE 8-SECTOR WAGON WHEEL POPUP FOR SCORER */}
-      <Modal visible={wheelModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={wheelModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 8, paddingBottom: bottomInset + 8 }]}>
           <View style={{
             width: Math.min(width - 16, 440),
@@ -27797,7 +27797,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 5: ENHANCED INTERACTIVE WICKET DISMISSAL MODAL */}
-      <Modal visible={wicketModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={wicketModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -28062,7 +28062,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 5.5: RECORD DROPPED CATCH MODAL */}
-      <Modal visible={dropCatchModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={dropCatchModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -28726,7 +28726,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 5.55: LIVE BALL-BY-BALL COMMENTARY OVERLAY MODAL */}
-      <Modal visible={commentaryModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={commentaryModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <View style={styles.photoPickerHeader}>
@@ -28855,7 +28855,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 5.56: NEW CUSTOM TEAM & 20-PLAYER SQUAD BUILDER MODAL (MAX 20 PLAYERS) */}
-      <Modal visible={newTeamModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={newTeamModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), height: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             {(() => {
@@ -29771,7 +29771,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* MODAL: INNINGS START OPENERS & OPENING BOWLER SELECTION */}
       {/* ========================================================================= */}
-      <Modal visible={inningStartModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={inningStartModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <View style={styles.photoPickerHeader}>
@@ -30011,7 +30011,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 5.8: CHANGE BOWLER & END OF OVER MODAL */}
-      <Modal visible={changeBowlerModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={changeBowlerModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -30501,7 +30501,7 @@ function CricketAddaMain() {
       <Modal
         visible={liveCommentaryModalVisible}
         transparent
-        animationType="slide"
+        animationType="fade"
         statusBarTranslucent={true}
         onRequestClose={() => setLiveCommentaryModalVisible(false)}
       >
@@ -30937,7 +30937,9 @@ function CricketAddaMain() {
                 <TouchableOpacity
                   onPress={() => {
                     setScorerActionsModalVisible(false);
-                    setScorerTransferModalVisible(true);
+                    setTimeout(() => {
+                      setScorerTransferModalVisible(true);
+                    }, 50);
                   }}
                   style={{
                     flexDirection: 'row',
@@ -30963,7 +30965,9 @@ function CricketAddaMain() {
                 <TouchableOpacity
                   onPress={() => {
                     setScorerActionsModalVisible(false);
-                    setCancelMatchModalVisible(true);
+                    setTimeout(() => {
+                      setCancelMatchModalVisible(true);
+                    }, 50);
                   }}
                   style={{
                     flexDirection: 'row',
@@ -31025,7 +31029,7 @@ function CricketAddaMain() {
       <Modal
         visible={dlsModalVisible}
         transparent
-        animationType="slide"
+        animationType="fade"
         statusBarTranslucent={true}
         onRequestClose={() => setDlsModalVisible(false)}
       >
@@ -31496,7 +31500,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 5.9: MATCH COMPLETED CELEBRATION MODAL */}
-      <Modal visible={matchCompletedModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={matchCompletedModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, { width: Math.min(width - 16, 420), maxHeight: safeModalCardMaxHeight, padding: 18, backgroundColor: '#0c4a6e', borderColor: '#38bdf8', borderWidth: 2 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -31834,7 +31838,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 5.95: CANCEL / ABANDON MATCH MODAL WITH REASONS */}
-      <Modal visible={cancelMatchModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={cancelMatchModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, { width: Math.min(width - 16, 420), maxHeight: Math.min(safeModalCardMaxHeight, 520), padding: 18, backgroundColor: '#090d16', borderColor: '#ef4444', borderWidth: 2 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -32072,7 +32076,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 5.96: APP & MATCH SCORER SETTINGS MODAL */}
-      <Modal visible={settingsModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={settingsModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, { width: Math.min(width - 16, 420), maxHeight: safeModalCardMaxHeight, padding: 18, backgroundColor: currentTheme.isLight ? '#ffffff' : '#090d16', borderColor: currentTheme.isLight ? '#cbd5e1' : '#38bdf8', borderWidth: 2 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -35500,7 +35504,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* TEAM PICKER MODAL (REGISTERED APP TEAMS ONLY) */}
-      <Modal visible={teamPickerModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={teamPickerModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.teamPickerModalCard, { backgroundColor: currentTheme.cardBg, borderColor: currentTheme.cardBorder, maxHeight: Math.min(safeModalCardMaxHeight, 620) }]}>
             <View style={styles.teamPickerHeaderRow}>
@@ -35617,7 +35621,7 @@ function CricketAddaMain() {
       <Modal
         visible={Boolean(guestModalVisible && !selectedTeamDetail)}
         transparent
-        animationType="none"
+        animationType="fade"
         statusBarTranslucent={true}
         onRequestClose={() => closeUnifiedAddPlayerModal()}
       >
@@ -35841,7 +35845,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* CAPTAIN CONTROL CENTER: EDIT TEAM NAME, FLAG, LOGO & SQUAD ROSTER          */}
       {/* ========================================================================= */}
-      <Modal visible={captainTeamModalVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setCaptainTeamModalVisible(false)}>
+      <Modal visible={captainTeamModalVisible} transparent animationType="fade" statusBarTranslucent={true} onRequestClose={() => setCaptainTeamModalVisible(false)}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={{
             width: Math.min(width - 24, 430),
@@ -36342,7 +36346,9 @@ function CricketAddaMain() {
                 }}
                 onPress={() => {
                   setScorerTransferModalVisible(false);
-                  openUniversalQrScanner('transfer_scorer');
+                  setTimeout(() => {
+                    openUniversalQrScanner('transfer_scorer');
+                  }, 50);
                 }}
                 activeOpacity={0.7}
               >
@@ -37247,14 +37253,14 @@ function CricketAddaMain() {
       <Modal
         visible={universalQrScannerVisible}
         transparent
-        animationType="none"
+        animationType="fade"
         statusBarTranslucent={true}
         onRequestClose={() => {
           setScannedPlayerProfile(null);
           setUniversalQrScannerVisible(false);
           restoreLastTeamDetailIfAny();
           if (qrScanPurpose === 'transfer_scorer') {
-            setScorerTransferModalVisible(true);
+            setTimeout(() => setScorerTransferModalVisible(true), 50);
           }
         }}
       >
@@ -37289,7 +37295,7 @@ function CricketAddaMain() {
                   setUniversalQrScannerVisible(false);
                   restoreLastTeamDetailIfAny();
                   if (qrScanPurpose === 'transfer_scorer') {
-                    setScorerTransferModalVisible(true);
+                    setTimeout(() => setScorerTransferModalVisible(true), 50);
                   }
                 }}
               >
@@ -37525,7 +37531,7 @@ function CricketAddaMain() {
                     setUniversalQrScannerVisible(false);
                     restoreLastTeamDetailIfAny();
                     if (qrScanPurpose === 'transfer_scorer') {
-                      setScorerTransferModalVisible(true);
+                      setTimeout(() => setScorerTransferModalVisible(true), 50);
                     }
                   }}
                 >
@@ -37538,7 +37544,7 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL: ADD PLAYER TO CREATED TEAM MODAL */}
-      <Modal visible={addPlayerModalVisible} transparent animationType="slide" statusBarTranslucent={true}>
+      <Modal visible={addPlayerModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), maxHeight: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             <ScrollView showsVerticalScrollIndicator={false}>
@@ -38216,7 +38222,7 @@ function CricketAddaMain() {
         </View>
       </Modal>
 
-      <Modal visible={aboutModalVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setAboutModalVisible(false)}>
+      <Modal visible={aboutModalVisible} transparent animationType="fade" statusBarTranslucent={true} onRequestClose={() => setAboutModalVisible(false)}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={{
             backgroundColor: currentTheme.isLight ? '#ffffff' : '#0a101d',
@@ -38495,7 +38501,7 @@ function CricketAddaMain() {
       <Modal
         visible={themeModalVisible}
         transparent
-        animationType="slide"
+        animationType="fade"
         statusBarTranslucent={true}
         onRequestClose={() => setThemeModalVisible(false)}
       >
