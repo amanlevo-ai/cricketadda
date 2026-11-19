@@ -319,6 +319,15 @@ const INITIAL_REGISTERED_PLAYERS = [
   { id: 'p_26', name: 'Dinesh Karthik', phone: '9876500026', role: 'WK', battingStyle: 'Right-hand Bat', bowlingStyle: 'Right-arm Offbreak', jersey: '#21', isCaptain: false, isViceCaptain: false, isWk: true, avatarUri: null },
 ];
 
+// Global helper to get 2-letter uppercase initials for any player name
+const getInitials = n => {
+  if (!n) return '🏏';
+  const clean = String(n).replace(/\s*\([^)]*\)/g, '').trim();
+  const parts = clean.split(' ').filter(Boolean);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+  return clean.slice(0, 2).toUpperCase();
+};
+
 // Reusable Player Avatar Component with Custom Image & Fallback support
 function PlayerAvatar({ name, customUri = null, size = 34, borderColor = '#10b981', style = {} }) {
   const [imgError, setImgError] = useState(false);
@@ -328,13 +337,6 @@ function PlayerAvatar({ name, customUri = null, size = 34, borderColor = '#10b98
   useEffect(() => {
     setImgError(false);
   }, [avatarUrl, customUri]);
-
-  const getInitials = n => {
-    if (!n) return '🏏';
-    const parts = n.split(' ');
-    if (parts.length >= 2) return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
-    return parts[0].slice(0, 2).toUpperCase();
-  };
 
   if (!avatarUrl || imgError) {
     return (
