@@ -11650,7 +11650,8 @@ function CricketAddaMain() {
     dismissalTypeVal = null,
     dismissedPlayerName = null,
     wicketFielderName = null,
-    overthrowRuns = 0
+    overthrowRuns = 0,
+    overRuns = null
   ) => {
     const isLegal = extraType !== 'wide' && extraType !== 'noBall';
     const effectiveBalls = currentBalls + (isLegal ? 1 : 0);
@@ -11725,11 +11726,15 @@ function CricketAddaMain() {
 
     if (isOverEnd) {
       const overNum = Math.floor((currentBalls + 1) / 6);
+      const runsText = typeof overRuns === 'number'
+        ? ` (${overRuns} ${overRuns === 1 ? 'run' : 'runs'})`
+        : '';
       const overEndEntry = {
         id: `comm_over_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
         isOverEnd: true,
         overNum,
-        overSummary: `End of Over ${overNum} • Match Score: ${nextScore.runs}/${nextScore.wickets}`,
+        overRuns,
+        overSummary: `End of Over ${overNum}${runsText} • Match Score: ${nextScore.runs}/${nextScore.wickets}`,
       };
       return [overEndEntry, newBallEntry];
     }
@@ -12136,6 +12141,22 @@ function CricketAddaMain() {
     const dismissedNameVal = isWkt ? (dismissedPlayerName || (outBatter === 'striker' ? striker : nonStriker)) : null;
     const finalFielderVal = isWkt ? (wicketFielderName || (customWicketFielder && customWicketFielder.trim()) || wicketFielder || 'the fielder') : null;
 
+    let thisOverRuns = null;
+    if (isOverEnd) {
+      thisOverRuns = 0;
+      let legalCount = 0;
+      for (let i = nextHistory.length - 1; i >= 0; i--) {
+        const d = nextHistory[i];
+        thisOverRuns += Number(d.runs ?? d.addedRuns ?? 0);
+        const extra = d.extraType;
+        const isL = d.isLegalDelivery !== false && extra !== 'wide' && extra !== 'noBall' && extra !== 'penalty';
+        if (isL) {
+          legalCount++;
+          if (legalCount === 6) break;
+        }
+      }
+    }
+
     const nextScore = { runs: liveRuns + addedRuns, wickets: liveWickets + (isWkt ? 1 : 0) };
     const newCommEntries = generateBallCommentary(
       runs,
@@ -12151,7 +12172,8 @@ function CricketAddaMain() {
       actualDismissalVal,
       dismissedNameVal,
       finalFielderVal,
-      otRuns
+      otRuns,
+      isOverEnd ? thisOverRuns : null
     );
     const updatedCommentaryList = [...newCommEntries, ...liveCommentaryList];
     setLiveCommentaryList(updatedCommentaryList);
@@ -14605,6 +14627,7 @@ function CricketAddaMain() {
     let legalBallsCount = 0;
     let runningRuns = 0;
     let runningWkts = 0;
+    let currentOverRuns = 0;
     const forwardList = [];
 
     deliveries.forEach((d, i) => {
@@ -14614,6 +14637,7 @@ function CricketAddaMain() {
       const isLegal = d.isLegalDelivery !== false && extra !== 'wide' && extra !== 'noBall' && extra !== 'penalty';
 
       runningRuns += runs;
+      currentOverRuns += runs;
       if (isWkt) runningWkts += 1;
 
       const completedOvers = Math.floor(legalBallsCount / 6);
@@ -14683,12 +14707,15 @@ function CricketAddaMain() {
       // Insert clean over-end milestone after 6 legal deliveries
       if (isLegal && legalBallsCount % 6 === 0) {
         const overNum = legalBallsCount / 6;
+        const runsLabel = `${currentOverRuns} ${currentOverRuns === 1 ? 'run' : 'runs'}`;
         forwardList.push({
           id: `over_end_${overNum}_${i}`,
           isOverEnd: true,
           overNum,
-          overSummary: `End of Over ${overNum} • ${runningRuns}/${runningWkts}`,
+          overRuns: currentOverRuns,
+          overSummary: `End of Over ${overNum} (${runsLabel}) • ${runningRuns}/${runningWkts}`,
         });
+        currentOverRuns = 0;
       }
     });
 
@@ -24660,7 +24687,7 @@ function CricketAddaMain() {
                                 >
                                   <Text style={{ fontSize: 12 }}>🏁</Text>
                                   <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '800' }}>
-                                    {item.overSummary || `End of Over ${item.overNum}`}
+                                    {item.overSummary || `End of Over ${item.overNum}${typeof item.overRuns === 'number' ? ` (${item.overRuns} ${item.overRuns === 1 ? 'run' : 'runs'})` : ''}`}
                                   </Text>
                                 </View>
                               );
@@ -30602,7 +30629,7 @@ function CricketAddaMain() {
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                           <Text style={{ fontSize: 12 }}>{isStart ? '🚀' : '🏁'}</Text>
                           <Text style={{ color: isStart ? '#c7d2fe' : '#38bdf8', fontSize: 12, fontWeight: '900' }}>
-                            {item.overSummary || item.headerTitle || `OVER ${item.overNum} COMPLETED`}
+                            {item.overSummary || item.headerTitle || `OVER ${item.overNum} COMPLETED${typeof item.overRuns === 'number' ? ` (${item.overRuns} ${item.overRuns === 1 ? 'run' : 'runs'})` : ''}`}
                           </Text>
                         </View>
                       </View>
