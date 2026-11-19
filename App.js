@@ -36190,7 +36190,7 @@ function CricketAddaMain() {
       {/* ========================================================================= */}
       {/* 1. SCORER RIGHTS DELEGATION & TRANSFER MODAL (RULE 1, 2, 3)               */}
       {/* ========================================================================= */}
-      <Modal visible={scorerTransferModalVisible} transparent animationType="slide" statusBarTranslucent={true} onRequestClose={() => setScorerTransferModalVisible(false)}>
+      <Modal visible={scorerTransferModalVisible} transparent animationType="fade" statusBarTranslucent={true} onRequestClose={() => setScorerTransferModalVisible(false)}>
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.teamPickerModalCard, {
             height: '88%',
@@ -37247,7 +37247,7 @@ function CricketAddaMain() {
       <Modal
         visible={universalQrScannerVisible}
         transparent
-        animationType="slide"
+        animationType="none"
         statusBarTranslucent={true}
         onRequestClose={() => {
           setScannedPlayerProfile(null);
