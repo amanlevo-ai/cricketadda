@@ -11537,6 +11537,8 @@ function CricketAddaMain() {
 
   const formatSingleLineCommentary = ({
     runs = 0,
+    totalRuns = null,
+    physicalRuns = null,
     extraType = null,
     isWkt = false,
     striker = '',
@@ -11552,19 +11554,23 @@ function CricketAddaMain() {
 
     // 1. Overthrow extras
     if (ot > 0) {
+      const tot = totalRuns !== null
+        ? Number(totalRuns)
+        : (runs >= ot ? Number(runs) : Number(runs) + ot);
+
       if (extraType === 'wide') {
-        return `WIDE + ${runs + ot} runs, overthrow extras`;
+        return `WIDE + ${tot} runs, overthrow extras`;
       }
       if (extraType === 'noBall') {
-        return `NO BALL + ${runs + ot} runs${shotArea ? `, hit to ${shotArea}` : ''} (Free Hit)`;
+        return `NO BALL + ${tot} runs${shotArea ? `, hit to ${shotArea}` : ''} (Free Hit)`;
       }
       if (extraType === 'bye') {
-        return `${runs + ot} byes, including overthrows`;
+        return `${tot} byes, including overthrows`;
       }
       if (extraType === 'legBye') {
-        return `${runs + ot} leg byes, including overthrows`;
+        return `${tot} leg byes, including overthrows`;
       }
-      return `${runs + ot} runs, including ${ot} overthrow runs${shotArea ? ` to ${shotArea}` : ''}`;
+      return `${tot} runs, including ${ot} overthrow runs${shotArea ? ` to ${shotArea}` : ''}`;
     }
 
     // 2. Wickets
@@ -11698,7 +11704,9 @@ function CricketAddaMain() {
     }
 
     const text = formatSingleLineCommentary({
-      runs,
+      runs: totalDeliveryRuns,
+      totalRuns: totalDeliveryRuns,
+      physicalRuns: runs,
       extraType,
       isWkt,
       striker: currentStriker,
@@ -14675,6 +14683,8 @@ function CricketAddaMain() {
 
       const singleLineText = formatSingleLineCommentary({
         runs,
+        totalRuns: runs,
+        physicalRuns: d.runsOffBat !== undefined ? Number(d.runsOffBat) : Math.max(0, runs - Number(d.overthrowRuns || 0)),
         extraType: extra,
         isWkt,
         striker: d.striker || d.batter,
