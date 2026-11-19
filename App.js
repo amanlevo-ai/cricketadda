@@ -36204,29 +36204,11 @@ function CricketAddaMain() {
             shadowRadius: 12,
             elevation: 10,
           }]}>
-            {/* Header */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                <View style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: 10,
-                  backgroundColor: '#0284c7',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  shadowColor: '#0284c7',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.5,
-                  shadowRadius: 5,
-                }}>
-                  <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900' }}>⇄</Text>
-                </View>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900', letterSpacing: 0.3 }}>
-                    Transfer Scoring
-                  </Text>
-                </View>
-              </View>
+            {/* Header (Clean title without icon or subtitle line) */}
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <Text style={{ color: '#ffffff', fontSize: 19, fontWeight: '900', letterSpacing: 0.3 }}>
+                Transfer Scoring
+              </Text>
               <TouchableOpacity
                 style={{
                   width: 32,
@@ -36251,79 +36233,52 @@ function CricketAddaMain() {
                 <Text style={{ color: '#93c5fd', fontSize: 13, fontWeight: 'bold' }}>✕</Text>
               </TouchableOpacity>
             </View>
-            <Text style={{ color: '#94a3b8', fontSize: 11, marginBottom: 10 }}>
-              Transfer live scoring access to a registered user, player, or squad.
-            </Text>
 
-            {/* Current Active Scorer Card (Pinned at Top) */}
-            <View style={{
-              backgroundColor: '#09142b',
-              borderColor: '#10b981',
-              borderWidth: 1.5,
-              borderRadius: 14,
-              padding: 9,
-              marginBottom: 10,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              shadowColor: '#10b981',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.2,
-              shadowRadius: 6,
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-                {/* Glowing double-ring avatar with OS / player initials */}
+            {/* Current Active Scorer Card (No bat icon, no active badge, no phone number) */}
+            {(() => {
+              const currentScorerRawName = activeScorer.name || 'Official Scorer';
+              const cleanCurrentScorer = (currentScorerRawName.toLowerCase() === 'amanlevo' || isSameUserOrAlias(currentScorerRawName, userProfile?.name))
+                ? (userProfile?.name || 'Amandeep')
+                : currentScorerRawName;
+
+              return (
                 <View style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 22,
-                  borderWidth: 2,
-                  borderColor: '#38bdf8',
-                  padding: 2,
+                  backgroundColor: '#09142b',
+                  borderColor: '#10b981',
+                  borderWidth: 1.5,
+                  borderRadius: 14,
+                  padding: 10,
+                  marginBottom: 10,
+                  flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: 'rgba(56, 189, 248, 0.12)',
+                  shadowColor: '#10b981',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.2,
+                  shadowRadius: 6,
                 }}>
-                  <View style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 18,
-                    backgroundColor: '#0284c7',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}>
-                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>
-                      {getInitials(activeScorer.name || 'Official Scorer')}
-                    </Text>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
+                    <PlayerAvatar
+                      name={cleanCurrentScorer}
+                      size={42}
+                      customUri={activeScorer.avatar}
+                      borderColor="#38bdf8"
+                    />
+
+                    <View style={{ flex: 1 }}>
+                      <Text style={{ color: '#38bdf8', fontSize: 9.5, fontWeight: '900', letterSpacing: 0.8 }}>
+                        CURRENT OFFICIAL SCORER
+                      </Text>
+                      <Text style={{ color: '#ffffff', fontSize: 14.5, fontWeight: 'bold' }} numberOfLines={1}>
+                        {cleanCurrentScorer}
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 10.5 }} numberOfLines={1}>
+                        {activeScorer.team || activeScorer.role || 'Match Scorer'}
+                      </Text>
+                    </View>
                   </View>
                 </View>
-
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#38bdf8', fontSize: 9.5, fontWeight: '900', letterSpacing: 0.8 }}>
-                    CURRENT OFFICIAL SCORER
-                  </Text>
-                  <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: 'bold' }} numberOfLines={1}>
-                    🏏 {activeScorer.name || 'Official Scorer'}
-                  </Text>
-                  <Text style={{ color: '#94a3b8', fontSize: 10.5 }} numberOfLines={1}>
-                    {activeScorer.team || activeScorer.role || 'Match Scorer'}{activeScorer.phone ? ` • 📞 ${activeScorer.phone}` : ''}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={{
-                backgroundColor: '#10b981',
-                paddingHorizontal: 12,
-                paddingVertical: 5,
-                borderRadius: 12,
-                shadowColor: '#10b981',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.4,
-                shadowRadius: 4,
-              }}>
-                <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }}>ACTIVE ✓</Text>
-              </View>
-            </View>
+              );
+            })()}
 
             {/* Segmented Tab Bar */}
             <View style={{
@@ -36393,27 +36348,30 @@ function CricketAddaMain() {
               </TouchableOpacity>
             </View>
 
-            {/* TAB 1: ELIGIBLE USERS & MATCH SQUADS (DEFAULT) */}
+            {/* TAB 1: ELIGIBLE REGISTERED USERS IN MATCH SQUADS (DEFAULT) */}
             {transferTab === 'users' && (
               <View style={{ flex: 1 }}>
-                {/* Search Bar */}
+                {/* Search Bar: Increased Height & Vertical Centering */}
                 <View style={{
                   flexDirection: 'row',
                   alignItems: 'center',
                   backgroundColor: '#0c1836',
                   borderColor: '#1e3a8a',
-                  borderWidth: 1.2,
+                  borderWidth: 1.5,
                   borderRadius: 12,
-                  paddingHorizontal: 10,
+                  paddingHorizontal: 12,
+                  height: 44,
                   marginBottom: 10,
                 }}>
-                  <Text style={{ fontSize: 13, marginRight: 6 }}>🔍</Text>
+                  <Text style={{ fontSize: 15, marginRight: 8 }}>🔍</Text>
                   <TextInput
                     style={{
                       flex: 1,
                       color: '#ffffff',
-                      fontSize: 12,
-                      paddingVertical: 6,
+                      fontSize: 13,
+                      height: 44,
+                      paddingVertical: 0,
+                      textAlignVertical: 'center',
                     }}
                     placeholder="Search users, players or squads..."
                     placeholderTextColor="#64748b"
@@ -36421,61 +36379,151 @@ function CricketAddaMain() {
                     onChangeText={setTransferSearchQuery}
                   />
                   {(transferSearchQuery || '').length > 0 && (
-                    <TouchableOpacity onPress={() => setTransferSearchQuery('')}>
-                      <Text style={{ color: '#94a3b8', fontSize: 13, fontWeight: 'bold' }}>✕</Text>
+                    <TouchableOpacity onPress={() => setTransferSearchQuery('')} style={{ padding: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 14, fontWeight: 'bold' }}>✕</Text>
                     </TouchableOpacity>
                   )}
                 </View>
 
-                <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
-                  {/* 2-COLUMN SQUAD GRID */}
-                  {(() => {
-                    const q = (transferSearchQuery || '').toLowerCase().trim();
-                    const filteredBatters = (activeBattingSquad || []).filter(p => !q || p.toLowerCase().includes(q));
-                    const filteredBowlers = (activeOppBowlers || []).filter(p => !q || p.toLowerCase().includes(q));
+                {/* 2-COLUMN SQUAD GRID WITH INTERNAL SCROLLING INSIDE BOXES */}
+                {(() => {
+                  const q = (transferSearchQuery || '').toLowerCase().trim();
 
-                    return (
-                      <View style={{ flexDirection: 'row', gap: 8, marginBottom: 10 }}>
-                        {/* LEFT COLUMN: BATTING TEAM (GREEN THEME) */}
-                        <View style={{
-                          flex: 1,
-                          backgroundColor: '#041d17',
-                          borderColor: '#10b981',
-                          borderWidth: 1.5,
-                          borderRadius: 14,
-                          padding: 8,
-                        }}>
-                          {/* Column Header */}
-                          <View style={{ alignItems: 'center', marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(16, 185, 129, 0.25)' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center' }}>
-                              <Text style={{ fontSize: 12 }}>🏏</Text>
-                              <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
-                                {battingTeamName} Squad
-                              </Text>
-                            </View>
-                            <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginTop: 4 }}>
-                              <Text style={{ color: '#34d399', fontSize: 9.5, fontWeight: '800' }}>
-                                {filteredBatters.length} Players
-                              </Text>
-                            </View>
+                  // Helper: Filter only registered players (exclude guest/filler players)
+                  const isRegisteredPlayerFilter = (name, pObj) => {
+                    if (!name) return false;
+                    const clean = String(name).trim().toLowerCase();
+                    if (
+                      clean.startsWith('guest') ||
+                      clean.includes('guest') ||
+                      clean.startsWith('opp bowler') ||
+                      clean.includes('filler') ||
+                      clean.startsWith('player ')
+                    ) {
+                      return false;
+                    }
+                    if (clean === 'amandeep' || clean === 'amanlevo' || clean === (userProfile?.name || '').toLowerCase()) {
+                      return true;
+                    }
+                    if (pObj?.id && String(pObj.id).startsWith('usr_')) {
+                      return true;
+                    }
+                    if (pObj?.phone || pObj?.email) {
+                      return true;
+                    }
+                    const inUsers = (usersDb || []).some(u => {
+                      const prof = u?.profile || u;
+                      if (!prof) return false;
+                      const uName = (prof.name || '').toLowerCase().trim();
+                      return uName === clean || (pObj?.id && prof.id === pObj.id) || (prof.phone && pObj?.phone && prof.phone === pObj.phone);
+                    });
+                    if (inUsers) return true;
+                    const inReg = (registeredPlayers || []).some(rp => {
+                      if (!rp) return false;
+                      const rName = (rp.name || '').toLowerCase().trim();
+                      return (
+                        (rName === clean && (rp.phone || rp.email || rp.id?.startsWith('usr_') || rp.isRegistered)) ||
+                        (pObj?.id && rp.id === pObj.id)
+                      );
+                    });
+                    return Boolean(inReg);
+                  };
+
+                  // Helper: Resolve player display name (change Amanlevo -> Amandeep)
+                  const resolvePlayerDisplayName = (rawName, pId) => {
+                    if (!rawName) return '';
+                    const clean = String(rawName).trim();
+                    if (
+                      clean.toLowerCase() === 'amanlevo' ||
+                      (pId && userProfile?.id && pId === userProfile.id) ||
+                      (userProfile?.name && isSameUserOrAlias(clean, userProfile.name))
+                    ) {
+                      return userProfile?.name || 'Amandeep';
+                    }
+                    return clean;
+                  };
+
+                  // Filter Batting squad
+                  const rawBatters = (activeBattingSquad || []).map(p => {
+                    const rawName = typeof p === 'string' ? p : p.name;
+                    const pObj = typeof p === 'object' ? p : (registeredPlayers || []).find(rp => rp && rp.name?.toLowerCase() === rawName.toLowerCase());
+                    const resolvedName = resolvePlayerDisplayName(rawName, pObj?.id || p?.id);
+                    return { rawName, resolvedName, pObj };
+                  });
+
+                  const filteredBatters = rawBatters.filter(({ rawName, resolvedName, pObj }) => {
+                    if (!isRegisteredPlayerFilter(rawName, pObj) && !isRegisteredPlayerFilter(resolvedName, pObj)) return false;
+                    if (!q) return true;
+                    return resolvedName.toLowerCase().includes(q) || rawName.toLowerCase().includes(q);
+                  });
+
+                  // Filter Bowling squad
+                  const rawBowlers = (activeOppBowlers || []).map(p => {
+                    const rawName = typeof p === 'string' ? p : p.name;
+                    const pObj = typeof p === 'object' ? p : (registeredPlayers || []).find(rp => rp && rp.name?.toLowerCase() === rawName.toLowerCase());
+                    const resolvedName = resolvePlayerDisplayName(rawName, pObj?.id || p?.id);
+                    return { rawName, resolvedName, pObj };
+                  });
+
+                  const filteredBowlers = rawBowlers.filter(({ rawName, resolvedName, pObj }) => {
+                    if (!isRegisteredPlayerFilter(rawName, pObj) && !isRegisteredPlayerFilter(resolvedName, pObj)) return false;
+                    if (!q) return true;
+                    return resolvedName.toLowerCase().includes(q) || rawName.toLowerCase().includes(q);
+                  });
+
+                  return (
+                    <View style={{ flex: 1, flexDirection: 'row', gap: 8, marginBottom: 8 }}>
+                      {/* LEFT COLUMN: BATTING TEAM (GREEN THEME) */}
+                      <View style={{
+                        flex: 1,
+                        backgroundColor: '#041d17',
+                        borderColor: '#10b981',
+                        borderWidth: 1.5,
+                        borderRadius: 14,
+                        padding: 8,
+                        display: 'flex',
+                      }}>
+                        {/* Fixed Column Header with Team Pic/Logo */}
+                        <View style={{ alignItems: 'center', marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(16, 185, 129, 0.25)' }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+                            <SmartTeamLogo
+                              team={{
+                                name: battingTeamName,
+                                flag: battingTeamFlag,
+                                logoUri: match?.logoA || (matchesDb && matchesDb[activeMatchId]?.logoA) || currentMatchData?.logoA,
+                              }}
+                              style={{ width: 22, height: 22, borderRadius: 11 }}
+                              flagStyle={{ fontSize: 14 }}
+                              fallbackFlag={battingTeamFlag || '🏏'}
+                            />
+                            <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900' }} numberOfLines={1}>
+                              {battingTeamName} Squad
+                            </Text>
                           </View>
+                          <View style={{ backgroundColor: '#064e3b', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginTop: 4 }}>
+                            <Text style={{ color: '#34d399', fontSize: 9.5, fontWeight: '800' }}>
+                              {filteredBatters.length} Players
+                            </Text>
+                          </View>
+                        </View>
 
-                          {/* Player Rows */}
-                          {filteredBatters.map((pName, idx) => {
-                            const isCurrent = activeScorer.name === pName;
-                            const regP = registeredPlayers.find(rp => rp && rp.name?.toLowerCase() === pName.toLowerCase());
+                        {/* INTERNAL SCROLLVIEW FOR BATTING SQUAD */}
+                        <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+                          {filteredBatters.map(({ rawName, resolvedName, pObj }, idx) => {
+                            const isCurrent = activeScorer.name === resolvedName || activeScorer.name === rawName;
+                            const regP = pObj || (registeredPlayers || []).find(rp => rp && (rp.name?.toLowerCase() === resolvedName.toLowerCase() || rp.name?.toLowerCase() === rawName.toLowerCase()));
                             const pRole = regP?.role || 'Player';
-                            const pAvatar = getPlayerAvatarUri(pName) || regP?.avatarUri || null;
-                            const isSelected = selectedTransferPlayer?.player?.name === pName || (selectedTransferPlayer?.player?.id && regP?.id && selectedTransferPlayer.player.id === regP.id);
+                            const pAvatar = getPlayerAvatarUri(resolvedName) || getPlayerAvatarUri(rawName) || regP?.avatarUri || null;
+                            const isSelected = selectedTransferPlayer?.player?.name === resolvedName || selectedTransferPlayer?.player?.name === rawName || (selectedTransferPlayer?.player?.id && regP?.id && selectedTransferPlayer.player.id === regP.id);
 
                             return (
                               <TouchableOpacity
-                                key={`trans_p1_${pName}_${idx}`}
+                                key={`trans_p1_${resolvedName}_${idx}`}
                                 activeOpacity={isCurrent ? 1 : 0.8}
                                 onPress={() => {
                                   if (isCurrent) return;
                                   setSelectedTransferPlayer(isSelected ? null : {
-                                    player: { id: regP?.id || pName, name: pName, role: pRole, avatarUri: pAvatar, phone: regP?.phone, email: regP?.email },
+                                    player: { id: regP?.id || resolvedName, name: resolvedName, role: pRole, avatarUri: pAvatar, phone: regP?.phone, email: regP?.email },
                                     teamName: battingTeamName,
                                     teamFlag: battingTeamFlag,
                                     phone: regP?.phone,
@@ -36495,23 +36543,15 @@ function CricketAddaMain() {
                                 }}
                               >
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 4 }}>
-                                  <View style={{
-                                    width: 26,
-                                    height: 26,
-                                    borderRadius: 13,
-                                    backgroundColor: '#0a1633',
-                                    borderColor: isSelected ? '#10b981' : '#38bdf8',
-                                    borderWidth: 1,
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                  }}>
-                                    <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>
-                                      {getInitials(pName)}
-                                    </Text>
-                                  </View>
+                                  <PlayerAvatar
+                                    name={resolvedName}
+                                    size={28}
+                                    customUri={pAvatar}
+                                    borderColor={isSelected ? '#10b981' : '#38bdf8'}
+                                  />
                                   <View style={{ flex: 1 }}>
                                     <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
-                                      {pName}
+                                      {resolvedName}
                                     </Text>
                                     <Text style={{ color: '#94a3b8', fontSize: 9 }} numberOfLines={1}>
                                       {isCurrent ? 'ACTIVE' : pRole}
@@ -36543,48 +36583,60 @@ function CricketAddaMain() {
                               </TouchableOpacity>
                             );
                           })}
+                        </ScrollView>
+                      </View>
+
+                      {/* RIGHT COLUMN: BOWLING TEAM (PURPLE THEME) */}
+                      <View style={{
+                        flex: 1,
+                        backgroundColor: '#170c2a',
+                        borderColor: '#a855f7',
+                        borderWidth: 1.5,
+                        borderRadius: 14,
+                        padding: 8,
+                        display: 'flex',
+                      }}>
+                        {/* Fixed Column Header with Team Pic/Logo */}
+                        <View style={{ alignItems: 'center', marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(168, 85, 247, 0.25)' }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, justifyContent: 'center' }}>
+                            <SmartTeamLogo
+                              team={{
+                                name: bowlingTeamName,
+                                flag: bowlingTeamFlag,
+                                logoUri: match?.logoB || (matchesDb && matchesDb[activeMatchId]?.logoB) || currentMatchData?.logoB,
+                              }}
+                              style={{ width: 22, height: 22, borderRadius: 11 }}
+                              flagStyle={{ fontSize: 14 }}
+                              fallbackFlag={bowlingTeamFlag || '⚔️'}
+                            />
+                            <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '900' }} numberOfLines={1}>
+                              {bowlingTeamName} Squad
+                            </Text>
+                          </View>
+                          <View style={{ backgroundColor: '#4c1d95', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginTop: 4 }}>
+                            <Text style={{ color: '#d8b4fe', fontSize: 9.5, fontWeight: '800' }}>
+                              {filteredBowlers.length} Players
+                            </Text>
+                          </View>
                         </View>
 
-                        {/* RIGHT COLUMN: BOWLING TEAM (PURPLE THEME) */}
-                        <View style={{
-                          flex: 1,
-                          backgroundColor: '#170c2a',
-                          borderColor: '#a855f7',
-                          borderWidth: 1.5,
-                          borderRadius: 14,
-                          padding: 8,
-                        }}>
-                          {/* Column Header */}
-                          <View style={{ alignItems: 'center', marginBottom: 8, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: 'rgba(168, 85, 247, 0.25)' }}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, justifyContent: 'center' }}>
-                              <Text style={{ fontSize: 12 }}>⚔️</Text>
-                              <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900' }} numberOfLines={1}>
-                                {bowlingTeamName} Squad
-                              </Text>
-                            </View>
-                            <View style={{ backgroundColor: '#4c1d95', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginTop: 4 }}>
-                              <Text style={{ color: '#d8b4fe', fontSize: 9.5, fontWeight: '800' }}>
-                                {filteredBowlers.length} Players
-                              </Text>
-                            </View>
-                          </View>
-
-                          {/* Player Rows */}
-                          {filteredBowlers.map((pName, idx) => {
-                            const isCurrent = activeScorer.name === pName;
-                            const regP = registeredPlayers.find(rp => rp && rp.name?.toLowerCase() === pName.toLowerCase());
+                        {/* INTERNAL SCROLLVIEW FOR BOWLING SQUAD */}
+                        <ScrollView showsVerticalScrollIndicator={true} style={{ flex: 1 }} keyboardShouldPersistTaps="handled">
+                          {filteredBowlers.map(({ rawName, resolvedName, pObj }, idx) => {
+                            const isCurrent = activeScorer.name === resolvedName || activeScorer.name === rawName;
+                            const regP = pObj || (registeredPlayers || []).find(rp => rp && (rp.name?.toLowerCase() === resolvedName.toLowerCase() || rp.name?.toLowerCase() === rawName.toLowerCase()));
                             const pRole = regP?.role || 'Player';
-                            const pAvatar = getPlayerAvatarUri(pName) || regP?.avatarUri || null;
-                            const isSelected = selectedTransferPlayer?.player?.name === pName || (selectedTransferPlayer?.player?.id && regP?.id && selectedTransferPlayer.player.id === regP.id);
+                            const pAvatar = getPlayerAvatarUri(resolvedName) || getPlayerAvatarUri(rawName) || regP?.avatarUri || null;
+                            const isSelected = selectedTransferPlayer?.player?.name === resolvedName || selectedTransferPlayer?.player?.name === rawName || (selectedTransferPlayer?.player?.id && regP?.id && selectedTransferPlayer.player.id === regP.id);
 
                             return (
                               <TouchableOpacity
-                                key={`trans_p2_${pName}_${idx}`}
+                                key={`trans_p2_${resolvedName}_${idx}`}
                                 activeOpacity={isCurrent ? 1 : 0.8}
                                 onPress={() => {
                                   if (isCurrent) return;
                                   setSelectedTransferPlayer(isSelected ? null : {
-                                    player: { id: regP?.id || pName, name: pName, role: pRole, avatarUri: pAvatar, phone: regP?.phone, email: regP?.email },
+                                    player: { id: regP?.id || resolvedName, name: resolvedName, role: pRole, avatarUri: pAvatar, phone: regP?.phone, email: regP?.email },
                                     teamName: bowlingTeamName,
                                     teamFlag: bowlingTeamFlag,
                                     phone: regP?.phone,
@@ -36604,23 +36656,15 @@ function CricketAddaMain() {
                                 }}
                               >
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, marginRight: 4 }}>
-                                  <View style={{
-                                    width: 26,
-                                    height: 26,
-                                    borderRadius: 13,
-                                    backgroundColor: '#0a1633',
-                                    borderColor: isSelected ? '#a855f7' : '#38bdf8',
-                                    borderWidth: 1,
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                  }}>
-                                    <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>
-                                      {getInitials(pName)}
-                                    </Text>
-                                  </View>
+                                  <PlayerAvatar
+                                    name={resolvedName}
+                                    size={28}
+                                    customUri={pAvatar}
+                                    borderColor={isSelected ? '#a855f7' : '#38bdf8'}
+                                  />
                                   <View style={{ flex: 1 }}>
                                     <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
-                                      {pName}
+                                      {resolvedName}
                                     </Text>
                                     <Text style={{ color: '#94a3b8', fontSize: 9 }} numberOfLines={1}>
                                       {isCurrent ? 'ACTIVE' : pRole}
@@ -36652,11 +36696,11 @@ function CricketAddaMain() {
                               </TouchableOpacity>
                             );
                           })}
-                        </View>
+                        </ScrollView>
                       </View>
-                    );
-                  })()}
-                </ScrollView>
+                    </View>
+                  );
+                })()}
 
                 {/* BOTTOM STICKY ACTION BUTTON: ⇄ TRANSFER */}
                 <TouchableOpacity
