@@ -25720,29 +25720,44 @@ function CricketAddaMain() {
           });
 
           const activeZone = dynamicSectors.find(s => s.id === (selectedZone?.id || 'cover')) || dynamicSectors[5];
+          const tabWheelSize = Math.round(Math.min(width - 24, height * 0.38, 330));
+          const tabBadgeW = Math.round(tabWheelSize * 0.18);
+          const tabBadgeH = Math.round(tabWheelSize * 0.13);
 
           return (
-            <ScrollView style={styles.mainContentNoPad} contentContainerStyle={{ alignItems: 'center', paddingBottom: bottomInset + 80 + miniBarExtraOffset }}>
-              <View style={{ width: '100%', paddingHorizontal: 6, paddingTop: 10 }}>
+            <View style={[styles.mainContentNoPad, { alignItems: 'center', justifyContent: 'flex-start', flex: 1, paddingBottom: miniBarExtraOffset ? 62 : 6 }]}>
+              {/* Header Row: Back (<) and Team Names in a Single Sleek Row */}
+              <View style={{ width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12, paddingTop: 6, paddingBottom: 4, position: 'relative' }}>
                 <TouchableOpacity
-                  style={[styles.backToMatchesBtn, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { alignSelf: 'flex-start' }]}
+                  style={[
+                    styles.backToMatchesBtn,
+                    currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
+                    { position: 'absolute', left: 12, zIndex: 10, marginBottom: 0, paddingVertical: 5, paddingHorizontal: 10 }
+                  ]}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   onPress={goBack}
                 >
                   <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
                 </TouchableOpacity>
 
-                <Text style={[styles.wheelHeading, { textAlign: 'center', marginTop: 4, marginBottom: 12, fontSize: 18, fontWeight: '900' }, currentTheme.isLight && { color: '#0f172a' }]}>
+                <Text
+                  style={[
+                    styles.wheelHeading,
+                    { textAlign: 'center', fontSize: 16, fontWeight: '900', marginVertical: 0, paddingHorizontal: 56 },
+                    currentTheme.isLight && { color: '#0f172a' }
+                  ]}
+                  numberOfLines={1}
+                >
                   {battingTeamName} vs {bowlingTeamName}
                 </Text>
               </View>
 
               {/* LARGE WAGON WHEEL STAGE CONTAINER */}
-              <View style={[styles.wheelContainerRelative, { width: FULL_WHEEL_SIZE, height: FULL_WHEEL_SIZE, borderRadius: 20, alignSelf: 'center', marginTop: 2 }]}>
-                {renderGroundWheelSvg(FULL_WHEEL_SIZE, activeZone?.id, 'match')}
+              <View style={[styles.wheelContainerRelative, { width: tabWheelSize, height: tabWheelSize, borderRadius: 20, alignSelf: 'center', marginTop: 2 }]}>
+                {renderGroundWheelSvg(tabWheelSize, activeZone?.id, 'match')}
 
                 {dynamicSectors.map(sec => {
-                  const pos = getResponsiveBadgePos(FULL_WHEEL_SIZE, sec.angle, mainBadgeW, mainBadgeH);
+                  const pos = getResponsiveBadgePos(tabWheelSize, sec.angle, tabBadgeW, tabBadgeH);
                   const isSelected = activeZone.id === sec.id;
                   return (
                     <TouchableOpacity
@@ -25753,8 +25768,8 @@ function CricketAddaMain() {
                         {
                           left: pos.left,
                           top: pos.top,
-                          width: mainBadgeW,
-                          height: mainBadgeH,
+                          width: tabBadgeW,
+                          height: tabBadgeH,
                         },
                         isSelected && styles.nativeWheelBadgeActive,
                       ]}
@@ -25774,42 +25789,59 @@ function CricketAddaMain() {
                 })}
               </View>
 
-              <View style={[styles.areaDetailsMasterCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { marginHorizontal: 6, width: width - 12, marginTop: 14 }]}>
-                <View style={styles.areaDetailsHeaderRow}>
+              {/* COMPACT BOTTOM CARD (NICHE WALE BOX MAE VERTICAL MARGIN KAM KRO) */}
+              <View style={[
+                styles.areaDetailsMasterCard,
+                currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
+                {
+                  marginHorizontal: 8,
+                  width: Math.min(width - 16, 440),
+                  marginTop: 6,
+                  marginBottom: 2,
+                  marginVertical: 0,
+                  paddingVertical: 7,
+                  paddingHorizontal: 10,
+                }
+              ]}>
+                <View style={[styles.areaDetailsHeaderRow, { paddingBottom: 4, marginBottom: 4 }]}>
                   <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 }}>
-                      <Text style={[styles.areaDetailsMainTitle, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>{activeZone.name.toUpperCase()}</Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 1 }}>
+                      <Text style={[styles.areaDetailsMainTitle, { fontSize: 13, lineHeight: 16 }, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>
+                        {activeZone.name.toUpperCase()}
+                      </Text>
                     </View>
-                    <Text style={[styles.areaDetailsSubText, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={2}>{activeZone.shot}</Text>
+                    <Text style={[styles.areaDetailsSubText, { fontSize: 10, lineHeight: 13, marginTop: 1 }, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>
+                      {activeZone.shot}
+                    </Text>
                   </View>
 
-                  <View style={styles.areaBigRunsBox}>
-                    <Text style={styles.areaBigRunsNumber}>{activeZone.runs}</Text>
+                  <View style={[styles.areaBigRunsBox, { paddingHorizontal: 6, paddingVertical: 2, minWidth: 62 }]}>
+                    <Text style={[styles.areaBigRunsNumber, { fontSize: 15, lineHeight: 18 }]}>{activeZone.runs}</Text>
                     <Text style={styles.areaBigRunsLabel}>RUNS ({activeZone.pct})</Text>
                   </View>
                 </View>
 
-                <View style={styles.areaMetricGrid}>
-                  <View style={[styles.areaMetricItem, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                    <Text style={[styles.areaMetricItemLabel, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>BOUNDARIES</Text>
-                    <Text style={[styles.areaMetricItemVal, { color: '#34d399' }]} numberOfLines={1}>{activeZone.fours}x 4s</Text>
-                    <Text style={[styles.areaMetricItemSub, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{activeZone.fours * 4} runs</Text>
+                <View style={[styles.areaMetricGrid, { marginTop: 1, gap: 5 }]}>
+                  <View style={[styles.areaMetricItem, { paddingVertical: 4, minHeight: 40 }, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
+                    <Text style={[styles.areaMetricItemLabel, { fontSize: 8.5 }, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>BOUNDARIES</Text>
+                    <Text style={[styles.areaMetricItemVal, { fontSize: 12, color: '#34d399' }]} numberOfLines={1}>{activeZone.fours}x 4s</Text>
+                    <Text style={[styles.areaMetricItemSub, { fontSize: 8.5 }, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{activeZone.fours * 4} runs</Text>
                   </View>
 
-                  <View style={[styles.areaMetricItem, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                    <Text style={[styles.areaMetricItemLabel, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>MAXIMUMS</Text>
-                    <Text style={[styles.areaMetricItemVal, { color: '#f59e0b' }]} numberOfLines={1}>{activeZone.sixes}x 6s</Text>
-                    <Text style={[styles.areaMetricItemSub, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{activeZone.sixes * 6} runs</Text>
+                  <View style={[styles.areaMetricItem, { paddingVertical: 4, minHeight: 40 }, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
+                    <Text style={[styles.areaMetricItemLabel, { fontSize: 8.5 }, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>MAXIMUMS</Text>
+                    <Text style={[styles.areaMetricItemVal, { fontSize: 12, color: '#f59e0b' }]} numberOfLines={1}>{activeZone.sixes}x 6s</Text>
+                    <Text style={[styles.areaMetricItemSub, { fontSize: 8.5 }, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{activeZone.sixes * 6} runs</Text>
                   </View>
 
-                  <View style={[styles.areaMetricItem, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                    <Text style={[styles.areaMetricItemLabel, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>SINGLES/2s</Text>
-                    <Text style={[styles.areaMetricItemVal, { color: '#38bdf8' }]} numberOfLines={1}>{activeZone.singlesDoubles}</Text>
-                    <Text style={[styles.areaMetricItemSub, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{activeZone.singlesDoubles} runs</Text>
+                  <View style={[styles.areaMetricItem, { paddingVertical: 4, minHeight: 40 }, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
+                    <Text style={[styles.areaMetricItemLabel, { fontSize: 8.5 }, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>SINGLES/2s</Text>
+                    <Text style={[styles.areaMetricItemVal, { fontSize: 12, color: '#38bdf8' }]} numberOfLines={1}>{activeZone.singlesDoubles}</Text>
+                    <Text style={[styles.areaMetricItemSub, { fontSize: 8.5 }, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>{activeZone.singlesDoubles} runs</Text>
                   </View>
                 </View>
               </View>
-            </ScrollView>
+            </View>
           );
         })()
       )}
