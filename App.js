@@ -36532,7 +36532,7 @@ function CricketAddaMain() {
                           </Text>
                         </TouchableOpacity>
 
-                        {/* TAB 2: BOWLING TEAM */}
+                        {/* TAB 2: BOWLING TEAM (SKY BLUE THEME) */}
                         <TouchableOpacity
                           activeOpacity={0.8}
                           onPress={() => setTransferSelectedTeam('bowling')}
@@ -36545,10 +36545,10 @@ function CricketAddaMain() {
                             paddingVertical: 9,
                             paddingHorizontal: 8,
                             borderRadius: 12,
-                            backgroundColor: !isBattingTab ? '#4c1d95' : '#1e1136',
-                            borderColor: !isBattingTab ? '#a855f7' : '#3b1d6b',
+                            backgroundColor: !isBattingTab ? '#0284c7' : '#082f49',
+                            borderColor: !isBattingTab ? '#38bdf8' : '#075985',
                             borderWidth: 1.5,
-                            shadowColor: !isBattingTab ? '#a855f7' : 'transparent',
+                            shadowColor: !isBattingTab ? '#38bdf8' : 'transparent',
                             shadowOffset: { width: 0, height: 2 },
                             shadowOpacity: 0.35,
                             shadowRadius: 5,
@@ -36581,8 +36581,8 @@ function CricketAddaMain() {
                       {/* ACTIVE TEAM'S SQUAD CONTAINER (FULL WIDTH WITH INTERNAL SCROLL) */}
                       <View style={{
                         flex: 1,
-                        backgroundColor: isBattingTab ? '#041d17' : '#140b24',
-                        borderColor: isBattingTab ? '#10b981' : '#a855f7',
+                        backgroundColor: isBattingTab ? '#041d17' : '#031a30',
+                        borderColor: isBattingTab ? '#10b981' : '#38bdf8',
                         borderWidth: 1.5,
                         borderRadius: 14,
                         padding: 8,
@@ -36618,11 +36618,11 @@ function CricketAddaMain() {
                                   }}
                                   style={{
                                     backgroundColor: isSelected
-                                      ? (isBattingTab ? 'rgba(16, 185, 129, 0.22)' : 'rgba(168, 85, 247, 0.22)')
-                                      : (isCurrent ? 'rgba(2, 132, 199, 0.15)' : (isBattingTab ? '#07241c' : '#1c0f33')),
+                                      ? (isBattingTab ? 'rgba(16, 185, 129, 0.22)' : 'rgba(56, 189, 248, 0.22)')
+                                      : (isCurrent ? 'rgba(2, 132, 199, 0.15)' : (isBattingTab ? '#07241c' : '#07223b')),
                                     borderColor: isSelected
-                                      ? (isBattingTab ? '#10b981' : '#a855f7')
-                                      : (isCurrent ? '#0284c7' : (isBattingTab ? '#134e4a' : '#351859')),
+                                      ? (isBattingTab ? '#10b981' : '#38bdf8')
+                                      : (isCurrent ? '#0284c7' : (isBattingTab ? '#134e4a' : '#0c4a6e')),
                                     borderWidth: isSelected ? 1.5 : 1,
                                     borderRadius: 10,
                                     paddingVertical: 8,
@@ -36638,7 +36638,7 @@ function CricketAddaMain() {
                                       name={resolvedName}
                                       size={36}
                                       customUri={pAvatar}
-                                      borderColor={isSelected ? (isBattingTab ? '#10b981' : '#a855f7') : '#38bdf8'}
+                                      borderColor={isSelected ? (isBattingTab ? '#10b981' : '#38bdf8') : '#38bdf8'}
                                     />
                                     <View style={{ flex: 1 }}>
                                       <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: 'bold' }} numberOfLines={1}>
@@ -36660,9 +36660,9 @@ function CricketAddaMain() {
                                       width: 22,
                                       height: 22,
                                       borderRadius: 6,
-                                      borderColor: isSelected ? (isBattingTab ? '#10b981' : '#a855f7') : '#475569',
+                                      borderColor: isSelected ? (isBattingTab ? '#10b981' : '#38bdf8') : '#475569',
                                       borderWidth: 1.8,
-                                      backgroundColor: isSelected ? (isBattingTab ? '#10b981' : '#a855f7') : 'transparent',
+                                      backgroundColor: isSelected ? (isBattingTab ? '#10b981' : '#38bdf8') : 'transparent',
                                       alignItems: 'center',
                                       justifyContent: 'center',
                                     }}>
@@ -36848,8 +36848,8 @@ function CricketAddaMain() {
                       <TouchableOpacity
                         style={{
                           flex: 1,
-                          backgroundColor: transferSelectedTeam === 'bowling' ? '#1e1b4b' : '#0f172a',
-                          borderColor: transferSelectedTeam === 'bowling' ? '#6366f1' : '#334155',
+                          backgroundColor: transferSelectedTeam === 'bowling' ? '#0284c7' : '#0f172a',
+                          borderColor: transferSelectedTeam === 'bowling' ? '#38bdf8' : '#334155',
                           borderWidth: 1.2,
                           borderRadius: 8,
                           paddingVertical: 7,
@@ -36858,7 +36858,7 @@ function CricketAddaMain() {
                         }}
                         onPress={() => setTransferSelectedTeam('bowling')}
                       >
-                        <Text style={{ color: transferSelectedTeam === 'bowling' ? '#c7d2fe' : '#94a3b8', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
+                        <Text style={{ color: transferSelectedTeam === 'bowling' ? '#bae6fd' : '#94a3b8', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
                           {bowlingTeamFlag} {bowlingTeamName}
                         </Text>
                       </TouchableOpacity>
@@ -36964,8 +36964,8 @@ function CricketAddaMain() {
                       <TouchableOpacity
                         style={{
                           flex: 1,
-                          backgroundColor: transferSelectedTeam === 'bowling' ? '#1e1b4b' : '#0f172a',
-                          borderColor: transferSelectedTeam === 'bowling' ? '#6366f1' : '#334155',
+                          backgroundColor: transferSelectedTeam === 'bowling' ? '#0284c7' : '#0f172a',
+                          borderColor: transferSelectedTeam === 'bowling' ? '#38bdf8' : '#334155',
                           borderWidth: 1.2,
                           borderRadius: 8,
                           paddingVertical: 7,
@@ -36974,7 +36974,7 @@ function CricketAddaMain() {
                         }}
                         onPress={() => setTransferSelectedTeam('bowling')}
                       >
-                        <Text style={{ color: transferSelectedTeam === 'bowling' ? '#c7d2fe' : '#94a3b8', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
+                        <Text style={{ color: transferSelectedTeam === 'bowling' ? '#bae6fd' : '#94a3b8', fontSize: 11, fontWeight: 'bold' }} numberOfLines={1}>
                           {bowlingTeamFlag} {bowlingTeamName}
                         </Text>
                       </TouchableOpacity>
@@ -37234,11 +37234,6 @@ function CricketAddaMain() {
                     : qrScanPurpose === 'add_squad_player'
                     ? '📷 Scan Player QR Passport'
                     : '📷 Scan Player / Scorer QR Code'}
-                </Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11 }}>
-                  {qrScanPurpose === 'add_squad_player'
-                    ? "Point camera at teammate's Player QR Pass to add to squad"
-                    : 'Align the code within the viewfinder frame'}
                 </Text>
               </View>
               <TouchableOpacity
