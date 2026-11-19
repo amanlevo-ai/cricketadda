@@ -8597,6 +8597,7 @@ function CricketAddaMain() {
   const [dlsInterruptionMode, setDlsInterruptionMode] = useState('terminate_inn1'); // 'terminate_inn1' | 'curtail_both' | 'curtail_inn2'
   const [dlsRevisedOversInput, setDlsRevisedOversInput] = useState('12');
   const [earlyEndTargetMode, setEarlyEndTargetMode] = useState('local'); // 'local' (Current + 1) | 'dls' (ICC Formula)
+  const [targetMethodDropdownOpen, setTargetMethodDropdownOpen] = useState(false);
 
   // Official Scorer Request to Admin Modal State
   const [adminNoteModalVisible, setAdminNoteModalVisible] = useState(false);
@@ -30969,13 +30970,15 @@ function CricketAddaMain() {
                 <TouchableOpacity
                   onPress={() => {
                     setScorerActionsModalVisible(false);
-                    const currOv = Math.floor(liveBalls / 6) + (liveBalls % 6 > 0 ? 1 : 0);
-                    if (currOv > 0) {
-                      setDlsRevisedOversInput(String(currOv));
-                    }
+                    const origOv = match.totalOvers || match.overs || 20;
                     if (currentInnings === 1) {
                       setDlsInterruptionMode('terminate_inn1');
+                      setDlsRevisedOversInput(String(origOv));
+                    } else {
+                      const currOv = Math.floor(liveBalls / 6) + (liveBalls % 6 > 0 ? 1 : 0);
+                      setDlsRevisedOversInput(String(Math.max(5, currOv)));
                     }
+                    setTargetMethodDropdownOpen(false);
                     setDlsModalVisible(true);
                   }}
                   style={{
@@ -31130,7 +31133,10 @@ function CricketAddaMain() {
                 </View>
                 <TouchableOpacity
                   style={{ width: 30, height: 30, borderRadius: 15, backgroundColor: currentTheme.isLight ? '#f1f5f9' : '#1e293b', alignItems: 'center', justifyContent: 'center' }}
-                  onPress={() => setDlsModalVisible(false)}
+                  onPress={() => {
+                    setTargetMethodDropdownOpen(false);
+                    setDlsModalVisible(false);
+                  }}
                 >
                   <Text style={{ color: '#94a3b8', fontSize: 15, fontWeight: 'bold' }}>✕</Text>
                 </TouchableOpacity>
@@ -31234,127 +31240,351 @@ function CricketAddaMain() {
                 </View>
               )}
 
-              {/* TARGET CALCULATION METHOD SELECTOR (Option 1 vs Option 2 Radio Buttons) */}
-              <Text style={{ fontSize: 11.5, fontWeight: '800', color: currentTheme.isLight ? '#475569' : '#cbd5e1', marginBottom: 6, textTransform: 'uppercase' }}>
-                Select Target Rule / Formula (नियम चुनें):
-              </Text>
-              <View style={{ gap: 8, marginBottom: 14 }}>
-                {/* Radio Option 1: Standard Match Target */}
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: earlyEndTargetMode === 'local'
-                      ? (currentTheme.isLight ? '#f0fdf4' : '#064e3b')
-                      : (currentTheme.isLight ? '#f8fafc' : '#1e293b'),
-                    borderColor: earlyEndTargetMode === 'local' ? '#10b981' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
-                    borderWidth: 1.5,
-                    borderRadius: 12,
-                    padding: 11,
-                  }}
-                  onPress={() => setEarlyEndTargetMode('local')}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                      <View style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        borderWidth: 2,
-                        borderColor: earlyEndTargetMode === 'local' ? '#10b981' : '#94a3b8',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        {earlyEndTargetMode === 'local' && (
-                          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#10b981' }} />
-                        )}
-                      </View>
-                      <Text style={{ color: earlyEndTargetMode === 'local' ? (currentTheme.isLight ? '#166534' : '#6ee7b7') : (currentTheme.isLight ? '#0f172a' : '#e2e8f0'), fontSize: 13, fontWeight: '900' }}>
-                        Option 1: 🏏 Standard Match Target (Direct Target)
-                      </Text>
-                    </View>
-                    <View style={{ backgroundColor: '#10b981', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>
-                      <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>Runs + 1</Text>
-                    </View>
-                  </View>
-                  <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, marginTop: 4, marginLeft: 28 }}>
-                    {currentInnings === 1
-                      ? `Direct target calculation (${liveRuns} runs + 1 = ${(Number(liveRuns) || 0) + 1} runs). Standard match chase formula.`
-                      : `Proportional run rate target based on revised overs.`}
-                  </Text>
-                </TouchableOpacity>
-
-                {/* Radio Option 2: Official ICC DLS Method */}
-                <TouchableOpacity
-                  style={{
-                    backgroundColor: earlyEndTargetMode === 'dls'
-                      ? (currentTheme.isLight ? '#ede9fe' : '#2e1065')
-                      : (currentTheme.isLight ? '#f8fafc' : '#1e293b'),
-                    borderColor: earlyEndTargetMode === 'dls' ? '#8b5cf6' : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
-                    borderWidth: 1.5,
-                    borderRadius: 12,
-                    padding: 11,
-                  }}
-                  onPress={() => setEarlyEndTargetMode('dls')}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
-                      <View style={{
-                        width: 20,
-                        height: 20,
-                        borderRadius: 10,
-                        borderWidth: 2,
-                        borderColor: earlyEndTargetMode === 'dls' ? '#8b5cf6' : '#94a3b8',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                      }}>
-                        {earlyEndTargetMode === 'dls' && (
-                          <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: '#8b5cf6' }} />
-                        )}
-                      </View>
-                      <Text style={{ color: earlyEndTargetMode === 'dls' ? (currentTheme.isLight ? '#6d28d9' : '#c4b5fd') : (currentTheme.isLight ? '#0f172a' : '#e2e8f0'), fontSize: 13, fontWeight: '900' }}>
-                        Option 2: 🌧️ Official ICC DLS Method
-                      </Text>
-                    </View>
-                    <View style={{ backgroundColor: '#8b5cf6', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 5 }}>
-                      <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '900' }}>ICC DLS 5.0</Text>
-                    </View>
-                  </View>
-                  <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 11, marginTop: 4, marginLeft: 28 }}>
-                    Resource percentages aur wickets down ke hisaab se fair scientific target calculation.
-                  </Text>
-                </TouchableOpacity>
+              {/* TARGET CALCULATION METHOD SELECTOR (Sleek Dropdown replacing bulky cards) */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontSize: 11.5, fontWeight: '800', color: currentTheme.isLight ? '#475569' : '#cbd5e1', textTransform: 'uppercase' }}>
+                  Target Rule / Method (नियम चुनें):
+                </Text>
+                <Text style={{ fontSize: 11, color: earlyEndTargetMode === 'local' ? '#10b981' : '#a78bfa', fontWeight: 'bold' }}>
+                  {earlyEndTargetMode === 'local' ? '🏏 Runs + 1' : '🌧️ DLS 5.0'}
+                </Text>
               </View>
 
+              {/* 1-Line Dropdown Selector Button */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => setTargetMethodDropdownOpen(prev => !prev)}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  backgroundColor: currentTheme.isLight ? '#f8fafc' : '#1e293b',
+                  borderColor: earlyEndTargetMode === 'local' ? '#10b981' : '#8b5cf6',
+                  borderWidth: 1.5,
+                  borderRadius: 12,
+                  paddingHorizontal: 12,
+                  paddingVertical: 10,
+                  marginBottom: targetMethodDropdownOpen ? 6 : 12,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
+                  <Text style={{ fontSize: 16 }}>
+                    {earlyEndTargetMode === 'local' ? '🏏' : '🌧️'}
+                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={{
+                      color: earlyEndTargetMode === 'local'
+                        ? (currentTheme.isLight ? '#166534' : '#6ee7b7')
+                        : (currentTheme.isLight ? '#6d28d9' : '#c4b5fd'),
+                      fontSize: 12.5,
+                      fontWeight: '900'
+                    }} numberOfLines={1}>
+                      {earlyEndTargetMode === 'local'
+                        ? 'Standard Match Target (Runs + 1)'
+                        : 'Official ICC DLS Method (Rain / Tournament)'}
+                    </Text>
+                    <Text style={{ color: '#94a3b8', fontSize: 10.5, marginTop: 1 }}>
+                      {earlyEndTargetMode === 'local'
+                        ? 'Recommended for normal / gully cricket'
+                        : 'Fair scientific calculation with resource tables'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{
+                  width: 24,
+                  height: 24,
+                  borderRadius: 12,
+                  backgroundColor: earlyEndTargetMode === 'local' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(139, 92, 246, 0.15)',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginLeft: 6,
+                }}>
+                  <Text style={{
+                    fontSize: 10,
+                    color: earlyEndTargetMode === 'local' ? '#10b981' : '#8b5cf6',
+                    fontWeight: '900'
+                  }}>
+                    {targetMethodDropdownOpen ? '▲' : '▼'}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+
+              {/* Dropdown Options List */}
+              {targetMethodDropdownOpen && (
+                <View style={{
+                  backgroundColor: currentTheme.isLight ? '#ffffff' : '#090d16',
+                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                  borderWidth: 1.5,
+                  borderRadius: 12,
+                  overflow: 'hidden',
+                  marginBottom: 12,
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.25,
+                  shadowRadius: 6,
+                  elevation: 6,
+                }}>
+                  {/* Dropdown Item 1: Standard Target */}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setEarlyEndTargetMode('local');
+                      setTargetMethodDropdownOpen(false);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 10,
+                      backgroundColor: earlyEndTargetMode === 'local'
+                        ? (currentTheme.isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.15)')
+                        : 'transparent',
+                      borderBottomWidth: 1,
+                      borderBottomColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '800' }}>
+                          🏏 Standard Match Target (Runs + 1)
+                        </Text>
+                        <View style={{ backgroundColor: '#10b981', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>RECOMMENDED</Text>
+                        </View>
+                      </View>
+                      <Text style={{ color: '#94a3b8', fontSize: 10.5, marginTop: 2 }}>
+                        Direct target (Runs + 1) — Simple & standard for regular matches.
+                      </Text>
+                    </View>
+                    {earlyEndTargetMode === 'local' && (
+                      <Text style={{ color: '#10b981', fontSize: 16, fontWeight: '900', marginLeft: 8 }}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+
+                  {/* Dropdown Item 2: Official ICC DLS Method */}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setEarlyEndTargetMode('dls');
+                      setTargetMethodDropdownOpen(false);
+                    }}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      padding: 10,
+                      backgroundColor: earlyEndTargetMode === 'dls'
+                        ? (currentTheme.isLight ? '#ede9fe' : 'rgba(139, 92, 246, 0.15)')
+                        : 'transparent',
+                    }}
+                  >
+                    <View style={{ flex: 1 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#ffffff', fontSize: 12.5, fontWeight: '800' }}>
+                          🌧️ Official ICC DLS Method
+                        </Text>
+                        <View style={{ backgroundColor: '#8b5cf6', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 4 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>ICC DLS 5.0</Text>
+                        </View>
+                      </View>
+                      <Text style={{ color: '#94a3b8', fontSize: 10.5, marginTop: 2 }}>
+                        Scientific resource percentage table — For rain interruptions & tournaments.
+                      </Text>
+                    </View>
+                    {earlyEndTargetMode === 'dls' && (
+                      <Text style={{ color: '#8b5cf6', fontSize: 16, fontWeight: '900', marginLeft: 8 }}>✓</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Dynamic Target Preview Card */}
+              {(() => {
+                const parsedOv = parseInt(dlsRevisedOversInput, 10);
+                const origOv = match.totalOvers || match.overs || 20;
+                const safeOv = (!isNaN(parsedOv) && parsedOv > 0) ? parsedOv : (dlsInterruptionMode === 'terminate_inn1' ? origOv : 12);
+
+                if (earlyEndTargetMode === 'local') {
+                  const targetRuns = currentInnings === 1
+                    ? (Number(liveRuns) || 0) + 1
+                    : Math.max(1, Math.round(((firstInningsSummary?.runs || 0) / origOv) * safeOv) + 1);
+                  const reqRunRate = safeOv > 0 ? (targetRuns / safeOv).toFixed(2) : '0.00';
+
+                  return (
+                    <View style={{
+                      backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#022c22',
+                      borderColor: '#10b981',
+                      borderWidth: 1.5,
+                      borderRadius: 14,
+                      padding: 12,
+                      marginBottom: 12,
+                      alignItems: 'center',
+                    }}>
+                      <View style={{ backgroundColor: '#10b981', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginBottom: 4 }}>
+                        <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900', textTransform: 'uppercase' }}>
+                          Standard Target (Runs + 1)
+                        </Text>
+                      </View>
+
+                      {/* Big Target Output */}
+                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginVertical: 3 }}>
+                        <Text style={{ fontSize: 34, fontWeight: '900', color: currentTheme.isLight ? '#15803d' : '#4ade80' }}>
+                          {targetRuns}
+                        </Text>
+                        <Text style={{ fontSize: 13, color: currentTheme.isLight ? '#166534' : '#dcfce7', fontWeight: 'bold' }}>
+                          runs to win in {safeOv}.0 ov
+                        </Text>
+                      </View>
+
+                      <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#166534' : '#a7f3d0' }}>
+                        Target Formula: <Text style={{ fontWeight: 'bold' }}>{liveRuns} runs + 1</Text> = <Text style={{ fontWeight: '900', color: currentTheme.isLight ? '#15803d' : '#34d399' }}>{targetRuns} runs</Text>
+                      </Text>
+
+                      <View style={{
+                        flexDirection: 'row',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        gap: 12,
+                        borderTopWidth: 1,
+                        borderTopColor: currentTheme.isLight ? '#bbf7d0' : '#065f46',
+                        marginTop: 8,
+                        paddingTop: 8,
+                        width: '100%',
+                      }}>
+                        <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#15803d' : '#86efac', fontWeight: '600' }}>
+                          Target Overs: <Text style={{ fontWeight: 'bold' }}>{safeOv}.0 ov</Text>
+                        </Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 10 }}>•</Text>
+                        <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#15803d' : '#86efac', fontWeight: '600' }}>
+                          Req Rate: <Text style={{ fontWeight: 'bold' }}>{reqRunRate} rpo</Text>
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                }
+
+                // DLS Calculation Preview
+                const preview = currentInnings === 1
+                  ? calculateDLSTarget({
+                      firstInnRuns: liveRuns,
+                      firstInnWkts: liveWickets,
+                      firstInnBalls: liveBalls,
+                      origMaxOvers: origOv,
+                      revisedOvers: safeOv,
+                      interruptionMode: dlsInterruptionMode,
+                    })
+                  : calculateDLSTarget({
+                      firstInnRuns: firstInningsSummary?.runs || currentMatchData?.innings1?.runs || 0,
+                      firstInnWkts: firstInningsSummary?.wickets || currentMatchData?.innings1?.wickets || 0,
+                      firstInnBalls: (firstInningsSummary?.overs ? (parseFloat(firstInningsSummary.overs) * 6) : 0) || (origOv * 6),
+                      origMaxOvers: origOv,
+                      revisedOvers: safeOv,
+                      interruptionMode: 'curtail_inn2',
+                      secondInnRuns: liveRuns,
+                      secondInnWkts: liveWickets,
+                      secondInnBalls: liveBalls,
+                    });
+
+                return (
+                  <View style={{
+                    backgroundColor: currentTheme.isLight ? '#faf5ff' : '#1e1b4b',
+                    borderColor: '#8b5cf6',
+                    borderWidth: 1.5,
+                    borderRadius: 14,
+                    padding: 12,
+                    marginBottom: 12,
+                    alignItems: 'center',
+                  }}>
+                    <View style={{ backgroundColor: '#8b5cf6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10, marginBottom: 4 }}>
+                      <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900', textTransform: 'uppercase' }}>
+                        Official ICC DLS Method
+                      </Text>
+                    </View>
+
+                    {/* Big Target Output */}
+                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginVertical: 3 }}>
+                      <Text style={{ fontSize: 34, fontWeight: '900', color: '#fde047' }}>
+                        {preview.revisedTarget}
+                      </Text>
+                      <Text style={{ fontSize: 13, color: currentTheme.isLight ? '#4c1d95' : '#e0e7ff', fontWeight: 'bold' }}>
+                        runs to win in {safeOv}.0 ov
+                      </Text>
+                    </View>
+
+                    <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#6b21a8' : '#c7d2fe' }}>
+                      DLS Formula: <Text style={{ fontWeight: 'bold' }}>Resource R1 ({preview.r1}%) vs R2 ({preview.r2}%)</Text> • Par: <Text style={{ fontWeight: 'bold', color: '#fde047' }}>{preview.parScore}</Text>
+                    </Text>
+
+                    <View style={{
+                      flexDirection: 'row',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: 12,
+                      borderTopWidth: 1,
+                      borderTopColor: currentTheme.isLight ? '#e9d5ff' : '#312e81',
+                      marginTop: 8,
+                      paddingTop: 8,
+                      width: '100%',
+                    }}>
+                      <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#6d28d9' : '#c4b5fd', fontWeight: '600' }}>
+                        Req Rate: <Text style={{ fontWeight: 'bold' }}>{preview.rrr} rpo</Text>
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 10 }}>•</Text>
+                      <Text style={{ fontSize: 11, color: '#f59e0b', fontWeight: 'bold' }}>
+                        Quota: {preview.bowlerQuota?.quotaText || 'N/A'}
+                      </Text>
+                    </View>
+
+                    {safeOv < 5 && origOv <= 20 && (
+                      <Text style={{ fontSize: 10, color: '#ef4444', fontWeight: 'bold', marginTop: 4 }}>
+                        ⚠️ Minimum 5.0 overs required for valid ICC match result.
+                      </Text>
+                    )}
+                  </View>
+                );
+              })()}
+
               {/* Revised Overs Selection */}
-              <Text style={{ fontSize: 11.5, fontWeight: '800', color: currentTheme.isLight ? '#475569' : '#cbd5e1', marginBottom: 6, textTransform: 'uppercase' }}>
-                Set Revised Match Overs:
-              </Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <Text style={{ fontSize: 11.5, fontWeight: '800', color: currentTheme.isLight ? '#475569' : '#cbd5e1', textTransform: 'uppercase' }}>
+                  Set Revised Match Overs:
+                </Text>
+                <Text style={{ fontSize: 10.5, color: '#94a3b8' }}>
+                  {currentInnings === 1 ? '2nd Innings Overs Limit' : 'Curtailed Match Overs'}
+                </Text>
+              </View>
+
               {/* Quick Overs Selection Chips */}
               <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
-                {[5, 8, 10, 12, 14, 15, 18].map(ov => {
+                {(() => {
                   const origOv = match.totalOvers || match.overs || 20;
-                  if (ov >= origOv) return null;
-                  const isSel = String(ov) === dlsRevisedOversInput;
-                  return (
-                    <TouchableOpacity
-                      key={`quick_ov_${ov}`}
-                      style={{
-                        paddingHorizontal: 12,
-                        paddingVertical: 7,
-                        borderRadius: 8,
-                        backgroundColor: isSel
-                          ? (earlyEndTargetMode === 'local' ? '#10b981' : '#8b5cf6')
-                          : (currentTheme.isLight ? '#f1f5f9' : '#1e293b'),
-                        borderWidth: 1,
-                        borderColor: isSel ? (earlyEndTargetMode === 'local' ? '#10b981' : '#8b5cf6') : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
-                      }}
-                      onPress={() => setDlsRevisedOversInput(String(ov))}
-                    >
-                      <Text style={{ color: isSel ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#cbd5e1'), fontSize: 12, fontWeight: '800' }}>
-                        {ov} ov
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
+                  const candidates = [origOv, 15, 12, 10, 8, 5];
+                  const uniqueList = candidates.filter((val, idx) => candidates.indexOf(val) === idx && val <= origOv);
+                  return uniqueList.map(ov => {
+                    const isSel = String(ov) === dlsRevisedOversInput;
+                    const isFull = ov === origOv;
+                    return (
+                      <TouchableOpacity
+                        key={`quick_ov_${ov}`}
+                        style={{
+                          paddingHorizontal: 12,
+                          paddingVertical: 7,
+                          borderRadius: 8,
+                          backgroundColor: isSel
+                            ? (earlyEndTargetMode === 'local' ? '#10b981' : '#8b5cf6')
+                            : (currentTheme.isLight ? '#f1f5f9' : '#1e293b'),
+                          borderWidth: 1,
+                          borderColor: isSel ? (earlyEndTargetMode === 'local' ? '#10b981' : '#8b5cf6') : (currentTheme.isLight ? '#cbd5e1' : '#334155'),
+                        }}
+                        onPress={() => setDlsRevisedOversInput(String(ov))}
+                      >
+                        <Text style={{ color: isSel ? '#ffffff' : (currentTheme.isLight ? '#334155' : '#cbd5e1'), fontSize: 12, fontWeight: '800' }}>
+                          {ov} ov{isFull ? ' (Full)' : ''}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  });
+                })()}
               </View>
 
               {/* Custom Overs Input */}
@@ -31391,137 +31621,6 @@ function CricketAddaMain() {
                 </Text>
               </View>
 
-              {/* Real-time Dynamic Target Preview Card */}
-              {(() => {
-                const parsedOv = parseInt(dlsRevisedOversInput, 10);
-                const origOv = match.totalOvers || match.overs || 20;
-                const safeOv = (!isNaN(parsedOv) && parsedOv > 0) ? parsedOv : 12;
-
-                if (earlyEndTargetMode === 'local') {
-                  const targetRuns = currentInnings === 1
-                    ? (Number(liveRuns) || 0) + 1
-                    : Math.max(1, Math.round(((firstInningsSummary?.runs || 0) / origOv) * safeOv) + 1);
-                  const reqRunRate = safeOv > 0 ? (targetRuns / safeOv).toFixed(2) : '0.00';
-
-                  return (
-                    <View style={{
-                      backgroundColor: currentTheme.isLight ? '#f0fdf4' : '#022c22',
-                      borderColor: '#10b981',
-                      borderWidth: 1.5,
-                      borderRadius: 12,
-                      padding: 12,
-                      marginBottom: 14,
-                    }}>
-                      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '800', color: currentTheme.isLight ? '#15803d' : '#86efac', textTransform: 'uppercase' }}>
-                          🎯 Option 1 Target Preview:
-                        </Text>
-                        <View style={{ backgroundColor: '#10b981', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                          <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>
-                            STANDARD TARGET (RUNS + 1)
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* Big Target Output */}
-                      <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginVertical: 4 }}>
-                        <Text style={{ fontSize: 32, fontWeight: '900', color: currentTheme.isLight ? '#15803d' : '#4ade80' }}>
-                          {targetRuns}
-                        </Text>
-                        <Text style={{ fontSize: 13, color: currentTheme.isLight ? '#166534' : '#dcfce7', fontWeight: 'bold' }}>
-                          runs to win in {safeOv}.0 ov
-                        </Text>
-                      </View>
-
-                      <Text style={{ fontSize: 11.5, color: currentTheme.isLight ? '#166534' : '#bbf7d0', fontWeight: '700' }}>
-                        Required Run Rate: <Text style={{ fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }}>{reqRunRate} rpo</Text>
-                      </Text>
-
-                      <View style={{ borderTopWidth: 1, borderTopColor: currentTheme.isLight ? '#bbf7d0' : '#065f46', marginTop: 8, paddingTop: 8 }}>
-                        <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#15803d' : '#86efac', fontWeight: '700' }}>
-                          {currentInnings === 1
-                            ? `✓ 1st Innings ${liveRuns}/${liveWickets} (${oversStr} ov) par conclude hogi. 2nd Innings target: ${targetRuns} runs.`
-                            : `✓ 2nd Innings revised overs: ${safeOv}.0 ov. Target: ${targetRuns} runs.`}
-                        </Text>
-                      </View>
-                    </View>
-                  );
-                }
-
-                // DLS Calculation Preview
-                const preview = currentInnings === 1
-                  ? calculateDLSTarget({
-                      firstInnRuns: liveRuns,
-                      firstInnWkts: liveWickets,
-                      firstInnBalls: liveBalls,
-                      origMaxOvers: origOv,
-                      revisedOvers: safeOv,
-                      interruptionMode: dlsInterruptionMode,
-                    })
-                  : calculateDLSTarget({
-                      firstInnRuns: firstInningsSummary?.runs || currentMatchData?.innings1?.runs || 0,
-                      firstInnWkts: firstInningsSummary?.wickets || currentMatchData?.innings1?.wickets || 0,
-                      firstInnBalls: (firstInningsSummary?.overs ? (parseFloat(firstInningsSummary.overs) * 6) : 0) || (origOv * 6),
-                      origMaxOvers: origOv,
-                      revisedOvers: safeOv,
-                      interruptionMode: 'curtail_inn2',
-                      secondInnRuns: liveRuns,
-                      secondInnWkts: liveWickets,
-                      secondInnBalls: liveBalls,
-                    });
-
-                return (
-                  <View style={{
-                    backgroundColor: currentTheme.isLight ? '#faf5ff' : '#1e1b4b',
-                    borderColor: '#8b5cf6',
-                    borderWidth: 1.5,
-                    borderRadius: 12,
-                    padding: 12,
-                    marginBottom: 14,
-                  }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-                      <Text style={{ fontSize: 11, fontWeight: '800', color: currentTheme.isLight ? '#6d28d9' : '#c4b5fd', textTransform: 'uppercase' }}>
-                        🎯 Option 2 Target Preview:
-                      </Text>
-                      <View style={{ backgroundColor: '#8b5cf6', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                        <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>
-                          ICC DLS 5.0
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Big Target Output */}
-                    <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginVertical: 4 }}>
-                      <Text style={{ fontSize: 30, fontWeight: '900', color: '#fde047' }}>
-                        {preview.revisedTarget}
-                      </Text>
-                      <Text style={{ fontSize: 13, color: currentTheme.isLight ? '#4c1d95' : '#e0e7ff', fontWeight: 'bold' }}>
-                        runs to win in {safeOv}.0 ov
-                      </Text>
-                    </View>
-
-                    <Text style={{ fontSize: 11.5, color: currentTheme.isLight ? '#6b21a8' : '#c7d2fe', fontWeight: '700' }}>
-                      Required Run Rate: <Text style={{ fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }}>{preview.rrr} rpo</Text> • Par Score: {preview.parScore} runs
-                    </Text>
-
-                    {/* Resources & Bowler Quota breakdown */}
-                    <View style={{ borderTopWidth: 1, borderTopColor: currentTheme.isLight ? '#e9d5ff' : '#312e81', marginTop: 8, paddingTop: 8 }}>
-                      <Text style={{ fontSize: 10.5, color: '#94a3b8' }}>
-                        📊 Resource Available: Team 1: <Text style={{ color: '#38bdf8', fontWeight: 'bold' }}>{preview.r1}%</Text> • Team 2: <Text style={{ color: '#10b981', fontWeight: 'bold' }}>{preview.r2}%</Text>
-                      </Text>
-                      <Text style={{ fontSize: 10.5, color: '#f59e0b', fontWeight: 'bold', marginTop: 3 }}>
-                        ⚡ Bowler Quota (Clause 13.9): {preview.bowlerQuota.quotaText}
-                      </Text>
-                      {safeOv < 5 && origOv <= 20 && (
-                        <Text style={{ fontSize: 10, color: '#ef4444', fontWeight: 'bold', marginTop: 4 }}>
-                          ⚠️ Under ICC T20 rules, a minimum of 5.0 overs per side is required for a valid DLS match result.
-                        </Text>
-                      )}
-                    </View>
-                  </View>
-                );
-              })()}
-
               {/* Action Buttons */}
               <View style={{ flexDirection: 'row', gap: 10, marginTop: 4 }}>
                 <TouchableOpacity
@@ -31535,7 +31634,10 @@ function CricketAddaMain() {
                     borderWidth: 1,
                     borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
                   }}
-                  onPress={() => setDlsModalVisible(false)}
+                  onPress={() => {
+                    setTargetMethodDropdownOpen(false);
+                    setDlsModalVisible(false);
+                  }}
                 >
                   <Text style={{ color: currentTheme.isLight ? '#475569' : '#94a3b8', fontSize: 13, fontWeight: 'bold' }}>
                     Cancel
@@ -31556,10 +31658,15 @@ function CricketAddaMain() {
                     shadowRadius: 5,
                     elevation: 5,
                   }}
-                  onPress={handleApplyDLSReduction}
+                  onPress={() => {
+                    setTargetMethodDropdownOpen(false);
+                    handleApplyDLSReduction();
+                  }}
                 >
-                  <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>
-                    {earlyEndTargetMode === 'local' ? '🏁 Apply Standard Target 🚀' : '🌧️ Apply DLS Target 🚀'}
+                  <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>
+                    {earlyEndTargetMode === 'local'
+                      ? (currentInnings === 1 ? '🏁 End 1st Innings & Start Chase' : '✓ Revise Target Overs')
+                      : (currentInnings === 1 ? '🌧️ Apply DLS & End 1st Innings' : '🌧️ Apply DLS Target')}
                   </Text>
                 </TouchableOpacity>
               </View>
