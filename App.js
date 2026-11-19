@@ -19308,7 +19308,7 @@ function CricketAddaMain() {
                 <Text style={{ color: currentTheme.isLight ? '#0f172a' : '#e2e8f0', fontSize: 11.5, fontWeight: '800' }}>← Back</Text>
               </TouchableOpacity>
             )}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 4 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, marginBottom: 8 }}>
               <Svg width={20} height={17} viewBox="0 0 18 15" fill="none" style={{ marginTop: -1 }}>
                 <Rect x="1" y="7" width="4" height="7.5" rx="1" fill="#0284c7" />
                 <Rect x="7" y="3.5" width="4" height="11" rx="1" fill="#0ea5e9" />
@@ -19318,9 +19318,6 @@ function CricketAddaMain() {
                 Player Stats
               </Text>
             </View>
-            <Text style={{ color: txtMuted, fontSize: 12, textAlign: 'center', marginBottom: 12 }}>
-              Track your career stats, match records & performance
-            </Text>
           </View>
 
           <View style={{ paddingHorizontal: 10, paddingTop: 2 }}>
