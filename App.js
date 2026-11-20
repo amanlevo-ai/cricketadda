@@ -30921,32 +30921,6 @@ function CricketAddaMain() {
               </TouchableOpacity>
             </View>
 
-            {/* Option 1: Scorecard */}
-            <TouchableOpacity
-              onPress={() => {
-                setScorerActionsModalVisible(false);
-                openMatchScorecard(activeMatchId);
-              }}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 12,
-                paddingVertical: 11,
-                paddingHorizontal: 12,
-                borderRadius: 10,
-                backgroundColor: 'rgba(2, 132, 199, 0.15)',
-                marginBottom: 8,
-                borderWidth: 1,
-                borderColor: 'rgba(56, 189, 248, 0.3)',
-              }}
-            >
-              <Text style={{ fontSize: 18 }}>📊</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Full Scorecard</Text>
-                <Text style={{ color: '#94a3b8', fontSize: 11 }}>View detailed innings scorecard & stats</Text>
-              </View>
-            </TouchableOpacity>
-
             {/* Quick Live Celebration Test Bar (6, 4, OUT, NB) */}
             <View style={{
               flexDirection: 'row',
@@ -31037,31 +31011,6 @@ function CricketAddaMain() {
             {/* Option 2: Wagon Wheel & Auto Wheel (Official Scorer Only) */}
             {isOfficialScorer && (
               <>
-                <TouchableOpacity
-                  onPress={() => {
-                    setScorerActionsModalVisible(false);
-                    openMatchWagonWheel(activeMatchId);
-                  }}
-                  style={{
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 12,
-                    paddingVertical: 11,
-                    paddingHorizontal: 12,
-                    borderRadius: 10,
-                    backgroundColor: 'rgba(30, 58, 95, 0.3)',
-                    marginBottom: 8,
-                    borderWidth: 1,
-                    borderColor: '#1e3a5f',
-                  }}
-                >
-                  <Text style={{ fontSize: 18 }}>🎯</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }}>Full Wagon Wheel Ground</Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 11 }}>View 8-sector shot directions & zones</Text>
-                  </View>
-                </TouchableOpacity>
-
                 {/* Auto Wagon Wheel Prompt Toggle Switch */}
                 <TouchableOpacity
                   activeOpacity={0.85}
