@@ -15993,13 +15993,13 @@ function CricketAddaMain() {
       .filter(pName => pName && !battedPlayerNames.has(pName.toLowerCase()));
 
     return (
-      <View style={{ gap: 6 }}>
+      <View style={{ gap: 8 }}>
         {/* Inning Toggle Buttons */}
         <View style={{ flexDirection: 'row', gap: 6, marginBottom: 2 }}>
           <TouchableOpacity
             style={{
               flex: 1,
-              paddingVertical: 6,
+              paddingVertical: 7,
               paddingHorizontal: 8,
               backgroundColor: scorecardInning === 1 ? '#0284c7' : '#071526',
               borderRadius: 8,
@@ -16018,7 +16018,7 @@ function CricketAddaMain() {
           <TouchableOpacity
             style={{
               flex: 1,
-              paddingVertical: 6,
+              paddingVertical: 7,
               paddingHorizontal: 8,
               backgroundColor: scorecardInning === 2 ? '#0284c7' : '#071526',
               borderRadius: 8,
@@ -16047,7 +16047,7 @@ function CricketAddaMain() {
           <View style={{
             backgroundColor: '#0a213a',
             paddingHorizontal: 10,
-            paddingVertical: 6,
+            paddingVertical: 7,
             flexDirection: 'row',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -16074,7 +16074,7 @@ function CricketAddaMain() {
           </View>
 
           {/* Table Header */}
-          <View style={{ flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
+          <View style={{ flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
             <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Batter</Text>
             <Text style={{ width: 32, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>R</Text>
             <Text style={{ width: 32, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>B</Text>
@@ -16083,9 +16083,9 @@ function CricketAddaMain() {
             <Text style={{ width: 46, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>SR</Text>
           </View>
 
-          {/* Batter List Rows (Full Playing 11 + Player Photos) - Compact 3px vertical padding */}
+          {/* Batter List Rows (Full Playing 11 + Player Photos) */}
           {battingList.length === 0 && yetToBatList.length === 0 ? (
-            <Text style={{ color: '#64748b', fontSize: 12.5, paddingVertical: 8, textAlign: 'center' }}>Yet to bat</Text>
+            <Text style={{ color: '#64748b', fontSize: 12.5, paddingVertical: 10, textAlign: 'center' }}>Yet to bat</Text>
           ) : (
             <>
               {battingList.map((b, i) => {
@@ -16097,17 +16097,17 @@ function CricketAddaMain() {
                     activeOpacity={0.7}
                     disabled={!canClick}
                     onPress={() => openBatterDetailsModal(b, activeInningData?.team)}
-                    style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.4)' }}
+                    style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.4)' }}
                   >
                     <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                       <PlayerAvatar name={b.name} size={22} customUri={getPlayerAvatarUri(b.name)} />
                       {isStriker && <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#22c55e' }} />}
                       <View style={{ flex: 1 }}>
-                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800', lineHeight: 16 }} numberOfLines={1}>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '800' }} numberOfLines={1}>
                           {b.name} {b.isNotOut ? '*' : ''}
                         </Text>
                         {b.dismissal ? (
-                          <Text style={{ color: '#94a3b8', fontSize: 10, marginTop: 1, lineHeight: 12 }} numberOfLines={1}>
+                          <Text style={{ color: '#94a3b8', fontSize: 10 }} numberOfLines={1}>
                             {b.dismissal}
                           </Text>
                         ) : null}
@@ -16130,7 +16130,7 @@ function CricketAddaMain() {
                     flexDirection: 'row',
                     alignItems: 'center',
                     paddingHorizontal: 8,
-                    paddingVertical: 3,
+                    paddingVertical: 5,
                     borderBottomWidth: 0.5,
                     borderBottomColor: 'rgba(30, 58, 95, 0.4)',
                   }}
@@ -16138,10 +16138,10 @@ function CricketAddaMain() {
                   <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <PlayerAvatar name={pName} size={22} customUri={getPlayerAvatarUri(pName)} />
                     <View style={{ flex: 1 }}>
-                      <Text style={{ color: '#cbd5e1', fontSize: 13, fontWeight: '700', lineHeight: 16 }} numberOfLines={1}>
+                      <Text style={{ color: '#cbd5e1', fontSize: 13, fontWeight: '700' }} numberOfLines={1}>
                         {pName}
                       </Text>
-                      <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600', marginTop: 1, lineHeight: 12 }} numberOfLines={1}>
+                      <Text style={{ color: '#64748b', fontSize: 10, fontWeight: '600' }} numberOfLines={1}>
                         Yet to bat
                       </Text>
                     </View>
@@ -16199,7 +16199,7 @@ function CricketAddaMain() {
           borderWidth: 1,
           borderColor: '#1e3a5f',
           paddingHorizontal: 10,
-          paddingVertical: 6,
+          paddingVertical: 8,
           flexDirection: 'row',
           alignItems: 'center',
           justifyContent: 'space-between',
@@ -16225,7 +16225,7 @@ function CricketAddaMain() {
           <View style={{
             backgroundColor: '#0a213a',
             paddingHorizontal: 10,
-            paddingVertical: 6,
+            paddingVertical: 7,
             flexDirection: 'row',
             alignItems: 'center',
             gap: 7,
@@ -16247,7 +16247,7 @@ function CricketAddaMain() {
           </View>
 
           {/* Table Header */}
-          <View style={{ flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
+          <View style={{ flexDirection: 'row', paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 1, borderBottomColor: '#1e3a5f' }}>
             <Text style={{ flex: 2.2, color: '#94a3b8', fontSize: 12, fontWeight: '700' }}>Bowler</Text>
             <Text style={{ width: 32, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>O</Text>
             <Text style={{ width: 28, color: '#94a3b8', fontSize: 12, fontWeight: '700', textAlign: 'right' }}>M</Text>
@@ -16258,7 +16258,7 @@ function CricketAddaMain() {
 
           {/* Bowler Rows */}
           {bowlingList.length === 0 ? (
-            <Text style={{ color: '#64748b', fontSize: 12.5, paddingVertical: 8, textAlign: 'center' }}>Yet to bowl</Text>
+            <Text style={{ color: '#64748b', fontSize: 12.5, paddingVertical: 10, textAlign: 'center' }}>Yet to bowl</Text>
           ) : (
             bowlingList.map((bw, i) => {
               const canClickBowl = bw.overs !== '0.0' || Number(bw.runs || 0) > 0 || Number(bw.wickets || 0) > 0;
@@ -16268,7 +16268,7 @@ function CricketAddaMain() {
                   activeOpacity={0.7}
                   disabled={!canClickBowl}
                   onPress={() => openBowlerDetailsModal(bw, activeInningData?.team)}
-                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 3.5, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.4)' }}
+                  style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: 'rgba(30, 58, 95, 0.4)' }}
                 >
                   <View style={{ flex: 2.2, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <PlayerAvatar name={bw.name} size={22} customUri={getPlayerAvatarUri(bw.name)} />
