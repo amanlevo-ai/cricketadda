@@ -8641,7 +8641,7 @@ function CricketAddaMain() {
         setIsOnline(onlineStatus);
       },
       (syncedCount) => {
-        showAppToast(`☁️ Online: ${syncedCount} offline update${syncedCount > 1 ? 's' : ''} synced to cloud!`, '✅');
+        // Silent background sync without intrusive popup alerts
         getOfflineQueue().then(q => setOfflinePendingCount(q.length));
       }
     );
@@ -25270,23 +25270,9 @@ function CricketAddaMain() {
                 );
               })()}
 
-              {/* 5. BOWLER CARD (PERFECT VERTICAL COLUMN ALIGNMENT & COMPACT SPACING) */}
+              {/* 5. BOWLER CARD (2-ROW CLEAN LAYOUT - NO OVERLAY, FULL NAME & UNCONGESTED STATS) */}
               {(() => {
                 const bowlerStats = getBowlerDetailed(bowler);
-
-                // Smart Name Abbreviation: "Aman Singh" -> "A. Singh", "Aman" -> "Aman"
-                const formatBowlerDisplayName = (fullName) => {
-                  if (!fullName) return '';
-                  const clean = String(fullName).replace(/\s*\([^)]*\)/g, '').trim();
-                  const parts = clean.split(/\s+/).filter(Boolean);
-                  if (parts.length <= 1) return clean;
-                  if (parts.length === 2) {
-                    return `${parts[0][0].toUpperCase()}. ${parts[1]}`;
-                  }
-                  return `${parts.slice(0, -1).map(p => p[0].toUpperCase() + '.').join(' ')} ${parts[parts.length - 1]}`;
-                };
-
-                const formattedBowlerName = formatBowlerDisplayName(bowler);
 
                 return (
                   <View style={{
@@ -25295,87 +25281,110 @@ function CricketAddaMain() {
                     borderWidth: 1,
                     borderColor: scCardBorder,
                     paddingVertical: 7,
-                    paddingHorizontal: 8,
+                    paddingHorizontal: 9,
                     marginBottom: 4,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 6,
                   }}>
-                    {/* Left: Bigger Square Avatar (34px) + Formatted Bowler Name */}
-                    <TouchableOpacity
-                      activeOpacity={isOfficialScorer ? 0.75 : 1}
-                      onPress={isOfficialScorer ? () => setChangeBowlerModalVisible(true) : undefined}
-                      style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexShrink: 1, maxWidth: 112 }}
-                    >
-                      <PlayerAvatar name={bowler} size={34} customUri={getPlayerAvatarUri(bowler)} borderColor="#ef4444" style={{ borderRadius: 7 }} />
-                      <Text style={{ color: scTxtPrimary, fontSize: 12.5, fontWeight: '800' }} numberOfLines={1}>
-                        {formattedBowlerName}
-                      </Text>
-                    </TouchableOpacity>
+                    {/* Top Row: Avatar (30px) + Full Bowler Name + Subtitle + Change Bowler Button */}
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      marginBottom: 6,
+                    }}>
+                      <TouchableOpacity
+                        activeOpacity={isOfficialScorer ? 0.75 : 1}
+                        onPress={isOfficialScorer ? () => setChangeBowlerModalVisible(true) : undefined}
+                        style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, marginRight: 8 }}
+                      >
+                        <PlayerAvatar
+                          name={bowler}
+                          size={30}
+                          customUri={getPlayerAvatarUri(bowler)}
+                          borderColor="#ef4444"
+                          style={{ borderRadius: 7 }}
+                        />
+                        <View style={{ flex: 1, justifyContent: 'center' }}>
+                          <Text
+                            style={{ color: scTxtPrimary, fontSize: 13, fontWeight: '900' }}
+                            numberOfLines={1}
+                            ellipsizeMode="tail"
+                          >
+                            {bowler || 'Select Bowler'}
+                          </Text>
+                          <Text style={{ color: '#ef4444', fontSize: 9.5, fontWeight: '700', marginTop: 1 }}>
+                            Current Bowler
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
 
-                    {/* Vertical Strip Divider after Name */}
-                    <View style={{ width: 1, height: 22, backgroundColor: isLight ? '#cbd5e1' : '#1e3a5f' }} />
+                      {isOfficialScorer && (
+                        <TouchableOpacity
+                          onPress={() => setChangeBowlerModalVisible(true)}
+                          activeOpacity={0.75}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 4,
+                            paddingHorizontal: 9,
+                            paddingVertical: 4.5,
+                            borderRadius: 7,
+                            backgroundColor: 'rgba(2, 132, 199, 0.15)',
+                            borderWidth: 1,
+                            borderColor: '#0284c7',
+                          }}
+                        >
+                          <Text style={{ color: '#38bdf8', fontSize: 12.5, fontWeight: 'bold' }}>⇄</Text>
+                          <Text style={{ color: '#38bdf8', fontSize: 11, fontWeight: '700' }}>Change</Text>
+                        </TouchableOpacity>
+                      )}
+                    </View>
 
-                    {/* Middle: Ov | M | R | W (100% Vertical Column Alignment) */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    {/* Bottom Row: Clean 5-Stat Strip (Ov | M | R | W | Econ) */}
+                    <View style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      backgroundColor: isLight ? '#f1f5f9' : 'rgba(11, 19, 41, 0.65)',
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.5)',
+                      paddingVertical: 4.5,
+                      paddingHorizontal: 4,
+                    }}>
                       {/* Ov */}
-                      <View style={{ alignItems: 'center', minWidth: 20 }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ color: scTxtPrimary, fontSize: 13, fontWeight: '900' }}>{bowlerStats.ovStr}</Text>
                         <Text style={{ color: scTxtMuted, fontSize: 8.5, fontWeight: '700', marginTop: 1 }}>Ov</Text>
                       </View>
-                      <Text style={{ color: isLight ? '#cbd5e1' : 'rgba(30, 58, 95, 0.9)', fontSize: 11, fontWeight: 'bold' }}>-</Text>
+                      <View style={{ width: 1, height: 16, backgroundColor: isLight ? '#cbd5e1' : '#1e3a5f' }} />
+
                       {/* M */}
-                      <View style={{ alignItems: 'center', minWidth: 13 }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ color: scTxtPrimary, fontSize: 13, fontWeight: '900' }}>{bowlerStats.maidens}</Text>
                         <Text style={{ color: scTxtMuted, fontSize: 8.5, fontWeight: '700', marginTop: 1 }}>M</Text>
                       </View>
-                      <Text style={{ color: isLight ? '#cbd5e1' : 'rgba(30, 58, 95, 0.9)', fontSize: 11, fontWeight: 'bold' }}>-</Text>
+                      <View style={{ width: 1, height: 16, backgroundColor: isLight ? '#cbd5e1' : '#1e3a5f' }} />
+
                       {/* R */}
-                      <View style={{ alignItems: 'center', minWidth: 18 }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ color: scTxtPrimary, fontSize: 13, fontWeight: '900' }}>{bowlerStats.runs}</Text>
                         <Text style={{ color: scTxtMuted, fontSize: 8.5, fontWeight: '700', marginTop: 1 }}>R</Text>
                       </View>
-                      <Text style={{ color: isLight ? '#cbd5e1' : 'rgba(30, 58, 95, 0.9)', fontSize: 11, fontWeight: 'bold' }}>-</Text>
+                      <View style={{ width: 1, height: 16, backgroundColor: isLight ? '#cbd5e1' : '#1e3a5f' }} />
+
                       {/* W */}
-                      <View style={{ alignItems: 'center', minWidth: 13 }}>
+                      <View style={{ alignItems: 'center', flex: 1 }}>
                         <Text style={{ color: '#ef4444', fontSize: 13, fontWeight: '900' }}>{bowlerStats.wickets}</Text>
                         <Text style={{ color: '#ef4444', fontSize: 8.5, fontWeight: '700', marginTop: 1 }}>W</Text>
                       </View>
+                      <View style={{ width: 1, height: 16, backgroundColor: isLight ? '#cbd5e1' : '#1e3a5f' }} />
+
+                      {/* Econ */}
+                      <View style={{ alignItems: 'center', flex: 1 }}>
+                        <Text style={{ color: isLight ? '#0284c7' : '#38bdf8', fontSize: 13, fontWeight: '900' }}>{bowlerStats.econ}</Text>
+                        <Text style={{ color: scTxtMuted, fontSize: 8.5, fontWeight: '700', marginTop: 1 }}>Econ</Text>
+                      </View>
                     </View>
-
-                    {/* Vertical Strip Divider before Econ */}
-                    <View style={{ width: 1, height: 22, backgroundColor: isLight ? '#cbd5e1' : '#1e3a5f' }} />
-
-                    {/* Right-Middle: Econ */}
-                    <View style={{ alignItems: 'center', minWidth: 36 }}>
-                      <Text style={{ color: scTxtPrimary, fontSize: 13, fontWeight: '900' }}>
-                        {bowlerStats.econ}
-                      </Text>
-                      <Text style={{ color: scTxtMuted, fontSize: 8.5, fontWeight: '700', marginTop: 1 }}>
-                        Econ
-                      </Text>
-                    </View>
-
-                    {/* Right: Change Bowler Button [ ⇄ ] */}
-                    {isOfficialScorer && (
-                      <TouchableOpacity
-                        onPress={() => setChangeBowlerModalVisible(true)}
-                        activeOpacity={0.75}
-                        style={{
-                          width: 30,
-                          height: 30,
-                          borderRadius: 7,
-                          backgroundColor: 'rgba(2, 132, 199, 0.15)',
-                          borderWidth: 1,
-                          borderColor: '#0284c7',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text style={{ color: '#38bdf8', fontSize: 13.5, fontWeight: 'bold' }}>⇄</Text>
-                      </TouchableOpacity>
-                    )}
                   </View>
                 );
               })()}
