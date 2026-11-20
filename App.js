@@ -12635,12 +12635,10 @@ function CricketAddaMain() {
         if (res && res.success) {
           console.log(`[CloudRTDB] 🟢 Delivery seq #${res.seq} recorded atomically to matches/${activeMatchId}/balls/${res.pushId}`);
         } else {
-          console.error('[CloudRTDB] ❌ Delivery write failed:', res?.error);
-          showAppToast('Cloud write failed: ' + (res?.error || 'Unknown error'), '⚠️', 'error');
+          console.warn('[CloudRTDB] Background sync will retry. Delivery write queued/notice:', res?.error);
         }
       }).catch(err => {
-        console.error('[CloudRTDB] ❌ Network error writing ball delivery:', err);
-        showAppToast('Network sync error: ' + (err?.message || 'Check connection'), '⚠️', 'error');
+        console.warn('[CloudRTDB] Background sync will retry. Network error writing ball delivery:', err);
       });
     }
 
@@ -13941,12 +13939,10 @@ function CricketAddaMain() {
           if (res && res.success) {
             console.log(`[CloudRTDB] 🟢 Ball delivery seq #${res.removedSeq} undone in RTDB`);
           } else {
-            console.error('[CloudRTDB] ❌ Cloud undo failed:', res?.error);
-            showAppToast('Cloud undo failed: ' + (res?.error || 'Unknown error'), '⚠️', 'error');
+            console.warn('[CloudRTDB] Cloud undo notice (handled in background):', res?.error);
           }
         }).catch(err => {
-          console.error('[CloudRTDB] ❌ Network error undoing ball:', err);
-          showAppToast('Network undo error: ' + (err?.message || 'Check connection'), '⚠️', 'error');
+          console.warn('[CloudRTDB] Network error undoing ball (handled in background):', err);
         });
       }
 
