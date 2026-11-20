@@ -24925,7 +24925,8 @@ function CricketAddaMain() {
                     borderRadius: 12,
                     borderWidth: 1.2,
                     borderColor: '#1e3a5f',
-                    padding: 8,
+                    paddingVertical: 7.5,
+                    paddingHorizontal: 8,
                     marginBottom: 4,
                     flexDirection: 'row',
                     alignItems: 'stretch',
@@ -24940,7 +24941,7 @@ function CricketAddaMain() {
                         flex: 1,
                         backgroundColor: isTeam1Batting ? (isLight ? '#e0f2fe' : '#0a2540') : scCardBg,
                         borderRadius: 9,
-                        paddingVertical: 7,
+                        paddingVertical: 6.5,
                         paddingHorizontal: 8,
                         borderWidth: 1,
                         borderColor: isTeam1Batting ? (currentTheme.primary || '#0284c7') : scCardBorder,
@@ -24979,7 +24980,7 @@ function CricketAddaMain() {
 
                     {/* Center Stats: CRR, RRR, Target */}
                     <View style={{
-                      paddingVertical: 5,
+                      paddingVertical: 4.5,
                       paddingHorizontal: 6,
                       borderRadius: 8,
                       backgroundColor: isLight ? '#f1f5f9' : 'rgba(10, 37, 64, 0.55)',
@@ -25016,7 +25017,7 @@ function CricketAddaMain() {
                         flex: 1,
                         backgroundColor: isTeam2Batting ? (isLight ? '#e0f2fe' : '#0a2540') : scCardBg,
                         borderRadius: 9,
-                        paddingVertical: 7,
+                        paddingVertical: 6.5,
                         paddingHorizontal: 8,
                         borderWidth: 1,
                         borderColor: isTeam2Batting ? (currentTheme.primary || '#0284c7') : scCardBorder,
@@ -25137,7 +25138,7 @@ function CricketAddaMain() {
                       borderRadius: 12,
                       borderWidth: 1.5,
                       borderColor: '#10b981',
-                      paddingVertical: 7,
+                      paddingVertical: 6.5,
                       paddingHorizontal: 8,
                       justifyContent: 'space-between',
                     }}>
@@ -25214,7 +25215,7 @@ function CricketAddaMain() {
                       borderRadius: 12,
                       borderWidth: 1.2,
                       borderColor: isLight ? '#cbd5e1' : '#0284c7',
-                      paddingVertical: 7,
+                      paddingVertical: 6.5,
                       paddingHorizontal: 8,
                       justifyContent: 'space-between',
                     }}>
@@ -25278,7 +25279,7 @@ function CricketAddaMain() {
                     borderRadius: 12,
                     borderWidth: 1,
                     borderColor: scCardBorder,
-                    paddingVertical: 7,
+                    paddingVertical: 6.5,
                     paddingHorizontal: 9,
                     marginBottom: 4,
                   }}>
@@ -25346,7 +25347,7 @@ function CricketAddaMain() {
                       borderRadius: 8,
                       borderWidth: 1,
                       borderColor: isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.5)',
-                      paddingVertical: 4.5,
+                      paddingVertical: 4,
                       paddingHorizontal: 4,
                     }}>
                       {/* Ov */}
@@ -25394,7 +25395,8 @@ function CricketAddaMain() {
                   borderRadius: 12,
                   borderWidth: 1,
                   borderColor: scCardBorder,
-                  padding: 7,
+                  paddingVertical: 6.5,
+                  paddingHorizontal: 7,
                   marginBottom: 4,
                 }}>
                   <View style={{ flexDirection: 'row', gap: 6, alignItems: 'stretch' }}>
