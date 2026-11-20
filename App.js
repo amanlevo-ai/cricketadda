@@ -25137,11 +25137,12 @@ function CricketAddaMain() {
                       borderRadius: 12,
                       borderWidth: 1.5,
                       borderColor: '#10b981',
-                      padding: 8,
+                      paddingVertical: 7,
+                      paddingHorizontal: 8,
                       justifyContent: 'space-between',
                     }}>
                       {/* Top Row: Bigger Square Avatar (32px) + Name + Swap Button */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                         <TouchableOpacity
                           activeOpacity={isOfficialScorer ? 0.75 : 1}
                           onPress={isOfficialScorer ? () => handleEditTeamAndSquadFromScorer('batting') : undefined}
@@ -25174,7 +25175,7 @@ function CricketAddaMain() {
                       </View>
 
                       {/* Middle: Big Score runs (balls) */}
-                      <View style={{ marginVertical: 3 }}>
+                      <View style={{ marginTop: 1, marginBottom: 2 }}>
                         <Text style={{ color: scTxtPrimary, fontSize: 19, fontWeight: '900' }} numberOfLines={1}>
                           {strikerStats.runs} <Text style={{ color: scTxtMuted, fontSize: 13, fontWeight: '700' }}>({strikerStats.balls})</Text>
                         </Text>
@@ -25213,11 +25214,12 @@ function CricketAddaMain() {
                       borderRadius: 12,
                       borderWidth: 1.2,
                       borderColor: isLight ? '#cbd5e1' : '#0284c7',
-                      padding: 8,
+                      paddingVertical: 7,
+                      paddingHorizontal: 8,
                       justifyContent: 'space-between',
                     }}>
                       {/* Top Row: Bigger Square Avatar (32px) + Name (No Swap Button Here) */}
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 2 }}>
                         <TouchableOpacity
                           activeOpacity={isOfficialScorer ? 0.75 : 1}
                           onPress={isOfficialScorer ? () => handleEditTeamAndSquadFromScorer('batting') : undefined}
@@ -25231,7 +25233,7 @@ function CricketAddaMain() {
                       </View>
 
                       {/* Middle: Big Score runs (balls) */}
-                      <View style={{ marginVertical: 3 }}>
+                      <View style={{ marginTop: 1, marginBottom: 2 }}>
                         <Text style={{ color: scTxtPrimary, fontSize: 19, fontWeight: '900' }} numberOfLines={1}>
                           {nonStrikerStats.runs} <Text style={{ color: scTxtMuted, fontSize: 13, fontWeight: '700' }}>({nonStrikerStats.balls})</Text>
                         </Text>
