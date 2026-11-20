@@ -9126,16 +9126,22 @@ function CricketAddaMain() {
     } catch (err) {}
   };
 
-  const triggerCelebration = (type, playerName, runsOrWktVal, forceShow = false, teamFlag = null, teamName = null) => {
+  const triggerCelebration = (type, playerName, runsOrWktVal, forceShow = false, teamFlag = null, teamName = null, eventMatchId = null) => {
     // 1. NEVER trigger celebration for the person who is actively scoring (unless forceShow is true for testing/preview)
     if (isOfficialScorer && !forceShow) {
       return;
     }
 
-    // 2. ONLY show celebration if viewer is actively watching the match screen (Scorer/Live, Scorecard, Wagon Wheel)
-    // NEVER show when viewer is on Home/Dashboard ('matches'), Profile, Settings, or Teams
+    // 2. ONLY show celebration if viewer is actively watching this match's screen (Scorer/Live, Scorecard, Wagon Wheel)
+    // NEVER show when viewer is on Dashboard/Home ('matches'), Profile, Settings, or Teams
     const currentTab = activeTabRef.current || activeTab;
-    if (!forceShow && currentTab !== 'scorer' && currentTab !== 'scorecard' && currentTab !== 'wheel' && currentTab !== 'live') {
+    const isMatchScreenOpen = (currentTab === 'scorer' || currentTab === 'scorecard' || currentTab === 'wheel' || currentTab === 'live');
+    if (!isMatchScreenOpen) {
+      return;
+    }
+
+    // 3. Ensure viewer is watching the EXACT SAME MATCH that triggered the event
+    if (eventMatchId && activeMatchId && String(eventMatchId) !== String(activeMatchId)) {
       return;
     }
 
@@ -9942,6 +9948,13 @@ function CricketAddaMain() {
         return [];
       };
 
+      // Check if user is actively watching THIS specific match or its scorecard (NOT on dashboard/home)
+      const incomingMatchId = d.activeMatchId || d.match?.id || d.id;
+      const currentTab = activeTabRef?.current || activeTab;
+      const isMatchScreenOpen = (currentTab === 'scorer' || currentTab === 'scorecard' || currentTab === 'wheel' || currentTab === 'live');
+      const isViewingThisSameMatch = Boolean(incomingMatchId && activeMatchId && String(incomingMatchId) === String(activeMatchId));
+      const canTriggerCelebration = isMatchScreenOpen && isViewingThisSameMatch;
+
       // 1. Direct celebrationEvent payload from scorer or cloud sync
       if (d.celebrationEvent && d.celebrationEvent.id) {
         // Protect against stale No-Ball Free-Hit celebration if current delivery is a Wide ball
@@ -9959,17 +9972,20 @@ function CricketAddaMain() {
           dismissCelebration();
         } else if (d.celebrationEvent.id !== lastCelebrationIdRef?.current) {
           if (lastCelebrationIdRef) lastCelebrationIdRef.current = d.celebrationEvent.id;
-          const cType = (d.celebrationEvent.type === 'noBall' || d.celebrationEvent.type === 'nb' || d.celebrationEvent.type === 'NB')
-            ? 'no_ball'
-            : d.celebrationEvent.type;
-          triggerCelebration(
-            cType,
-            d.celebrationEvent.player,
-            d.celebrationEvent.runs,
-            true,
-            d.celebrationEvent.teamFlag || d.battingTeamFlag,
-            d.celebrationEvent.teamName || d.battingTeamName
-          );
+          if (canTriggerCelebration) {
+            const cType = (d.celebrationEvent.type === 'noBall' || d.celebrationEvent.type === 'nb' || d.celebrationEvent.type === 'NB')
+              ? 'no_ball'
+              : d.celebrationEvent.type;
+            triggerCelebration(
+              cType,
+              d.celebrationEvent.player,
+              d.celebrationEvent.runs,
+              true,
+              d.celebrationEvent.teamFlag || d.battingTeamFlag,
+              d.celebrationEvent.teamName || d.battingTeamName,
+              incomingMatchId
+            );
+          }
         }
       } else {
         if (lastCelebrationIdRef) lastCelebrationIdRef.current = null;
@@ -9998,7 +10014,7 @@ function CricketAddaMain() {
             lastCelebrationDeliveryIdRef.current = ballKey;
             lastDeliveriesCountRef.current = curCount;
 
-            // Only fire if initial sync was established (prevents old balls from popping when viewing scorecard cold)
+            // Only fire if initial sync was established and viewer is ACTIVELY watching this specific match or its scorecard
             if (hasInitializedViewerSyncRef?.current) {
               const isWide = Boolean(
                 latestBall.extraType === 'wide' ||
@@ -10021,34 +10037,37 @@ function CricketAddaMain() {
               const batterName = latestBall.striker || d.currentStriker || striker || 'Batter';
               const outName = latestBall.dismissedPlayerName || batterName;
 
-              // Wide delivery must NEVER trigger 4s, 6s, regular Wicket, or No-Ball Free Hit celebration
-              if (!isWide) {
-                if (runsVal === 6 && !isWkt) {
-                  const sixType = latestBall.shotSector?.id === 'mid_wicket'
-                    ? 'six_helicopter'
-                    : ['long_on', 'long_off'].includes(latestBall.shotSector?.id)
-                    ? 'six_straight'
-                    : ['fine_leg', 'third_man'].includes(latestBall.shotSector?.id)
-                    ? 'six_ramp'
-                    : 'six';
-                  triggerCelebration(sixType, batterName, '6', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
-                } else if (runsVal === 4 && !isWkt) {
-                  const fourType = ['cover', 'long_off', 'long_on'].includes(latestBall.shotSector?.id)
-                    ? 'four_drive'
-                    : ['mid_wicket', 'square_leg'].includes(latestBall.shotSector?.id)
-                    ? 'four_pull'
-                    : 'four';
-                  triggerCelebration(fourType, batterName, '4', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
-                } else if (isWkt) {
-                  const wktType = latestBall.dismissalType || 'bowled';
-                  triggerCelebration(wktType, outName, 'OUT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
-                } else if (isNoBall) {
-                  triggerCelebration('no_ball', batterName, 'FREE HIT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
+              // Only trigger visual animation & sound if viewer is on THIS match's view or scorecard (NEVER on dashboard/home)
+              if (canTriggerCelebration) {
+                // Wide delivery must NEVER trigger 4s, 6s, regular Wicket, or No-Ball Free Hit celebration
+                if (!isWide) {
+                  if (runsVal === 6 && !isWkt) {
+                    const sixType = latestBall.shotSector?.id === 'mid_wicket'
+                      ? 'six_helicopter'
+                      : ['long_on', 'long_off'].includes(latestBall.shotSector?.id)
+                      ? 'six_straight'
+                      : ['fine_leg', 'third_man'].includes(latestBall.shotSector?.id)
+                      ? 'six_ramp'
+                      : 'six';
+                    triggerCelebration(sixType, batterName, '6', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA, incomingMatchId);
+                  } else if (runsVal === 4 && !isWkt) {
+                    const fourType = ['cover', 'long_off', 'long_on'].includes(latestBall.shotSector?.id)
+                      ? 'four_drive'
+                      : ['mid_wicket', 'square_leg'].includes(latestBall.shotSector?.id)
+                      ? 'four_pull'
+                      : 'four';
+                    triggerCelebration(fourType, batterName, '4', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA, incomingMatchId);
+                  } else if (isWkt) {
+                    const wktType = latestBall.dismissalType || 'bowled';
+                    triggerCelebration(wktType, outName, 'OUT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA, incomingMatchId);
+                  } else if (isNoBall) {
+                    triggerCelebration('no_ball', batterName, 'FREE HIT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA, incomingMatchId);
+                  }
+                } else if (latestBall.isWkt) {
+                  // Rare case: run-out or stumping on a wide delivery
+                  const wktType = latestBall.dismissalType || 'run_out';
+                  triggerCelebration(wktType, outName, 'OUT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA, incomingMatchId);
                 }
-              } else if (latestBall.isWkt) {
-                // Rare case: run-out or stumping on a wide delivery
-                const wktType = latestBall.dismissalType || 'run_out';
-                triggerCelebration(wktType, outName, 'OUT', true, d.battingTeamFlag || d.flagA, d.battingTeamName || d.teamA);
               }
             } else {
               if (hasInitializedViewerSyncRef) hasInitializedViewerSyncRef.current = true;
