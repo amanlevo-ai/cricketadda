@@ -10862,42 +10862,6 @@ function CricketAddaMain() {
   const crr = reconciledScore.crr;
   const sanitizedThisOver = reconciledScore.thisOver;
 
-  // Real-Time Sticky Notification Bar Sync (Stays until match is over / concluded)
-  useEffect(() => {
-    // DO NOT dismiss notifications while app session is still restoring from storage
-    if (isSessionRestoring) return;
-
-    if (!activeMatchId) {
-      dismissLiveMatchNotification();
-      return;
-    }
-    const currentM = matchesDb?.[activeMatchId] || MATCH_DATABASE?.[activeMatchId] || currentMatchData;
-    if (!currentM || isMatchCompleted(currentM)) {
-      dismissLiveMatchNotification();
-      return;
-    }
-    const team1 = currentM.teamA || currentM.innings1?.team;
-    const team2 = currentM.teamB || currentM.innings2?.team;
-    if (!team1 || !team2) {
-      dismissLiveMatchNotification();
-      return;
-    }
-
-    updateLiveMatchNotification({
-      id: activeMatchId,
-      teamA: team1,
-      teamB: team2,
-      status: currentM.status || 'live',
-      currentInnings,
-      liveRuns: reconciledScore.runs,
-      liveWickets: reconciledScore.wickets,
-      liveOvers: reconciledScore.oversStr,
-      currentStriker: striker,
-      currentNonStriker: nonStriker,
-      liveBatters: derivedInningsState.battersMap || liveBatters,
-    });
-  }, [activeMatchId, reconciledScore.runs, reconciledScore.wickets, reconciledScore.oversStr, striker, nonStriker, currentInnings, matchesDb, currentMatchData, derivedInningsState.battersMap, liveBatters]);
-
   const getBatterDetailed = useCallback(name => {
     if (!name) return { runs: 0, balls: 0, fours: 0, sixes: 0, sr: '0.0' };
     const norm = String(name).trim().toLowerCase();
@@ -10945,6 +10909,69 @@ function CricketAddaMain() {
       econ: cached?.econ || '0.0',
     };
   }, [derivedInningsState.bowlersMap, liveBowlerStats]);
+
+  // Real-Time Sticky Notification Bar Sync (Stays until match is over / concluded)
+  useEffect(() => {
+    // DO NOT dismiss notifications while app session is still restoring from storage
+    if (isSessionRestoring) return;
+
+    if (!activeMatchId) {
+      dismissLiveMatchNotification();
+      return;
+    }
+    const currentM = matchesDb?.[activeMatchId] || MATCH_DATABASE?.[activeMatchId] || currentMatchData;
+    if (!currentM || isMatchCompleted(currentM)) {
+      dismissLiveMatchNotification();
+      return;
+    }
+    const team1 = currentM.teamA || currentM.innings1?.team;
+    const team2 = currentM.teamB || currentM.innings2?.team;
+    if (!team1 || !team2) {
+      dismissLiveMatchNotification();
+      return;
+    }
+
+    const curStrikerStats = getBatterDetailed(striker);
+    const curNonStrikerStats = getBatterDetailed(nonStriker);
+    const curBowlerStats = getBowlerDetailed(bowler);
+
+    updateLiveMatchNotification({
+      id: activeMatchId,
+      teamA: team1,
+      teamB: team2,
+      status: currentM.status || 'live',
+      currentInnings,
+      liveRuns: reconciledScore.runs,
+      liveWickets: reconciledScore.wickets,
+      liveOvers: reconciledScore.oversStr,
+      currentStriker: striker,
+      currentNonStriker: nonStriker,
+      currentBowler: bowler,
+      strikerStats: curStrikerStats,
+      nonStrikerStats: curNonStrikerStats,
+      bowlerStats: curBowlerStats,
+      liveBatters: derivedInningsState.battersMap || liveBatters,
+      liveBowlers: derivedInningsState.bowlersMap || liveBowlerStats,
+    });
+  }, [
+    activeMatchId,
+    isSessionRestoring,
+    reconciledScore.runs,
+    reconciledScore.wickets,
+    reconciledScore.oversStr,
+    striker,
+    nonStriker,
+    bowler,
+    currentInnings,
+    matchesDb,
+    currentMatchData,
+    derivedInningsState.battersMap,
+    derivedInningsState.bowlersMap,
+    liveBatters,
+    liveBowlerStats,
+    getBatterDetailed,
+    getBowlerDetailed,
+  ]);
 
   const lastOverBalls = useMemo(() => {
     if (!Array.isArray(scoringHistory) || scoringHistory.length === 0) return [];

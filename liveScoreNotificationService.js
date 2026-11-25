@@ -138,22 +138,60 @@ export async function updateLiveMatchNotification(matchData) {
   const strikerName = matchData.currentStriker || matchData.striker || '';
   const nonStrikerName = matchData.currentNonStriker || matchData.nonStriker || '';
 
-  const strikerStats = matchData.liveBatters?.[strikerName?.toLowerCase()] || {};
-  const nonStrikerStats = matchData.liveBatters?.[nonStrikerName?.toLowerCase()] || {};
+  const strikerStats = matchData.strikerStats ||
+    matchData.liveBatters?.[strikerName] ||
+    matchData.liveBatters?.[strikerName?.toLowerCase()] ||
+    Object.entries(matchData.liveBatters || {}).find(([k]) => k.trim().toLowerCase() === String(strikerName).trim().toLowerCase())?.[1] ||
+    {};
+
+  const nonStrikerStats = matchData.nonStrikerStats ||
+    matchData.liveBatters?.[nonStrikerName] ||
+    matchData.liveBatters?.[nonStrikerName?.toLowerCase()] ||
+    Object.entries(matchData.liveBatters || {}).find(([k]) => k.trim().toLowerCase() === String(nonStrikerName).trim().toLowerCase())?.[1] ||
+    {};
 
   const strikerRuns = strikerStats.runs ?? 0;
   const strikerBalls = strikerStats.balls ?? 0;
   const nonStrikerRuns = nonStrikerStats.runs ?? 0;
   const nonStrikerBalls = nonStrikerStats.balls ?? 0;
 
-  const batterDetails = strikerName
-    ? `${strikerName} ${strikerRuns}* (${strikerBalls})${nonStrikerName ? ` • ${nonStrikerName} ${nonStrikerRuns}* (${nonStrikerBalls})` : ''}`
-    : `vs ${bowlingTeam}`;
+  // Extract active bowler
+  const bowlerName = matchData.currentBowler || matchData.bowler || '';
+  const bowlerStats = matchData.bowlerStats ||
+    matchData.liveBowlers?.[bowlerName] ||
+    matchData.liveBowlers?.[bowlerName?.toLowerCase()] ||
+    Object.entries(matchData.liveBowlers || {}).find(([k]) => k.trim().toLowerCase() === String(bowlerName).trim().toLowerCase())?.[1] ||
+    {};
 
-  const title = `🔴 ${team1} vs ${team2} • LIVE`;
-  const body = `${battingTeam}: ${runs}/${wickets} (${overs} ov) | ${batterDetails}`;
+  const bowlerWickets = bowlerStats.wickets ?? 0;
+  const bowlerRuns = bowlerStats.runs ?? 0;
+  const bowlerOvers = bowlerStats.ovStr ?? bowlerStats.overs ?? '0.0';
 
-  const currentHash = `${matchData.id || ''}_${runs}_${wickets}_${overs}_${strikerRuns}_${nonStrikerRuns}`;
+  // 1st Line: Teams names and total score (NO red ball emoji)
+  const scoreStr = `${battingTeam ? `${battingTeam} ` : ''}${runs}/${wickets} (${overs} ov)`;
+  const title = `${team1} vs ${team2} • ${scoreStr}`;
+
+  // 2nd Line: Current Batters
+  let batterLine = '';
+  if (strikerName && nonStrikerName && nonStrikerName !== strikerName) {
+    batterLine = `${strikerName} ${strikerRuns}* (${strikerBalls})  •  ${nonStrikerName} ${nonStrikerRuns}* (${nonStrikerBalls})`;
+  } else if (strikerName) {
+    batterLine = `${strikerName} ${strikerRuns}* (${strikerBalls})`;
+  } else {
+    batterLine = `Batting: ${battingTeam}`;
+  }
+
+  // 3rd Line: Current Bowler
+  let bowlerLine = '';
+  if (bowlerName) {
+    bowlerLine = `Bowler: ${bowlerName} ${bowlerWickets}/${bowlerRuns} (${bowlerOvers} ov)`;
+  } else {
+    bowlerLine = `Bowling: ${bowlingTeam}`;
+  }
+
+  const body = `${batterLine}\n${bowlerLine}`;
+
+  const currentHash = `${matchData.id || ''}_${runs}_${wickets}_${overs}_${strikerName}_${strikerRuns}_${strikerBalls}_${nonStrikerName}_${nonStrikerRuns}_${nonStrikerBalls}_${bowlerName}_${bowlerWickets}_${bowlerRuns}_${bowlerOvers}`;
   if (currentHash === lastNotificationHash) {
     return; // Avoid redundant identical updates
   }
