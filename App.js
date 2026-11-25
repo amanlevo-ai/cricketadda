@@ -76,6 +76,7 @@ import {
   deriveInningsStateFromDeliveries,
   deriveMatchStateFromDeliveries,
   auditStateIntegrity,
+  resolveCanonicalPlayerName,
 } from './cricketStateEngine';
 import {
   initLiveNotificationChannel,
@@ -7694,37 +7695,35 @@ function CricketAddaMain() {
                 const isMyCreated = (activeEmail && t.createdByEmail && t.createdByEmail.toLowerCase().trim() === activeEmail) ||
                                     (activePhone && t.createdByPhone && t.createdByPhone === activePhone) ||
                                     (t.isCustomCreated && activeName);
-                if (isMyCreated && activeName) {
-                  let cap = t.captain;
-                  if (cap && (cap.toLowerCase() === 'amanlevo' || cap.toLowerCase() === 'aman')) {
-                    cap = activeName;
-                  }
-                  let createdBy = t.createdBy;
-                  if (createdBy && (createdBy.toLowerCase() === 'amanlevo' || createdBy.toLowerCase() === 'aman')) {
-                    createdBy = activeName;
-                  }
-                  let squad = t.squad;
-                  if (Array.isArray(squad)) {
-                    squad = squad.map((p, pIdx) => {
-                      if (typeof p === 'string') {
-                        const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
-                        if (cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman' || pIdx === 0) {
-                          return p.replace(cleanP, activeName);
-                        }
-                        return p;
-                      } else if (p && typeof p === 'object') {
-                        const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
-                        if (pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman' || pIdx === 0) {
-                          return { ...p, name: activeName, avatarUri: userProfile?.avatarUri || p.avatarUri };
-                        }
-                        return p;
+                let cap = t.captain;
+                if (cap && (cap.toLowerCase() === 'amanlevo' || cap.toLowerCase() === 'aman')) {
+                  cap = (isMyCreated && activeName) ? activeName : 'Amandeep';
+                }
+                let createdBy = t.createdBy;
+                if (createdBy && (createdBy.toLowerCase() === 'amanlevo' || createdBy.toLowerCase() === 'aman')) {
+                  createdBy = (isMyCreated && activeName) ? activeName : 'Amandeep';
+                }
+                let squad = t.squad;
+                if (Array.isArray(squad)) {
+                  squad = squad.map((p, pIdx) => {
+                    const targetName = (isMyCreated && activeName) ? activeName : 'Amandeep';
+                    if (typeof p === 'string') {
+                      const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
+                      if (cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman' || (pIdx === 0 && isMyCreated)) {
+                        return p.replace(cleanP, targetName);
                       }
                       return p;
-                    });
-                  }
-                  return { ...t, captain: cap, createdBy, squad };
+                    } else if (p && typeof p === 'object') {
+                      const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
+                      if (pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman' || (pIdx === 0 && isMyCreated)) {
+                        return { ...p, name: targetName, avatarUri: (isMyCreated ? userProfile?.avatarUri : null) || p.avatarUri };
+                      }
+                      return p;
+                    }
+                    return p;
+                  });
                 }
-                return t;
+                return { ...t, captain: cap, createdBy, squad };
               });
 
               setRegisteredTeams(reconciledTeams);
@@ -7973,31 +7972,32 @@ function CricketAddaMain() {
           let teamChanged = false;
           let cap = t.captain;
           if (cap && (cap.toLowerCase() === 'amanlevo' || cap.toLowerCase() === 'aman')) {
-            cap = uName;
+            cap = isCreatedByMe(t) ? (uName || 'Amandeep') : 'Amandeep';
             teamChanged = true;
           }
           let createdBy = t.createdBy;
           if (createdBy && (createdBy.toLowerCase() === 'amanlevo' || createdBy.toLowerCase() === 'aman')) {
-            createdBy = uName;
+            createdBy = isCreatedByMe(t) ? (uName || 'Amandeep') : 'Amandeep';
             teamChanged = true;
           }
           let squad = t.squad;
           if (Array.isArray(squad)) {
             squad = squad.map((p, pIdx) => {
+              const targetPName = isCreatedByMe(t) ? (uName || 'Amandeep') : 'Amandeep';
               if (typeof p === 'string') {
                 const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
                 const isMatch = cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman' || (pIdx === 0 && (t.isCustomCreated || isCreatedByMe(t)));
-                if (isMatch && cleanP !== uName) {
+                if (isMatch && cleanP !== targetPName) {
                   teamChanged = true;
-                  return p.replace(cleanP, uName);
+                  return p.replace(cleanP, targetPName);
                 }
                 return p;
               } else if (p && typeof p === 'object') {
                 const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
                 const isMatch = pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman' || (pIdx === 0 && (t.isCustomCreated || isCreatedByMe(t)));
-                if (isMatch && pClean !== uName) {
+                if (isMatch && pClean !== targetPName) {
                   teamChanged = true;
-                  return { ...p, name: uName, avatarUri: userProfile.avatarUri || p.avatarUri };
+                  return { ...p, name: targetPName, avatarUri: (isCreatedByMe(t) ? userProfile.avatarUri : null) || p.avatarUri };
                 }
                 return p;
               }
@@ -8024,7 +8024,7 @@ function CricketAddaMain() {
         let changed = false;
         let cap = cur.captain;
         if (cap && (cap.toLowerCase() === 'amanlevo' || cap.toLowerCase() === 'aman')) {
-          cap = uName;
+          cap = 'Amandeep';
           changed = true;
         }
         let squad = cur.squad;
@@ -8032,16 +8032,16 @@ function CricketAddaMain() {
           squad = squad.map((p, pIdx) => {
             if (typeof p === 'string') {
               const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
-              if (cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman' || pIdx === 0) {
+              if (cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman') {
                 changed = true;
-                return p.replace(cleanP, uName);
+                return p.replace(cleanP, 'Amandeep');
               }
               return p;
             } else if (p && typeof p === 'object') {
               const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
-              if (pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman' || pIdx === 0) {
+              if (pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman') {
                 changed = true;
-                return { ...p, name: uName, avatarUri: userProfile.avatarUri || p.avatarUri };
+                return { ...p, name: 'Amandeep', avatarUri: userProfile.avatarUri || p.avatarUri };
               }
               return p;
             }
@@ -8058,6 +8058,12 @@ function CricketAddaMain() {
         let newSt = prevMatch.currentStriker;
         let newNonSt = prevMatch.currentNonStriker;
         let newBw = prevMatch.currentBowler;
+        const normSt = resolveCanonicalPlayerName(newSt);
+        if (newSt && normSt !== newSt) { newSt = normSt; mChanged = true; }
+        const normNonSt = resolveCanonicalPlayerName(newNonSt);
+        if (newNonSt && normNonSt !== newNonSt) { newNonSt = normNonSt; mChanged = true; }
+        const normBw = resolveCanonicalPlayerName(newBw);
+        if (newBw && normBw !== newBw) { newBw = normBw; mChanged = true; }
         if (newSt && isSameUserOrAlias(newSt, uName)) { newSt = uName; mChanged = true; }
         if (newNonSt && isSameUserOrAlias(newNonSt, uName)) { newNonSt = uName; mChanged = true; }
         if (newBw && isSameUserOrAlias(newBw, uName)) { newBw = uName; mChanged = true; }
@@ -8065,8 +8071,18 @@ function CricketAddaMain() {
         const mapSquad = sq => {
           if (!Array.isArray(sq)) return sq;
           return sq.map(p => {
-            if (typeof p === 'string' && isSameUserOrAlias(p, uName)) { mChanged = true; return uName; }
-            if (p && typeof p === 'object' && isSameUserOrAlias(p.name, uName)) { mChanged = true; return { ...p, name: uName, avatarUri: userProfile.avatarUri || p.avatarUri }; }
+            if (typeof p === 'string') {
+              const canon = resolveCanonicalPlayerName(p);
+              if (canon !== p) { mChanged = true; return canon; }
+              if (isSameUserOrAlias(p, uName)) { mChanged = true; return uName; }
+              return p;
+            }
+            if (p && typeof p === 'object') {
+              const canon = resolveCanonicalPlayerName(p.name);
+              if (canon !== p.name) { mChanged = true; return { ...p, name: canon }; }
+              if (isSameUserOrAlias(p.name, uName)) { mChanged = true; return { ...p, name: uName, avatarUri: userProfile.avatarUri || p.avatarUri }; }
+              return p;
+            }
             return p;
           });
         };
@@ -10574,30 +10590,31 @@ function CricketAddaMain() {
 
   // All Playing XI players of the active batting team
   const activeBattingSquad = (() => {
+    let raw = [];
     if (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0) {
-      return currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
-    }
-    const registeredBatTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === battingTeamName.toLowerCase().trim());
-    if (registeredBatTeam && Array.isArray(registeredBatTeam.squad) && registeredBatTeam.squad.length > 0) {
-      return registeredBatTeam.squad.map(p => typeof p === 'string' ? p : p.name);
-    }
-    if (currentInnings === 1) {
-      const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
-      if (inn1Bat.length > 0) {
-        return inn1Bat.map(b => b.name);
-      }
-      return [];
+      raw = currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
     } else {
-      const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
-      if (inn2Bat.length > 0) {
-        return inn2Bat.map(b => b.name);
+      const registeredBatTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === battingTeamName.toLowerCase().trim());
+      if (registeredBatTeam && Array.isArray(registeredBatTeam.squad) && registeredBatTeam.squad.length > 0) {
+        raw = registeredBatTeam.squad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (currentInnings === 1) {
+        const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
+        if (inn1Bat.length > 0) {
+          raw = inn1Bat.map(b => b.name);
+        }
+      } else {
+        const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
+        if (inn2Bat.length > 0) {
+          raw = inn2Bat.map(b => b.name);
+        } else {
+          const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
+          if (inn1Bowl.length > 0) {
+            raw = inn1Bowl.map(b => b.name);
+          }
+        }
       }
-      const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
-      if (inn1Bowl.length > 0) {
-        return inn1Bowl.map(b => b.name);
-      }
-      return [];
     }
+    return raw.map(p => resolveCanonicalPlayerName(p));
   })();
 
   const maxWicketsForSquad = Math.max(1, ((activeBattingSquad || []).length > 0 ? (activeBattingSquad || []).length - 1 : 10));
@@ -10615,45 +10632,56 @@ function CricketAddaMain() {
     if (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0) {
       return currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name);
     }
-    const registeredOppTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === bowlingTeamName.toLowerCase().trim());
-    if (registeredOppTeam && Array.isArray(registeredOppTeam.squad) && registeredOppTeam.squad.length > 0) {
-      return registeredOppTeam.squad.map(p => typeof p === 'string' ? p : p.name);
-    }
-    if (currentInnings === 1) {
-      const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
-      if (inn1Bowl.length > 0) {
-        return inn1Bowl.map(b => b.name);
-      }
-      const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
-      if (inn2Bat.length > 0) {
-        return inn2Bat.map(b => b.name);
-      }
-      return [];
+    let raw = [];
+    if (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0) {
+      raw = currentMatchData.fieldingSquad;
+    } else if (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0) {
+      raw = currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name);
     } else {
-      const inn2Bowl = Array.isArray(currentMatchData?.innings2?.bowling) ? currentMatchData.innings2.bowling : Object.values(currentMatchData?.innings2?.bowling || {});
-      if (inn2Bowl.length > 0) {
-        return inn2Bowl.map(b => b.name);
+      const registeredOppTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === bowlingTeamName.toLowerCase().trim());
+      if (registeredOppTeam && Array.isArray(registeredOppTeam.squad) && registeredOppTeam.squad.length > 0) {
+        raw = registeredOppTeam.squad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (currentInnings === 1) {
+        const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
+        if (inn1Bowl.length > 0) {
+          raw = inn1Bowl.map(b => b.name);
+        } else {
+          const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
+          if (inn2Bat.length > 0) {
+            raw = inn2Bat.map(b => b.name);
+          }
+        }
+      } else {
+        const inn2Bowl = Array.isArray(currentMatchData?.innings2?.bowling) ? currentMatchData.innings2.bowling : Object.values(currentMatchData?.innings2?.bowling || {});
+        if (inn2Bowl.length > 0) {
+          raw = inn2Bowl.map(b => b.name);
+        } else {
+          const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
+          if (inn1Bat.length > 0) {
+            raw = inn1Bat.map(b => b.name);
+          }
+        }
       }
-      const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
-      if (inn1Bat.length > 0) {
-        return inn1Bat.map(b => b.name);
-      }
-      return [];
     }
+    return raw.map(p => resolveCanonicalPlayerName(p));
   })();
 
   // Helper to check if player was dismissed in this innings
   const isBatterOut = pName => {
     if (!pName) return false;
     const norm = String(pName).trim().toLowerCase();
+    const canonNorm = resolveCanonicalPlayerName(pName).toLowerCase();
     if (liveBatters && liveBatters[pName] && liveBatters[pName].isNotOut === false) return true;
-    const fromMap = Object.entries(liveBatters || {}).find(([k]) => k.trim().toLowerCase() === norm);
+    const fromMap = Object.entries(liveBatters || {}).find(([k]) => {
+      const kl = k.trim().toLowerCase();
+      return kl === norm || kl === canonNorm;
+    });
     if (fromMap && fromMap[1] && fromMap[1].isNotOut === false) return true;
     return (scoringHistory || []).some(s => {
       if (s.innings && s.innings !== currentInnings) return false;
       if (!s.isWkt) return false;
       const outP = String(s.dismissedPlayerName || s.dismissedPlayer || s.striker || '').trim().toLowerCase();
-      return outP === norm;
+      return outP === norm || outP === canonNorm;
     });
   };
 
@@ -10662,10 +10690,10 @@ function CricketAddaMain() {
   const legalDeliveriesCount = currentInningsDeliveries.filter(d => d.isLegalDelivery !== false).length;
   const isMidOver = legalDeliveriesCount > 0 && (legalDeliveriesCount % 6 !== 0);
 
-  let striker = match.currentStriker || currentMatchData?.liveState?.currentStriker || currentMatchData?.currentStriker || lastHistDelivery?.striker || '';
-  let nonStriker = match.currentNonStriker || currentMatchData?.liveState?.currentNonStriker || currentMatchData?.currentNonStriker || lastHistDelivery?.nonStriker || '';
+  let striker = resolveCanonicalPlayerName(match.currentStriker || currentMatchData?.liveState?.currentStriker || currentMatchData?.currentStriker || lastHistDelivery?.striker || '');
+  let nonStriker = resolveCanonicalPlayerName(match.currentNonStriker || currentMatchData?.liveState?.currentNonStriker || currentMatchData?.currentNonStriker || lastHistDelivery?.nonStriker || '');
   const lastCompletedOverBowler = match.lastOverBowler || match.previousBowler || (legalDeliveriesCount > 0 && legalDeliveriesCount % 6 === 0 ? lastHistDelivery?.bowler : '');
-  let bowler = (isMidOver && lastHistDelivery?.bowler ? lastHistDelivery.bowler : null) ||
+  let bowler = resolveCanonicalPlayerName((isMidOver && lastHistDelivery?.bowler ? lastHistDelivery.bowler : null) ||
     match.currentBowler ||
     currentMatchData?.currentBowler ||
     currentMatchData?.liveState?.currentBowler ||
@@ -10673,26 +10701,29 @@ function CricketAddaMain() {
     (isMidOver ? lastHistDelivery?.bowler : null) ||
     (needsNewBowler ? (nextBowler || activeOppBowlers.find(b => b.toLowerCase() !== (lastCompletedOverBowler || '').toLowerCase()) || activeOppBowlers[0]) : null) ||
     (!lastCompletedOverBowler || currentMatchData?.innings1?.bowling?.[0]?.name?.toLowerCase() !== lastCompletedOverBowler.toLowerCase() ? currentMatchData?.innings1?.bowling?.[0]?.name : null) ||
-    (activeOppBowlers.find(b => b.toLowerCase() !== (lastCompletedOverBowler || '').toLowerCase()) || activeOppBowlers[0] || 'Bowler');
+    (activeOppBowlers.find(b => b.toLowerCase() !== (lastCompletedOverBowler || '').toLowerCase()) || activeOppBowlers[0] || 'Bowler'));
 
   // Hard Guarantee: an OUT batter can NEVER be striker or non-striker at the crease
   if (isBatterOut(striker)) {
     const lastWkt = [...(scoringHistory || [])].reverse().find(s => s.isWkt && (!s.innings || s.innings === currentInnings));
     if (lastWkt && lastWkt.incomingBatter && !isBatterOut(lastWkt.incomingBatter)) {
-      striker = lastWkt.incomingBatter;
+      striker = resolveCanonicalPlayerName(lastWkt.incomingBatter);
     } else {
       const avail = (activeBattingSquad || []).find(p => p !== nonStriker && !isBatterOut(p));
-      striker = avail || '';
+      striker = avail ? resolveCanonicalPlayerName(avail) : '';
     }
   }
 
   if (isBatterOut(nonStriker)) {
     const avail = (activeBattingSquad || []).find(p => p !== striker && !isBatterOut(p));
-    nonStriker = avail || '';
+    nonStriker = avail ? resolveCanonicalPlayerName(avail) : '';
   }
 
-  if (!striker) striker = (activeBattingSquad.find(p => !isBatterOut(p)) || 'Striker');
-  if (!nonStriker) nonStriker = (activeBattingSquad.find(p => p !== striker && !isBatterOut(p)) || 'Non-Striker');
+  if (!striker) striker = resolveCanonicalPlayerName(activeBattingSquad.find(p => !isBatterOut(p)) || 'Striker');
+  if (!nonStriker) nonStriker = resolveCanonicalPlayerName(activeBattingSquad.find(p => p !== striker && !isBatterOut(p)) || 'Non-Striker');
+  striker = resolveCanonicalPlayerName(striker);
+  nonStriker = resolveCanonicalPlayerName(nonStriker);
+  bowler = resolveCanonicalPlayerName(bowler);
 
   const activeOppFielders = activeOppBowlers;
 
@@ -10865,8 +10896,14 @@ function CricketAddaMain() {
   const getBatterDetailed = useCallback(name => {
     if (!name) return { runs: 0, balls: 0, fours: 0, sixes: 0, sr: '0.0' };
     const norm = String(name).trim().toLowerCase();
+    const canon = resolveCanonicalPlayerName(name);
+    const normCanon = canon.toLowerCase();
     const found = derivedInningsState.battersMap[name] ||
-      Object.entries(derivedInningsState.battersMap || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
+      derivedInningsState.battersMap[canon] ||
+      Object.entries(derivedInningsState.battersMap || {}).find(([k]) => {
+        const kl = k.trim().toLowerCase();
+        return kl === norm || kl === normCanon;
+      })?.[1];
     if (found) {
       return {
         runs: found.runs,
@@ -10876,7 +10913,12 @@ function CricketAddaMain() {
         sr: found.strikeRate || '0.0',
       };
     }
-    const cached = liveBatters[name] || Object.entries(liveBatters || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
+    const cached = liveBatters[name] ||
+      liveBatters[canon] ||
+      Object.entries(liveBatters || {}).find(([k]) => {
+        const kl = k.trim().toLowerCase();
+        return kl === norm || kl === normCanon;
+      })?.[1];
     return {
       runs: Number(cached?.runs) || 0,
       balls: Number(cached?.balls) || 0,
@@ -10889,8 +10931,14 @@ function CricketAddaMain() {
   const getBowlerDetailed = useCallback(name => {
     if (!name) return { ovStr: '0.0', maidens: 0, runs: 0, wickets: 0, econ: '0.0' };
     const norm = String(name).trim().toLowerCase();
+    const canon = resolveCanonicalPlayerName(name);
+    const normCanon = canon.toLowerCase();
     const found = derivedInningsState.bowlersMap[name] ||
-      Object.entries(derivedInningsState.bowlersMap || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
+      derivedInningsState.bowlersMap[canon] ||
+      Object.entries(derivedInningsState.bowlersMap || {}).find(([k]) => {
+        const kl = k.trim().toLowerCase();
+        return kl === norm || kl === normCanon;
+      })?.[1];
     if (found) {
       return {
         ovStr: found.overs,
@@ -10900,7 +10948,12 @@ function CricketAddaMain() {
         econ: found.econ || '0.0',
       };
     }
-    const cached = liveBowlerStats[name] || Object.entries(liveBowlerStats || {}).find(([k]) => k.trim().toLowerCase() === norm)?.[1];
+    const cached = liveBowlerStats[name] ||
+      liveBowlerStats[canon] ||
+      Object.entries(liveBowlerStats || {}).find(([k]) => {
+        const kl = k.trim().toLowerCase();
+        return kl === norm || kl === normCanon;
+      })?.[1];
     return {
       ovStr: cached?.overs || '0.0',
       maidens: Number(cached?.maidens) || 0,

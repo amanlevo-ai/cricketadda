@@ -18,6 +18,29 @@ export const KNOWN_PLAYER_CANONICAL_NAMES = {
   'usr_1793432528758': 'Wpardeepkaur',
 };
 
+/**
+ * Resolves any raw player name or legacy alias to its permanent canonical display name.
+ * e.g. 'Amanlevo' -> 'Amandeep'
+ */
+export function resolveCanonicalPlayerName(rawName, pId) {
+  if (!rawName) return '';
+  const clean = String(rawName).replace(/\s*\([^)]*\)/g, '').trim();
+  const lower = clean.toLowerCase();
+
+  // 1. Direct Known Alias check (Amanlevo / Aman -> Amandeep)
+  if (lower === 'amanlevo' || lower === 'aman') {
+    return 'Amandeep';
+  }
+
+  // 2. Normalize through KNOWN_PLAYER_ALIASES / KNOWN_PLAYER_CANONICAL_NAMES
+  const normId = normalizePlayerId(pId, clean);
+  if (normId && KNOWN_PLAYER_CANONICAL_NAMES[normId]) {
+    return KNOWN_PLAYER_CANONICAL_NAMES[normId];
+  }
+
+  return clean;
+}
+
 export function normalizePlayerId(id, name, phone, email) {
   const cleanId = String(id || '').trim();
   const cleanName = String(name || '').replace(/\s*\([^)]*\)/g, '').toLowerCase().trim().replace(/[^a-z0-9]/g, '');

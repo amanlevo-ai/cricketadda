@@ -134,21 +134,35 @@ export async function updateLiveMatchNotification(matchData) {
   const wickets = Number(matchData.liveWickets ?? matchData.wickets ?? 0);
   const overs = String(matchData.liveOvers ?? matchData.oversStr ?? matchData.overs ?? '0.0');
 
+  // Canonical player name resolver (e.g. Amanlevo -> Amandeep)
+  const formatCanonicalPlayer = name => {
+    if (!name) return '';
+    const clean = String(name).replace(/\s*\([^)]*\)/g, '').trim();
+    if (clean.toLowerCase() === 'amanlevo' || clean.toLowerCase() === 'aman') {
+      return 'Amandeep';
+    }
+    return clean;
+  };
+
   // Extract active batters
-  const strikerName = matchData.currentStriker || matchData.striker || '';
-  const nonStrikerName = matchData.currentNonStriker || matchData.nonStriker || '';
+  const rawStrikerName = matchData.currentStriker || matchData.striker || '';
+  const rawNonStrikerName = matchData.currentNonStriker || matchData.nonStriker || '';
+  const strikerName = formatCanonicalPlayer(rawStrikerName);
+  const nonStrikerName = formatCanonicalPlayer(rawNonStrikerName);
 
-  const strikerStats = matchData.strikerStats ||
-    matchData.liveBatters?.[strikerName] ||
-    matchData.liveBatters?.[strikerName?.toLowerCase()] ||
-    Object.entries(matchData.liveBatters || {}).find(([k]) => k.trim().toLowerCase() === String(strikerName).trim().toLowerCase())?.[1] ||
-    {};
+  const findBatterStat = (resolved, raw) => {
+    if (matchData.strikerStats && resolved === strikerName) return matchData.strikerStats;
+    if (matchData.nonStrikerStats && resolved === nonStrikerName) return matchData.nonStrikerStats;
+    const map = matchData.liveBatters || {};
+    return map[resolved] || map[raw] || map[resolved?.toLowerCase()] || map[raw?.toLowerCase()] ||
+      Object.entries(map).find(([k]) => {
+        const kl = k.trim().toLowerCase();
+        return kl === resolved?.toLowerCase() || kl === raw?.toLowerCase();
+      })?.[1] || {};
+  };
 
-  const nonStrikerStats = matchData.nonStrikerStats ||
-    matchData.liveBatters?.[nonStrikerName] ||
-    matchData.liveBatters?.[nonStrikerName?.toLowerCase()] ||
-    Object.entries(matchData.liveBatters || {}).find(([k]) => k.trim().toLowerCase() === String(nonStrikerName).trim().toLowerCase())?.[1] ||
-    {};
+  const strikerStats = findBatterStat(strikerName, rawStrikerName);
+  const nonStrikerStats = findBatterStat(nonStrikerName, rawNonStrikerName);
 
   const strikerRuns = strikerStats.runs ?? 0;
   const strikerBalls = strikerStats.balls ?? 0;
@@ -156,11 +170,17 @@ export async function updateLiveMatchNotification(matchData) {
   const nonStrikerBalls = nonStrikerStats.balls ?? 0;
 
   // Extract active bowler
-  const bowlerName = matchData.currentBowler || matchData.bowler || '';
+  const rawBowlerName = matchData.currentBowler || matchData.bowler || '';
+  const bowlerName = formatCanonicalPlayer(rawBowlerName);
   const bowlerStats = matchData.bowlerStats ||
     matchData.liveBowlers?.[bowlerName] ||
+    matchData.liveBowlers?.[rawBowlerName] ||
     matchData.liveBowlers?.[bowlerName?.toLowerCase()] ||
-    Object.entries(matchData.liveBowlers || {}).find(([k]) => k.trim().toLowerCase() === String(bowlerName).trim().toLowerCase())?.[1] ||
+    matchData.liveBowlers?.[rawBowlerName?.toLowerCase()] ||
+    Object.entries(matchData.liveBowlers || {}).find(([k]) => {
+      const kl = k.trim().toLowerCase();
+      return kl === bowlerName?.toLowerCase() || kl === rawBowlerName?.toLowerCase();
+    })?.[1] ||
     {};
 
   const bowlerWickets = bowlerStats.wickets ?? 0;
