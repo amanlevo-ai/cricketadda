@@ -167,9 +167,18 @@ export async function updateLiveMatchNotification(matchData) {
   const bowlerRuns = bowlerStats.runs ?? 0;
   const bowlerOvers = bowlerStats.ovStr ?? bowlerStats.overs ?? '0.0';
 
-  // 1st Line: Teams names and total score (NO red ball emoji)
-  const scoreStr = `${battingTeam ? `${battingTeam} ` : ''}${runs}/${wickets} (${overs} ov)`;
-  const title = `${team1} vs ${team2} • ${scoreStr}`;
+  // 1st Line (Title): Clean Teams Matchup (Never truncates on any screen)
+  const title = `${team1} vs ${team2}`;
+
+  // Dedicated Total Score Line (Guaranteed full visibility without ellipsis truncation)
+  let totalScoreLine = '';
+  if (currentInnings === 2 && matchData.target > 0) {
+    const need = Math.max(0, Number(matchData.target) - runs);
+    totalScoreLine = `${battingTeam}: ${runs}/${wickets} (${overs} ov)  •  Need ${need} (T: ${matchData.target})`;
+  } else {
+    const crrStr = matchData.crr ? `  •  CRR: ${matchData.crr}` : '';
+    totalScoreLine = `${battingTeam}: ${runs}/${wickets} (${overs} ov)${crrStr}`;
+  }
 
   // 2nd Line: Current Batters
   let batterLine = '';
@@ -189,9 +198,9 @@ export async function updateLiveMatchNotification(matchData) {
     bowlerLine = `Bowling: ${bowlingTeam}`;
   }
 
-  const body = `${batterLine}\n${bowlerLine}`;
+  const body = `${totalScoreLine}\n${batterLine}\n${bowlerLine}`;
 
-  const currentHash = `${matchData.id || ''}_${runs}_${wickets}_${overs}_${strikerName}_${strikerRuns}_${strikerBalls}_${nonStrikerName}_${nonStrikerRuns}_${nonStrikerBalls}_${bowlerName}_${bowlerWickets}_${bowlerRuns}_${bowlerOvers}`;
+  const currentHash = `${matchData.id || ''}_${runs}_${wickets}_${overs}_${strikerName}_${strikerRuns}_${strikerBalls}_${nonStrikerName}_${nonStrikerRuns}_${nonStrikerBalls}_${bowlerName}_${bowlerWickets}_${bowlerRuns}_${bowlerOvers}_${matchData.target || 0}`;
   if (currentHash === lastNotificationHash) {
     return; // Avoid redundant identical updates
   }
@@ -219,6 +228,7 @@ export async function updateLiveMatchNotification(matchData) {
         identifier: NOTIFICATION_ID,
         content: {
           title,
+          subtitle: `${runs}/${wickets} (${overs} ov)`,
           body,
           data: {
             matchId: matchData.id || matchData.activeMatchId,
