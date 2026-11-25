@@ -81,6 +81,7 @@ import {
   initLiveNotificationChannel,
   updateLiveMatchNotification,
   dismissLiveMatchNotification,
+  setupNotificationTapListener,
 } from './liveScoreNotificationService';
 import Svg, {
   Circle,
@@ -6398,9 +6399,17 @@ function CricketAddaMain() {
     prevIsOfficialScorerRef.current = isOfficialScorer;
   }, [isOfficialScorer, activeMatchId]);
 
-  // Initialize Live Score Notification Channel on startup
+  // Initialize Live Score Notification Channel & Tap Listener on startup
   useEffect(() => {
     initLiveNotificationChannel();
+    const unsub = setupNotificationTapListener(matchId => {
+      if (matchId) {
+        navigateTo('scorer', matchId);
+      }
+    });
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
   }, []);
 
   // Floating Mini-Scorer Bar active state & dynamic bottom offset for long scrollable pages
@@ -10855,6 +10864,9 @@ function CricketAddaMain() {
 
   // Real-Time Sticky Notification Bar Sync (Stays until match is over / concluded)
   useEffect(() => {
+    // DO NOT dismiss notifications while app session is still restoring from storage
+    if (isSessionRestoring) return;
+
     if (!activeMatchId) {
       dismissLiveMatchNotification();
       return;

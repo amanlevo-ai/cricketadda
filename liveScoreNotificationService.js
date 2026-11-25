@@ -80,6 +80,30 @@ export async function requestNotificationPermissionIfNeeded() {
 }
 
 /**
+ * Listen for user tapping on the notification to bring them to the match
+ */
+export function setupNotificationTapListener(onTapMatch) {
+  if (!Notifications || typeof Notifications.addNotificationResponseReceivedListener !== 'function') {
+    return () => {};
+  }
+  try {
+    const sub = Notifications.addNotificationResponseReceivedListener(response => {
+      const matchId = response?.notification?.request?.content?.data?.matchId;
+      if (matchId && typeof onTapMatch === 'function') {
+        onTapMatch(matchId);
+      }
+    });
+    return () => {
+      try {
+        if (sub && typeof sub.remove === 'function') sub.remove();
+      } catch (e) {}
+    };
+  } catch (err) {
+    return () => {};
+  }
+}
+
+/**
  * Update the sticky live notification bar with real-time score.
  * Auto-dismisses if the match is completed, finished, or abandoned.
  */
@@ -164,6 +188,7 @@ export async function updateLiveMatchNotification(matchData) {
           },
           sound: null,
           sticky: true,
+          autoDismiss: false, // Keep notification in bar even when user taps it!
           color: '#0284c7',
           ...(Platform.OS === 'android' ? { channelId: CHANNEL_ID } : {}),
         },
