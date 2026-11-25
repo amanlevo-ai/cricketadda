@@ -6395,12 +6395,19 @@ function CricketAddaMain() {
 
   // Floating Mini-Scorer Bar active state & dynamic bottom offset for long scrollable pages
   const effectiveScoringMatchId = activeScoringSessionMatchId || (activeMatchId && !isMatchCompleted(currentMatchData) ? activeMatchId : null);
-  const effectiveScoringMatch = effectiveScoringMatchId ? (matchesDb?.[effectiveScoringMatchId] || MATCH_DATABASE?.[effectiveScoringMatchId] || (effectiveScoringMatchId === activeMatchId ? currentMatchData : null)) : null;
+  const effectiveScoringMatch = effectiveScoringMatchId ? (matchesDb?.[effectiveScoringMatchId] || MATCH_DATABASE?.[effectiveScoringMatchId] || null) : null;
+
+  const hasValidMiniMatchTeams = Boolean(
+    effectiveScoringMatch &&
+    (effectiveScoringMatch.teamA || effectiveScoringMatch.innings1?.team) &&
+    (effectiveScoringMatch.teamB || effectiveScoringMatch.innings2?.team)
+  );
 
   const isMiniScorerBarActive = Boolean(
     activeTab !== 'scorer' &&
     effectiveScoringMatchId &&
     effectiveScoringMatch &&
+    hasValidMiniMatchTeams &&
     !isMatchCompleted(effectiveScoringMatch) &&
     dismissedMiniScorerMatchId !== effectiveScoringMatchId &&
     (isOfficialScorer || (Array.isArray(myScoringMatchIds) && myScoringMatchIds.includes(effectiveScoringMatchId)) || effectiveScoringMatch.status === 'live' || effectiveScoringMatch.isLive)
@@ -27011,8 +27018,9 @@ function CricketAddaMain() {
           if (!isMiniScorerBarActive || !effectiveScoringMatch) return null;
 
           const miniInn = effectiveScoringMatch?.currentInnings || effectiveScoringMatch?.liveState?.currentInnings || 1;
-          const miniTeam1 = effectiveScoringMatch?.innings1?.team || effectiveScoringMatch?.teamA || 'Team 1';
-          const miniTeam2 = effectiveScoringMatch?.innings2?.team || effectiveScoringMatch?.teamB || 'Team 2';
+          const miniTeam1 = effectiveScoringMatch?.innings1?.team || effectiveScoringMatch?.teamA || '';
+          const miniTeam2 = effectiveScoringMatch?.innings2?.team || effectiveScoringMatch?.teamB || '';
+          if (!miniTeam1 || !miniTeam2) return null;
           const miniBatTeam = miniInn === 1 ? miniTeam1 : miniTeam2;
           const miniBowlTeam = miniInn === 1 ? miniTeam2 : miniTeam1;
 
