@@ -77,6 +77,11 @@ import {
   deriveMatchStateFromDeliveries,
   auditStateIntegrity,
 } from './cricketStateEngine';
+import {
+  initLiveNotificationChannel,
+  updateLiveMatchNotification,
+  dismissLiveMatchNotification,
+} from './liveScoreNotificationService';
 import Svg, {
   Circle,
   Path,
@@ -6393,6 +6398,11 @@ function CricketAddaMain() {
     prevIsOfficialScorerRef.current = isOfficialScorer;
   }, [isOfficialScorer, activeMatchId]);
 
+  // Initialize Live Score Notification Channel on startup
+  useEffect(() => {
+    initLiveNotificationChannel();
+  }, []);
+
   // Floating Mini-Scorer Bar active state & dynamic bottom offset for long scrollable pages
   const effectiveScoringMatchId = activeScoringSessionMatchId || (activeMatchId && !isMatchCompleted(currentMatchData) ? activeMatchId : null);
   const effectiveScoringMatch = effectiveScoringMatchId ? (matchesDb?.[effectiveScoringMatchId] || MATCH_DATABASE?.[effectiveScoringMatchId] || null) : null;
@@ -10842,6 +10852,39 @@ function CricketAddaMain() {
   const oversStr = reconciledScore.oversStr;
   const crr = reconciledScore.crr;
   const sanitizedThisOver = reconciledScore.thisOver;
+
+  // Real-Time Sticky Notification Bar Sync (Stays until match is over / concluded)
+  useEffect(() => {
+    if (!activeMatchId) {
+      dismissLiveMatchNotification();
+      return;
+    }
+    const currentM = matchesDb?.[activeMatchId] || MATCH_DATABASE?.[activeMatchId] || currentMatchData;
+    if (!currentM || isMatchCompleted(currentM)) {
+      dismissLiveMatchNotification();
+      return;
+    }
+    const team1 = currentM.teamA || currentM.innings1?.team;
+    const team2 = currentM.teamB || currentM.innings2?.team;
+    if (!team1 || !team2) {
+      dismissLiveMatchNotification();
+      return;
+    }
+
+    updateLiveMatchNotification({
+      id: activeMatchId,
+      teamA: team1,
+      teamB: team2,
+      status: currentM.status || 'live',
+      currentInnings,
+      liveRuns: reconciledScore.runs,
+      liveWickets: reconciledScore.wickets,
+      liveOvers: reconciledScore.oversStr,
+      currentStriker: striker,
+      currentNonStriker: nonStriker,
+      liveBatters: derivedInningsState.battersMap || liveBatters,
+    });
+  }, [activeMatchId, reconciledScore.runs, reconciledScore.wickets, reconciledScore.oversStr, striker, nonStriker, currentInnings, matchesDb, currentMatchData, derivedInningsState.battersMap, liveBatters]);
 
   const getBatterDetailed = useCallback(name => {
     if (!name) return { runs: 0, balls: 0, fours: 0, sixes: 0, sr: '0.0' };

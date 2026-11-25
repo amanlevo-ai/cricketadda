@@ -1,0 +1,189 @@
+/**
+ * Live Match Notification Service (CricketAdda)
+ * Keeps a real-time, sticky live match scorecard in the phone's notification bar & lock screen.
+ * Stays live until the match is concluded or dismissed by the user.
+ */
+import { Platform } from 'react-native';
+
+let Notifications = null;
+try {
+  Notifications = require('expo-notifications');
+} catch (e) {
+  // Graceful fallback for environments where expo-notifications is unavailable
+}
+
+// Global notification handler for silent, in-place updates
+if (Notifications && typeof Notifications.setNotificationHandler === 'function') {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: false,
+        shouldSetBadge: false,
+      }),
+    });
+  } catch (err) {}
+}
+
+const NOTIFICATION_ID = 'cricketadda_live_match_score';
+const CHANNEL_ID = 'cricketadda_live_match_channel';
+
+let isChannelInitialized = false;
+let hasRequestedPermission = false;
+let lastNotificationHash = '';
+
+/**
+ * Initialize Android notification channel for silent in-place score updates
+ */
+export async function initLiveNotificationChannel() {
+  if (Platform.OS !== 'android' || !Notifications) return;
+  if (isChannelInitialized) return;
+
+  try {
+    if (typeof Notifications.setNotificationChannelAsync === 'function') {
+      await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+        name: 'Live Match Score',
+        description: 'Displays persistent live scorecard while a match is in progress',
+        importance: Notifications.AndroidImportance.LOW, // Silent: updates without sound or vibration
+        vibrationPattern: [0],
+        sound: null,
+        showBadge: false,
+        lightColor: '#0284c7',
+        enableLights: false,
+        enableVibrate: false,
+      });
+      isChannelInitialized = true;
+    }
+  } catch (err) {}
+}
+
+/**
+ * Request notification permissions from user if not already granted
+ */
+export async function requestNotificationPermissionIfNeeded() {
+  if (Platform.OS === 'web' || !Notifications || hasRequestedPermission) return true;
+  hasRequestedPermission = true;
+
+  try {
+    if (typeof Notifications.getPermissionsAsync === 'function') {
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      if (existingStatus === 'granted') return true;
+    }
+    if (typeof Notifications.requestPermissionsAsync === 'function') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      return status === 'granted';
+    }
+  } catch (err) {
+    return false;
+  }
+  return false;
+}
+
+/**
+ * Update the sticky live notification bar with real-time score.
+ * Auto-dismisses if the match is completed, finished, or abandoned.
+ */
+export async function updateLiveMatchNotification(matchData) {
+  if (!matchData) {
+    await dismissLiveMatchNotification();
+    return;
+  }
+
+  // 1. Auto-dismiss if match is finished, abandoned or completed
+  const status = String(matchData.status || '').toLowerCase();
+  if (status === 'completed' || status === 'abandoned' || status === 'finished') {
+    await dismissLiveMatchNotification();
+    return;
+  }
+
+  // 2. Validate teams
+  const team1 = matchData.teamA || matchData.innings1?.team || '';
+  const team2 = matchData.teamB || matchData.innings2?.team || '';
+  if (!team1 || !team2) return;
+
+  const currentInnings = Number(matchData.currentInnings || 1);
+  const battingTeam = currentInnings === 1 ? team1 : team2;
+  const bowlingTeam = currentInnings === 1 ? team2 : team1;
+
+  // Extract score figures
+  const runs = Number(matchData.liveRuns ?? matchData.runs ?? 0);
+  const wickets = Number(matchData.liveWickets ?? matchData.wickets ?? 0);
+  const overs = String(matchData.liveOvers ?? matchData.oversStr ?? matchData.overs ?? '0.0');
+
+  // Extract active batters
+  const strikerName = matchData.currentStriker || matchData.striker || '';
+  const nonStrikerName = matchData.currentNonStriker || matchData.nonStriker || '';
+
+  const strikerStats = matchData.liveBatters?.[strikerName?.toLowerCase()] || {};
+  const nonStrikerStats = matchData.liveBatters?.[nonStrikerName?.toLowerCase()] || {};
+
+  const strikerRuns = strikerStats.runs ?? 0;
+  const strikerBalls = strikerStats.balls ?? 0;
+  const nonStrikerRuns = nonStrikerStats.runs ?? 0;
+  const nonStrikerBalls = nonStrikerStats.balls ?? 0;
+
+  const batterDetails = strikerName
+    ? `${strikerName} ${strikerRuns}* (${strikerBalls})${nonStrikerName ? ` • ${nonStrikerName} ${nonStrikerRuns}* (${nonStrikerBalls})` : ''}`
+    : `vs ${bowlingTeam}`;
+
+  const title = `🔴 ${team1} vs ${team2} • LIVE`;
+  const body = `${battingTeam}: ${runs}/${wickets} (${overs} ov) | ${batterDetails}`;
+
+  const currentHash = `${matchData.id || ''}_${runs}_${wickets}_${overs}_${strikerRuns}_${nonStrikerRuns}`;
+  if (currentHash === lastNotificationHash) {
+    return; // Avoid redundant identical updates
+  }
+  lastNotificationHash = currentHash;
+
+  // 3. Web Notification Fallback
+  if (Platform.OS === 'web') {
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        new Notification(title, { body, tag: NOTIFICATION_ID, silent: true });
+      }
+    } catch (e) {}
+    return;
+  }
+
+  // 4. Native Android / iOS Persistent Notification
+  if (!Notifications) return;
+
+  try {
+    await initLiveNotificationChannel();
+    await requestNotificationPermissionIfNeeded();
+
+    if (typeof Notifications.scheduleNotificationAsync === 'function') {
+      await Notifications.scheduleNotificationAsync({
+        identifier: NOTIFICATION_ID,
+        content: {
+          title,
+          body,
+          data: {
+            matchId: matchData.id || matchData.activeMatchId,
+            action: 'view_live_match',
+          },
+          sound: null,
+          sticky: true,
+          color: '#0284c7',
+          ...(Platform.OS === 'android' ? { channelId: CHANNEL_ID } : {}),
+        },
+        trigger: null, // Display immediately
+      });
+    }
+  } catch (err) {}
+}
+
+/**
+ * Dismiss the live match notification when match ends or user exits
+ */
+export async function dismissLiveMatchNotification() {
+  lastNotificationHash = '';
+  if (Platform.OS === 'web') return;
+  if (!Notifications) return;
+
+  try {
+    if (typeof Notifications.dismissNotificationAsync === 'function') {
+      await Notifications.dismissNotificationAsync(NOTIFICATION_ID);
+    }
+  } catch (err) {}
+}
