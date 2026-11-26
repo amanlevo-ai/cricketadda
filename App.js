@@ -8229,7 +8229,7 @@ function CricketAddaMain() {
               liveBowlers: rScore.liveBowlerStats || {},
             });
           }).catch(() => {});
-        }, 5000);
+        }, 3000);
       } else if (nextAppState === 'active') {
         if (backgroundSyncIntervalRef.current) {
           clearInterval(backgroundSyncIntervalRef.current);
@@ -8562,6 +8562,36 @@ function CricketAddaMain() {
                     ...(mData.currentBowler ? { currentBowler: mData.currentBowler } : {}),
                   }));
                 }
+
+                // Push real-time score directly to spectator sticky notification
+                try {
+                  const notifTeam1 = mData.teamA || mData.innings1?.team || '';
+                  const notifTeam2 = mData.teamB || mData.innings2?.team || '';
+                  if (notifTeam1 && notifTeam2) {
+                    const rScore = mData.liveState || mData;
+                    const rBalls = typeof rScore.liveBalls === 'number' ? rScore.liveBalls : (rScore.balls || cloudBallsCount || 0);
+                    const rRuns = typeof rScore.liveRuns === 'number' ? rScore.liveRuns : (rScore.runs ?? mData.liveRuns ?? 0);
+                    const rWickets = typeof rScore.liveWickets === 'number' ? rScore.liveWickets : (rScore.wickets ?? mData.liveWickets ?? 0);
+                    const rOvers = rScore.liveOvers || `${Math.floor(rBalls / 6)}.${rBalls % 6}`;
+                    updateLiveMatchNotification({
+                      id: mId,
+                      teamA: notifTeam1,
+                      teamB: notifTeam2,
+                      status: mData.status || 'live',
+                      currentInnings: mData.currentInnings || 1,
+                      liveRuns: rRuns,
+                      liveWickets: rWickets,
+                      liveOvers: rOvers,
+                      crr: rBalls > 0 ? ((rRuns / rBalls) * 6).toFixed(2) : '0.00',
+                      target: mData.target || 0,
+                      currentStriker: mData.currentStriker || '',
+                      currentNonStriker: mData.currentNonStriker || '',
+                      currentBowler: mData.currentBowler || '',
+                      liveBatters: mData.liveBatters || rScore.liveBatters || {},
+                      liveBowlers: mData.liveBowlerStats || rScore.liveBowlerStats || {},
+                    });
+                  }
+                } catch (notifErr) {}
               }
             }
           }
@@ -10799,15 +10829,17 @@ function CricketAddaMain() {
   let striker = resolveCanonicalPlayerName(match.currentStriker || currentMatchData?.liveState?.currentStriker || currentMatchData?.currentStriker || lastHistDelivery?.striker || '');
   let nonStriker = resolveCanonicalPlayerName(match.currentNonStriker || currentMatchData?.liveState?.currentNonStriker || currentMatchData?.currentNonStriker || lastHistDelivery?.nonStriker || '');
   const lastCompletedOverBowler = match.lastOverBowler || match.previousBowler || (legalDeliveriesCount > 0 && legalDeliveriesCount % 6 === 0 ? lastHistDelivery?.bowler : '');
-  let bowler = resolveCanonicalPlayerName((isMidOver && lastHistDelivery?.bowler ? lastHistDelivery.bowler : null) ||
+  let bowler = resolveCanonicalPlayerName(
     match.currentBowler ||
+    (isMidOver && lastHistDelivery?.bowler ? lastHistDelivery.bowler : null) ||
     currentMatchData?.currentBowler ||
     currentMatchData?.liveState?.currentBowler ||
     (lastCompletedOverBowler || null) ||
     (isMidOver ? lastHistDelivery?.bowler : null) ||
     (needsNewBowler ? (nextBowler || activeOppBowlers.find(b => b.toLowerCase() !== (lastCompletedOverBowler || '').toLowerCase()) || activeOppBowlers[0]) : null) ||
     (!lastCompletedOverBowler || currentMatchData?.innings1?.bowling?.[0]?.name?.toLowerCase() !== lastCompletedOverBowler.toLowerCase() ? currentMatchData?.innings1?.bowling?.[0]?.name : null) ||
-    (activeOppBowlers.find(b => b.toLowerCase() !== (lastCompletedOverBowler || '').toLowerCase()) || activeOppBowlers[0] || 'Bowler'));
+    (activeOppBowlers.find(b => b.toLowerCase() !== (lastCompletedOverBowler || '').toLowerCase()) || activeOppBowlers[0] || 'Bowler')
+  );
 
   // Hard Guarantee: an OUT batter can NEVER be striker or non-striker at the crease
   if (isBatterOut(striker)) {
@@ -14424,17 +14456,41 @@ function CricketAddaMain() {
       currentBowler: finalBowler,
     }));
 
-    if (midOverChangeReason === 'mistake' && (liveThisOver || []).length > 0) {
-      setScoringHistory(prev => {
-        const curOvBallsCount = (liveThisOver || []).length;
-        if (!prev || prev.length === 0) return prev;
-        const updated = [...prev];
-        const startIndex = Math.max(0, updated.length - curOvBallsCount);
-        for (let i = startIndex; i < updated.length; i++) {
-          updated[i] = { ...updated[i], bowler: finalBowler };
+    let nextHistory = scoringHistory;
+    if (midOverChangeReason === 'mistake') {
+      const curOvDeliveries = (scoringHistory || []).filter(d => !d.innings || d.innings === currentInnings);
+      const legalCount = curOvDeliveries.filter(d => d.isLegalDelivery !== false).length;
+      const ballsInCurOver = legalCount % 6;
+      let countBackLegal = 0;
+      let sliceStart = curOvDeliveries.length;
+      for (let i = curOvDeliveries.length - 1; i >= 0; i--) {
+        sliceStart = i;
+        if (curOvDeliveries[i].isLegalDelivery !== false) countBackLegal++;
+        if (countBackLegal >= ballsInCurOver) break;
+      }
+      if (curOvDeliveries.length > 0) {
+        nextHistory = [...(scoringHistory || [])];
+        const histOffset = nextHistory.length - curOvDeliveries.length;
+        for (let i = histOffset + sliceStart; i < nextHistory.length; i++) {
+          nextHistory[i] = { ...nextHistory[i], bowler: finalBowler };
         }
-        return updated;
-      });
+        setScoringHistory(nextHistory);
+        try {
+          const derived = deriveMatchStateFromDeliveries(nextHistory, {
+            innings: currentInnings,
+            team1Name: currentInnings === 1 ? battingTeamName : bowlingTeamName,
+            team2Name: currentInnings === 1 ? bowlingTeamName : battingTeamName,
+            team1Squad: activeBattingSquad,
+            team2Squad: activeOppBowlers,
+            openingStriker: striker,
+            openingNonStriker: nonStriker,
+            openingBowler: finalBowler,
+          });
+          if (derived && derived.activeScore) {
+            setLiveBowlerStats(derived.activeScore.liveBowlerStats || {});
+          }
+        } catch (e) {}
+      }
       showAppToast(`Current over deliveries reassigned to ${finalBowler} 🔄`, '🔄', 'success');
     } else if (midOverChangeReason === 'injured') {
       showAppToast(`${finalBowler} will finish the remaining balls of this over 🏥`, '🏥', 'info');
@@ -17772,11 +17828,33 @@ function CricketAddaMain() {
 
   const handleRemovePlayerFromNewTeamSquad = idx => {
     const target = newTeamSquad[idx];
-    if (idx === 0 || target?.isCaptain || (userProfile?.name && target?.name && target.name.toLowerCase() === userProfile.name.toLowerCase())) {
-      showAppToast('You (Captain / Team Creator) cannot delete yourself from the squad', '⚠️', 'error');
+    if ((newTeamSquad || []).length <= 1) {
+      showAppToast('Squad must contain at least 1 player', '⚠️', 'warning');
       return;
     }
-    setNewTeamSquad(prev => prev.filter((_, i) => i !== idx));
+    const activeEditingTeam = editingTeamId ? registeredTeams.find(t => t.id === editingTeamId) : null;
+    const isEditingOppTeam = Boolean(editingTeamId && !isCreatedByMe(activeEditingTeam));
+
+    // If editing own team, protect the single primary captain from being accidentally removed if only 1 exists
+    const captainIdx = newTeamSquad.findIndex(p => p.isCaptain);
+    const isOnlyCaptain = !isEditingOppTeam && (idx === (captainIdx !== -1 ? captainIdx : 0));
+    const isSameNameAsUser = userProfile?.name && target?.name && target.name.toLowerCase().trim() === userProfile.name.toLowerCase().trim();
+
+    // If there is another player with the same name or user is not captain, allow removal!
+    const duplicateCount = newTeamSquad.filter(p => p.name && p.name.toLowerCase().trim() === (target?.name || '').toLowerCase().trim()).length;
+    if (!isEditingOppTeam && isOnlyCaptain && isSameNameAsUser && duplicateCount <= 1) {
+      showAppToast('Team creator must remain in the squad', '⚠️', 'error');
+      return;
+    }
+
+    setNewTeamSquad(prev => {
+      const filtered = prev.filter((_, i) => i !== idx);
+      // Ensure there is always a designated captain
+      if (filtered.length > 0 && !filtered.some(p => p.isCaptain)) {
+        filtered[0] = { ...filtered[0], isCaptain: true };
+      }
+      return filtered;
+    });
     showAppToast(`Removed ${target?.name || 'player'} from squad`, '🗑️');
   };
 
@@ -22660,12 +22738,29 @@ function CricketAddaMain() {
             <View style={styles.dashFeaturedOuterFrame}>
             {/* Stationary Top Header Row */}
             <View style={styles.dashFeaturedHeaderBar}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={styles.dashLivePill}>
                   <View style={styles.dashLiveDot} />
                   <Text style={styles.dashLivePillText}>LIVE</Text>
                 </View>
               </View>
+
+              {/* Tournament & Venue: Positioned right in the middle between LIVE and View Live */}
+              {(() => {
+                const activeMatch = allLiveMatchesList[liveCarouselIndex] || allLiveMatchesList[0];
+                const activeData = activeMatch ? getLiveMatchCardData(activeMatch) : null;
+                if (!activeData) return <View style={{ flex: 1 }} />;
+                return (
+                  <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 }}>
+                    <Text style={[styles.dashFeaturedTournName, { textAlign: 'center', fontSize: 12.5, fontWeight: '900', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }]} numberOfLines={1}>
+                      {activeData.tournament}
+                    </Text>
+                    <Text style={[styles.dashFeaturedVenue, { textAlign: 'center', fontSize: 10, fontWeight: '700', color: currentTheme.isLight ? '#64748b' : '#94a3b8', marginTop: 1 }]} numberOfLines={1}>
+                      {activeData.format} • {activeData.venue}
+                    </Text>
+                  </View>
+                );
+              })()}
 
               <TouchableOpacity
                 style={styles.dashViewLiveBtn}
@@ -22713,17 +22808,8 @@ function CricketAddaMain() {
                         openLiveMatchViewer(m.id || liveData.id);
                       }
                     }}
-                    style={{ width: width - 20, paddingHorizontal: 12, paddingBottom: 6 }}
+                    style={{ width: width - 20, paddingHorizontal: 12, paddingTop: 4, paddingBottom: 6 }}
                   >
-                    {/* Tournament & Venue - Centered for Balanced Spacing */}
-                    <View style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 5 }}>
-                      <Text style={[styles.dashFeaturedTournName, { textAlign: 'center' }]} numberOfLines={1}>
-                        {liveData.tournament}
-                      </Text>
-                      <Text style={[styles.dashFeaturedVenue, { textAlign: 'center', marginTop: 1 }]} numberOfLines={1}>
-                        {liveData.format} • {liveData.venue}
-                      </Text>
-                    </View>
 
                     {/* Scores Row */}
                     <View style={styles.dashFeaturedScoresRow}>
@@ -23908,11 +23994,11 @@ function CricketAddaMain() {
                               dSquad.map((p, pIdx) => {
                                 let pName = typeof p === 'string' ? p : (p.name || `Player ${pIdx + 1}`);
                                 let cleanPName = pName.replace(' (c)', '').replace(' (wk)', '').trim();
-                                if (dIsOwner && userProfile?.name && (pIdx === 0 || cleanPName.toLowerCase() === 'amanlevo' || cleanPName.toLowerCase() === 'aman' || cleanPName.toLowerCase() === (authEmail || '').split('@')[0].toLowerCase())) {
+                                if (dIsOwner && userProfile?.name && (cleanPName.toLowerCase() === 'amanlevo' || cleanPName.toLowerCase() === 'aman' || cleanPName.toLowerCase() === (authEmail || '').split('@')[0].toLowerCase())) {
                                   cleanPName = userProfile.name;
                                   pName = pName.includes('(c)') ? `${userProfile.name} (c)` : (pName.includes('(wk)') ? `${userProfile.name} (wk)` : userProfile.name);
                                 }
-                                const isCap = (typeof p === 'object' && p.isCaptain) || pIdx === 0 || cleanPName === dTeam.captain || pName.includes('(c)');
+                                const isCap = (typeof p === 'object' && p.isCaptain) || (dCaptain && cleanPName.toLowerCase() === dCaptain.toLowerCase()) || pName.includes('(c)');
                                 const isWk = (typeof p === 'object' && p.isWk) || (typeof p === 'object' && String(p.role || '').toUpperCase() === 'WK') || cleanPName === dTeam.wicketkeeper || pName.includes('(wk)');
                                 const isMe = userProfile?.name && cleanPName.toLowerCase() === userProfile.name.toLowerCase().trim();
                                 const pPhone = typeof p === 'object' ? (p.phone || '') : '';
@@ -28921,15 +29007,15 @@ function CricketAddaMain() {
             )}
 
             {extraModalType === 'penalty' ? (
-              <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 380 }}>
+              <View>
                 {/* 1. Award To Team */}
-                <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800', marginBottom: 6 }}>
+                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
                   AWARD PENALTY TO:
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
                   {[
-                    { key: 'batting', label: `Batting Team (${battingTeamName || 'Batting'})` },
-                    { key: 'bowling', label: `Bowling Team (${bowlingTeamName || 'Bowling'})` },
+                    { key: 'batting', label: `Batting (${battingTeamName || 'Bat'})` },
+                    { key: 'bowling', label: `Bowling (${bowlingTeamName || 'Bowl'})` },
                   ].map(t => {
                     const isSel = penaltyAwardTeam === t.key;
                     return (
@@ -28939,16 +29025,16 @@ function CricketAddaMain() {
                         onPress={() => setPenaltyAwardTeam(t.key)}
                         style={{
                           flex: 1,
-                          paddingVertical: 9,
-                          paddingHorizontal: 8,
-                          borderRadius: 8,
+                          paddingVertical: 6,
+                          paddingHorizontal: 6,
+                          borderRadius: 7,
                           backgroundColor: isSel ? '#0284c7' : '#0a192f',
-                          borderWidth: 1.5,
+                          borderWidth: 1.2,
                           borderColor: isSel ? '#38bdf8' : '#1e3a5f',
                           alignItems: 'center',
                         }}
                       >
-                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
+                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 10.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
                           {t.label}
                         </Text>
                       </TouchableOpacity>
@@ -28956,48 +29042,45 @@ function CricketAddaMain() {
                   })}
                 </View>
 
-                {/* 2. Penalty Preset Reasons (Clean English, No Emojis) */}
-                <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800', marginBottom: 6 }}>
+                {/* 2. Penalty Preset Reasons (Compact 2-Column Grid - Zero Scrolling) */}
+                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
                   PENALTY REASON:
                 </Text>
-                <View style={{ gap: 6, marginBottom: 14 }}>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
                   {[
-                    'Ball Hit Helmet / Ground Equipment (5 Runs)',
-                    'Fake Fielding / Distraction (5 Runs)',
-                    'Illegal Fielding / Cap or Clothing (5 Runs)',
-                    'Stop-Clock / Slow Over Rate (5 Runs)',
-                    'Ball Tampering (5 Runs)',
-                    'Unauthorised Player Entry (5 Runs)',
-                    'Other / Custom Runs',
+                    { key: 'Ball Hit Helmet / Ground Equipment (5 Runs)', label: 'Helmet / Ground (5)' },
+                    { key: 'Fake Fielding / Distraction (5 Runs)', label: 'Fake Fielding (5)' },
+                    { key: 'Illegal Fielding / Cap or Clothing (5 Runs)', label: 'Illegal Fielding (5)' },
+                    { key: 'Stop-Clock / Slow Over Rate (5 Runs)', label: 'Slow Over Rate (5)' },
+                    { key: 'Ball Tampering (5 Runs)', label: 'Ball Tampering (5)' },
+                    { key: 'Unauthorised Player Entry (5 Runs)', label: 'Unauthorised Entry (5)' },
+                    { key: 'Other / Custom Runs', label: 'Other / Custom' },
                   ].map(r => {
-                    const isSel = penaltyReason === r;
+                    const isSel = penaltyReason === r.key;
                     return (
                       <TouchableOpacity
-                        key={r}
+                        key={r.key}
                         activeOpacity={0.8}
                         onPress={() => {
-                          setPenaltyReason(r);
-                          if (r.includes('5 Runs')) {
+                          setPenaltyReason(r.key);
+                          if (r.key.includes('5 Runs')) {
                             setPenaltyRunsValue(5);
                           }
                         }}
                         style={{
-                          paddingVertical: 9,
-                          paddingHorizontal: 12,
-                          borderRadius: 8,
-                          backgroundColor: isSel ? 'rgba(56, 189, 248, 0.15)' : '#0a192f',
+                          width: '48.5%',
+                          paddingVertical: 5,
+                          paddingHorizontal: 8,
+                          borderRadius: 7,
+                          backgroundColor: isSel ? 'rgba(56, 189, 248, 0.2)' : '#0a192f',
                           borderWidth: 1.2,
                           borderColor: isSel ? '#38bdf8' : '#1e3a5f',
-                          flexDirection: 'row',
                           alignItems: 'center',
-                          justifyContent: 'space-between',
+                          justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ color: isSel ? '#38bdf8' : '#cbd5e1', fontSize: 12, fontWeight: '700' }}>
-                          {r}
-                        </Text>
-                        <Text style={{ color: isSel ? '#38bdf8' : '#64748b', fontSize: 11, fontWeight: '800' }}>
-                          {r.includes('5 Runs') ? '5 runs' : ''}
+                        <Text style={{ color: isSel ? '#38bdf8' : '#cbd5e1', fontSize: 10.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
+                          {r.label}
                         </Text>
                       </TouchableOpacity>
                     );
@@ -29006,23 +29089,24 @@ function CricketAddaMain() {
 
                 {/* Custom runs input if Other / Custom selected */}
                 {penaltyReason === 'Other / Custom Runs' && (
-                  <View style={{ marginBottom: 14 }}>
-                    <Text style={{ color: '#f59e0b', fontSize: 11.5, fontWeight: '800', marginBottom: 6 }}>
-                      Custom Penalty Runs:
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Text style={{ color: '#f59e0b', fontSize: 10.5, fontWeight: '800' }}>
+                      Custom Runs:
                     </Text>
                     <TextInput
                       value={String(penaltyRunsValue)}
                       onChangeText={val => setPenaltyRunsValue(parseInt(val, 10) || 0)}
                       keyboardType="numeric"
                       style={{
+                        flex: 1,
                         backgroundColor: '#050c18',
-                        borderRadius: 8,
-                        borderWidth: 1.2,
+                        borderRadius: 6,
+                        borderWidth: 1,
                         borderColor: '#1e3a5f',
-                        paddingHorizontal: 12,
-                        paddingVertical: 8,
+                        paddingHorizontal: 8,
+                        paddingVertical: 4,
                         color: '#ffffff',
-                        fontSize: 13,
+                        fontSize: 12,
                         fontWeight: '700',
                       }}
                     />
@@ -29030,10 +29114,15 @@ function CricketAddaMain() {
                 )}
 
                 {/* 3. Batsman Completed Runs Before Penalty (ICC Rule) */}
-                <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800', marginBottom: 6 }}>
-                  RUNS COMPLETED BY BATTER BEFORE PENALTY:
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800' }}>
+                    RUNS COMPLETED BY BATTER:
+                  </Text>
+                  <Text style={{ color: '#10b981', fontSize: 9.5, fontWeight: '700' }}>
+                    +{penaltyBatterRuns} to {striker || 'Batter'}
+                  </Text>
+                </View>
+                <View style={{ flexDirection: 'row', gap: 5, marginBottom: 6 }}>
                   {[0, 1, 2, 3].map(cr => {
                     const isSel = penaltyBatterRuns === cr;
                     return (
@@ -29043,8 +29132,8 @@ function CricketAddaMain() {
                         onPress={() => setPenaltyBatterRuns(cr)}
                         style={{
                           flex: 1,
-                          paddingVertical: 8,
-                          borderRadius: 8,
+                          paddingVertical: 5,
+                          borderRadius: 7,
                           backgroundColor: isSel ? '#10b981' : '#0a192f',
                           borderWidth: 1.2,
                           borderColor: isSel ? '#34d399' : '#1e3a5f',
@@ -29052,24 +29141,19 @@ function CricketAddaMain() {
                           justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 13, fontWeight: '900' }}>
+                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11.5, fontWeight: '900' }}>
                           {cr} {cr === 1 ? 'Run' : 'Runs'}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
-                <Text style={{ color: '#10b981', fontSize: 10.5, fontWeight: '600', marginBottom: 14 }}>
-                  {penaltyBatterRuns > 0
-                    ? `Rule: ${penaltyBatterRuns} run credited to ${striker || 'Batter'}, ${penaltyRunsValue} penalty runs to Extras (Total ${penaltyRunsValue + penaltyBatterRuns} runs)`
-                    : `Rule: ${penaltyRunsValue} penalty runs credited to Extras`}
-                </Text>
 
                 {/* 4. Delivery Count */}
-                <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800', marginBottom: 6 }}>
+                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
                   DELIVERY COUNT:
                 </Text>
-                <View style={{ flexDirection: 'row', gap: 8, marginBottom: 16 }}>
+                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
                   {[
                     { key: true, label: 'Legal Ball Bowled' },
                     { key: false, label: 'Dead Ball (No Ball Counted)' },
@@ -29082,16 +29166,16 @@ function CricketAddaMain() {
                         onPress={() => setPenaltyIsLegalBall(b.key)}
                         style={{
                           flex: 1,
-                          paddingVertical: 8,
-                          paddingHorizontal: 6,
-                          borderRadius: 8,
+                          paddingVertical: 6,
+                          paddingHorizontal: 4,
+                          borderRadius: 7,
                           backgroundColor: isSel ? 'rgba(56, 189, 248, 0.2)' : '#0a192f',
                           borderWidth: 1.2,
                           borderColor: isSel ? '#38bdf8' : '#1e3a5f',
                           alignItems: 'center',
                         }}
                       >
-                        <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 11, fontWeight: '800' }}>
+                        <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 10, fontWeight: '800' }}>
                           {b.label}
                         </Text>
                       </TouchableOpacity>
@@ -29128,18 +29212,18 @@ function CricketAddaMain() {
                   }}
                   style={{
                     backgroundColor: '#10b981',
-                    borderRadius: 10,
-                    paddingVertical: 12,
+                    borderRadius: 8,
+                    paddingVertical: 10,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    marginBottom: 6,
+                    marginBottom: 2,
                   }}
                 >
-                  <Text style={{ color: '#020617', fontSize: 14, fontWeight: '900' }}>
-                    Confirm & Award Penalty ({Number(penaltyRunsValue || 5) + Number(penaltyBatterRuns || 0)} Runs)
+                  <Text style={{ color: '#020617', fontSize: 13, fontWeight: '900' }}>
+                    Confirm & Award ({Number(penaltyRunsValue || 5) + Number(penaltyBatterRuns || 0)} Runs)
                   </Text>
                 </TouchableOpacity>
-              </ScrollView>
+              </View>
             ) : (
               <>
             {/* Question Text */}
@@ -29650,7 +29734,6 @@ function CricketAddaMain() {
                           borderRadius: 8,
                           flexDirection: 'row',
                           alignItems: 'center',
-                          marginRight: 6,
                           gap: 4,
                         }}
                         onPress={() => {
@@ -29672,19 +29755,6 @@ function CricketAddaMain() {
                         <Text style={{ color: '#10b981', fontSize: 11, fontWeight: 'bold' }}>Team QR</Text>
                       </TouchableOpacity>
                     )}
-                    <TouchableOpacity
-                      style={styles.closeRoundBtn}
-                      onPress={() => {
-                        setNewTeamModalVisible(false);
-                        setEditingTeamId(null);
-                        setNewTeamLogo(null);
-                        setNewTeamCustomLogoUrl('');
-                        setShowTeamLogoUrlInput(false);
-                        restoreLastTeamDetailIfAny();
-                      }}
-                    >
-                      <Text style={styles.closeRoundBtnText}>✕</Text>
-                    </TouchableOpacity>
                   </View>
 
                   <View style={{ flex: 1, minHeight: 0 }}>
@@ -30434,64 +30504,74 @@ function CricketAddaMain() {
                       keyboardShouldPersistTaps="handled"
                     >
                       <View style={styles.squadPlayerCardsWrap}>
-                    {newTeamSquad.map((p, idx) => {
-                      const roleText = p.role === 'BAT' ? 'Batter' : p.role === 'BOWL' ? 'Bowler' : p.role === 'WK' ? 'WK' : 'All-Rounder';
-                      const hasExplicitCaptain = newTeamSquad.some(x => Boolean(x.isCaptain || (x.name && x.name.toLowerCase().includes('(c)'))));
-                      const isCapt = Boolean(p.isCaptain || (p.name && p.name.toLowerCase().includes('(c)')) || (!hasExplicitCaptain && idx === 0));
-                      const cleanPName = p.name ? p.name.replace(/\s*\(c\)/gi, '').trim() : `Player #${idx + 1}`;
-                      const displayName = isCapt ? `${cleanPName} (c)` : cleanPName;
-                      return (
-                        <View key={p.id || idx} style={[styles.squadPlayerCardRow, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
-                          {/* Number */}
-                          <View style={[styles.squadPlayerCardNum, currentTheme.isLight && { backgroundColor: '#e2e8f0' }]}>
-                            <Text style={[styles.squadPlayerCardNumText, currentTheme.isLight && { color: '#475569' }]}>#{idx + 1}</Text>
-                          </View>
+                    {(() => {
+                      let capIdx = newTeamSquad.findIndex(x => Boolean(x.isCaptain));
+                      if (capIdx === -1) {
+                        capIdx = newTeamSquad.findIndex(x => Boolean(x.name && x.name.toLowerCase().includes('(c)')));
+                      }
+                      if (capIdx === -1 && (newTeamSquad || []).length > 0) {
+                        capIdx = 0;
+                      }
 
-                          {/* Player Avatar / Profile Pic */}
-                          <PlayerAvatar
-                            name={p.name}
-                            customUri={p.avatarUri}
-                            size={34}
-                            borderColor={isCapt ? '#f59e0b' : '#38bdf8'}
-                            style={{ marginLeft: 6 }}
-                          />
+                      return newTeamSquad.map((p, idx) => {
+                        const roleText = p.role === 'BAT' ? 'Batter' : p.role === 'BOWL' ? 'Bowler' : p.role === 'WK' ? 'WK' : 'All-Rounder';
+                        const isCapt = idx === capIdx;
+                        const cleanPName = p.name ? p.name.replace(/\s*\(c\)/gi, '').replace(/\s*\(wk\)/gi, '').trim() : `Player #${idx + 1}`;
+                        const displayName = isCapt ? `${cleanPName} (c)` : cleanPName;
+                        const isLocked = isCapt && !isEditingOpponentTeam;
+                        return (
+                          <View key={p.id || idx} style={[styles.squadPlayerCardRow, currentTheme.isLight && { backgroundColor: '#f8fafc', borderColor: '#e2e8f0' }]}>
+                            {/* Number */}
+                            <View style={[styles.squadPlayerCardNum, currentTheme.isLight && { backgroundColor: '#e2e8f0' }]}>
+                              <Text style={[styles.squadPlayerCardNumText, currentTheme.isLight && { color: '#475569' }]}>#{idx + 1}</Text>
+                            </View>
 
-                          {/* Player Details */}
-                          <View style={{ flex: 1, marginLeft: 8 }}>
-                            <Text style={[styles.squadPlayerCardName, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>
-                              {displayName}
-                            </Text>
+                            {/* Player Avatar / Profile Pic */}
+                            <PlayerAvatar
+                              name={cleanPName}
+                              customUri={p.avatarUri}
+                              size={34}
+                              borderColor={isCapt ? '#f59e0b' : '#38bdf8'}
+                              style={{ marginLeft: 6 }}
+                            />
 
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                              <Text style={[styles.squadPlayerCardRole, currentTheme.isLight && { color: '#0284c7' }]}>
-                                {roleText}
+                            {/* Player Details */}
+                            <View style={{ flex: 1, marginLeft: 8 }}>
+                              <Text style={[styles.squadPlayerCardName, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>
+                                {displayName}
                               </Text>
-                              {p.phone ? (
-                                <Text style={{ color: currentTheme.isLight ? '#64748b' : '#64748b', fontSize: 10 }}>
-                                  • {p.phone}
+
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
+                                <Text style={[styles.squadPlayerCardRole, currentTheme.isLight && { color: '#0284c7' }]}>
+                                  {roleText}
                                 </Text>
-                              ) : null}
+                                {p.phone ? (
+                                  <Text style={{ color: currentTheme.isLight ? '#64748b' : '#64748b', fontSize: 10 }}>
+                                    • {p.phone}
+                                  </Text>
+                                ) : null}
+                              </View>
+                            </View>
+
+                            {/* Action: Delete only (or subtle Locked tag for Captain of own team) */}
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                              {isLocked ? (
+                                <View style={[styles.squadSelfLockBtn, currentTheme.isLight && { backgroundColor: '#ecfdf5', borderColor: '#10b981' }]}>
+                                  <Text style={{ color: '#10b981', fontSize: 9.5, fontWeight: 'bold' }}>Locked</Text>
+                                </View>
+                              ) : (
+                                <TouchableOpacity
+                                  style={[styles.squadPlayerDeleteBtn, currentTheme.isLight && { backgroundColor: '#fee2e2' }]}
+                                  onPress={() => handleRemovePlayerFromNewTeamSquad(idx)}
+                                >
+                                  <Text style={[styles.squadPlayerDeleteBtnText, currentTheme.isLight && { color: '#ef4444' }]}>✕</Text>
+                                </TouchableOpacity>
+                              )}
                             </View>
                           </View>
-
-                          {/* Action: Delete only (or subtle Locked tag for Captain/Self) */}
-                          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                            {isCapt ? (
-                              <View style={[styles.squadSelfLockBtn, currentTheme.isLight && { backgroundColor: '#ecfdf5', borderColor: '#10b981' }]}>
-                                <Text style={{ color: '#10b981', fontSize: 9.5, fontWeight: 'bold' }}>Locked</Text>
-                              </View>
-                            ) : (
-                              <TouchableOpacity
-                                style={[styles.squadPlayerDeleteBtn, currentTheme.isLight && { backgroundColor: '#fee2e2' }]}
-                                onPress={() => handleRemovePlayerFromNewTeamSquad(idx)}
-                              >
-                                <Text style={[styles.squadPlayerDeleteBtnText, currentTheme.isLight && { color: '#ef4444' }]}>✕</Text>
-                              </TouchableOpacity>
-                            )}
-                          </View>
-                        </View>
-                      );
-                    })}
+                        );
+                      });
+                    })()}
                       </View>
                     </ScrollView>
                   </View>
