@@ -364,8 +364,9 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
       extrasBreakdown.legByes += addedRuns;
       extrasBreakdown.total += addedRuns;
     } else if (extraType === 'penalty') {
-      extrasBreakdown.penalty += addedRuns;
-      extrasBreakdown.total += addedRuns;
+      const pen = Number(d.extraPenalty !== undefined ? d.extraPenalty : (addedRuns - Number(d.runsOffBat || 0)));
+      extrasBreakdown.penalty += pen;
+      extrasBreakdown.total += pen;
     }
 
     // --- Batter Accounting ---
@@ -377,8 +378,8 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
       currentNonStriker = nonStrikerBatter.name;
     }
 
-    // Batter ball faced: counts on all deliveries EXCEPT wides and penalty
-    if (extraType !== 'wide' && extraType !== 'penalty') {
+    // Batter ball faced: counts on all deliveries EXCEPT wides and dead-ball penalty
+    if (extraType !== 'wide' && (extraType !== 'penalty' || d.isLegalDelivery === true)) {
       strikerBatter.balls += 1;
     }
 
