@@ -31246,17 +31246,9 @@ function CricketAddaMain() {
                           <Text style={[
                             { fontSize: 9.5, color: '#94a3b8', marginTop: 1 },
                             isSel && !isDisabled && { color: '#bae6fd', fontWeight: '700' },
-                            isLastOver && { color: '#fca5a5', fontWeight: 'bold' },
-                            isCurrentMidOver && { color: '#fde047', fontWeight: 'bold' },
-                            isQuotaMaxed && { color: '#ef4444', fontWeight: 'bold' },
+                            isDisabled && { color: '#64748b' },
                           ]} numberOfLines={1}>
-                            {isQuotaMaxed
-                              ? `⛔ Maxed (${bOversNum}/${maxBowlerOversQuota})`
-                              : isLastOver
-                              ? '🚫 Last Over (Disabled)'
-                              : isCurrentMidOver
-                              ? '⚠️ Current (Cannot re-pick)'
-                              : `${bOversNum}.${bBallsRem}/${maxBowlerOversQuota} ov`}
+                            {`${bOversNum}.${bBallsRem}/${maxBowlerOversQuota} ov`}
                           </Text>
                         </View>
                       </TouchableOpacity>
