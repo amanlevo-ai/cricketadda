@@ -130,9 +130,9 @@ export async function updateLiveMatchNotification(matchData) {
   const bowlingTeam = currentInnings === 1 ? team2 : team1;
 
   // Extract score figures
-  const runs = Number(matchData.liveRuns ?? matchData.runs ?? 0);
-  const wickets = Number(matchData.liveWickets ?? matchData.wickets ?? 0);
-  const overs = String(matchData.liveOvers ?? matchData.oversStr ?? matchData.overs ?? '0.0');
+  let runs = Number(matchData.liveRuns ?? matchData.runs ?? 0);
+  let wickets = Number(matchData.liveWickets ?? matchData.wickets ?? 0);
+  let overs = String(matchData.liveOvers ?? matchData.oversStr ?? matchData.overs ?? '0.0');
 
   // Canonical player name resolver (e.g. Amanlevo -> Amandeep)
   const formatCanonicalPlayer = name => {
@@ -186,6 +186,15 @@ export async function updateLiveMatchNotification(matchData) {
   const bowlerWickets = bowlerStats.wickets ?? 0;
   const bowlerRuns = bowlerStats.runs ?? 0;
   const bowlerOvers = bowlerStats.ovStr ?? bowlerStats.overs ?? '0.0';
+
+  // Safeguard: Ensure total score is never 0/0 (0.0 ov) if deliveries/batters/bowlers have recorded runs
+  if (runs === 0 && matchData.liveBatters && typeof matchData.liveBatters === 'object') {
+    const batTotal = Object.values(matchData.liveBatters).reduce((sum, b) => sum + (Number(b?.runs) || 0), 0);
+    if (batTotal > 0) runs = batTotal;
+  }
+  if ((overs === '0.0' || overs === '0') && bowlerOvers !== '0.0' && bowlerOvers !== '0') {
+    overs = bowlerOvers;
+  }
 
   // 1st Line (Title): Clean Teams Matchup (Never truncates on any screen)
   const title = `${team1} vs ${team2}`;

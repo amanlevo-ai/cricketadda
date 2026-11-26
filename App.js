@@ -7395,6 +7395,57 @@ function CricketAddaMain() {
               }
             } catch (e) {}
 
+            // Auto-sanitize existing teams: Purge Amandeep from Tarlochan 11 & deduplicate Aman11
+            let teamsSanitized = false;
+            existingTeams = existingTeams.map(t => {
+              if (!t) return t;
+              let tModified = false;
+              let curSquad = Array.isArray(t.squad) ? [...t.squad] : [];
+              const tNameLower = String(t.name || '').toLowerCase();
+
+              if (tNameLower.includes('tarlochan')) {
+                const prevLen = curSquad.length;
+                curSquad = curSquad.filter(p => {
+                  const pName = typeof p === 'string' ? p : (p?.name || '');
+                  const clean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+                  return clean !== 'amandeep' && clean !== 'amanlevo' && clean !== 'aman';
+                });
+                if (curSquad.length !== prevLen) tModified = true;
+                let cap = t.captain || '';
+                if (!cap || cap.toLowerCase().includes('amandeep') || cap.toLowerCase().includes('aman')) {
+                  const wp = curSquad.find(p => (typeof p === 'string' ? p : (p?.name || '')).toLowerCase().includes('wpardeep'));
+                  cap = wp ? (typeof wp === 'string' ? wp.replace(/\s*\([^)]*\)/g, '').trim() : wp.name) : (curSquad[0] ? (typeof curSquad[0] === 'string' ? curSquad[0] : curSquad[0].name) : 'Wpardeepkaur');
+                  tModified = true;
+                }
+                if (tModified) {
+                  teamsSanitized = true;
+                  return { ...t, captain: cap, squad: curSquad };
+                }
+              }
+
+              const seen = new Set();
+              const uniqueSquad = [];
+              curSquad.forEach(p => {
+                const pName = typeof p === 'string' ? p : (p?.name || '');
+                const clean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+                if (!clean) return;
+                if (!seen.has(clean)) {
+                  seen.add(clean);
+                  uniqueSquad.push(p);
+                } else {
+                  tModified = true;
+                }
+              });
+              if (tModified) {
+                teamsSanitized = true;
+                return { ...t, squad: uniqueSquad };
+              }
+              return t;
+            });
+            if (teamsSanitized) {
+              AsyncStorage.setItem(STORAGE_KEYS.REGISTERED_TEAMS, JSON.stringify(existingTeams)).catch(() => {});
+            }
+
             setMatchesDb(existingMatches);
             setRegisteredTeams(existingTeams);
 
@@ -7730,13 +7781,13 @@ function CricketAddaMain() {
                     const targetName = (isMyCreated && activeName) ? activeName : 'Amandeep';
                     if (typeof p === 'string') {
                       const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
-                      if (cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman' || (pIdx === 0 && isMyCreated)) {
+                      if ((cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman') && isMyCreated) {
                         return p.replace(cleanP, targetName);
                       }
                       return p;
                     } else if (p && typeof p === 'object') {
                       const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
-                      if (pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman' || (pIdx === 0 && isMyCreated)) {
+                      if ((pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman') && isMyCreated) {
                         return { ...p, name: targetName, avatarUri: (isMyCreated ? userProfile?.avatarUri : null) || p.avatarUri };
                       }
                       return p;
@@ -8007,7 +8058,7 @@ function CricketAddaMain() {
               const targetPName = isCreatedByMe(t) ? (uName || 'Amandeep') : 'Amandeep';
               if (typeof p === 'string') {
                 const cleanP = p.replace(' (c)', '').replace(' (wk)', '').trim();
-                const isMatch = cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman' || (pIdx === 0 && (t.isCustomCreated || isCreatedByMe(t)));
+                const isMatch = (cleanP.toLowerCase() === 'amanlevo' || cleanP.toLowerCase() === 'aman') && isCreatedByMe(t);
                 if (isMatch && cleanP !== targetPName) {
                   teamChanged = true;
                   return p.replace(cleanP, targetPName);
@@ -8015,7 +8066,7 @@ function CricketAddaMain() {
                 return p;
               } else if (p && typeof p === 'object') {
                 const pClean = String(p.name || '').replace(' (c)', '').replace(' (wk)', '').trim();
-                const isMatch = pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman' || (pIdx === 0 && (t.isCustomCreated || isCreatedByMe(t)));
+                const isMatch = (pClean.toLowerCase() === 'amanlevo' || pClean.toLowerCase() === 'aman') && isCreatedByMe(t);
                 if (isMatch && pClean !== targetPName) {
                   teamChanged = true;
                   return { ...p, name: targetPName, avatarUri: (isCreatedByMe(t) ? userProfile.avatarUri : null) || p.avatarUri };
@@ -8210,23 +8261,26 @@ function CricketAddaMain() {
             const team2 = liveM.teamB || liveM.innings2?.team || '';
             if (!team1 || !team2) return;
             const rScore = liveM.liveState || liveM;
-            const rBalls = typeof rScore.liveBalls === 'number' ? rScore.liveBalls : (rScore.balls || 0);
+            const rRuns = typeof liveM.liveRuns === 'number' ? liveM.liveRuns : (typeof rScore.liveRuns === 'number' ? rScore.liveRuns : (rScore.runs || 0));
+            const rWickets = typeof liveM.liveWickets === 'number' ? liveM.liveWickets : (typeof rScore.liveWickets === 'number' ? rScore.liveWickets : (rScore.wickets || 0));
+            const rBalls = typeof liveM.liveBalls === 'number' ? liveM.liveBalls : (typeof rScore.liveBalls === 'number' ? rScore.liveBalls : (rScore.balls || 0));
+            const rOvers = liveM.liveOvers || rScore.liveOvers || `${Math.floor(rBalls / 6)}.${rBalls % 6}`;
             updateLiveMatchNotification({
               id: targetId,
               teamA: team1,
               teamB: team2,
               status: liveM.status || 'live',
               currentInnings: liveM.currentInnings || 1,
-              liveRuns: typeof rScore.liveRuns === 'number' ? rScore.liveRuns : (rScore.runs || 0),
-              liveWickets: typeof rScore.liveWickets === 'number' ? rScore.liveWickets : (rScore.wickets || 0),
-              liveOvers: rScore.liveOvers || `${Math.floor(rBalls / 6)}.${rBalls % 6}`,
-              crr: rScore.crr || '',
+              liveRuns: rRuns,
+              liveWickets: rWickets,
+              liveOvers: rOvers,
+              crr: liveM.crr || rScore.crr || (rBalls > 0 ? ((rRuns / rBalls) * 6).toFixed(2) : '0.00'),
               target: liveM.target || 0,
               currentStriker: liveM.currentStriker || '',
               currentNonStriker: liveM.currentNonStriker || '',
               currentBowler: liveM.currentBowler || '',
-              liveBatters: rScore.liveBatters || {},
-              liveBowlers: rScore.liveBowlerStats || {},
+              liveBatters: liveM.liveBatters || rScore.liveBatters || {},
+              liveBowlers: liveM.liveBowlerStats || rScore.liveBowlerStats || {},
             });
           }).catch(() => {});
         }, 3000);
@@ -8569,10 +8623,10 @@ function CricketAddaMain() {
                   const notifTeam2 = mData.teamB || mData.innings2?.team || '';
                   if (notifTeam1 && notifTeam2) {
                     const rScore = mData.liveState || mData;
-                    const rBalls = typeof rScore.liveBalls === 'number' ? rScore.liveBalls : (rScore.balls || cloudBallsCount || 0);
-                    const rRuns = typeof rScore.liveRuns === 'number' ? rScore.liveRuns : (rScore.runs ?? mData.liveRuns ?? 0);
-                    const rWickets = typeof rScore.liveWickets === 'number' ? rScore.liveWickets : (rScore.wickets ?? mData.liveWickets ?? 0);
-                    const rOvers = rScore.liveOvers || `${Math.floor(rBalls / 6)}.${rBalls % 6}`;
+                    const rRuns = typeof mData.liveRuns === 'number' ? mData.liveRuns : (typeof rScore.liveRuns === 'number' ? rScore.liveRuns : (rScore.runs || 0));
+                    const rWickets = typeof mData.liveWickets === 'number' ? mData.liveWickets : (typeof rScore.liveWickets === 'number' ? rScore.liveWickets : (rScore.wickets || 0));
+                    const rBalls = typeof mData.liveBalls === 'number' ? mData.liveBalls : (typeof rScore.liveBalls === 'number' ? rScore.liveBalls : (cloudBallsCount || 0));
+                    const rOvers = mData.liveOvers || rScore.liveOvers || `${Math.floor(rBalls / 6)}.${rBalls % 6}`;
                     updateLiveMatchNotification({
                       id: mId,
                       teamA: notifTeam1,
@@ -8582,7 +8636,7 @@ function CricketAddaMain() {
                       liveRuns: rRuns,
                       liveWickets: rWickets,
                       liveOvers: rOvers,
-                      crr: rBalls > 0 ? ((rRuns / rBalls) * 6).toFixed(2) : '0.00',
+                      crr: mData.crr || rScore.crr || (rBalls > 0 ? ((rRuns / rBalls) * 6).toFixed(2) : '0.00'),
                       target: mData.target || 0,
                       currentStriker: mData.currentStriker || '',
                       currentNonStriker: mData.currentNonStriker || '',
@@ -11033,29 +11087,31 @@ function CricketAddaMain() {
 
   const getBatterDetailed = useCallback(name => {
     if (!name) return { runs: 0, balls: 0, fours: 0, sixes: 0, sr: '0.0' };
-    const norm = String(name).trim().toLowerCase();
+    const rawClean = String(name).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
     const canon = resolveCanonicalPlayerName(name);
     const normCanon = canon.toLowerCase();
     const found = derivedInningsState.battersMap[name] ||
       derivedInningsState.battersMap[canon] ||
+      derivedInningsState.battersMap[rawClean] ||
       Object.entries(derivedInningsState.battersMap || {}).find(([k]) => {
-        const kl = k.trim().toLowerCase();
-        return kl === norm || kl === normCanon;
+        const kl = String(k).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+        return kl === rawClean || kl === normCanon || isSameUserOrAlias(kl, rawClean);
       })?.[1];
     if (found) {
       return {
-        runs: found.runs,
-        balls: found.balls,
-        fours: found.fours,
-        sixes: found.sixes,
+        runs: Number(found.runs) || 0,
+        balls: Number(found.balls) || 0,
+        fours: Number(found.fours) || 0,
+        sixes: Number(found.sixes) || 0,
         sr: found.strikeRate || '0.0',
       };
     }
     const cached = liveBatters[name] ||
       liveBatters[canon] ||
+      liveBatters[rawClean] ||
       Object.entries(liveBatters || {}).find(([k]) => {
-        const kl = k.trim().toLowerCase();
-        return kl === norm || kl === normCanon;
+        const kl = String(k).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+        return kl === rawClean || kl === normCanon || isSameUserOrAlias(kl, rawClean);
       })?.[1];
     return {
       runs: Number(cached?.runs) || 0,
@@ -11068,14 +11124,15 @@ function CricketAddaMain() {
 
   const getBowlerDetailed = useCallback(name => {
     if (!name) return { ovStr: '0.0', maidens: 0, runs: 0, wickets: 0, econ: '0.0' };
-    const norm = String(name).trim().toLowerCase();
+    const rawClean = String(name).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
     const canon = resolveCanonicalPlayerName(name);
     const normCanon = canon.toLowerCase();
     const found = derivedInningsState.bowlersMap[name] ||
       derivedInningsState.bowlersMap[canon] ||
+      derivedInningsState.bowlersMap[rawClean] ||
       Object.entries(derivedInningsState.bowlersMap || {}).find(([k]) => {
-        const kl = k.trim().toLowerCase();
-        return kl === norm || kl === normCanon;
+        const kl = String(k).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+        return kl === rawClean || kl === normCanon || isSameUserOrAlias(kl, rawClean);
       })?.[1];
     if (found) {
       return {
@@ -11088,9 +11145,10 @@ function CricketAddaMain() {
     }
     const cached = liveBowlerStats[name] ||
       liveBowlerStats[canon] ||
+      liveBowlerStats[rawClean] ||
       Object.entries(liveBowlerStats || {}).find(([k]) => {
-        const kl = k.trim().toLowerCase();
-        return kl === norm || kl === normCanon;
+        const kl = String(k).replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+        return kl === rawClean || kl === normCanon || isSameUserOrAlias(kl, rawClean);
       })?.[1];
     return {
       ovStr: cached?.overs || '0.0',
@@ -12939,6 +12997,17 @@ function CricketAddaMain() {
         nextBowler: isOverEnd ? '' : bowler,
         lastOverBowler: isOverEnd ? bowler : match.lastOverBowler,
         isOverEnd: Boolean(isOverEnd),
+        currentRuns: nextRuns,
+        currentWickets: nextWkts,
+        currentBalls: nextBalls,
+        currentOversStr: nextOvStr,
+        liveRuns: nextRuns,
+        liveWickets: nextWkts,
+        liveBalls: nextBalls,
+        liveOvers: nextOvStr,
+        liveBatters: nextLiveBatters,
+        liveBowlerStats: nextLiveBowlers,
+        liveThisOver: nextThisOver,
         status: (isSecondInningsFinished) ? 'completed' : 'live',
         senderClientId: clientIdRef?.current || '',
         celebrationEvent: celebrationEvent || null,
@@ -14502,6 +14571,27 @@ function CricketAddaMain() {
       [finalBowler]: prev[finalBowler] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
     }));
 
+    const curOvStr = `${Math.floor((reconciledScore.balls || liveBalls) / 6)}.${(reconciledScore.balls || liveBalls) % 6}`;
+    const bowlerCommText = isNewOverTransition
+      ? `🔄 Bowling change: ${finalBowler} comes into the attack to bowl over ${Math.floor((reconciledScore.balls || liveBalls) / 6) + 1}.`
+      : midOverChangeReason === 'injured'
+      ? `🏥 Bowling change (Injury): ${finalBowler} takes over mid-over (${curOvStr} ov) to complete remaining deliveries.`
+      : `🔄 Bowling change: ${finalBowler} will bowl this over (${curOvStr} ov).`;
+
+    const bowlerChangeComm = {
+      id: `comm_bowl_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
+      overs: curOvStr,
+      ballSymbol: '🔄',
+      bowler: finalBowler,
+      batter: striker || 'Batter',
+      text: bowlerCommText,
+      badgeType: 'special',
+      isOverEnd: false,
+      timestamp: 'Just now',
+    };
+    const nextCommentaryList = [bowlerChangeComm, ...(liveCommentaryList || [])];
+    setLiveCommentaryList(nextCommentaryList);
+
     setNeedsNewBowler(false);
     if (isNewOverTransition) {
       setLiveThisOver([]);
@@ -14517,10 +14607,12 @@ function CricketAddaMain() {
           currentBowler: finalBowler,
           lastOverBowler: isNewOverTransition ? (cur.currentBowler || bowler || cur.lastOverBowler) : cur.lastOverBowler,
           previousBowler: isNewOverTransition ? (cur.currentBowler || bowler || cur.previousBowler) : cur.previousBowler,
+          liveCommentaryList: nextCommentaryList,
           ...(isNewOverTransition ? { liveThisOver: [] } : {}),
           liveState: {
             ...(cur.liveState || {}),
             currentBowler: finalBowler,
+            liveCommentaryList: nextCommentaryList,
             ...(isNewOverTransition ? { liveThisOver: [] } : {}),
             liveBowlerStats: {
               ...(cur.liveState?.liveBowlerStats || {}),
@@ -14537,6 +14629,7 @@ function CricketAddaMain() {
 
     broadcastMatchState({
       currentBowler: finalBowler,
+      liveCommentaryList: nextCommentaryList,
       ...(isNewOverTransition ? { liveThisOver: [] } : {}),
       liveBowlerStats: {
         ...liveBowlerStats,
@@ -17357,14 +17450,36 @@ function CricketAddaMain() {
       setShowTeamLogoUrlInput(false);
       setNewTeamCity(teamToEdit.city || teamToEdit.homeGround || '');
 
-      const formattedSquad = Array.isArray(teamToEdit.squad) && (teamToEdit.squad || []).length > 0
-        ? teamToEdit.squad.map((p, idx) => {
+      const rawEditSquad = Array.isArray(teamToEdit.squad) ? teamToEdit.squad : [];
+      const isOppTarlochan = Boolean(teamToEdit.name && teamToEdit.name.toLowerCase().includes('tarlochan'));
+      const filteredEditSquad = isOppTarlochan
+        ? rawEditSquad.filter(p => {
+            const pName = typeof p === 'string' ? p : (p?.name || '');
+            const clean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+            return clean !== 'amandeep' && clean !== 'amanlevo' && clean !== 'aman';
+          })
+        : rawEditSquad;
+
+      const seenEditNames = new Set();
+      const deduplicatedEditSquad = [];
+      filteredEditSquad.forEach(p => {
+        const pName = typeof p === 'string' ? p : (p?.name || '');
+        const clean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+        if (!clean) return;
+        if (!seenEditNames.has(clean)) {
+          seenEditNames.add(clean);
+          deduplicatedEditSquad.push(p);
+        }
+      });
+
+      const formattedSquad = deduplicatedEditSquad.length > 0
+        ? deduplicatedEditSquad.map((p, idx) => {
             if (typeof p === 'string') {
               let cleanName = p.replace(' (c)', '').replace(' (wk)', '').trim();
-              if (userProfile?.name && (cleanName.toLowerCase() === 'amanlevo' || cleanName.toLowerCase() === 'aman')) {
+              if (!isOppTarlochan && userProfile?.name && (cleanName.toLowerCase() === 'amanlevo' || cleanName.toLowerCase() === 'aman')) {
                 cleanName = userProfile.name;
               }
-              const isCap = p.includes('(c)') || idx === 0 || cleanName === teamToEdit.captain;
+              const isCap = p.includes('(c)') || cleanName === teamToEdit.captain || (!teamToEdit.captain && idx === 0);
               const isWk = p.includes('(wk)') || cleanName === teamToEdit.wicketkeeper;
               return {
                 id: `p_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 4)}`,
@@ -17378,7 +17493,7 @@ function CricketAddaMain() {
               };
             }
             let pName = p.name || `Player ${idx + 1}`;
-            if (userProfile?.name && (pName.toLowerCase() === 'amanlevo' || pName.toLowerCase() === 'aman')) {
+            if (!isOppTarlochan && userProfile?.name && (pName.toLowerCase() === 'amanlevo' || pName.toLowerCase() === 'aman')) {
               pName = userProfile.name;
             }
             return {
@@ -17395,27 +17510,29 @@ function CricketAddaMain() {
               avatarUri: p.avatarUri || (p.name ? PLAYER_AVATARS[p.name] : null) || null,
             };
           })
-        : [
-            {
-              id: `p_cap_${Date.now()}`,
-              name: userProfile.name || 'Captain',
-              phone: userProfile.phone || '',
-              role: (userProfile.role && userProfile.role.toLowerCase().includes('bowler'))
-                ? 'BOWL'
-                : (userProfile.role && userProfile.role.toLowerCase().includes('keeper'))
-                ? 'WK'
-                : (userProfile.role && userProfile.role.toLowerCase().includes('all'))
-                ? 'ALL'
-                : 'BAT',
-              battingStyle: userProfile.battingStyle || 'Right Hand Bat',
-              bowlingStyle: userProfile.bowlingStyle || 'Right Arm Medium',
-              jersey: userProfile.jersey ? userProfile.jersey.replace('#', '') : '18',
-              isCaptain: true,
-              isViceCaptain: false,
-              isWk: Boolean(userProfile.role && userProfile.role.toLowerCase().includes('keeper')),
-              avatarUri: userProfile.avatarUri || null,
-            }
-          ];
+        : (slot === 'teamB' || slot === 'opponentTeam'
+            ? []
+            : [
+                {
+                  id: `p_cap_${Date.now()}`,
+                  name: userProfile.name || 'Captain',
+                  phone: userProfile.phone || '',
+                  role: (userProfile.role && userProfile.role.toLowerCase().includes('bowler'))
+                    ? 'BOWL'
+                    : (userProfile.role && userProfile.role.toLowerCase().includes('keeper'))
+                    ? 'WK'
+                    : (userProfile.role && userProfile.role.toLowerCase().includes('all'))
+                    ? 'ALL'
+                    : 'BAT',
+                  battingStyle: userProfile.battingStyle || 'Right Hand Bat',
+                  bowlingStyle: userProfile.bowlingStyle || 'Right Arm Medium',
+                  jersey: userProfile.jersey ? userProfile.jersey.replace('#', '') : '18',
+                  isCaptain: true,
+                  isViceCaptain: false,
+                  isWk: Boolean(userProfile.role && userProfile.role.toLowerCase().includes('keeper')),
+                  avatarUri: userProfile.avatarUri || null,
+                }
+              ]);
 
       setNewTeamSquad(formattedSquad);
       setNewTeamModalVisible(true);
@@ -17452,7 +17569,11 @@ function CricketAddaMain() {
       isWk: Boolean(userProfile.role && userProfile.role.toLowerCase().includes('keeper')),
       avatarUri: userProfile.avatarUri || null,
     };
-    setNewTeamSquad([captainObj]);
+    if (slot === 'teamB' || slot === 'opponentTeam') {
+      setNewTeamSquad([]);
+    } else {
+      setNewTeamSquad([captainObj]);
+    }
     setNewTeamModalVisible(true);
     setActiveDropdown(null);
   };
@@ -17628,8 +17749,9 @@ function CricketAddaMain() {
     }
     const targetPhone = (playerPhoneSearchResult.phone || playerPhoneInput || '').replace(/[^0-9]/g, '');
     const targetPlayerId = playerPhoneSearchResult.id || (targetPhone ? `usr_${targetPhone}` : null);
-    if (newTeamSquad.some(p => (targetPlayerId && p.id === targetPlayerId) || (targetPhone && p.phone && p.phone === targetPhone))) {
-      Alert.alert('Duplicate Player', `This player (📞 ${targetPhone || targetPlayerId}) is already in the squad.`);
+    const cleanTgtName = targetName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+    if (newTeamSquad.some(p => (targetPlayerId && p.id === targetPlayerId) || (targetPhone && p.phone && p.phone === targetPhone) || (p.name && p.name.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase() === cleanTgtName))) {
+      Alert.alert('Duplicate Player', `${targetName} is already in the squad.`);
       return;
     }
     const targetRole = playerPhoneSearchResult.role || newPlayerRoleInput || 'BAT';
@@ -17686,8 +17808,9 @@ function CricketAddaMain() {
       return;
     }
     const cleanName = newPlayerNameInput.trim();
-    if (cleanPhone && newTeamSquad.some(p => p.phone && p.phone === cleanPhone)) {
-      Alert.alert('Duplicate Player', `Player with mobile number ${cleanPhone} is already in the squad.`);
+    const cleanTgtName = cleanName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+    if (newTeamSquad.some(p => (cleanPhone && p.phone && p.phone === cleanPhone) || (p.name && p.name.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase() === cleanTgtName))) {
+      Alert.alert('Duplicate Player', `${cleanName} is already in the squad.`);
       return;
     }
 
@@ -17904,7 +18027,18 @@ function CricketAddaMain() {
       return;
     }
 
-    let finalSquad = [...newTeamSquad];
+    // Deduplicate finalSquad by player name before saving
+    const seenFinalNames = new Set();
+    let finalSquad = [];
+    newTeamSquad.forEach(p => {
+      const pName = typeof p === 'string' ? p : (p?.name || '');
+      const clean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+      if (!clean) return;
+      if (!seenFinalNames.has(clean)) {
+        seenFinalNames.add(clean);
+        finalSquad.push(p);
+      }
+    });
 
     // If squad is completely empty, add the creator as captain
     if ((finalSquad || []).length === 0) {
@@ -18716,15 +18850,17 @@ function CricketAddaMain() {
       return;
     }
 
-        const cleanFlag = flag && flag.trim() ? flag.trim() : teamKey === 'myTeam' ? '🦁' : '⚡';
+    const cleanFlag = flag && flag.trim() ? flag.trim() : teamKey === 'myTeam' ? '🦁' : '⚡';
+    const isMyTeam = teamKey === 'myTeam';
+    const capName = isMyTeam ? (userProfile.name || `${cleanName} Captain`) : `${cleanName} Captain`;
     const customSquad = [
       {
         id: `p_cap_${Date.now()}`,
-        name: userProfile.name || `${cleanName} Captain`,
+        name: capName,
         role: 'BAT',
         isCaptain: true,
         isWk: false,
-        phone: userProfile.phone || '',
+        phone: isMyTeam ? (userProfile.phone || '') : '',
       }
     ];
 
@@ -18736,7 +18872,7 @@ function CricketAddaMain() {
       club: '',
       city: 'Local Ground',
       homeGround: 'Local Stadium',
-      captain: userProfile.name || `${cleanName} Captain`,
+      captain: capName,
       wicketkeeper: '',
       squad: customSquad,
       createdAt: Date.now(),
@@ -29717,7 +29853,7 @@ function CricketAddaMain() {
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.photoPickerTitle, { color: isEditingOpponentTeam ? '#38bdf8' : '#10b981' }]} numberOfLines={1}>
                         {isEditingOpponentTeam
-                          ? (newTeamName || 'Opponent Squad')
+                          ? '👥 Opponent Squad Lineup'
                           : editingTeamId
                           ? (newTeamName || 'Edit Team')
                           : '🏏 Create Your Team'}
@@ -29796,7 +29932,7 @@ function CricketAddaMain() {
                               </View>
                             </View>
                             <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 2 }}>
-                              📍 {newTeamCity || 'Opponent Ground'} • Captain: {activeEditingTeam?.captain || newTeamSquad.find(p => p.isCaptain || (p.name && p.name.includes('(c)')))?.name?.replace(' (c)', '') || 'Captain'}
+                              📍 {newTeamCity || 'Opponent Ground'} • Captain: {activeEditingTeam?.captain || (isEditingOpponentTeam ? (newTeamSquad.find(p => p.name && (p.name.includes('(c)') || p.isCaptain) && !p.name.toLowerCase().includes('amandeep'))?.name?.replace(' (c)', '') || activeEditingTeam?.captain || 'Opponent Captain') : (newTeamSquad.find(p => p.isCaptain || (p.name && p.name.includes('(c)')))?.name?.replace(' (c)', '') || 'Captain'))}
                             </Text>
                           </View>
                         </View>

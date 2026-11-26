@@ -167,7 +167,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     const name = typeof p === 'object' ? (p.name || p.playerName) : p;
     const pId = typeof p === 'object' ? (p.id || p.playerId || null) : null;
     if (name && typeof name === 'string' && name.trim()) {
-      const cleanName = name.trim();
+      const cleanName = resolveCanonicalPlayerName(name, pId);
       const normId = normalizePlayerId(pId, cleanName, typeof p === 'object' ? p.phone : null, typeof p === 'object' ? p.email : null);
       battersMap[cleanName] = {
         id: normId || pId,
@@ -194,7 +194,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     const name = typeof p === 'object' ? (p.name || p.bowlerName) : p;
     const pId = typeof p === 'object' ? (p.id || p.playerId || null) : null;
     if (name && typeof name === 'string' && name.trim()) {
-      const cleanName = name.trim();
+      const cleanName = resolveCanonicalPlayerName(name, pId);
       const normId = normalizePlayerId(pId, cleanName, typeof p === 'object' ? p.phone : null, typeof p === 'object' ? p.email : null);
       bowlersMap[cleanName] = {
         id: normId || pId,
@@ -227,7 +227,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
   };
 
   const getOrCreateBatter = (rawName, pId) => {
-    const cleanName = (rawName || 'Batter').trim();
+    const cleanName = resolveCanonicalPlayerName(rawName || 'Batter', pId);
     const existing = findBatterEntry(cleanName, pId);
     if (existing) {
       if (pId && !existing.id) {
@@ -261,10 +261,12 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
 
   const findBowlerEntry = (name, pId) => {
     if (!name && !pId) return null;
+    const clean = resolveCanonicalPlayerName(name, pId);
+    if (clean && bowlersMap[clean]) return bowlersMap[clean];
     if (name && bowlersMap[name]) return bowlersMap[name];
     for (const key of Object.keys(bowlersMap)) {
       const bw = bowlersMap[key];
-      if (isSamePlayerOrAlias(bw, { id: pId, name })) {
+      if (isSamePlayerOrAlias(bw, { id: pId, name: clean })) {
         return bw;
       }
     }
@@ -272,7 +274,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
   };
 
   const getOrCreateBowler = (rawName, pId) => {
-    const cleanName = (rawName || 'Bowler').trim();
+    const cleanName = resolveCanonicalPlayerName(rawName || 'Bowler', pId);
     const existing = findBowlerEntry(cleanName, pId);
     if (existing) {
       if (pId && !existing.id) {
