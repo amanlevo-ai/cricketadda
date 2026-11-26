@@ -26,14 +26,14 @@ if (Notifications && typeof Notifications.setNotificationHandler === 'function')
 }
 
 const NOTIFICATION_ID = 'cricketadda_live_match_score';
-const CHANNEL_ID = 'cricketadda_live_match_channel';
+const CHANNEL_ID = 'cricketadda_live_match_channel_v2';
 
 let isChannelInitialized = false;
 let hasRequestedPermission = false;
 let lastNotificationHash = '';
 
 /**
- * Initialize Android notification channel for silent in-place score updates
+ * Initialize Android notification channel for silent in-place score updates with PUBLIC lockscreen visibility
  */
 export async function initLiveNotificationChannel() {
   if (Platform.OS !== 'android' || !Notifications) return;
@@ -44,13 +44,15 @@ export async function initLiveNotificationChannel() {
       await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
         name: 'Live Match Score',
         description: 'Displays persistent live scorecard while a match is in progress',
-        importance: Notifications.AndroidImportance.LOW, // Silent: updates without sound or vibration
+        importance: Notifications?.AndroidImportance?.DEFAULT ?? 3, // Active: Prominently displayed on lock screen
         vibrationPattern: [0],
         sound: null,
         showBadge: false,
         lightColor: '#0284c7',
         enableLights: false,
         enableVibrate: false,
+        lockscreenVisibility: Notifications?.AndroidNotificationVisibility?.PUBLIC ?? 1, // Full visibility on lock screen
+        bypassDnd: false,
       });
       isChannelInitialized = true;
     }
@@ -267,6 +269,7 @@ export async function updateLiveMatchNotification(matchData) {
           sticky: true,
           autoDismiss: false, // Keep notification in bar even when user taps it!
           color: '#0284c7',
+          priority: Notifications?.AndroidNotificationPriority?.MAX ?? 'max',
           ...(Platform.OS === 'android' ? { channelId: CHANNEL_ID } : {}),
         },
         trigger: null, // Display immediately

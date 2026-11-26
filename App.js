@@ -8248,10 +8248,11 @@ function CricketAddaMain() {
         if (backgroundSyncIntervalRef.current) clearInterval(backgroundSyncIntervalRef.current);
         backgroundSyncIntervalRef.current = setInterval(() => {
           const targetId = activeMatchIdRef?.current || activeMatchId;
-          if (!targetId) return;
           fetchFirebaseMatchesDb().then(cloudMatches => {
-            if (!cloudMatches || !cloudMatches[targetId]) return;
-            const liveM = cloudMatches[targetId];
+            if (!cloudMatches) return;
+            const effTargetId = targetId || Object.keys(cloudMatches).find(k => String(cloudMatches[k]?.status || '').toLowerCase() === 'live');
+            if (!effTargetId || !cloudMatches[effTargetId]) return;
+            const liveM = cloudMatches[effTargetId];
             if (isMatchCompleted(liveM)) {
               dismissLiveMatchNotification();
               clearInterval(backgroundSyncIntervalRef.current);
@@ -8266,7 +8267,7 @@ function CricketAddaMain() {
             const rBalls = typeof liveM.liveBalls === 'number' ? liveM.liveBalls : (typeof rScore.liveBalls === 'number' ? rScore.liveBalls : (rScore.balls || 0));
             const rOvers = liveM.liveOvers || rScore.liveOvers || `${Math.floor(rBalls / 6)}.${rBalls % 6}`;
             updateLiveMatchNotification({
-              id: targetId,
+              id: effTargetId,
               teamA: team1,
               teamB: team2,
               status: liveM.status || 'live',
