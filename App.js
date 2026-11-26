@@ -28281,54 +28281,6 @@ function CricketAddaMain() {
                     })}
                   </View>
                 </View>
-
-                {/* SELECTED SECTOR DETAILS BREAKDOWN BELOW BATTER WAGON WHEEL */}
-                <View style={[styles.modalAreaDetailsCard, { marginTop: 6, borderColor: '#10b981', borderWidth: 1.5 }]}>
-                  <View style={styles.areaDetailsHeaderRow}>
-                    <View style={{ flex: 1, minWidth: 0, marginRight: 8 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 3 }}>
-                        <Text style={styles.areaDetailsMainTitle} numberOfLines={1}>{batterWheelZone.name.toUpperCase()}</Text>
-                        <View style={styles.activeAreaPill}>
-                          <Text style={styles.activeAreaPillText}>{batterWheelZone.shortName}</Text>
-                        </View>
-                      </View>
-                      <Text style={styles.areaDetailsSubText} numberOfLines={2}>
-                        {batterWheelZone.shot || `Scoring shots played towards ${batterWheelZone.name}`}
-                      </Text>
-                    </View>
-
-                    <View style={styles.areaBigRunsBox}>
-                      <Text style={styles.areaBigRunsNumber}>{batterWheelZone.runs}</Text>
-                      <Text style={styles.areaBigRunsLabel}>RUNS ({batterWheelZone.pct})</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.areaMetricGrid}>
-                    <View style={styles.areaMetricItem}>
-                      <Text style={styles.areaMetricItemLabel} numberOfLines={1}>RUNS SCORED</Text>
-                      <Text style={[styles.areaMetricItemVal, { color: '#34d399' }]} numberOfLines={1}>{batterWheelZone.runs} Runs</Text>
-                      <Text style={styles.areaMetricItemSub} numberOfLines={1}>{batterWheelZone.pct} share</Text>
-                    </View>
-
-                    <View style={styles.areaMetricItem}>
-                      <Text style={styles.areaMetricItemLabel} numberOfLines={1}>BOUNDARIES</Text>
-                      <Text style={[styles.areaMetricItemVal, { color: '#f59e0b' }]} numberOfLines={1}>
-                        {batterWheelZone.fours !== undefined ? `${batterWheelZone.fours}x 4s` : `${Math.floor(batterWheelZone.runs / 4)}x 4s`}
-                      </Text>
-                      <Text style={styles.areaMetricItemSub} numberOfLines={1}>
-                        {batterWheelZone.sixes ? `${batterWheelZone.sixes}x 6s` : 'Boundaries'}
-                      </Text>
-                    </View>
-
-                    <View style={styles.areaMetricItem}>
-                      <Text style={styles.areaMetricItemLabel} numberOfLines={1}>CONTROL</Text>
-                      <Text style={[styles.areaMetricItemVal, { color: '#38bdf8' }]} numberOfLines={1}>
-                        {batterWheelZone.control || '94%'}
-                      </Text>
-                      <Text style={styles.areaMetricItemSub} numberOfLines={1}>High Control</Text>
-                    </View>
-                  </View>
-                </View>
               </ScrollView>
             )}
           </View>
