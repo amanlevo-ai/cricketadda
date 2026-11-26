@@ -327,7 +327,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     const addedRuns = Number(d.addedRuns !== undefined ? d.addedRuns : (d.runs !== undefined ? d.runs : 0)) || 0;
     const overthrowRuns = Number(d.overthrowRuns || 0);
     const extraType = d.extraType || 'none';
-    const isLegal = d.isLegalDelivery !== false && extraType !== 'wide' && extraType !== 'noBall' && extraType !== 'penalty';
+    const isLegal = d.isLegalDelivery !== false && extraType !== 'wide' && extraType !== 'noBall' && (extraType !== 'penalty' || d.isLegalDelivery === true);
     const isWkt = Boolean(d.isWkt);
 
     d._overIdx = curReplayOverIdx;
@@ -396,6 +396,8 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
         const pen = Number(d.extraPenalty || 1);
         runsOffBat = Math.max(0, addedRuns - pen);
       }
+    } else if (extraType === 'penalty') {
+      runsOffBat = Number(d.runsOffBat !== undefined ? d.runsOffBat : (d.batterRuns || 0));
     }
 
     strikerBatter.runs += runsOffBat;
@@ -444,9 +446,11 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
       bowlerObj.balls += 1;
     }
 
-    // Runs conceded by bowler: all added runs EXCEPT byes, leg-byes, and penalties!
+    // Runs conceded by bowler: all added runs EXCEPT byes, leg-byes, and penalties (penalty runs off bat conceded by bowler)
     let runsConceded = 0;
-    if (extraType !== 'bye' && extraType !== 'legBye' && extraType !== 'penalty') {
+    if (extraType === 'penalty') {
+      runsConceded = runsOffBat;
+    } else if (extraType !== 'bye' && extraType !== 'legBye') {
       runsConceded = addedRuns;
     }
     bowlerObj.runs += runsConceded;

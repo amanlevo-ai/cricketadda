@@ -229,7 +229,7 @@ function generateCommentaryFromHistory(history, match) {
   let legalCount = 0;
 
   (history || []).forEach((ball, idx) => {
-    const isLegal = ball.isLegalDelivery !== false && ball.extraType !== 'wide' && ball.extraType !== 'noBall';
+    const isLegal = ball.isLegalDelivery !== false && ball.extraType !== 'wide' && ball.extraType !== 'noBall' && (ball.extraType !== 'penalty' || ball.isLegalDelivery === true);
     if (isLegal) legalCount++;
 
     const runs = Number(ball.addedRuns) || 0;
@@ -2539,7 +2539,7 @@ function recalculateActiveMatchStats() {
     const overthrow = (isWkt && !isRunOut) ? 0 : (Number(ball.overthrowRuns) || 0);
     totalRuns += runs;
 
-    const isLegal = ball.isLegalDelivery !== false && ball.extraType !== 'wide' && ball.extraType !== 'noBall';
+    const isLegal = ball.isLegalDelivery !== false && ball.extraType !== 'wide' && ball.extraType !== 'noBall' && (ball.extraType !== 'penalty' || ball.isLegalDelivery === true);
     if (isLegal) {
       legalBalls++;
       ballsInCurrentOver++;
@@ -2574,9 +2574,11 @@ function recalculateActiveMatchStats() {
         isNotOut: true
       };
     }
-    if (ball.extraType !== 'wide') {
+    if (ball.extraType !== 'wide' && (ball.extraType !== 'penalty' || ball.isLegalDelivery === true)) {
       battersMap[striker].balls += 1;
-      const offBatRuns = (ball.extraType === 'none' || !ball.extraType) ? Math.max(0, runs - overthrow) : 0;
+      const offBatRuns = (ball.extraType === 'none' || !ball.extraType)
+        ? Math.max(0, runs - overthrow)
+        : (ball.extraType === 'penalty' ? Number(ball.runsOffBat || 0) : 0);
       battersMap[striker].runs += offBatRuns;
       if (offBatRuns === 0) battersMap[striker].dots += 1;
       else if (offBatRuns === 1) battersMap[striker].singles += 1;
@@ -2603,7 +2605,9 @@ function recalculateActiveMatchStats() {
       };
     }
 
-    const runsConceded = (ball.extraType === 'bye' || ball.extraType === 'legBye') ? 0 : runs;
+    const runsConceded = (ball.extraType === 'bye' || ball.extraType === 'legBye')
+      ? 0
+      : (ball.extraType === 'penalty' ? Number(ball.runsOffBat || 0) : runs);
     bowlersMap[bowler].runs += runsConceded;
 
     if (isLegal) {

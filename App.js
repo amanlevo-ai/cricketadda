@@ -12389,7 +12389,7 @@ function CricketAddaMain() {
       addedRuns = runs + bCompleted;
       isLegalDelivery = isLegalDeliveryParam !== null ? Boolean(isLegalDeliveryParam) : false;
       ballSymbol = bCompleted > 0 ? `${bCompleted}+${runs}Pen` : `${runs}Pen`;
-      bowlerRunsConceded = 0;
+      bowlerRunsConceded = bCompleted; // Runs off bat conceded by bowler, 5 penalty runs go to Extras
       batterBallsAdded = isLegalDelivery ? 1 : 0;
       batterRunsAdded = bCompleted;
       if (bCompleted === 1) batterSinglesAdded = 1;
@@ -12489,7 +12489,7 @@ function CricketAddaMain() {
     setLiveBatters(derivedActive.liveBatters);
     setLiveBowlerStats(derivedActive.liveBowlerStats);
 
-    const isOddRuns = extraType === 'penalty' ? false : ((runs + otRuns) % 2 === 1);
+    const isOddRuns = extraType === 'penalty' ? (batterRunsAdded % 2 === 1) : ((runs + otRuns) % 2 === 1);
     let nextStriker = striker;
     let nextNonStriker = nonStriker;
     const isOverEnd = Boolean(isLegalDelivery && derivedActive.balls > 0 && derivedActive.balls % 6 === 0);
