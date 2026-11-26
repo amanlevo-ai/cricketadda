@@ -10856,6 +10856,43 @@ function CricketAddaMain() {
     return raw.map(p => resolveCanonicalPlayerName(p));
   })();
 
+  // Auto-switch nextBowler away from disabled bowler (last over bowler, quota maxed, or current bowler mid-over)
+  useEffect(() => {
+    if (changeBowlerModalVisible && activeOppBowlers.length > 1) {
+      const isNewOverTransition = Boolean(needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0));
+      const resolvedLastOverBowler = (() => {
+        if (liveBalls > 0 && isNewOverTransition) {
+          return lastOverStats?.bowler || bowler || match.lastOverBowler || derivedInningsState?.lastOverBowler || match.previousBowler || '';
+        }
+        if (liveBalls >= 6) {
+          return derivedInningsState?.lastOverBowler || match.lastOverBowler || match.previousBowler || lastOverStats?.bowler || '';
+        }
+        return '';
+      })();
+      const cleanLast = String(resolvedLastOverBowler || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+      const cleanCur = (liveBalls % 6 !== 0) ? String(bowler || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase() : '';
+      const cleanNext = String(nextBowler || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+
+      const isNextInvalid = !nextBowler ||
+        (cleanLast && cleanNext === cleanLast) ||
+        (cleanCur && cleanNext === cleanCur) ||
+        isBowlerQuotaMaxed(nextBowler);
+
+      if (isNextInvalid) {
+        const eligible = activeOppBowlers.filter(b => {
+          const cb = String(b || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+          if (cleanLast && cb === cleanLast) return false;
+          if (cleanCur && cb === cleanCur) return false;
+          if (isBowlerQuotaMaxed(b)) return false;
+          return true;
+        });
+        if (eligible.length > 0) {
+          setNextBowler(eligible[0]);
+        }
+      }
+    }
+  }, [changeBowlerModalVisible, liveBalls, needsNewBowler, bowler, match?.lastOverBowler, derivedInningsState?.lastOverBowler]);
+
   // Helper to check if player was dismissed in this innings
   const isBatterOut = pName => {
     if (!pName) return false;
@@ -14495,11 +14532,16 @@ function CricketAddaMain() {
 
   const confirmNewBowler = () => {
     const finalBowler = customNextBowler.trim() || nextBowler;
-    const hasCompletedAtLeastOneOver = liveBalls >= 6;
     const isNewOverTransition = Boolean(needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0));
-    const actualLastOverBowler = hasCompletedAtLeastOneOver && isNewOverTransition
-      ? (match.lastOverBowler || match.previousBowler || lastOverStats?.bowler || '')
-      : '';
+    const resolvedLastOverBowler = (() => {
+      if (liveBalls > 0 && isNewOverTransition) {
+        return lastOverStats?.bowler || bowler || match.lastOverBowler || derivedInningsState?.lastOverBowler || match.previousBowler || '';
+      }
+      if (liveBalls >= 6) {
+        return derivedInningsState?.lastOverBowler || match.lastOverBowler || match.previousBowler || lastOverStats?.bowler || '';
+      }
+      return '';
+    })();
 
     if (!finalBowler) {
       showAppToast('Please select or enter the next bowler ⚾', '⚾', 'warning');
@@ -14513,8 +14555,17 @@ function CricketAddaMain() {
       return;
     }
 
-    if (actualLastOverBowler && finalBowler.toLowerCase() === actualLastOverBowler.toLowerCase() && (activeOppBowlers || []).length > 1) {
+    const cleanFinal = String(finalBowler || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+    const cleanLast = String(resolvedLastOverBowler || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+    const cleanCur = String(bowler || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+
+    if (cleanLast && cleanFinal === cleanLast && (activeOppBowlers || []).length > 1) {
       showAppToast(`${finalBowler} bowled the previous over. Consecutive overs not allowed 🚫`, '🚫', 'warning');
+      return;
+    }
+
+    if (liveBalls % 6 !== 0 && cleanCur && cleanFinal === cleanCur && (activeOppBowlers || []).length > 1) {
+      showAppToast(`Cannot replace ${finalBowler} with the same bowler 🚫`, '🚫', 'warning');
       return;
     }
 
@@ -31138,69 +31189,80 @@ function CricketAddaMain() {
                 </TouchableOpacity>
               </View>
               <View style={styles.grid2ColContainer}>
-                {activeOppBowlers.map((b, idx) => {
-                  const hasCompletedAtLeastOneOver = liveBalls >= 6;
+                {(() => {
                   const isNewOverTransition = Boolean(needsNewBowler || (liveBalls > 0 && liveBalls % 6 === 0));
-                  const actualLastOverBowler = hasCompletedAtLeastOneOver && isNewOverTransition
-                    ? (match.lastOverBowler || match.previousBowler || lastOverStats?.bowler || '')
-                    : '';
-                  const isPrev = Boolean(actualLastOverBowler && actualLastOverBowler.toLowerCase() === b.toLowerCase());
-                  const isSel = (!customNextBowler && nextBowler === b);
-                  const bBalls = liveBowlerStats[b]?.balls || 0;
-                  const bOversNum = Math.floor(bBalls / 6);
-                  const bBallsRem = bBalls % 6;
-                  const isQuotaMaxed = isBowlerQuotaMaxed(b);
+                  const resolvedLastOverBowler = (() => {
+                    if (liveBalls > 0 && isNewOverTransition) {
+                      return lastOverStats?.bowler || bowler || match.lastOverBowler || derivedInningsState?.lastOverBowler || match.previousBowler || '';
+                    }
+                    if (liveBalls >= 6) {
+                      return derivedInningsState?.lastOverBowler || match.lastOverBowler || match.previousBowler || lastOverStats?.bowler || '';
+                    }
+                    return '';
+                  })();
+                  const cleanLast = String(resolvedLastOverBowler || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+                  const cleanCur = String(bowler || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
 
-                  return (
-                    <TouchableOpacity
-                      key={idx}
-                      style={[
-                        styles.playerCardChip2Col,
-                        isSel && { borderColor: '#38bdf8', backgroundColor: '#0c4a6e', borderWidth: 1.5 },
-                        isPrev && { opacity: 0.4, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.15)' },
-                        isQuotaMaxed && { opacity: 0.45, borderColor: '#64748b', backgroundColor: 'rgba(51, 65, 85, 0.3)' },
-                      ]}
-                      onPress={() => {
-                        if (isQuotaMaxed) {
-                          Alert.alert(
-                            '⛔ Max Over Quota Reached',
-                            `• Under official ICC/MCC rules (Clause 13.9):\n${bowlerQuotaRule.quotaText}.\n• ${b} has completed ${bOversNum}.${bBallsRem} overs and cannot bowl further in this innings.\n• Please select a bowler with remaining quota.`
-                          );
-                          return;
-                        }
-                        if (isPrev && (activeOppBowlers || []).length > 1) {
-                          Alert.alert(
-                            '🚫 Consecutive Overs Not Allowed',
-                            `• ${b} bowled the previous over.\n• Under cricket rules, a bowler cannot bowl two consecutive overs.\n• Please select a different bowler.`
-                          );
-                          return;
-                        }
-                        setNextBowler(b);
-                        setCustomNextBowler('');
-                      }}
-                    >
-                      <PlayerAvatar name={b} size={22} borderColor={isSel ? '#38bdf8' : isQuotaMaxed ? '#64748b' : isPrev ? '#ef4444' : '#475569'} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[
-                          { fontSize: 11, fontWeight: '700', color: '#f8fafc' },
-                          isSel && { color: '#7dd3fc', fontWeight: '900' },
-                          isPrev && { color: '#f87171', textDecorationLine: 'line-through' },
-                          isQuotaMaxed && { color: '#94a3b8', textDecorationLine: 'line-through' },
-                        ]} numberOfLines={1}>
-                          {b.replace(/\s*\([^)]*\)/g, '')}
-                        </Text>
-                        <Text style={[
-                          { fontSize: 9.5, color: '#94a3b8', marginTop: 1 },
-                          isSel && { color: '#bae6fd', fontWeight: '700' },
-                          isPrev && { color: '#fca5a5' },
-                          isQuotaMaxed && { color: '#ef4444', fontWeight: 'bold' },
-                        ]} numberOfLines={1}>
-                          {isQuotaMaxed ? `⛔ Maxed (${bOversNum}/${maxBowlerOversQuota})` : isPrev ? '🚫 Last Over' : `${bOversNum}.${bBallsRem}/${maxBowlerOversQuota} ov`}
-                        </Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
+                  return activeOppBowlers.map((b, idx) => {
+                    const cleanB = String(b || '').replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
+                    const isLastOver = Boolean(cleanLast && cleanB === cleanLast);
+                    const isCurrentMidOver = Boolean(liveBalls % 6 !== 0 && cleanCur && cleanB === cleanCur);
+                    const isQuotaMaxed = isBowlerQuotaMaxed(b);
+                    const isDisabled = Boolean((isLastOver || isCurrentMidOver || isQuotaMaxed) && activeOppBowlers.length > 1);
+                    const isSel = (!customNextBowler && nextBowler === b);
+                    const bBalls = liveBowlerStats[b]?.balls || 0;
+                    const bOversNum = Math.floor(bBalls / 6);
+                    const bBallsRem = bBalls % 6;
+
+                    return (
+                      <TouchableOpacity
+                        key={idx}
+                        disabled={isDisabled}
+                        activeOpacity={isDisabled ? 1 : 0.75}
+                        style={[
+                          styles.playerCardChip2Col,
+                          isSel && !isDisabled && { borderColor: '#38bdf8', backgroundColor: '#0c4a6e', borderWidth: 1.5 },
+                          isLastOver && { opacity: 0.35, borderColor: '#ef4444', backgroundColor: 'rgba(239, 68, 68, 0.12)' },
+                          isCurrentMidOver && { opacity: 0.35, borderColor: '#f59e0b', backgroundColor: 'rgba(245, 158, 11, 0.12)' },
+                          isQuotaMaxed && { opacity: 0.35, borderColor: '#64748b', backgroundColor: 'rgba(51, 65, 85, 0.3)' },
+                        ]}
+                        onPress={() => {
+                          if (isDisabled) return;
+                          setNextBowler(b);
+                          setCustomNextBowler('');
+                        }}
+                      >
+                        <PlayerAvatar name={b} size={22} borderColor={isSel && !isDisabled ? '#38bdf8' : isQuotaMaxed ? '#64748b' : isLastOver ? '#ef4444' : isCurrentMidOver ? '#f59e0b' : '#475569'} />
+                        <View style={{ flex: 1 }}>
+                          <Text style={[
+                            { fontSize: 11, fontWeight: '700', color: '#f8fafc' },
+                            isSel && !isDisabled && { color: '#7dd3fc', fontWeight: '900' },
+                            isLastOver && { color: '#f87171', textDecorationLine: 'line-through' },
+                            isCurrentMidOver && { color: '#fcd34d', textDecorationLine: 'line-through' },
+                            isQuotaMaxed && { color: '#94a3b8', textDecorationLine: 'line-through' },
+                          ]} numberOfLines={1}>
+                            {b.replace(/\s*\([^)]*\)/g, '')}
+                          </Text>
+                          <Text style={[
+                            { fontSize: 9.5, color: '#94a3b8', marginTop: 1 },
+                            isSel && !isDisabled && { color: '#bae6fd', fontWeight: '700' },
+                            isLastOver && { color: '#fca5a5', fontWeight: 'bold' },
+                            isCurrentMidOver && { color: '#fde047', fontWeight: 'bold' },
+                            isQuotaMaxed && { color: '#ef4444', fontWeight: 'bold' },
+                          ]} numberOfLines={1}>
+                            {isQuotaMaxed
+                              ? `⛔ Maxed (${bOversNum}/${maxBowlerOversQuota})`
+                              : isLastOver
+                              ? '🚫 Last Over (Disabled)'
+                              : isCurrentMidOver
+                              ? '⚠️ Current (Cannot re-pick)'
+                              : `${bOversNum}.${bBallsRem}/${maxBowlerOversQuota} ov`}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  });
+                })()}
               </View>
 
               {/* ACTION BUTTONS */}
