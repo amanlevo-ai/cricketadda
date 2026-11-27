@@ -26812,19 +26812,19 @@ function CricketAddaMain() {
           });
 
           const activeZone = dynamicSectors.find(s => s.id === (selectedZone?.id || 'cover')) || dynamicSectors[5];
-          const tabWheelSize = Math.round(Math.min(width - 12, 385));
+          const tabWheelSize = Math.round(Math.min(width - 14, 364));
           const tabBadgeW = Math.round(tabWheelSize * 0.18);
           const tabBadgeH = Math.round(tabWheelSize * 0.13);
 
           return (
             <View style={[styles.mainContentNoPad, { alignItems: 'center', justifyContent: 'flex-start', flex: 1, paddingBottom: miniBarExtraOffset ? 62 : 6 }]}>
               {/* Header: Back Button & 2-Team Segment Tabs */}
-              <View style={{ width: '100%', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 2 }}>
+              <View style={{ width: '100%', paddingHorizontal: 10, paddingTop: 6, paddingBottom: 0 }}>
                 <TouchableOpacity
                   style={[
                     styles.backToMatchesBtn,
                     currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
-                    { alignSelf: 'flex-start', marginBottom: 4, paddingVertical: 5, paddingHorizontal: 12 }
+                    { alignSelf: 'flex-start', marginBottom: 2, paddingVertical: 4, paddingHorizontal: 12 }
                   ]}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   onPress={goBack}
@@ -26838,8 +26838,8 @@ function CricketAddaMain() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  marginTop: 1,
-                  marginBottom: 4,
+                  marginTop: 0,
+                  marginBottom: 2,
                 }}>
                   {/* Tab 1: Team 1 */}
                   <TouchableOpacity
@@ -26851,7 +26851,7 @@ function CricketAddaMain() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 6,
-                      paddingVertical: 6,
+                      paddingVertical: 4,
                       paddingHorizontal: 8,
                       borderRadius: 10,
                       backgroundColor: activeInningsForWheel === 1 ? '#0284c7' : (currentTheme.isLight ? '#f1f5f9' : '#0a192f'),
@@ -26891,7 +26891,7 @@ function CricketAddaMain() {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: 6,
-                      paddingVertical: 6,
+                      paddingVertical: 4,
                       paddingHorizontal: 8,
                       borderRadius: 10,
                       backgroundColor: activeInningsForWheel === 2 ? '#0284c7' : (currentTheme.isLight ? '#f1f5f9' : '#0a192f'),
@@ -26924,7 +26924,7 @@ function CricketAddaMain() {
               </View>
 
               {/* LARGE WAGON WHEEL STAGE CONTAINER (FULL SQUARE BORDER MATCHING SCREEN WIDTH) */}
-              <View style={[styles.wheelContainerRelative, { width: tabWheelSize, height: tabWheelSize, borderRadius: 20, alignSelf: 'center', marginTop: 1 }]}>
+              <View style={[styles.wheelContainerRelative, { width: tabWheelSize, height: tabWheelSize, borderRadius: 20, alignSelf: 'center', marginTop: 0 }]}>
                 {renderGroundWheelSvg(tabWheelSize, activeZone?.id, 'match')}
 
                 {dynamicSectors.map(sec => {
@@ -26969,10 +26969,10 @@ function CricketAddaMain() {
                   borderColor: '#f59e0b',
                   borderWidth: 1,
                   borderRadius: 10,
-                  paddingVertical: 6,
+                  paddingVertical: 4,
                   paddingHorizontal: 12,
-                  marginTop: 4,
-                  marginBottom: 3,
+                  marginTop: 2,
+                  marginBottom: 1,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'space-between',
@@ -26993,10 +26993,10 @@ function CricketAddaMain() {
                 {
                   width: tabWheelSize,
                   alignSelf: 'center',
-                  marginTop: 4,
-                  marginBottom: 2,
+                  marginTop: 2,
+                  marginBottom: 0,
                   marginVertical: 0,
-                  paddingVertical: 6,
+                  paddingVertical: 4,
                   paddingHorizontal: 10,
                 }
               ]}>
