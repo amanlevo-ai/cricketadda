@@ -27855,7 +27855,7 @@ function CricketAddaMain() {
                           style={{
                             flexDirection: 'row',
                             alignItems: 'center',
-                            paddingVertical: 12,
+                            paddingVertical: 7,
                             paddingHorizontal: 10,
                             backgroundColor: rowBg,
                             borderLeftWidth: 3.5,
@@ -27865,57 +27865,57 @@ function CricketAddaMain() {
                           }}
                         >
                           {/* 1. Left: Rank Number with Distinct Medal Badge */}
-                          <View style={{ width: 30, alignItems: 'center', justifyContent: 'center' }}>
+                          <View style={{ width: 28, alignItems: 'center', justifyContent: 'center' }}>
                             {isTop1 ? (
                               <View
                                 style={{
-                                  width: 26,
-                                  height: 26,
-                                  borderRadius: 13,
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: 12,
                                   backgroundColor: '#f59e0b',
                                   alignItems: 'center',
                                   justifyContent: 'center',
                                   shadowColor: '#f59e0b',
-                                  shadowOffset: { width: 0, height: 2 },
+                                  shadowOffset: { width: 0, height: 1.5 },
                                   shadowOpacity: 0.5,
-                                  shadowRadius: 3,
+                                  shadowRadius: 2.5,
                                   elevation: 3,
                                 }}
                               >
-                                <Text style={{ fontSize: 13, fontWeight: '900', color: '#000000' }}>1</Text>
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#000000' }}>1</Text>
                               </View>
                             ) : isTop2 ? (
-                              <View
-                                style={{
-                                  width: 24,
-                                  height: 24,
-                                  borderRadius: 12,
-                                  backgroundColor: '#94a3b8',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
-                              >
-                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#ffffff' }}>2</Text>
-                              </View>
-                            ) : isTop3 ? (
-                              <View
-                                style={{
-                                  width: 24,
-                                  height: 24,
-                                  borderRadius: 12,
-                                  backgroundColor: '#d97706',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                }}
-                              >
-                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#ffffff' }}>3</Text>
-                              </View>
-                            ) : (
                               <View
                                 style={{
                                   width: 22,
                                   height: 22,
                                   borderRadius: 11,
+                                  backgroundColor: '#94a3b8',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ fontSize: 11, fontWeight: '900', color: '#ffffff' }}>2</Text>
+                              </View>
+                            ) : isTop3 ? (
+                              <View
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: 11,
+                                  backgroundColor: '#d97706',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ fontSize: 11, fontWeight: '900', color: '#ffffff' }}>3</Text>
+                              </View>
+                            ) : (
+                              <View
+                                style={{
+                                  width: 20,
+                                  height: 20,
+                                  borderRadius: 10,
                                   backgroundColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 41, 59, 0.6)',
                                   borderWidth: 1,
                                   borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
@@ -27923,7 +27923,7 @@ function CricketAddaMain() {
                                   justifyContent: 'center',
                                 }}
                               >
-                                <Text style={{ fontSize: 11, fontWeight: '800', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>
+                                <Text style={{ fontSize: 10.5, fontWeight: '800', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>
                                   {rank}
                                 </Text>
                               </View>
@@ -27934,7 +27934,7 @@ function CricketAddaMain() {
                           <View style={{ marginHorizontal: 7, position: 'relative' }}>
                             <PlayerAvatar
                               name={player.name}
-                              size={34}
+                              size={32}
                               customUri={getPlayerAvatarUri(player.name)}
                               borderColor={avatarBorderColor}
                             />
@@ -27945,14 +27945,14 @@ function CricketAddaMain() {
                                   top: -3,
                                   right: -5,
                                   backgroundColor: '#f59e0b',
-                                  paddingHorizontal: 3.5,
+                                  paddingHorizontal: 3,
                                   paddingVertical: 0.5,
-                                  borderRadius: 5,
+                                  borderRadius: 4,
                                   borderWidth: 1,
                                   borderColor: '#000000',
                                 }}
                               >
-                                <Text style={{ color: '#000000', fontSize: 7, fontWeight: '900', letterSpacing: 0.3 }}>
+                                <Text style={{ color: '#000000', fontSize: 6.5, fontWeight: '900', letterSpacing: 0.2 }}>
                                   MVP
                                 </Text>
                               </View>
@@ -27963,14 +27963,14 @@ function CricketAddaMain() {
                                   top: -3,
                                   right: -5,
                                   backgroundColor: '#0284c7',
-                                  paddingHorizontal: 3.5,
+                                  paddingHorizontal: 3,
                                   paddingVertical: 0.5,
-                                  borderRadius: 5,
+                                  borderRadius: 4,
                                   borderWidth: 1,
                                   borderColor: '#ffffff',
                                 }}
                               >
-                                <Text style={{ color: '#ffffff', fontSize: 7, fontWeight: '900', letterSpacing: 0.3 }}>
+                                <Text style={{ color: '#ffffff', fontSize: 6.5, fontWeight: '900', letterSpacing: 0.2 }}>
                                   YOU
                                 </Text>
                               </View>
@@ -27982,7 +27982,7 @@ function CricketAddaMain() {
                             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                               <Text
                                 style={{
-                                  fontSize: isTop1 ? 15 : 14.5,
+                                  fontSize: isTop1 ? 14.5 : 14,
                                   fontWeight: '800',
                                   color: currentTheme.isLight ? '#0f172a' : '#ffffff',
                                 }}
@@ -27990,7 +27990,7 @@ function CricketAddaMain() {
                               >
                                 {player.name}
                               </Text>
-                              {isTop1 && <Text style={{ fontSize: 13 }}>👑</Text>}
+                              {isTop1 && <Text style={{ fontSize: 12 }}>👑</Text>}
                             </View>
 
                             {/* Team Tag */}
@@ -27998,17 +27998,17 @@ function CricketAddaMain() {
                               style={{
                                 backgroundColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.1)',
                                 paddingHorizontal: 5,
-                                paddingVertical: 1,
-                                borderRadius: 4,
+                                paddingVertical: 0.5,
+                                borderRadius: 3,
                                 borderWidth: 0.5,
                                 borderColor: currentTheme.isLight ? '#bae6fd' : 'rgba(56, 189, 248, 0.25)',
                                 alignSelf: 'flex-start',
-                                marginTop: 2,
+                                marginTop: 1,
                               }}
                             >
                               <Text
                                 style={{
-                                  fontSize: 9.5,
+                                  fontSize: 9,
                                   fontWeight: '800',
                                   color: currentTheme.isLight ? '#0284c7' : '#38bdf8',
                                   letterSpacing: 0.3,
@@ -28020,17 +28020,17 @@ function CricketAddaMain() {
                             </View>
 
                             {/* Formatted Match Stats Breakdown (Clean text, no unwanted icons) */}
-                            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 2 }}>
                               {(player.runs > 0 || player.balls > 0) && (
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }}>
-                                  {player.runs}r <Text style={{ fontSize: 10, fontWeight: '500', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({player.balls}b)</Text>
+                                <Text style={{ fontSize: 10.5, fontWeight: '700', color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }}>
+                                  {player.runs}r <Text style={{ fontSize: 9.5, fontWeight: '500', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({player.balls}b)</Text>
                                 </Text>
                               )}
                               {(player.runs > 0 || player.balls > 0) && (player.wickets > 0 || player.oversNum > 0 || player.catches > 0) && (
                                 <Text style={{ fontSize: 9, color: currentTheme.isLight ? '#cbd5e1' : '#334155' }}>•</Text>
                               )}
                               {(player.wickets > 0 || player.oversNum > 0) && (
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#059669' : '#34d399' }}>
+                                <Text style={{ fontSize: 10.5, fontWeight: '700', color: currentTheme.isLight ? '#059669' : '#34d399' }}>
                                   {player.wickets}/{player.runsConceded}
                                 </Text>
                               )}
@@ -28038,17 +28038,17 @@ function CricketAddaMain() {
                                 <Text style={{ fontSize: 9, color: currentTheme.isLight ? '#cbd5e1' : '#334155' }}>•</Text>
                               )}
                               {player.catches > 0 && (
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
+                                <Text style={{ fontSize: 10.5, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
                                   {player.catches} ct
                                 </Text>
                               )}
                               {player.stumpings > 0 && (
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
+                                <Text style={{ fontSize: 10.5, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
                                   {player.stumpings} st
                                 </Text>
                               )}
                               {player.runOuts > 0 && (
-                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
+                                <Text style={{ fontSize: 10.5, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
                                   {player.runOuts} ro
                                 </Text>
                               )}
@@ -28067,16 +28067,16 @@ function CricketAddaMain() {
                               borderColor: isTop1
                                 ? '#f59e0b'
                                 : (currentTheme.isLight ? '#cbd5e1' : 'rgba(56, 189, 248, 0.25)'),
-                              borderRadius: 10,
-                              paddingVertical: 5,
-                              paddingHorizontal: 9,
-                              minWidth: 66,
+                              borderRadius: 8,
+                              paddingVertical: 3.5,
+                              paddingHorizontal: 8,
+                              minWidth: 62,
                               marginLeft: 6,
                             }}
                           >
                             <Text
                               style={{
-                                fontSize: 16.5,
+                                fontSize: 15,
                                 fontWeight: '900',
                                 color: isTop1 ? '#f59e0b' : (currentTheme.isLight ? '#0f172a' : '#ffffff'),
                                 letterSpacing: -0.3,
@@ -28084,10 +28084,10 @@ function CricketAddaMain() {
                             >
                               {Number(player.totalMvpPts || 0).toFixed(player.totalMvpPts % 1 === 0 ? 1 : 2)}
                             </Text>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 1 }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 0.5 }}>
                               <Text
                                 style={{
-                                  fontSize: 8.5,
+                                  fontSize: 8,
                                   fontWeight: '800',
                                   color: isTop1 ? '#d97706' : (currentTheme.isLight ? '#64748b' : '#38bdf8'),
                                   letterSpacing: 0.5,
@@ -28097,7 +28097,7 @@ function CricketAddaMain() {
                               </Text>
                               <Text
                                 style={{
-                                  fontSize: 10,
+                                  fontSize: 9.5,
                                   color: isTop1 ? '#d97706' : (currentTheme.isLight ? '#94a3b8' : '#38bdf8'),
                                   fontWeight: '900',
                                 }}
