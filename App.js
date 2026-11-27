@@ -12860,13 +12860,18 @@ function CricketAddaMain() {
     const nextOvStr = derivedActive.oversStr;
 
     // 7. Check if this ball COMPLETES the 1st Innings
+    let isFirstInningsFinished = false;
+    let inn1Summary = null;
+    let effectiveCommList = [...newCommEntries, ...liveCommentaryList];
+
     if (currentInnings === 1) {
       if (nextBalls >= maxLegalBalls || nextWkts >= maxWicketsForSquad) {
+        isFirstInningsFinished = true;
         const target = nextRuns + 1;
         const rrr = (target / maxOvers).toFixed(2);
         const reason = nextWkts >= maxWicketsForSquad ? 'All Out' : `${maxOvers}.0 Overs Completed`;
 
-        const inn1Summary = {
+        inn1Summary = {
           team: battingTeamName,
           flag: battingTeamFlag,
           oppTeam: bowlingTeamName,
@@ -12883,25 +12888,6 @@ function CricketAddaMain() {
         };
         setFirstInningsSummary(inn1Summary);
 
-        // Update database with 1st innings stats
-        setMatchesDb(prev => {
-          const cur = prev[activeMatchId] || {};
-          return {
-            ...prev,
-            [activeMatchId]: {
-              ...cur,
-              innings1: {
-                ...(cur.innings1 || {}),
-                runs: nextRuns,
-                wickets: nextWkts,
-                overs: nextOvStr,
-                batting: updatedLiveBatters,
-                bowling: updatedLiveBowlers,
-              },
-            },
-          };
-        });
-
         // Add 1st innings end commentary
         const innEndComm = {
           id: `comm_inn1_end_${Date.now()}`,
@@ -12909,33 +12895,8 @@ function CricketAddaMain() {
           overNum: Math.floor(nextBalls / 6),
           overSummary: `🏁 1st Innings Ended • ${battingTeamName}: ${nextRuns}/${nextWkts} (${nextOvStr} ov) • Target: ${target} runs (${rrr} RRR) • Handover scoring to ${bowlingTeamName}`,
         };
-        const updatedCommList = [innEndComm, ...newCommEntries, ...liveCommentaryList];
-        setLiveCommentaryList(updatedCommList);
-
-        // Broadcast final 1st innings delivery & break state to spectators and cloud
-        broadcastMatchState({
-          liveRuns: nextRuns,
-          liveWickets: nextWkts,
-          liveBalls: nextBalls,
-          liveThisOver: nextThisOver,
-          liveCommentaryList: updatedCommList,
-          liveBatters: updatedLiveBatters,
-          liveBowlerStats: updatedLiveBowlers,
-          firstInningsSummary: inn1Summary,
-          innings1: {
-            runs: nextRuns,
-            wickets: nextWkts,
-            overs: nextOvStr,
-            batting: updatedLiveBatters,
-            bowling: updatedLiveBowlers,
-          },
-          scoringHistory: nextHistory,
-          celebrationEvent,
-        });
-
-        setInningsBreakModalVisible(true);
-        setSelectedExtraType(null);
-        return;
+        effectiveCommList = [innEndComm, ...effectiveCommList];
+        setLiveCommentaryList(effectiveCommList);
       }
     } else if (currentInnings === 2) {
       // 8. Check if this ball COMPLETES the 2nd Innings / Match
@@ -12959,70 +12920,21 @@ function CricketAddaMain() {
 
       if (matchEnded) {
         setMatchResultText(resText);
-        setMatchesDb(prev => {
-          const cur = prev[activeMatchId] || {};
-          return {
-            ...prev,
-            [activeMatchId]: {
-              ...cur,
-              status: 'completed',
-              result: resText,
-              innings2: {
-                ...(cur.innings2 || {}),
-                runs: nextRuns,
-                wickets: nextWkts,
-                overs: nextOvStr,
-                batting: updatedLiveBatters,
-                bowling: updatedLiveBowlers,
-              },
-            },
-          };
-        });
-
         const matchEndComm = {
           id: `comm_match_end_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`,
           isOverEnd: true,
           overNum: Math.floor(nextBalls / 6),
           overSummary: `🏆 MATCH COMPLETED • ${resText} • ${battingTeamName}: ${nextRuns}/${nextWkts} (${nextOvStr} ov)`,
         };
-        const updatedCommList = [matchEndComm, ...newCommEntries, ...liveCommentaryList];
-        setLiveCommentaryList(updatedCommList);
-
-        // Broadcast match finish state to spectators and cloud
-        broadcastMatchState({
-          status: 'completed',
-          result: resText,
-          liveRuns: nextRuns,
-          liveWickets: nextWkts,
-          liveBalls: nextBalls,
-          liveThisOver: nextThisOver,
-          liveCommentaryList: updatedCommList,
-          liveBatters: updatedLiveBatters,
-          liveBowlerStats: updatedLiveBowlers,
-          innings2: {
-            runs: nextRuns,
-            wickets: nextWkts,
-            overs: nextOvStr,
-            batting: updatedLiveBatters,
-            bowling: updatedLiveBowlers,
-          },
-          match: {
-            ...match,
-            status: 'completed',
-            result: resText,
-          },
-          scoringHistory: nextHistory,
-          celebrationEvent,
-        });
-
-        setMatchCompletedModalVisible(true);
-        setSelectedExtraType(null);
-        return;
+        effectiveCommList = [matchEndComm, ...effectiveCommList];
+        setLiveCommentaryList(effectiveCommList);
       }
     }
 
-    // 9. If Over Completed (6th legal ball), calculate last over stats, set needsNewBowler and show Change Bowler Dialog
-    if (isOverEnd) {
+    const isMatchEnded = Boolean(currentInnings === 2 && (targetRuns > 0 && nextRuns >= targetRuns || nextBalls >= maxLegalBalls || nextWkts >= maxWicketsForSquad));
+
+    // 9. If Over Completed (6th legal ball), calculate last over stats, set needsNewBowler and show Change Bowler Dialog (only if innings / match ongoing)
+    if (isOverEnd && !isFirstInningsFinished && !isMatchEnded) {
       const completedOverBalls = [...liveThisOver, ballSymbol];
       const runsInThisOver = completedOverBalls.reduce((acc, sym) => acc + parseBallSymbol(sym).runs, 0);
       const wicketsInThisOver = completedOverBalls.filter(sym => {
@@ -13056,7 +12968,7 @@ function CricketAddaMain() {
         ...prev,
         currentStriker: nextStriker,
         currentNonStriker: nextNonStriker,
-        currentBowler: bowler,
+        currentBowler: isFirstInningsFinished || isMatchEnded ? bowler : (isOverEnd ? '' : bowler),
       }));
     }
 
@@ -13068,6 +12980,8 @@ function CricketAddaMain() {
           forceReset: false,
           isReset: false,
           forceResetAt: null,
+          status: isMatchEnded ? 'completed' : cur.status,
+          result: isMatchEnded ? matchResultText : cur.result,
           liveRuns: nextRuns,
           liveWickets: nextWkts,
           liveBalls: nextBalls,
@@ -13075,12 +12989,13 @@ function CricketAddaMain() {
           liveThisOver: nextThisOver,
           currentStriker: nextStriker,
           currentNonStriker: nextNonStriker,
-          currentBowler: isOverEnd ? '' : bowler,
+          currentBowler: (isOverEnd && !isFirstInningsFinished && !isMatchEnded) ? '' : bowler,
           lastOverBowler: isOverEnd ? bowler : cur.lastOverBowler,
           previousBowler: isOverEnd ? bowler : cur.previousBowler,
           scoringHistory: nextHistory,
           liveBatters: updatedLiveBatters,
           liveBowlerStats: updatedLiveBowlers,
+          firstInningsSummary: inn1Summary || cur.firstInningsSummary || firstInningsSummary,
           innings1: {
             ...(cur.innings1 || {}),
             runs: derivedMatch.innings1.runs,
@@ -13115,14 +13030,14 @@ function CricketAddaMain() {
             liveThisOver: nextThisOver,
             currentStriker: nextStriker,
             currentNonStriker: nextNonStriker,
-            currentBowler: isOverEnd ? '' : bowler,
+            currentBowler: (isOverEnd && !isFirstInningsFinished && !isMatchEnded) ? '' : bowler,
             lastOverBowler: isOverEnd ? bowler : cur.liveState?.lastOverBowler,
             previousBowler: isOverEnd ? bowler : cur.liveState?.previousBowler,
             scoringHistory: nextHistory,
             liveBatters: updatedLiveBatters,
             liveBowlerStats: updatedLiveBowlers,
-            liveCommentaryList: updatedCommentaryList,
-            firstInningsSummary,
+            liveCommentaryList: effectiveCommList,
+            firstInningsSummary: inn1Summary || cur.liveState?.firstInningsSummary || firstInningsSummary,
             lastOverStats,
             celebrationEvent: celebrationEvent || null,
           },
@@ -13163,11 +13078,15 @@ function CricketAddaMain() {
         userProfile?.name || authName
       );
 
+      const completedOvers = Math.floor((nextBalls - (isLegalDelivery ? 1 : 0)) / 6);
+      const ballInOver = isLegalDelivery ? (((nextBalls - 1) % 6) + 1) : (nextBalls % 6);
+
       const deliveryPayload = {
         deliveryIndex: nextBalls,
         innings: currentInnings,
-        over: Math.floor(nextBalls / 6),
-        ball_no: (nextBalls % 6),
+        over: completedOvers,
+        ball_no: ballInOver,
+        overs: `${completedOvers}.${ballInOver}`,
         striker: striker,
         strikerId: getRosterPlayerId(striker),
         nonStriker: nonStriker,
@@ -13180,8 +13099,8 @@ function CricketAddaMain() {
         runsOffBat: batterRunsAdded,
         extraType: extraType || 'none',
         extraPenalty: extraPenalty || (extraType === 'wide' || extraType === 'noBall' ? 1 : (extraType === 'penalty' ? runs : 0)),
-      awardTeam: awardTeamParam || 'batting',
-      penaltyReason: dismissalDescParam || null,
+        awardTeam: awardTeamParam || 'batting',
+        penaltyReason: dismissalDescParam || null,
         nbRunType: (extraType === 'noBall' || extraType === 'nb' || extraType === 'no_ball') ? (nbRunType || 'bat') : null,
         overthrowRuns: otRuns || 0,
         isLegalDelivery: Boolean(isLegalDelivery),
@@ -13195,7 +13114,7 @@ function CricketAddaMain() {
         shotSector: shotSector || null,
         nextStriker: nextStriker,
         nextNonStriker: nextNonStriker,
-        nextBowler: isOverEnd ? '' : bowler,
+        nextBowler: (isOverEnd && !isFirstInningsFinished && !isMatchEnded) ? '' : bowler,
         lastOverBowler: isOverEnd ? bowler : match.lastOverBowler,
         isOverEnd: Boolean(isOverEnd),
         currentRuns: nextRuns,
@@ -13209,7 +13128,7 @@ function CricketAddaMain() {
         liveBatters: updatedLiveBatters,
         liveBowlerStats: updatedLiveBowlers,
         liveThisOver: nextThisOver,
-        status: (isSecondInningsFinished) ? 'completed' : 'live',
+        status: isMatchEnded ? 'completed' : isFirstInningsFinished ? 'innings_break' : 'live',
         senderClientId: clientIdRef?.current || '',
         celebrationEvent: celebrationEvent || null,
         actionTime: nowMs,
@@ -13234,28 +13153,53 @@ function CricketAddaMain() {
       isReset: false,
       forceResetAt: null,
       isUndoAction: false,
+      status: isMatchEnded ? 'completed' : undefined,
+      result: isMatchEnded ? matchResultText : undefined,
       liveRuns: nextRuns,
       liveWickets: nextWkts,
       liveBalls: nextBalls,
       liveOvers: nextOvStr,
       liveThisOver: nextThisOver,
-      liveCommentaryList: [...newCommEntries, ...liveCommentaryList],
+      liveCommentaryList: effectiveCommList,
       liveBatters: updatedLiveBatters,
       liveBowlerStats: updatedLiveBowlers,
       currentStriker: nextStriker,
       currentNonStriker: nextNonStriker,
-      currentBowler: isOverEnd ? '' : bowler,
+      currentBowler: (isOverEnd && !isFirstInningsFinished && !isMatchEnded) ? '' : bowler,
+      firstInningsSummary: inn1Summary || firstInningsSummary,
+      innings1: {
+        runs: derivedMatch.innings1.runs,
+        wickets: derivedMatch.innings1.wickets,
+        overs: derivedMatch.innings1.oversStr,
+        batting: updatedLiveBatters,
+        bowling: updatedLiveBowlers,
+      },
+      innings2: {
+        runs: derivedMatch.innings2.runs,
+        wickets: derivedMatch.innings2.wickets,
+        overs: derivedMatch.innings2.oversStr,
+        batting: updatedLiveBatters,
+        bowling: updatedLiveBowlers,
+      },
       match: {
         ...match,
+        status: isMatchEnded ? 'completed' : match?.status,
+        result: isMatchEnded ? matchResultText : match?.result,
         currentStriker: nextStriker,
         currentNonStriker: nextNonStriker,
-        currentBowler: isOverEnd ? '' : bowler,
+        currentBowler: (isOverEnd && !isFirstInningsFinished && !isMatchEnded) ? '' : bowler,
         lastOverBowler: isOverEnd ? bowler : match.lastOverBowler,
         previousBowler: isOverEnd ? bowler : match.previousBowler,
       },
       scoringHistory: nextHistory,
       celebrationEvent,
     });
+
+    if (isFirstInningsFinished) {
+      setInningsBreakModalVisible(true);
+    } else if (isMatchEnded) {
+      setMatchCompletedModalVisible(true);
+    }
 
     setSelectedExtraType(null);
     } catch (recordErr) {
@@ -15420,9 +15364,63 @@ function CricketAddaMain() {
   const deriveCommentaryFromDeliveries = (deliveries, matchObj) => {
     if (!Array.isArray(deliveries) || deliveries.length === 0) return [];
 
+    const team1Name = matchObj?.innings1?.team || matchObj?.teamA || matchObj?.team1Name || '';
+    const team2Name = matchObj?.innings2?.team || matchObj?.teamB || matchObj?.team2Name || '';
+
     // 1. Partition deliveries strictly by innings to prevent bleed across innings
-    const inn1Deliveries = deliveries.filter(d => (d.innings === 1 || !d.innings));
-    const inn2Deliveries = deliveries.filter(d => d.innings === 2);
+    let inn1Deliveries = deliveries.filter(d => {
+      if (d.innings === 1) return true;
+      if (d.innings === 2) {
+        if (team1Name && d.team && String(d.team).trim().toLowerCase() === String(team1Name).trim().toLowerCase()) {
+          return true;
+        }
+        return false;
+      }
+      if (team2Name && d.team && String(d.team).trim().toLowerCase() === String(team2Name).trim().toLowerCase()) {
+        return false;
+      }
+      return true;
+    });
+
+    let inn2Deliveries = deliveries.filter(d => {
+      if (team1Name && d.team && String(d.team).trim().toLowerCase() === String(team1Name).trim().toLowerCase()) {
+        return false;
+      }
+      return d.innings === 2 || (team2Name && d.team && String(d.team).trim().toLowerCase() === String(team2Name).trim().toLowerCase());
+    });
+
+    // Reconcile missing final ball if Innings 1 is completed (e.g. 5.0 overs) but 1 delivery was unsynced
+    const inn1LegalCount = inn1Deliveries.filter(d => {
+      const extra = d.extraType;
+      return d.isLegalDelivery !== false && extra !== 'wide' && extra !== 'noBall' && extra !== 'penalty';
+    }).length;
+
+    const expectedInn1Balls = (() => {
+      const ovStr = matchObj?.firstInningsSummary?.overs || matchObj?.innings1?.overs;
+      if (!ovStr) return 0;
+      const [o, b] = String(ovStr).split('.').map(Number);
+      return (Number(o) || 0) * 6 + (Number(b) || 0);
+    })();
+
+    if (expectedInn1Balls > 0 && inn1LegalCount === expectedInn1Balls - 1) {
+      const lastBall = inn1Deliveries[inn1Deliveries.length - 1];
+      const inn1TotalRuns = Number(matchObj?.firstInningsSummary?.runs ?? matchObj?.innings1?.runs ?? 0);
+      const ballsRunsSum = inn1Deliveries.reduce((sum, d) => sum + Number(d.runs ?? d.addedRuns ?? 0), 0);
+      const missingRuns = Math.max(0, inn1TotalRuns - ballsRunsSum);
+
+      inn1Deliveries.push({
+        id: `inn1_reconciled_final_ball`,
+        innings: 1,
+        runs: missingRuns,
+        addedRuns: missingRuns,
+        isLegalDelivery: true,
+        striker: lastBall?.striker || matchObj?.currentStriker || 'Batter',
+        bowler: lastBall?.bowler || matchObj?.currentBowler || 'Bowler',
+        team: team1Name || lastBall?.team,
+        ballSymbol: missingRuns === 0 ? '0' : String(missingRuns),
+        extraType: 'none',
+      });
+    }
 
     const isSecondInningsStarted = inn2Deliveries.length > 0 || matchObj?.currentInnings === 2;
 
