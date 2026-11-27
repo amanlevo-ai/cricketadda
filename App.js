@@ -11751,7 +11751,7 @@ function CricketAddaMain() {
   // Start 2nd Innings Transition Function
   const handleStartSecondInnings = () => {
     if (!isOfficialScorer) {
-      showAppToast('Only Official Scorer can start 2nd innings 👁️', '👁️', 'warning');
+      showAppToast('Only Official Scorer can start 2nd innings', '', 'warning');
       return;
     }
     setInningsBreakModalVisible(false);
@@ -11896,7 +11896,7 @@ function CricketAddaMain() {
   // ============================================================================
   const handleApplyDLSReduction = () => {
     if (!isOfficialScorer) {
-      showAppToast('Only Official Scorer can apply DLS revisions 👁️', '👁️', 'warning');
+      showAppToast('Only Official Scorer can apply DLS revisions', '', 'warning');
       return;
     }
 
@@ -13979,7 +13979,7 @@ function CricketAddaMain() {
     showAppToast(
       isTransferringToCreator
         ? 'Official scoring restored to Match Creator! 👑'
-        : `Scoring delegated to ${playerName}! You are now in Spectator Mode 👁️`,
+        : `Scoring delegated to ${playerName}! You are now in Spectator Mode`,
       '🔄',
       'info'
     );
@@ -13990,7 +13990,7 @@ function CricketAddaMain() {
   // ============================================================================
   const handleEditTeamAndSquadFromScorer = (slot = 'bowling') => {
     if (!isOfficialScorer) {
-      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
+      showAppToast('You are in read-only Spectator Mode', '', 'warning');
       return;
     }
     const isBowling = slot === 'bowling';
@@ -14340,7 +14340,7 @@ function CricketAddaMain() {
 
   const handleUndoLastBall = () => {
     if (!isOfficialScorer) {
-      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
+      showAppToast('You are in read-only Spectator Mode', '', 'warning');
       return;
     }
 
@@ -14916,7 +14916,7 @@ function CricketAddaMain() {
   const handleRunPress = runs => {
     try {
       if (!isOfficialScorer) {
-        showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
+        showAppToast('You are in read-only Spectator Mode', '', 'warning');
         return;
       }
 
@@ -15011,7 +15011,7 @@ function CricketAddaMain() {
 
     const handleRecordExtraModal = (runs) => {
     if (!isOfficialScorer) {
-      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
+      showAppToast('You are in read-only Spectator Mode', '', 'warning');
       setExtraModalType(null);
       return;
     }
@@ -15043,7 +15043,7 @@ function CricketAddaMain() {
 
   const handleRecordOverthrowModal = () => {
     if (!isOfficialScorer) {
-      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
+      showAppToast('You are in read-only Spectator Mode', '', 'warning');
       setOverthrowModalVisible(false);
       return;
     }
@@ -15091,7 +15091,7 @@ function CricketAddaMain() {
 
   const submitDismissal = () => {
     if (!isOfficialScorer) {
-      showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
+      showAppToast('You are in read-only Spectator Mode', '', 'warning');
       setWicketModalVisible(false);
       return;
     }
@@ -25006,16 +25006,13 @@ function CricketAddaMain() {
               alignItems: 'center',
               justifyContent: 'space-between',
             }}>
-              <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Text style={{ fontSize: 15 }}>👁️</Text>
-                <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '900' }}>
-                    SPECTATOR PREVIEW MODE
-                  </Text>
-                  <Text style={{ color: '#bae6fd', fontSize: 10 }}>
-                    Testing live match as remote spectators see it (Read-Only)
-                  </Text>
-                </View>
+              <View style={{ flex: 1 }}>
+                <Text style={{ color: '#38bdf8', fontSize: 11.5, fontWeight: '900' }}>
+                  SPECTATOR PREVIEW MODE
+                </Text>
+                <Text style={{ color: '#bae6fd', fontSize: 10 }}>
+                  Testing live match as remote spectators see it (Read-Only)
+                </Text>
               </View>
               <TouchableOpacity
                 style={{
@@ -26783,12 +26780,8 @@ function CricketAddaMain() {
                   borderColor: scCardBorder,
                   padding: 8,
                   marginBottom: 8,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 6,
                 }}>
-                  <Text style={{ fontSize: 16 }}>👁️</Text>
-                  <Text style={{ color: scTxtMuted, fontSize: 11, flex: 1, lineHeight: 15 }}>
+                  <Text style={{ color: scTxtMuted, fontSize: 11, lineHeight: 15 }}>
                     Live match is synced live from official match scorer. Keypad input is disabled in Spectator Mode.
                   </Text>
                 </View>
@@ -28568,7 +28561,6 @@ function CricketAddaMain() {
                     shadowRadius: 3,
                     elevation: 4,
                   }}>
-                    <Text style={{ fontSize: 11 }}>{isOfficialScorer ? '🏏' : '👁️'}</Text>
                     <Text style={{
                       color: currentTheme.primaryText || '#ffffff',
                       fontSize: 11.5,
