@@ -25846,12 +25846,9 @@ function CricketAddaMain() {
                   paddingVertical: 4,
                   paddingHorizontal: 12,
                   marginBottom: 4,
-                  flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 7,
                 }}>
-                  <Text style={{ fontSize: 13 }}>🎯</Text>
                   <Text style={{
                     color: isLight ? '#166534' : '#34d399',
                     fontSize: 12.5,
@@ -27162,12 +27159,9 @@ function CricketAddaMain() {
               paddingVertical: 6,
               paddingHorizontal: 12,
               marginBottom: 8,
-              flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 7,
             }}>
-              <Text style={{ fontSize: 13 }}>🎯</Text>
               <Text style={{
                 color: currentTheme.isLight ? '#166534' : '#34d399',
                 fontSize: 13,
