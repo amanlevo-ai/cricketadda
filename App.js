@@ -10779,32 +10779,68 @@ function CricketAddaMain() {
     return null;
   }, [userProfile, authName, registeredPlayers, registeredTeams, allAvailableMatchTeams, currentMatchData, usersDb]);
 
-  // All Playing XI players of the active batting team
+  // All Playing XI players of the active batting team (strictly dynamic per currentInnings)
   const activeBattingSquad = (() => {
     let raw = [];
-    if (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0) {
-      raw = currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
-    } else {
-      const registeredBatTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === battingTeamName.toLowerCase().trim());
-      if (registeredBatTeam && Array.isArray(registeredBatTeam.squad) && registeredBatTeam.squad.length > 0) {
-        raw = registeredBatTeam.squad.map(p => typeof p === 'string' ? p : p.name);
-      } else if (currentInnings === 1) {
-        const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
-        if (inn1Bat.length > 0) {
-          raw = inn1Bat.map(b => b.name);
-        }
+
+    if (currentInnings === 2) {
+      // INNINGS 2: Batting team is Team 2 (chasing target)
+      if (Array.isArray(currentMatchData?.team2Squad) && currentMatchData.team2Squad.length > 0) {
+        raw = currentMatchData.team2Squad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (Array.isArray(currentMatchData?.innings2?.battingSquad) && currentMatchData.innings2.battingSquad.length > 0) {
+        raw = currentMatchData.innings2.battingSquad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (Array.isArray(currentMatchData?.fieldingSquad) && currentMatchData.fieldingSquad.length > 0) {
+        raw = currentMatchData.fieldingSquad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (Array.isArray(currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI) && (currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI).length > 0) {
+        raw = (currentMatchData.opponentPlayingXI || currentMatchData.oppPlayingXI).map(p => typeof p === 'string' ? p : p.name);
       } else {
-        const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
-        if (inn2Bat.length > 0) {
-          raw = inn2Bat.map(b => b.name);
+        const registeredBatTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === battingTeamName.toLowerCase().trim());
+        if (registeredBatTeam && Array.isArray(registeredBatTeam.squad) && registeredBatTeam.squad.length > 0) {
+          raw = registeredBatTeam.squad.map(p => typeof p === 'string' ? p : p.name);
         } else {
-          const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
-          if (inn1Bowl.length > 0) {
-            raw = inn1Bowl.map(b => b.name);
+          const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
+          if (inn2Bat.length > 0) {
+            raw = inn2Bat.map(b => b.name);
+          } else {
+            const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
+            if (inn1Bowl.length > 0) {
+              raw = inn1Bowl.map(b => b.name);
+            }
+          }
+        }
+      }
+    } else {
+      // INNINGS 1: Batting team is Team 1 (setting target)
+      if (Array.isArray(currentMatchData?.team1Squad) && currentMatchData.team1Squad.length > 0) {
+        raw = currentMatchData.team1Squad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (Array.isArray(currentMatchData?.innings1?.battingSquad) && currentMatchData.innings1.battingSquad.length > 0) {
+        raw = currentMatchData.innings1.battingSquad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (Array.isArray(currentMatchData?.myPlayingXI) && currentMatchData.myPlayingXI.length > 0) {
+        raw = currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
+      } else {
+        const registeredBatTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === battingTeamName.toLowerCase().trim());
+        if (registeredBatTeam && Array.isArray(registeredBatTeam.squad) && registeredBatTeam.squad.length > 0) {
+          raw = registeredBatTeam.squad.map(p => typeof p === 'string' ? p : p.name);
+        } else {
+          const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
+          if (inn1Bat.length > 0) {
+            raw = inn1Bat.map(b => b.name);
           }
         }
       }
     }
+
+    // Safety fallback: if raw is empty, try matching teamA or teamB directly to battingTeamName
+    if (!raw || raw.length === 0) {
+      const isTeamA = String(currentMatchData?.teamA || match?.teamA || '').toLowerCase().trim() === String(battingTeamName || '').toLowerCase().trim();
+      const isTeamB = String(currentMatchData?.teamB || match?.teamB || '').toLowerCase().trim() === String(battingTeamName || '').toLowerCase().trim();
+      if (isTeamA && Array.isArray(currentMatchData?.myPlayingXI) && currentMatchData.myPlayingXI.length > 0) {
+        raw = currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
+      } else if (isTeamB && Array.isArray(currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI) && (currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI).length > 0) {
+        raw = (currentMatchData.opponentPlayingXI || currentMatchData.oppPlayingXI).map(p => typeof p === 'string' ? p : p.name);
+      }
+    }
+
     return raw.map(p => resolveCanonicalPlayerName(p));
   })();
 
@@ -10817,43 +10853,66 @@ function CricketAddaMain() {
   );
   const isCurrentInningsOver = isFirstInningsFinished || isSecondInningsFinished;
 
-  // All Playing XI players of the opposition fielding/bowling team eligible to bowl
+  // All Playing XI players of the opposition fielding/bowling team eligible to bowl (strictly dynamic per currentInnings)
   const activeOppBowlers = (() => {
-    if (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0) return currentMatchData.fieldingSquad;
-    if (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0) {
-      return currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name);
-    }
     let raw = [];
-    if (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0) {
-      raw = currentMatchData.fieldingSquad;
-    } else if (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0) {
-      raw = currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name);
-    } else {
-      const registeredOppTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === bowlingTeamName.toLowerCase().trim());
-      if (registeredOppTeam && Array.isArray(registeredOppTeam.squad) && registeredOppTeam.squad.length > 0) {
-        raw = registeredOppTeam.squad.map(p => typeof p === 'string' ? p : p.name);
-      } else if (currentInnings === 1) {
-        const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
-        if (inn1Bowl.length > 0) {
-          raw = inn1Bowl.map(b => b.name);
-        } else {
-          const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
-          if (inn2Bat.length > 0) {
-            raw = inn2Bat.map(b => b.name);
-          }
-        }
+
+    if (currentInnings === 2) {
+      // INNINGS 2: Bowling team is Team 1 (the team that batted in Inning 1)
+      if (Array.isArray(currentMatchData?.team1Squad) && currentMatchData.team1Squad.length > 0) {
+        raw = currentMatchData.team1Squad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (Array.isArray(currentMatchData?.innings1?.battingSquad) && currentMatchData.innings1.battingSquad.length > 0) {
+        raw = currentMatchData.innings1.battingSquad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (Array.isArray(currentMatchData?.myPlayingXI) && currentMatchData.myPlayingXI.length > 0) {
+        raw = currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
       } else {
-        const inn2Bowl = Array.isArray(currentMatchData?.innings2?.bowling) ? currentMatchData.innings2.bowling : Object.values(currentMatchData?.innings2?.bowling || {});
-        if (inn2Bowl.length > 0) {
-          raw = inn2Bowl.map(b => b.name);
+        const registeredOppTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === bowlingTeamName.toLowerCase().trim());
+        if (registeredOppTeam && Array.isArray(registeredOppTeam.squad) && registeredOppTeam.squad.length > 0) {
+          raw = registeredOppTeam.squad.map(p => typeof p === 'string' ? p : p.name);
         } else {
           const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
           if (inn1Bat.length > 0) {
             raw = inn1Bat.map(b => b.name);
+          } else {
+            const inn2Bowl = Array.isArray(currentMatchData?.innings2?.bowling) ? currentMatchData.innings2.bowling : Object.values(currentMatchData?.innings2?.bowling || {});
+            if (inn2Bowl.length > 0) {
+              raw = inn2Bowl.map(b => b.name);
+            }
+          }
+        }
+      }
+    } else {
+      // INNINGS 1: Bowling team is Team 2 (the team fielding in Inning 1)
+      if (Array.isArray(currentMatchData?.team2Squad) && currentMatchData.team2Squad.length > 0) {
+        raw = currentMatchData.team2Squad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (Array.isArray(currentMatchData?.fieldingSquad) && currentMatchData.fieldingSquad.length > 0) {
+        raw = currentMatchData.fieldingSquad.map(p => typeof p === 'string' ? p : p.name);
+      } else if (Array.isArray(currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI) && (currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI).length > 0) {
+        raw = (currentMatchData.opponentPlayingXI || currentMatchData.oppPlayingXI).map(p => typeof p === 'string' ? p : p.name);
+      } else {
+        const registeredOppTeam = registeredTeams.find(t => t && t.name && t.name.toLowerCase().trim() === bowlingTeamName.toLowerCase().trim());
+        if (registeredOppTeam && Array.isArray(registeredOppTeam.squad) && registeredOppTeam.squad.length > 0) {
+          raw = registeredOppTeam.squad.map(p => typeof p === 'string' ? p : p.name);
+        } else {
+          const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
+          if (inn1Bowl.length > 0) {
+            raw = inn1Bowl.map(b => b.name);
           }
         }
       }
     }
+
+    // Safety fallback: if raw is empty, try matching teamA or teamB directly to bowlingTeamName
+    if (!raw || raw.length === 0) {
+      const isTeamA = String(currentMatchData?.teamA || match?.teamA || '').toLowerCase().trim() === String(bowlingTeamName || '').toLowerCase().trim();
+      const isTeamB = String(currentMatchData?.teamB || match?.teamB || '').toLowerCase().trim() === String(bowlingTeamName || '').toLowerCase().trim();
+      if (isTeamA && Array.isArray(currentMatchData?.myPlayingXI) && currentMatchData.myPlayingXI.length > 0) {
+        raw = currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name);
+      } else if (isTeamB && Array.isArray(currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI) && (currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI).length > 0) {
+        raw = (currentMatchData.opponentPlayingXI || currentMatchData.oppPlayingXI).map(p => typeof p === 'string' ? p : p.name);
+      }
+    }
+
     return raw.map(p => resolveCanonicalPlayerName(p));
   })();
 
@@ -11563,32 +11622,40 @@ function CricketAddaMain() {
     setSelectedExtraType(null);
     setNeedsNewBowler(false);
 
-    // 2. Set Opening Batters for 2nd Innings
+    // 2. Set Opening Batters & Bowler for 2nd Innings
     const inn2Bat = Array.isArray(currentMatchData?.innings2?.batting) ? currentMatchData.innings2.batting : Object.values(currentMatchData?.innings2?.batting || {});
     const inn1Bowl = Array.isArray(currentMatchData?.innings1?.bowling) ? currentMatchData.innings1.bowling : Object.values(currentMatchData?.innings1?.bowling || {});
     const inn1Bat = Array.isArray(currentMatchData?.innings1?.batting) ? currentMatchData.innings1.batting : Object.values(currentMatchData?.innings1?.batting || {});
 
-    const team2Batters = inn2Bat.length > 0
-      ? inn2Bat.map(b => b.name)
-      : (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0)
-      ? currentMatchData.fieldingSquad
+    // Team 2 (Chasing target in 2nd Innings): Batters
+    const team2Batters = (Array.isArray(currentMatchData?.team2Squad) && currentMatchData.team2Squad.length > 0)
+      ? currentMatchData.team2Squad.map(p => typeof p === 'string' ? p : p.name)
+      : (Array.isArray(currentMatchData?.innings2?.battingSquad) && currentMatchData.innings2.battingSquad.length > 0)
+      ? currentMatchData.innings2.battingSquad.map(p => typeof p === 'string' ? p : p.name)
+      : (Array.isArray(currentMatchData?.fieldingSquad) && currentMatchData.fieldingSquad.length > 0)
+      ? currentMatchData.fieldingSquad.map(p => typeof p === 'string' ? p : p.name)
+      : (Array.isArray(currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI) && (currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI).length > 0)
+      ? (currentMatchData.opponentPlayingXI || currentMatchData.oppPlayingXI).map(p => typeof p === 'string' ? p : p.name)
+      : inn2Bat.length > 0
+      ? inn2Bat.map(b => typeof b === 'string' ? b : b.name)
       : inn1Bowl.length > 0
-      ? inn1Bowl.map(b => b.name)
-      : (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0)
-      ? currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name)
+      ? inn1Bowl.map(b => typeof b === 'string' ? b : b.name)
       : [];
 
-    const team1Bowlers = inn1Bowl.length > 0
-      ? inn1Bowl.map(b => b.name)
-      : inn1Bat.length > 0
-      ? inn1Bat.map(b => b.name)
-      : (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0)
+    // Team 1 (Defending target in 2nd Innings - was batting in 1st Innings): Bowlers
+    const team1Bowlers = (Array.isArray(currentMatchData?.team1Squad) && currentMatchData.team1Squad.length > 0)
+      ? currentMatchData.team1Squad.map(p => typeof p === 'string' ? p : p.name)
+      : (Array.isArray(currentMatchData?.innings1?.battingSquad) && currentMatchData.innings1.battingSquad.length > 0)
+      ? currentMatchData.innings1.battingSquad.map(p => typeof p === 'string' ? p : p.name)
+      : (Array.isArray(currentMatchData?.myPlayingXI) && currentMatchData.myPlayingXI.length > 0)
       ? currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name)
+      : inn1Bat.length > 0
+      ? inn1Bat.map(b => typeof b === 'string' ? b : b.name)
       : [];
 
-    const newStriker = team2Batters[0] || 'Striker 1';
-    const newNonStriker = team2Batters[1] || team2Batters[0] || 'Striker 2';
-    const newBowler = team1Bowlers[0] || 'Opening Bowler';
+    const newStriker = resolveCanonicalPlayerName(team2Batters[0] || 'Striker 1');
+    const newNonStriker = resolveCanonicalPlayerName(team2Batters[1] || team2Batters[0] || 'Striker 2');
+    const newBowler = resolveCanonicalPlayerName(team1Bowlers[0] || 'Opening Bowler');
 
     setMatch(prev => ({
       ...prev,
@@ -25735,6 +25802,35 @@ function CricketAddaMain() {
               </View>
 
               {/* 4. BATTERS: 2 SIDE-BY-SIDE CARDS (SCREENSHOT BROADCAST DESIGN) */}
+              {isOfficialScorer && liveBalls === 0 && (
+                <TouchableOpacity
+                  activeOpacity={0.75}
+                  style={{
+                    alignSelf: 'center',
+                    backgroundColor: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
+                    borderColor: '#10b981',
+                    borderWidth: 1,
+                    borderRadius: 20,
+                    paddingHorizontal: 12,
+                    paddingVertical: 4.5,
+                    marginBottom: 6,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                  onPress={() => {
+                    setStartStriker(null);
+                    setStartNonStriker(null);
+                    setStartBowler(null);
+                    setInningStartModalVisible(true);
+                  }}
+                >
+                  <Text style={{ fontSize: 12 }}>🏏</Text>
+                  <Text style={{ color: isLight ? '#047857' : '#34d399', fontSize: 11.5, fontWeight: '800' }}>
+                    Edit {currentInnings === 1 ? '1st' : '2nd'} Innings Openers & Bowler
+                  </Text>
+                </TouchableOpacity>
+              )}
               {(() => {
                 const strikerStats = getBatterDetailed(striker);
                 const nonStrikerStats = getBatterDetailed(nonStriker);
@@ -30809,218 +30905,269 @@ function CricketAddaMain() {
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 8 }}>
-              {/* 1. SELECT OPENING STRIKER */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginBottom: 4 }}>
-                <Text style={{ fontSize: 13 }}>🏏</Text>
-                <Text style={styles.pickerSectionHeading}>1. SELECT OPENING STRIKER (BATTER 1):</Text>
-              </View>
-              <View style={styles.grid2ColContainer}>
-                {activeBattingSquad.map((bName, idx) => {
-                  const isSel = (startStriker || striker) === bName;
-                  const isOther = (startNonStriker || nonStriker) === bName;
-                  const roleInfo = getPlayerRoleInfo(bName);
-                  return (
-                    <TouchableOpacity
-                      key={`start_striker_${idx}`}
-                      style={[
-                        styles.playerCardChip2Col,
-                        isSel && { borderColor: '#34d399', backgroundColor: '#064e3b', borderWidth: 1.5 },
-                        isOther && { opacity: 0.35 },
-                      ]}
-                      onPress={() => {
-                        if (isOther) {
-                          setStartNonStriker(startStriker || striker);
-                        }
-                        setStartStriker(bName);
-                      }}
-                    >
-                      <PlayerAvatar name={bName} size={22} borderColor={isSel ? '#34d399' : roleInfo.color} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[{ fontSize: 11, fontWeight: '700', color: '#f8fafc' }, isSel && { color: '#a7f3d0', fontWeight: '900' }]} numberOfLines={1}>
-                          {bName.replace(/\s*\([^)]*\)/g, '')}
-                        </Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5, marginTop: 1 }}>
-                          {!isSel && !isOther && roleInfo.shortRole === 'BOWL' && <RealisticCricketLeatherBall size={10} />}
-                          <Text style={[{ fontSize: 9.5, color: isSel ? '#6ee7b7' : isOther ? '#64748b' : roleInfo.color, fontWeight: isSel ? 'bold' : '600' }]} numberOfLines={1}>
-                            {isSel ? '★ Striker' : isOther ? '○ Non-Striker' : (roleInfo.shortRole === 'BOWL' ? roleInfo.cleanLabel : roleInfo.label)}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+            {(() => {
+              const effectiveStartStriker = (startStriker && activeBattingSquad.includes(startStriker))
+                ? startStriker
+                : (striker && activeBattingSquad.includes(striker))
+                ? striker
+                : (activeBattingSquad[0] || '');
 
-              {/* 2. SELECT OPENING NON-STRIKER */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 4 }}>
-                <Text style={{ fontSize: 13 }}>👥</Text>
-                <Text style={styles.pickerSectionHeading}>2. SELECT OPENING NON-STRIKER (BATTER 2):</Text>
-              </View>
-              <View style={styles.grid2ColContainer}>
-                {activeBattingSquad.map((bName, idx) => {
-                  const isSel = (startNonStriker || nonStriker) === bName;
-                  const isOther = (startStriker || striker) === bName;
-                  const roleInfo = getPlayerRoleInfo(bName);
-                  return (
-                    <TouchableOpacity
-                      key={`start_nonstriker_${idx}`}
-                      style={[
-                        styles.playerCardChip2Col,
-                        isSel && { borderColor: '#38bdf8', backgroundColor: '#0c4a6e', borderWidth: 1.5 },
-                        isOther && { opacity: 0.35 },
-                      ]}
-                      onPress={() => {
-                        if (isOther) {
-                          setStartStriker(startNonStriker || nonStriker);
-                        }
-                        setStartNonStriker(bName);
-                      }}
-                    >
-                      <PlayerAvatar name={bName} size={22} borderColor={isSel ? '#38bdf8' : roleInfo.color} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[{ fontSize: 11, fontWeight: '700', color: '#f8fafc' }, isSel && { color: '#7dd3fc', fontWeight: '900' }]} numberOfLines={1}>
-                          {bName.replace(/\s*\([^)]*\)/g, '')}
-                        </Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5, marginTop: 1 }}>
-                          {!isSel && !isOther && roleInfo.shortRole === 'BOWL' && <RealisticCricketLeatherBall size={10} />}
-                          <Text style={[{ fontSize: 9.5, color: isSel ? '#38bdf8' : isOther ? '#64748b' : roleInfo.color, fontWeight: isSel ? 'bold' : '600' }]} numberOfLines={1}>
-                            {isSel ? '○ Non-Striker' : isOther ? '★ Striker' : (roleInfo.shortRole === 'BOWL' ? roleInfo.cleanLabel : roleInfo.label)}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              const effectiveStartNonStriker = (startNonStriker && activeBattingSquad.includes(startNonStriker) && startNonStriker !== effectiveStartStriker)
+                ? startNonStriker
+                : (nonStriker && activeBattingSquad.includes(nonStriker) && nonStriker !== effectiveStartStriker)
+                ? nonStriker
+                : (activeBattingSquad.find(p => p !== effectiveStartStriker) || activeBattingSquad[1] || '');
 
-              {/* 3. SELECT OPENING BOWLER */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 4 }}>
-                <RealisticCricketLeatherBall size={14} />
-                <Text style={styles.pickerSectionHeading}>3. SELECT OPENING BOWLER (1ST OVER):</Text>
-              </View>
-              <View style={styles.grid2ColContainer}>
-                {activeOppBowlers.map((bName, idx) => {
-                  const isSel = (startBowler || bowler) === bName;
-                  const roleInfo = getPlayerRoleInfo(bName);
-                  return (
-                    <TouchableOpacity
-                      key={`start_bowler_${idx}`}
-                      style={[
-                        styles.playerCardChip2Col,
-                        isSel && { borderColor: '#f59e0b', backgroundColor: '#78350f', borderWidth: 1.5 },
-                      ]}
-                      onPress={() => setStartBowler(bName)}
-                    >
-                      <PlayerAvatar name={bName} size={22} borderColor={isSel ? '#f59e0b' : roleInfo.color} />
-                      <View style={{ flex: 1 }}>
-                        <Text style={[{ fontSize: 11, fontWeight: '700', color: '#f8fafc' }, isSel && { color: '#fde68a', fontWeight: '900' }]} numberOfLines={1}>
-                          {bName.replace(/\s*\([^)]*\)/g, '')}
-                        </Text>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5, marginTop: 1 }}>
-                          {(isSel || roleInfo.shortRole === 'BOWL') && <RealisticCricketLeatherBall size={10} />}
-                          <Text style={[{ fontSize: 9.5, color: isSel ? '#fcd34d' : roleInfo.color, fontWeight: isSel ? 'bold' : '600' }]} numberOfLines={1}>
-                            {isSel ? 'Opening Bowler' : (roleInfo.shortRole === 'BOWL' ? roleInfo.cleanLabel : roleInfo.label)}
-                          </Text>
-                        </View>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+              const effectiveStartBowler = (startBowler && activeOppBowlers.includes(startBowler))
+                ? startBowler
+                : (bowler && activeOppBowlers.includes(bowler))
+                ? bowler
+                : (activeOppBowlers[0] || '');
 
-              {/* CONFIRM BUTTON */}
-              <TouchableOpacity
-                style={{
-                  backgroundColor: '#10b981',
-                  paddingVertical: 13,
-                  borderRadius: 10,
-                  alignItems: 'center',
-                  marginTop: 18,
-                  marginBottom: 10,
-                }}
-                onPress={() => {
-                  const finalSt = startStriker || striker;
-                  const finalNst = startNonStriker || nonStriker;
-                  const finalBw = startBowler || bowler;
+              const currentSelStriker = startStriker || effectiveStartStriker;
+              const currentSelNonStriker = startNonStriker || effectiveStartNonStriker;
+              const currentSelBowler = startBowler || effectiveStartBowler;
 
-                  if (finalSt === finalNst) {
-                    Alert.alert('Select Two Different Batsmen', 'Striker and Non-Striker cannot be the same player.');
-                    return;
-                  }
+              return (
+                <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: 8 }}>
+                  {/* 1. SELECT OPENING STRIKER */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 6, marginBottom: 4 }}>
+                    <Text style={{ fontSize: 13 }}>🏏</Text>
+                    <Text style={styles.pickerSectionHeading}>1. SELECT OPENING STRIKER ({battingTeamName || 'BATTER 1'}):</Text>
+                  </View>
+                  <View style={styles.grid2ColContainer}>
+                    {activeBattingSquad.map((bName, idx) => {
+                      const isSel = currentSelStriker === bName;
+                      const isOther = currentSelNonStriker === bName;
+                      const roleInfo = getPlayerRoleInfo(bName);
+                      return (
+                        <TouchableOpacity
+                          key={`start_striker_${idx}`}
+                          style={[
+                            styles.playerCardChip2Col,
+                            isSel && { borderColor: '#34d399', backgroundColor: '#064e3b', borderWidth: 1.5 },
+                            isOther && { opacity: 0.35 },
+                          ]}
+                          onPress={() => {
+                            if (isOther) {
+                              setStartNonStriker(currentSelStriker);
+                            }
+                            setStartStriker(bName);
+                          }}
+                        >
+                          <PlayerAvatar name={bName} size={22} borderColor={isSel ? '#34d399' : roleInfo.color} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={[{ fontSize: 11, fontWeight: '700', color: '#f8fafc' }, isSel && { color: '#a7f3d0', fontWeight: '900' }]} numberOfLines={1}>
+                              {bName.replace(/\s*\([^)]*\)/g, '')}
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5, marginTop: 1 }}>
+                              {!isSel && !isOther && roleInfo.shortRole === 'BOWL' && <RealisticCricketLeatherBall size={10} />}
+                              <Text style={[{ fontSize: 9.5, color: isSel ? '#6ee7b7' : isOther ? '#64748b' : roleInfo.color, fontWeight: isSel ? 'bold' : '600' }]} numberOfLines={1}>
+                                {isSel ? '★ Striker' : isOther ? '○ Non-Striker' : (roleInfo.shortRole === 'BOWL' ? roleInfo.cleanLabel : roleInfo.label)}
+                              </Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
 
-                  setMatch(prev => ({
-                    ...prev,
-                    currentStriker: finalSt,
-                    currentNonStriker: finalNst,
-                    currentBowler: finalBw,
-                    previousBowler: null,
-                    lastOverBowler: null,
-                  }));
+                  {/* 2. SELECT OPENING NON-STRIKER */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 4 }}>
+                    <Text style={{ fontSize: 13 }}>👥</Text>
+                    <Text style={styles.pickerSectionHeading}>2. SELECT OPENING NON-STRIKER ({battingTeamName || 'BATTER 2'}):</Text>
+                  </View>
+                  <View style={styles.grid2ColContainer}>
+                    {activeBattingSquad.map((bName, idx) => {
+                      const isSel = currentSelNonStriker === bName;
+                      const isOther = currentSelStriker === bName;
+                      const roleInfo = getPlayerRoleInfo(bName);
+                      return (
+                        <TouchableOpacity
+                          key={`start_nonstriker_${idx}`}
+                          style={[
+                            styles.playerCardChip2Col,
+                            isSel && { borderColor: '#38bdf8', backgroundColor: '#0c4a6e', borderWidth: 1.5 },
+                            isOther && { opacity: 0.35 },
+                          ]}
+                          onPress={() => {
+                            if (isOther) {
+                              setStartStriker(currentSelNonStriker);
+                            }
+                            setStartNonStriker(bName);
+                          }}
+                        >
+                          <PlayerAvatar name={bName} size={22} borderColor={isSel ? '#38bdf8' : roleInfo.color} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={[{ fontSize: 11, fontWeight: '700', color: '#f8fafc' }, isSel && { color: '#7dd3fc', fontWeight: '900' }]} numberOfLines={1}>
+                              {bName.replace(/\s*\([^)]*\)/g, '')}
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5, marginTop: 1 }}>
+                              {!isSel && !isOther && roleInfo.shortRole === 'BOWL' && <RealisticCricketLeatherBall size={10} />}
+                              <Text style={[{ fontSize: 9.5, color: isSel ? '#38bdf8' : isOther ? '#64748b' : roleInfo.color, fontWeight: isSel ? 'bold' : '600' }]} numberOfLines={1}>
+                                {isSel ? '○ Non-Striker' : isOther ? '★ Striker' : (roleInfo.shortRole === 'BOWL' ? roleInfo.cleanLabel : roleInfo.label)}
+                              </Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
 
-                  setLiveBatters(prev => ({
-                    ...prev,
-                    [finalSt]: prev[finalSt] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
-                    [finalNst]: prev[finalNst] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
-                  }));
+                  {/* 3. SELECT OPENING BOWLER */}
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12, marginBottom: 4 }}>
+                    <RealisticCricketLeatherBall size={14} />
+                    <Text style={styles.pickerSectionHeading}>3. SELECT OPENING BOWLER ({bowlingTeamName || '1ST OVER'}):</Text>
+                  </View>
+                  <View style={styles.grid2ColContainer}>
+                    {activeOppBowlers.map((bName, idx) => {
+                      const isSel = currentSelBowler === bName;
+                      const roleInfo = getPlayerRoleInfo(bName);
+                      return (
+                        <TouchableOpacity
+                          key={`start_bowler_${idx}`}
+                          style={[
+                            styles.playerCardChip2Col,
+                            isSel && { borderColor: '#f59e0b', backgroundColor: '#78350f', borderWidth: 1.5 },
+                          ]}
+                          onPress={() => setStartBowler(bName)}
+                        >
+                          <PlayerAvatar name={bName} size={22} borderColor={isSel ? '#f59e0b' : roleInfo.color} />
+                          <View style={{ flex: 1 }}>
+                            <Text style={[{ fontSize: 11, fontWeight: '700', color: '#f8fafc' }, isSel && { color: '#fde68a', fontWeight: '900' }]} numberOfLines={1}>
+                              {bName.replace(/\s*\([^)]*\)/g, '')}
+                            </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3.5, marginTop: 1 }}>
+                              {(isSel || roleInfo.shortRole === 'BOWL') && <RealisticCricketLeatherBall size={10} />}
+                              <Text style={[{ fontSize: 9.5, color: isSel ? '#fcd34d' : roleInfo.color, fontWeight: isSel ? 'bold' : '600' }]} numberOfLines={1}>
+                                {isSel ? 'Opening Bowler' : (roleInfo.shortRole === 'BOWL' ? roleInfo.cleanLabel : roleInfo.label)}
+                              </Text>
+                            </View>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
 
-                  setLiveBowlerStats(prev => ({
-                    ...prev,
-                    [finalBw]: prev[finalBw] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
-                  }));
+                  {/* CONFIRM BUTTON */}
+                  <TouchableOpacity
+                    style={{
+                      backgroundColor: '#10b981',
+                      paddingVertical: 13,
+                      borderRadius: 10,
+                      alignItems: 'center',
+                      marginTop: 18,
+                      marginBottom: 10,
+                    }}
+                    onPress={() => {
+                      const finalSt = currentSelStriker;
+                      const finalNst = currentSelNonStriker;
+                      const finalBw = currentSelBowler;
 
-                  setInningStartModalVisible(false);
+                      if (finalSt === finalNst) {
+                        Alert.alert('Select Two Different Batsmen', 'Striker and Non-Striker cannot be the same player.');
+                        return;
+                      }
 
-                  const cleanSt = finalSt.replace(/\s*\([^)]*\)/g, '').trim();
-                  const cleanNst = finalNst.replace(/\s*\([^)]*\)/g, '').trim();
-                  const cleanBw = finalBw.replace(/\s*\([^)]*\)/g, '').trim();
-                  const innTitle = currentInnings === 1 ? '1ST INNINGS COMMENCES' : '2ND INNINGS CHASE COMMENCES';
-                  const bText = `${cleanSt} & ${cleanNst} are on the pitch ready to open the batting.`;
-                  const bwText = `${cleanBw} takes the new ball, ready to bowl the opening over!`;
+                      setMatch(prev => ({
+                        ...prev,
+                        currentStriker: finalSt,
+                        currentNonStriker: finalNst,
+                        currentBowler: finalBw,
+                        previousBowler: null,
+                        lastOverBowler: null,
+                      }));
 
-                  const startCommEntry = {
-                    id: `comm_inn_start_${Date.now()}`,
-                    isOverEnd: true,
-                    isMatchStart: true,
-                    headerTitle: innTitle,
-                    overNum: 0,
-                    battersText: bText,
-                    bowlerText: bwText,
-                    overSummary: `🏏 ${bText}\n${bwText}`,
-                  };
-                  const updatedComm = [startCommEntry, ...(liveCommentaryList.filter(c => c.overNum !== 0))];
-                  setLiveCommentaryList(updatedComm);
+                      setLiveBatters(prev => ({
+                        ...prev,
+                        [finalSt]: prev[finalSt] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
+                        [finalNst]: prev[finalNst] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
+                      }));
 
-                  broadcastMatchState({
-                    currentStriker: finalSt,
-                    currentNonStriker: finalNst,
-                    currentBowler: finalBw,
-                    liveBatters: {
-                      ...liveBatters,
-                      [finalSt]: liveBatters[finalSt] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
-                      [finalNst]: liveBatters[finalNst] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
-                    },
-                    liveBowlerStats: {
-                      ...liveBowlerStats,
-                      [finalBw]: liveBowlerStats[finalBw] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
-                    },
-                    liveCommentaryList: updatedComm,
-                    match: {
-                      ...match,
-                      currentStriker: finalSt,
-                      currentNonStriker: finalNst,
-                      currentBowler: finalBw,
-                      previousBowler: null,
-                      lastOverBowler: null,
-                    },
-                  });
-                }}
-              >
-                <Text style={{ color: '#020617', fontWeight: '900', fontSize: 14 }}>
-                  🟢 Confirm & Start Innings 🚀
-                </Text>
-              </TouchableOpacity>
-            </ScrollView>
+                      setLiveBowlerStats(prev => ({
+                        ...prev,
+                        [finalBw]: prev[finalBw] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
+                      }));
+
+                      setMatchesDb(prev => {
+                        const cur = prev[activeMatchId] || {};
+                        const updated = {
+                          ...cur,
+                          liveState: {
+                            ...(cur.liveState || {}),
+                            currentStriker: finalSt,
+                            currentNonStriker: finalNst,
+                            currentBowler: finalBw,
+                            liveBatters: {
+                              ...liveBatters,
+                              [finalSt]: liveBatters[finalSt] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
+                              [finalNst]: liveBatters[finalNst] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
+                            },
+                            liveBowlerStats: {
+                              ...liveBowlerStats,
+                              [finalBw]: liveBowlerStats[finalBw] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
+                            },
+                          },
+                          lastUpdatedAt: Date.now(),
+                        };
+                        AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...prev, [activeMatchId]: updated })).catch(() => {});
+                        return { ...prev, [activeMatchId]: updated };
+                      });
+
+                      setInningStartModalVisible(false);
+
+                      const cleanSt = finalSt.replace(/\s*\([^)]*\)/g, '').trim();
+                      const cleanNst = finalNst.replace(/\s*\([^)]*\)/g, '').trim();
+                      const cleanBw = finalBw.replace(/\s*\([^)]*\)/g, '').trim();
+                      const innTitle = currentInnings === 1 ? '1ST INNINGS COMMENCES' : '2ND INNINGS CHASE COMMENCES';
+                      const bText = `${cleanSt} & ${cleanNst} are on the pitch ready to open the batting.`;
+                      const bwText = `${cleanBw} takes the new ball, ready to bowl the opening over!`;
+
+                      const startCommEntry = {
+                        id: `comm_inn_start_${Date.now()}`,
+                        isOverEnd: true,
+                        isMatchStart: true,
+                        headerTitle: innTitle,
+                        overNum: 0,
+                        battersText: bText,
+                        bowlerText: bwText,
+                        overSummary: `🏏 ${bText}\n${bwText}`,
+                      };
+                      const updatedComm = [startCommEntry, ...(liveCommentaryList.filter(c => c.overNum !== 0))];
+                      setLiveCommentaryList(updatedComm);
+
+                      broadcastMatchState({
+                        currentStriker: finalSt,
+                        currentNonStriker: finalNst,
+                        currentBowler: finalBw,
+                        liveBatters: {
+                          ...liveBatters,
+                          [finalSt]: liveBatters[finalSt] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
+                          [finalNst]: liveBatters[finalNst] || { runs: 0, balls: 0, fours: 0, sixes: 0, dots: 0 },
+                        },
+                        liveBowlerStats: {
+                          ...liveBowlerStats,
+                          [finalBw]: liveBowlerStats[finalBw] || { balls: 0, maidens: 0, runs: 0, wickets: 0 },
+                        },
+                        liveCommentaryList: updatedComm,
+                        match: {
+                          ...match,
+                          currentStriker: finalSt,
+                          currentNonStriker: finalNst,
+                          currentBowler: finalBw,
+                          previousBowler: null,
+                          lastOverBowler: null,
+                        },
+                      });
+                    }}
+                  >
+                    <Text style={{ color: '#020617', fontWeight: '900', fontSize: 14 }}>
+                      🟢 Confirm & Start Innings 🚀
+                    </Text>
+                  </TouchableOpacity>
+                </ScrollView>
+              );
+            })()}
           </View>
         </View>
       </Modal>
