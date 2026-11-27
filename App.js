@@ -14260,7 +14260,7 @@ function CricketAddaMain() {
     showAppToast(`Squad (${(captainSquadList || []).length} players) updated and brand set to "${cleanName}"! 👑`, '👑', 'success');
   };
 
-  const handleUndoLastBall = (direct = false) => {
+  const handleUndoLastBall = () => {
     if (!isOfficialScorer) {
       showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
       return;
@@ -14289,11 +14289,6 @@ function CricketAddaMain() {
         return;
       }
 
-      if (direct) {
-        executeConfirmedUndo(lastAction);
-        return;
-      }
-
       setUndoPendingAction(lastAction);
       setUndoConfirmModalVisible(true);
       return;
@@ -14303,7 +14298,7 @@ function CricketAddaMain() {
     if (liveThisOver && (liveThisOver || []).length > 0) {
       const lastBallSymbol = liveThisOver[(liveThisOver || []).length - 1];
       const parsed = parseBallSymbol(lastBallSymbol);
-      const fallbackAction = {
+      setUndoPendingAction({
         ballSymbol: lastBallSymbol,
         addedRuns: parsed.runs,
         liveRuns: Math.max(0, liveRuns - parsed.runs),
@@ -14312,14 +14307,7 @@ function CricketAddaMain() {
         bowler,
         striker,
         isFallback: true,
-      };
-
-      if (direct) {
-        executeConfirmedUndo(fallbackAction);
-        return;
-      }
-
-      setUndoPendingAction(fallbackAction);
+      });
       setUndoConfirmModalVisible(true);
       return;
     }
@@ -26227,7 +26215,7 @@ function CricketAddaMain() {
 
                       {/* UNDO */}
                       <TouchableOpacity
-                        onPress={() => handleUndoLastBall(true)}
+                        onPress={handleUndoLastBall}
                         activeOpacity={0.75}
                         style={{
                           flex: 1,
