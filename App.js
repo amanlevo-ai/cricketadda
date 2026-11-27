@@ -7410,16 +7410,33 @@ function CricketAddaMain() {
                   const clean = pName.replace(/\s*\([^)]*\)/g, '').trim().toLowerCase();
                   return clean !== 'amandeep' && clean !== 'amanlevo' && clean !== 'aman';
                 });
-                if (curSquad.length !== prevLen) tModified = true;
-                let cap = t.captain || '';
-                if (!cap || cap.toLowerCase().includes('amandeep') || cap.toLowerCase().includes('aman') || cap.toLowerCase().includes('wpardeep')) {
-                  const capPlayer = curSquad.find(p => {
-                    const pName = typeof p === 'string' ? p : (p?.name || '');
-                    return p?.isCaptain || pName.includes('(c)');
-                  }) || curSquad[0];
-                  cap = capPlayer ? (typeof capPlayer === 'string' ? capPlayer.replace(/\s*\(c\)/gi, '').trim() : (capPlayer.name || '').replace(/\s*\(c\)/gi, '').trim()) : 'Captain';
+                const hasWp = curSquad.some(p => {
+                  const pName = typeof p === 'string' ? p : (p?.name || '');
+                  return pName.toLowerCase().includes('wpardeep');
+                });
+                if (!hasWp) {
+                  curSquad.unshift({
+                    id: `p_wpardeep_${Date.now()}`,
+                    name: 'Wpardeep kaur',
+                    role: 'ALL',
+                    isCaptain: true,
+                    phone: '',
+                  });
                   tModified = true;
+                } else {
+                  curSquad = curSquad.map(p => {
+                    const pName = typeof p === 'string' ? p : (p?.name || '');
+                    if (pName.toLowerCase().includes('wpardeep')) {
+                      return typeof p === 'string' ? `${p.replace(/\s*\(c\)/gi, '').trim()} (c)` : { ...p, isCaptain: true };
+                    }
+                    if (typeof p === 'object' && p?.isCaptain && !pName.toLowerCase().includes('wpardeep')) {
+                      return { ...p, isCaptain: false };
+                    }
+                    return p;
+                  });
                 }
+                const cap = 'Wpardeep kaur';
+                if (t.captain !== cap || curSquad.length !== prevLen) tModified = true;
                 if (tModified) {
                   teamsSanitized = true;
                   return { ...t, captain: cap, squad: curSquad };
@@ -13966,10 +13983,16 @@ function CricketAddaMain() {
       ? foundTeam.squad
       : (Array.isArray(teamMatchSquad) ? teamMatchSquad : []);
 
-    const cleanSquad = (rawSquadNames || []).map((p, idx) => {
+    const isTarlochanTeam = targetName.toLowerCase().includes('tarlochan') || Boolean(foundTeam?.name && foundTeam.name.toLowerCase().includes('tarlochan'));
+
+    let cleanSquad = (rawSquadNames || []).map((p, idx) => {
       if (typeof p === 'string') {
         const cleanName = p.replace(/\s*\([^)]*\)/g, '').trim();
-        const isCap = p.includes('(c)') || (foundTeam?.captain && cleanName.toLowerCase() === foundTeam.captain.toLowerCase()) || idx === 0;
+        const normClean = cleanName.toLowerCase().replace(/\s+/g, '');
+        const normFoundCap = foundTeam?.captain ? foundTeam.captain.toLowerCase().replace(/\s+/g, '') : '';
+        const isCap = isTarlochanTeam
+          ? normClean.includes('wpardeep')
+          : (p.includes('(c)') || (Boolean(normFoundCap) && normClean === normFoundCap) || (!foundTeam?.captain && isTeam1 && idx === 0));
         return {
           id: `p_squad_${idx}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
           name: cleanName,
@@ -13980,9 +14003,40 @@ function CricketAddaMain() {
           isWk: p.includes('(wk)'),
           avatarUri: PLAYER_AVATARS[cleanName] || null,
         };
+      } else if (p && typeof p === 'object') {
+        const pName = String(p.name || '').replace(/\s*\([^)]*\)/g, '').trim();
+        const normClean = pName.toLowerCase().replace(/\s+/g, '');
+        const normFoundCap = foundTeam?.captain ? foundTeam.captain.toLowerCase().replace(/\s+/g, '') : '';
+        const isCap = isTarlochanTeam
+          ? normClean.includes('wpardeep')
+          : (Boolean(p.isCaptain) || (Boolean(normFoundCap) && normClean === normFoundCap) || (!foundTeam?.captain && isTeam1 && idx === 0));
+        return {
+          ...p,
+          name: pName,
+          isCaptain: isCap,
+        };
       }
       return p;
     });
+
+    if (isTarlochanTeam) {
+      const hasWp = cleanSquad.some(p => {
+        const pName = typeof p === 'string' ? p : (p?.name || '');
+        return pName.toLowerCase().includes('wpardeep');
+      });
+      if (!hasWp) {
+        cleanSquad.unshift({
+          id: `p_wpardeep_cap_${Date.now()}`,
+          name: 'Wpardeep kaur',
+          phone: '',
+          role: 'ALL',
+          isCaptain: true,
+          isViceCaptain: false,
+          isWk: false,
+          avatarUri: PLAYER_AVATARS['Wpardeep kaur'] || null,
+        });
+      }
+    }
 
     if (foundTeam) {
       const teamToEdit = {
@@ -17651,6 +17705,24 @@ function CricketAddaMain() {
         }
       });
 
+      if (isOppTarlochan) {
+        const hasWp = deduplicatedEditSquad.some(p => {
+          const pName = typeof p === 'string' ? p : (p?.name || '');
+          return pName.toLowerCase().includes('wpardeep');
+        });
+        if (!hasWp) {
+          deduplicatedEditSquad.unshift({
+            id: `p_wpardeep_${Date.now()}`,
+            name: 'Wpardeep kaur',
+            role: 'ALL',
+            isCaptain: true,
+            isViceCaptain: false,
+            isWk: false,
+            avatarUri: PLAYER_AVATARS['Wpardeep kaur'] || null,
+          });
+        }
+      }
+
       const formattedSquad = deduplicatedEditSquad.length > 0
         ? deduplicatedEditSquad.map((p, idx) => {
             if (typeof p === 'string') {
@@ -17658,7 +17730,11 @@ function CricketAddaMain() {
               if (!isOppTarlochan && userProfile?.name && (cleanName.toLowerCase() === 'amanlevo' || cleanName.toLowerCase() === 'aman')) {
                 cleanName = userProfile.name;
               }
-              const isCap = p.includes('(c)') || cleanName === teamToEdit.captain || (!teamToEdit.captain && idx === 0);
+              const normClean = cleanName.toLowerCase().replace(/\s+/g, '');
+              const normCap = teamToEdit.captain ? teamToEdit.captain.toLowerCase().replace(/\s+/g, '') : '';
+              const isCap = isOppTarlochan
+                ? normClean.includes('wpardeep')
+                : (p.includes('(c)') || (Boolean(normCap) && normClean === normCap) || (!teamToEdit.captain && slot !== 'teamB' && slot !== 'opponentTeam' && idx === 0));
               const isWk = p.includes('(wk)') || cleanName === teamToEdit.wicketkeeper;
               return {
                 id: `p_${Date.now()}_${idx}_${Math.random().toString(36).substr(2, 4)}`,
@@ -17675,15 +17751,20 @@ function CricketAddaMain() {
             if (!isOppTarlochan && userProfile?.name && (pName.toLowerCase() === 'amanlevo' || pName.toLowerCase() === 'aman')) {
               pName = userProfile.name;
             }
+            const normPName = pName.toLowerCase().replace(/\s+/g, '');
+            const normCap = teamToEdit.captain ? teamToEdit.captain.toLowerCase().replace(/\s+/g, '') : '';
+            const isCap = isOppTarlochan
+              ? normPName.includes('wpardeep')
+              : Boolean(p.isCaptain || (Boolean(normCap) && normPName === normCap) || (p.name && p.name.includes('(c)')));
             return {
               id: p.id || `p_${Date.now()}_${idx}`,
               name: pName,
               phone: p.phone || '',
-              role: p.role || (p.isCaptain ? 'BAT' : p.isWk ? 'WK' : 'BAT'),
+              role: p.role || (isCap ? 'BAT' : p.isWk ? 'WK' : 'BAT'),
               battingStyle: p.battingStyle || 'Right Hand Bat',
               bowlingStyle: p.bowlingStyle || 'Right Arm Medium',
               jersey: p.jersey || '',
-              isCaptain: Boolean(p.isCaptain || (teamToEdit.captain && p.name && p.name.toLowerCase() === teamToEdit.captain.toLowerCase())),
+              isCaptain: isCap,
               isViceCaptain: Boolean(p.isViceCaptain),
               isWk: Boolean(p.isWk || p.role === 'WK' || (teamToEdit.wicketkeeper && p.name && p.name.toLowerCase() === teamToEdit.wicketkeeper.toLowerCase())),
               avatarUri: p.avatarUri || (p.name ? PLAYER_AVATARS[p.name] : null) || null,
@@ -30047,11 +30128,14 @@ function CricketAddaMain() {
                             </View>
                             <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 2 }}>
                               📍 {newTeamCity || 'Opponent Ground'} • Captain: {(() => {
+                                if (isEditingOpponentTeam && (newTeamName || '').toLowerCase().includes('tarlochan')) {
+                                  return 'Wpardeep kaur';
+                                }
                                 const capInSquad = newTeamSquad.find(p => p && (p.isCaptain || (p.name && p.name.includes('(c)'))));
                                 if (capInSquad && capInSquad.name) {
                                   return capInSquad.name.replace(/\s*\(c\)/gi, '').trim();
                                 }
-                                if (activeEditingTeam?.captain && !activeEditingTeam.captain.toLowerCase().includes('wpardeep')) {
+                                if (activeEditingTeam?.captain) {
                                   return activeEditingTeam.captain;
                                 }
                                 return newTeamSquad[0]?.name ? newTeamSquad[0].name.replace(/\s*\(c\)/gi, '').trim() : 'Captain';
@@ -30768,13 +30852,20 @@ function CricketAddaMain() {
                       if (capIdx === -1) {
                         capIdx = newTeamSquad.findIndex(x => Boolean(x.name && x.name.toLowerCase().includes('(c)')));
                       }
-                      if (capIdx === -1 && (newTeamSquad || []).length > 0) {
+                      if (capIdx === -1 && (newTeamName || '').toLowerCase().includes('tarlochan')) {
+                        capIdx = newTeamSquad.findIndex(x => Boolean(x.name && x.name.toLowerCase().includes('wpardeep')));
+                      }
+                      if (capIdx === -1 && activeEditingTeam?.captain) {
+                        const normCap = activeEditingTeam.captain.toLowerCase().replace(/\s+/g, '');
+                        capIdx = newTeamSquad.findIndex(x => Boolean(x.name && x.name.toLowerCase().replace(/\s+/g, '') === normCap));
+                      }
+                      if (capIdx === -1 && !isEditingOpponentTeam && (newTeamSquad || []).length > 0) {
                         capIdx = 0;
                       }
 
                       return newTeamSquad.map((p, idx) => {
                         const roleText = p.role === 'BAT' ? 'Batter' : p.role === 'BOWL' ? 'Bowler' : p.role === 'WK' ? 'WK' : 'All-Rounder';
-                        const isCapt = idx === capIdx;
+                        const isCapt = capIdx !== -1 && idx === capIdx;
                         const cleanPName = p.name ? p.name.replace(/\s*\(c\)/gi, '').replace(/\s*\(wk\)/gi, '').trim() : `Player #${idx + 1}`;
                         const displayName = isCapt ? `${cleanPName} (c)` : cleanPName;
                         const isLocked = isCapt && !isEditingOpponentTeam;
