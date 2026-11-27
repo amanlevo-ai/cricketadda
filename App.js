@@ -27734,43 +27734,24 @@ function CricketAddaMain() {
 
             return (
               <View style={{ marginTop: 4 }}>
-                {/* Top Link: "How is MVP calculated? 💡" + Helper hint */}
-                <View
-                  style={{
-                    flexDirection: 'row',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    paddingVertical: 7,
-                    paddingHorizontal: 10,
-                    marginBottom: 8,
-                    backgroundColor: currentTheme.isLight ? '#f8fafc' : 'rgba(12, 25, 44, 0.75)',
-                    borderRadius: 10,
-                    borderWidth: 1,
-                    borderColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.6)',
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                    <Text style={{ fontSize: 13 }}>💡</Text>
-                    <Text style={{ fontSize: 11.5, color: currentTheme.isLight ? '#475569' : '#94a3b8', fontWeight: '600' }}>
-                      Tap any player for points breakdown
-                    </Text>
-                  </View>
+                {/* Top Action: MVP Rules */}
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 }}>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
                       gap: 4,
-                      paddingVertical: 4.5,
-                      paddingHorizontal: 9,
+                      paddingVertical: 4,
+                      paddingHorizontal: 8,
                       backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(2, 132, 199, 0.15)',
-                      borderRadius: 7,
+                      borderRadius: 6,
                       borderWidth: 1,
                       borderColor: currentTheme.isLight ? '#bae6fd' : '#0284c7',
                     }}
                     onPress={() => setMvpInfoModalVisible(true)}
                   >
-                    <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 11.5, fontWeight: '800' }}>
+                    <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 11, fontWeight: '800' }}>
                       Rules 📋
                     </Text>
                   </TouchableOpacity>
