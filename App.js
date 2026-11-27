@@ -25802,35 +25802,6 @@ function CricketAddaMain() {
               </View>
 
               {/* 4. BATTERS: 2 SIDE-BY-SIDE CARDS (SCREENSHOT BROADCAST DESIGN) */}
-              {isOfficialScorer && liveBalls === 0 && (
-                <TouchableOpacity
-                  activeOpacity={0.75}
-                  style={{
-                    alignSelf: 'center',
-                    backgroundColor: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
-                    borderColor: '#10b981',
-                    borderWidth: 1,
-                    borderRadius: 20,
-                    paddingHorizontal: 12,
-                    paddingVertical: 4.5,
-                    marginBottom: 6,
-                    flexDirection: 'row',
-                    alignItems: 'center',
-                    gap: 6,
-                  }}
-                  onPress={() => {
-                    setStartStriker(null);
-                    setStartNonStriker(null);
-                    setStartBowler(null);
-                    setInningStartModalVisible(true);
-                  }}
-                >
-                  <Text style={{ fontSize: 12 }}>🏏</Text>
-                  <Text style={{ color: isLight ? '#047857' : '#34d399', fontSize: 11.5, fontWeight: '800' }}>
-                    Edit {currentInnings === 1 ? '1st' : '2nd'} Innings Openers & Bowler
-                  </Text>
-                </TouchableOpacity>
-              )}
               {(() => {
                 const strikerStats = getBatterDetailed(striker);
                 const nonStrikerStats = getBatterDetailed(nonStriker);
