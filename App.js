@@ -9883,6 +9883,11 @@ function CricketAddaMain() {
   const applyRemoteState = d => {
     if (!d) return;
 
+    // Drop self-echo packets on official scorer device to prevent double-render / blinking
+    if (isOfficialScorer && d.senderClientId && clientIdRef?.current && d.senderClientId === clientIdRef.current) {
+      return;
+    }
+
     const incomingTime = Number(d.lastSyncedAt || d.lastUpdatedAt || 0);
     const incomingBalls = typeof d.liveBalls === 'number' ? d.liveBalls : null;
     const incomingInnings = d.currentInnings || 1;
@@ -10646,13 +10651,13 @@ function CricketAddaMain() {
       }
 
       if (isOfficialScorer) {
-        const localBallsCount = Array.isArray(scoringHistory) ? scoringHistory.length : 0;
-        // If local scorer already has identical delivery count and action happened recently, ignore echo
-        if (cloudBallsCount === localBallsCount && localTime > 0 && (Date.now() - localTime < 3000)) {
+        // Authoritative Scorer Guard: If the scorer performed a local action recently (scoring or undo),
+        // completely ignore in-flight cloud echoes for 4 seconds so local state never reverts or flickers!
+        if (localTime > 0 && (Date.now() - localTime < 4000)) {
           return;
         }
-        if (!isCloudStrictlyNewer && !isUndoSignal) {
-          // Scorer's own device: ignore delayed echo packets to prevent blinking
+        if (!isCloudStrictlyNewer) {
+          // Scorer's own device: ignore non-newer packets to prevent blinking
           return;
         }
       }
