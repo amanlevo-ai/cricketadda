@@ -5060,6 +5060,7 @@ function CricketAddaMain() {
   const lastLocalActionTimeRef = useRef(0);
   const scoringHistoryRef = useRef([]);
   const backgroundSyncIntervalRef = useRef(null);
+  const openedSquadFromBowlerModalRef = useRef(false);
   const [syncConnected, setSyncConnected] = useState(false);
 
   const [matchFilter, setMatchFilter] = useState('all');
@@ -18560,6 +18561,11 @@ function CricketAddaMain() {
       setTeamSearchQuery('');
       restoreLastTeamDetailIfAny(updatedTeamObj);
 
+      if (openedSquadFromBowlerModalRef.current) {
+        openedSquadFromBowlerModalRef.current = false;
+        setChangeBowlerModalVisible(true);
+      }
+
       showAppToast(
         isOwner
           ? `Team "${cleanName}" updated successfully! ✅`
@@ -30340,7 +30346,23 @@ function CricketAddaMain() {
       </Modal>
 
       {/* MODAL 5.56: NEW CUSTOM TEAM & 20-PLAYER SQUAD BUILDER MODAL (MAX 20 PLAYERS) */}
-      <Modal visible={newTeamModalVisible} transparent animationType="fade" statusBarTranslucent={true}>
+      <Modal
+        visible={newTeamModalVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent={true}
+        onRequestClose={() => {
+          setNewTeamModalVisible(false);
+          setEditingTeamId(null);
+          setNewTeamLogo(null);
+          setNewTeamCustomLogoUrl('');
+          setShowTeamLogoUrlInput(false);
+          if (openedSquadFromBowlerModalRef.current) {
+            openedSquadFromBowlerModalRef.current = false;
+            setChangeBowlerModalVisible(true);
+          }
+        }}
+      >
         <View style={[styles.modalOverlay, { paddingTop: topInset + 12, paddingBottom: bottomInset + 12 }]}>
           <View style={[styles.modalCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' }, { width: Math.min(width - 16, 440), height: safeModalCardMaxHeight, paddingVertical: 10, paddingHorizontal: 12 }]}>
             {(() => {
@@ -30391,6 +30413,22 @@ function CricketAddaMain() {
                         <Text style={{ color: '#10b981', fontSize: 11, fontWeight: 'bold' }}>Team QR</Text>
                       </TouchableOpacity>
                     )}
+                    <TouchableOpacity
+                      style={[styles.closeRoundBtn, { marginLeft: 6 }]}
+                      onPress={() => {
+                        setNewTeamModalVisible(false);
+                        setEditingTeamId(null);
+                        setNewTeamLogo(null);
+                        setNewTeamCustomLogoUrl('');
+                        setShowTeamLogoUrlInput(false);
+                        if (openedSquadFromBowlerModalRef.current) {
+                          openedSquadFromBowlerModalRef.current = false;
+                          setChangeBowlerModalVisible(true);
+                        }
+                      }}
+                    >
+                      <Text style={styles.closeRoundBtnText}>✕</Text>
+                    </TouchableOpacity>
                   </View>
 
                   <View style={{ flex: 1, minHeight: 0 }}>
@@ -31247,6 +31285,10 @@ function CricketAddaMain() {
                   setNewTeamLogo(null);
                   setNewTeamCustomLogoUrl('');
                   setShowTeamLogoUrlInput(false);
+                  if (openedSquadFromBowlerModalRef.current) {
+                    openedSquadFromBowlerModalRef.current = false;
+                    setChangeBowlerModalVisible(true);
+                  }
                 }}
               >
                 <Text style={[styles.skipBtnText, currentTheme.isLight && { color: '#475569' }]}>Cancel</Text>
@@ -31703,7 +31745,8 @@ function CricketAddaMain() {
                     gap: 4,
                   }}
                   onPress={() => {
-                    closeChangeBowlerModal();
+                    openedSquadFromBowlerModalRef.current = true;
+                    setChangeBowlerModalVisible(false);
                     handleEditTeamAndSquadFromScorer('bowling');
                   }}
                 >
