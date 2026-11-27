@@ -26969,7 +26969,7 @@ function CricketAddaMain() {
                   borderColor: '#f59e0b',
                   borderWidth: 1,
                   borderRadius: 10,
-                  paddingVertical: 4,
+                  paddingVertical: 5,
                   paddingHorizontal: 12,
                   marginTop: 2,
                   marginBottom: 1,
