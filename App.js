@@ -25863,10 +25863,11 @@ function CricketAddaMain() {
                       const rNeeded = Math.max(0, (Number(targetRuns) || 0) - (Number(liveRuns) || 0));
                       const bRem = Math.max(0, ((Number(maxOvers) || 20) * 6) - (Number(liveBalls) || 0));
                       const rrrVal = bRem > 0 ? ((rNeeded / bRem) * 6).toFixed(2) : '0.00';
+                      const totalWkts = typeof maxWicketsForSquad !== 'undefined' ? maxWicketsForSquad : 10;
                       if (liveRuns >= targetRuns) {
-                        return `🎉 ${battingTeamName} won by ${Math.max(1, (maxWickets || 10) - liveWickets)} wickets!`;
+                        return `🎉 ${battingTeamName} won by ${Math.max(1, totalWkts - liveWickets)} wickets!`;
                       }
-                      if (bRem === 0 || liveWickets >= (maxWickets || 10)) {
+                      if (bRem === 0 || liveWickets >= totalWkts) {
                         if (liveRuns === targetRuns - 1) return `🤝 Match Tied!`;
                         return `🏆 ${bowlingTeamName} won by ${rNeeded} runs`;
                       }
@@ -27178,10 +27179,11 @@ function CricketAddaMain() {
                   const rNeeded = Math.max(0, (Number(targetRuns) || 0) - (Number(liveRuns) || 0));
                   const bRem = Math.max(0, ((Number(maxOvers) || 20) * 6) - (Number(liveBalls) || 0));
                   const rrrVal = bRem > 0 ? ((rNeeded / bRem) * 6).toFixed(2) : '0.00';
+                  const totalWkts = typeof maxWicketsForSquad !== 'undefined' ? maxWicketsForSquad : 10;
                   if (liveRuns >= targetRuns) {
-                    return `🎉 ${battingTeamName} won by ${Math.max(1, (maxWickets || 10) - liveWickets)} wickets!`;
+                    return `🎉 ${battingTeamName} won by ${Math.max(1, totalWkts - liveWickets)} wickets!`;
                   }
-                  if (bRem === 0 || liveWickets >= (maxWickets || 10)) {
+                  if (bRem === 0 || liveWickets >= totalWkts) {
                     if (liveRuns === targetRuns - 1) return `🤝 Match Tied!`;
                     return `🏆 ${bowlingTeamName} won by ${rNeeded} runs`;
                   }
