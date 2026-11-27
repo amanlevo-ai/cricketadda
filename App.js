@@ -14229,7 +14229,7 @@ function CricketAddaMain() {
     showAppToast(`Squad (${(captainSquadList || []).length} players) updated and brand set to "${cleanName}"! 👑`, '👑', 'success');
   };
 
-  const handleUndoLastBall = () => {
+  const handleUndoLastBall = (direct = false) => {
     if (!isOfficialScorer) {
       showAppToast('You are in read-only Spectator Mode 👁️', '👁️', 'warning');
       return;
@@ -14258,6 +14258,11 @@ function CricketAddaMain() {
         return;
       }
 
+      if (direct) {
+        executeConfirmedUndo(lastAction);
+        return;
+      }
+
       setUndoPendingAction(lastAction);
       setUndoConfirmModalVisible(true);
       return;
@@ -14267,7 +14272,7 @@ function CricketAddaMain() {
     if (liveThisOver && (liveThisOver || []).length > 0) {
       const lastBallSymbol = liveThisOver[(liveThisOver || []).length - 1];
       const parsed = parseBallSymbol(lastBallSymbol);
-      setUndoPendingAction({
+      const fallbackAction = {
         ballSymbol: lastBallSymbol,
         addedRuns: parsed.runs,
         liveRuns: Math.max(0, liveRuns - parsed.runs),
@@ -14276,7 +14281,14 @@ function CricketAddaMain() {
         bowler,
         striker,
         isFallback: true,
-      });
+      };
+
+      if (direct) {
+        executeConfirmedUndo(fallbackAction);
+        return;
+      }
+
+      setUndoPendingAction(fallbackAction);
       setUndoConfirmModalVisible(true);
       return;
     }
@@ -14284,17 +14296,22 @@ function CricketAddaMain() {
     showAppToast('No deliveries in this over to undo ↩️', '↩️', 'info');
   };
 
-  const executeConfirmedUndo = () => {
+  const executeConfirmedUndo = (actionOverride = null) => {
     try {
       setUndoConfirmModalVisible(false);
       dismissCelebration();
-      const lastAction = undoPendingAction;
+      const lastAction = actionOverride || undoPendingAction;
       setUndoPendingAction(null);
 
     if (!lastAction) return;
 
+    if (Vibration && typeof Vibration.vibrate === 'function') {
+      try { Vibration.vibrate(35); } catch (_) {}
+    }
+
     if (!lastAction.isFallback && scoringHistory && (scoringHistory || []).length > 0) {
       const remainingHistory = scoringHistory.slice(0, -1);
+      scoringHistoryRef.current = remainingHistory;
       lastDeliveriesCountRef.current = remainingHistory.length;
       lastCelebrationIdRef.current = null;
       if (remainingHistory.length > 0) {
@@ -14451,12 +14468,15 @@ function CricketAddaMain() {
             firstInningsSummary,
             lastOverStats: cur.liveState?.lastOverStats || null,
           },
+          scoringHistory: remainingHistory,
           lastUpdatedAt: Date.now(),
         };
         const updatedDb = { ...prev, [activeMatchId]: updatedMatch };
         AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify(updatedDb)).catch(() => {});
         return updatedDb;
       });
+
+      showAppToast('↩️ Delivery Undone', '↩️', 'info');
 
       // Concurrency-safe atomic undo on Cloud RTDB
       if (activeMatchId && isFirebaseConfigured()) {
@@ -26176,7 +26196,7 @@ function CricketAddaMain() {
 
                       {/* UNDO */}
                       <TouchableOpacity
-                        onPress={handleUndoLastBall}
+                        onPress={() => handleUndoLastBall(true)}
                         activeOpacity={0.75}
                         style={{
                           flex: 1,
