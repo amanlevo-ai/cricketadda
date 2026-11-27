@@ -8587,6 +8587,27 @@ function CricketAddaMain() {
               const localVersion = Number(localMatchVersionRef.current || 0);
               const isUndoSignal = Boolean(mData.isUndoAction);
 
+              // Authoritative Scorer Guard for MatchesDb listener:
+              // Drop self-echo packets or in-flight broadcasts from THIS official scorer device
+              // to eliminate "This Over" pill flickering and double-render on scoring/undo!
+              const isMyOwnEcho = Boolean(
+                isOfficialScorerRef.current &&
+                mData.senderClientId &&
+                clientIdRef?.current &&
+                mData.senderClientId === clientIdRef.current
+              );
+              if (isMyOwnEcho) {
+                return;
+              }
+
+              if (isOfficialScorerRef.current) {
+                // If official scorer performed a local action (scoring or undo) within 5 seconds,
+                // completely ignore in-flight cloud echoes so local state never reverts or flickers!
+                if (localTime > 0 && (Date.now() - localTime < 5000)) {
+                  return;
+                }
+              }
+
               const localDeliveriesCount = Array.isArray(scoringHistoryRef.current) ? scoringHistoryRef.current.length : 0;
               const isCloudAheadInBalls = cloudDeliveries.length > localDeliveriesCount;
 
@@ -8597,7 +8618,10 @@ function CricketAddaMain() {
                 (cloudBallsCount > (lastAppliedRemoteSyncRef.current?.balls || 0))
               );
 
-              const shouldSync = !isOfficialScorerRef.current || isCloudAheadInBalls || isCloudStrictlyNewer || isUndoSignal;
+              // Only spectators or non-scorers should sync on undoSignal; official scorer is the undo authority
+              const shouldSync = !isOfficialScorerRef.current
+                ? (isCloudAheadInBalls || isCloudStrictlyNewer || isUndoSignal)
+                : (isCloudAheadInBalls && !isMyOwnEcho);
 
               if (shouldSync) {
                 if (cloudTime > localTime) lastLocalActionTimeRef.current = cloudTime;
@@ -9888,6 +9912,13 @@ function CricketAddaMain() {
       return;
     }
 
+    if (isOfficialScorer) {
+      const localTime = Number(lastLocalActionTimeRef.current || 0);
+      if (localTime > 0 && (Date.now() - localTime < 5000)) {
+        return;
+      }
+    }
+
     const incomingTime = Number(d.lastSyncedAt || d.lastUpdatedAt || 0);
     const incomingBalls = typeof d.liveBalls === 'number' ? d.liveBalls : null;
     const incomingInnings = d.currentInnings || 1;
@@ -10652,8 +10683,8 @@ function CricketAddaMain() {
 
       if (isOfficialScorer) {
         // Authoritative Scorer Guard: If the scorer performed a local action recently (scoring or undo),
-        // completely ignore in-flight cloud echoes for 4 seconds so local state never reverts or flickers!
-        if (localTime > 0 && (Date.now() - localTime < 4000)) {
+        // completely ignore in-flight cloud echoes for 5 seconds so local state never reverts or flickers!
+        if (localTime > 0 && (Date.now() - localTime < 5000)) {
           return;
         }
         if (!isCloudStrictlyNewer) {
