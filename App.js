@@ -15537,13 +15537,13 @@ function CricketAddaMain() {
     const fullCommentary = [];
 
     // Innings 1 Start milestone
-    const team1Name = matchObj?.innings1?.team || matchObj?.teamA || matchObj?.team1Name || '1st Innings';
+    const effectiveTeam1Name = team1Name || '1st Innings';
     fullCommentary.push({
       id: 'inn1_commence_milestone',
       isOverEnd: true,
       isMatchStart: true,
       overNum: 0,
-      overSummary: `🚀 1ST INNINGS COMMENCES • ${team1Name} to bat`,
+      overSummary: `🚀 1ST INNINGS COMMENCES • ${effectiveTeam1Name} to bat`,
     });
 
     fullCommentary.push(...inn1Result.list);
@@ -15555,7 +15555,7 @@ function CricketAddaMain() {
       const inn1ScoreStr = fSummary
         ? `${fSummary.runs}/${fSummary.wickets} (${fSummary.overs} ov)`
         : `${inn1Result.totalRuns}/${inn1Result.totalWkts} (${inn1Overs} ov)`;
-      const team2Name = fSummary?.oppTeam || matchObj?.teamB || matchObj?.team2Name || '2nd Innings';
+      const effectiveTeam2Name = fSummary?.oppTeam || team2Name || '2nd Innings';
       const targetRuns = fSummary?.target || (matchObj?.target ? Number(matchObj.target) : inn1Result.totalRuns + 1);
 
       fullCommentary.push({
@@ -15563,7 +15563,7 @@ function CricketAddaMain() {
         isOverEnd: true,
         isInningsBreak: true,
         overNum: 0,
-        overSummary: `🏁 1ST INNINGS COMPLETED • ${team1Name} ${inn1ScoreStr} • Target: ${targetRuns}`,
+        overSummary: `🏁 1ST INNINGS COMPLETED • ${effectiveTeam1Name} ${inn1ScoreStr} • Target: ${targetRuns}`,
       });
 
       fullCommentary.push({
@@ -15571,7 +15571,7 @@ function CricketAddaMain() {
         isOverEnd: true,
         isMatchStart: true,
         overNum: 0,
-        overSummary: `🏏 2ND INNINGS COMMENCES • ${team2Name} need ${targetRuns} runs to win`,
+        overSummary: `🏏 2ND INNINGS COMMENCES • ${effectiveTeam2Name} need ${targetRuns} runs to win`,
       });
 
       fullCommentary.push(...inn2Result.list);
