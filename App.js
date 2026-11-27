@@ -11759,20 +11759,25 @@ function CricketAddaMain() {
         };
 
         setFirstInningsSummary(summary);
-        setCurrentMatchData(prev => ({
-          ...prev,
-          ...updatedMatch,
-          target: localTarget,
-          innings1: {
-            ...(prev?.innings1 || {}),
-            runs: liveRuns,
-            wickets: liveWickets,
-            oversBowled: oversStr,
-            maxOvers: origOvers,
-            batting: dynamicBatting,
-            bowling: dynamicBowling,
-          },
-        }));
+        setMatchesDb(prev => {
+          const cur = prev[activeMatchId] || {};
+          const next = {
+            ...cur,
+            ...updatedMatch,
+            target: localTarget,
+            innings1: {
+              ...(cur.innings1 || {}),
+              runs: liveRuns,
+              wickets: liveWickets,
+              oversBowled: oversStr,
+              maxOvers: origOvers,
+              batting: dynamicBatting,
+              bowling: dynamicBowling,
+            },
+          };
+          AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...prev, [activeMatchId]: next })).catch(() => {});
+          return { ...prev, [activeMatchId]: next };
+        });
 
         broadcastMatchState({
           ...updatedMatch,
@@ -11808,14 +11813,19 @@ function CricketAddaMain() {
         };
         setMatch(updatedMatch);
 
-        setCurrentMatchData(prev => ({
-          ...prev,
-          ...updatedMatch,
-          innings1: {
-            ...(prev?.innings1 || {}),
-            maxOvers: revisedOv,
-          },
-        }));
+        setMatchesDb(prev => {
+          const cur = prev[activeMatchId] || {};
+          const next = {
+            ...cur,
+            ...updatedMatch,
+            innings1: {
+              ...(cur.innings1 || {}),
+              maxOvers: revisedOv,
+            },
+          };
+          AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...prev, [activeMatchId]: next })).catch(() => {});
+          return { ...prev, [activeMatchId]: next };
+        });
 
         broadcastMatchState({
           ...updatedMatch,
@@ -11853,12 +11863,17 @@ function CricketAddaMain() {
         };
         setMatch(updatedMatch);
 
-        setCurrentMatchData(prev => ({
-          ...prev,
-          ...updatedMatch,
-          target: localTarget,
-          dlsRevisedOvers: revisedOv,
-        }));
+        setMatchesDb(prev => {
+          const cur = prev[activeMatchId] || {};
+          const next = {
+            ...cur,
+            ...updatedMatch,
+            target: localTarget,
+            dlsRevisedOvers: revisedOv,
+          };
+          AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...prev, [activeMatchId]: next })).catch(() => {});
+          return { ...prev, [activeMatchId]: next };
+        });
 
         broadcastMatchState({
           ...updatedMatch,
@@ -11965,22 +11980,27 @@ function CricketAddaMain() {
       };
 
       setFirstInningsSummary(summary);
-      setCurrentMatchData(prev => ({
-        ...prev,
-        ...updatedMatch,
-        dlsApplied: true,
-        dlsTarget: revisedTarget,
-        dlsRevisedOvers: revisedOv,
-        innings1: {
-          ...(prev?.innings1 || {}),
-          runs: liveRuns,
-          wickets: liveWickets,
-          oversBowled: oversStr,
-          maxOvers: origOvers,
-          batting: dynamicBatting,
-          bowling: dynamicBowling,
-        },
-      }));
+      setMatchesDb(prev => {
+        const cur = prev[activeMatchId] || {};
+        const next = {
+          ...cur,
+          ...updatedMatch,
+          dlsApplied: true,
+          dlsTarget: revisedTarget,
+          dlsRevisedOvers: revisedOv,
+          innings1: {
+            ...(cur.innings1 || {}),
+            runs: liveRuns,
+            wickets: liveWickets,
+            oversBowled: oversStr,
+            maxOvers: origOvers,
+            batting: dynamicBatting,
+            bowling: dynamicBowling,
+          },
+        };
+        AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...prev, [activeMatchId]: next })).catch(() => {});
+        return { ...prev, [activeMatchId]: next };
+      });
 
       broadcastMatchState({
         ...updatedMatch,
@@ -11993,16 +12013,21 @@ function CricketAddaMain() {
       showAppToast(`🌧️ DLS Applied! Target: ${revisedTarget} runs in ${revisedOv} ov`, '🌧️');
 
     } else if (dlsInterruptionMode === 'curtail_both') {
-      setCurrentMatchData(prev => ({
-        ...prev,
-        ...updatedMatch,
-        dlsApplied: true,
-        dlsRevisedOvers: revisedOv,
-        innings1: {
-          ...(prev?.innings1 || {}),
-          maxOvers: revisedOv,
-        },
-      }));
+      setMatchesDb(prev => {
+        const cur = prev[activeMatchId] || {};
+        const next = {
+          ...cur,
+          ...updatedMatch,
+          dlsApplied: true,
+          dlsRevisedOvers: revisedOv,
+          innings1: {
+            ...(cur.innings1 || {}),
+            maxOvers: revisedOv,
+          },
+        };
+        AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...prev, [activeMatchId]: next })).catch(() => {});
+        return { ...prev, [activeMatchId]: next };
+      });
 
       broadcastMatchState({
         ...updatedMatch,
@@ -12014,13 +12039,18 @@ function CricketAddaMain() {
 
     } else {
       // curtail_inn2
-      setCurrentMatchData(prev => ({
-        ...prev,
-        ...updatedMatch,
-        dlsApplied: true,
-        dlsTarget: revisedTarget,
-        dlsRevisedOvers: revisedOv,
-      }));
+      setMatchesDb(prev => {
+        const cur = prev[activeMatchId] || {};
+        const next = {
+          ...cur,
+          ...updatedMatch,
+          dlsApplied: true,
+          dlsTarget: revisedTarget,
+          dlsRevisedOvers: revisedOv,
+        };
+        AsyncStorage.setItem(STORAGE_KEYS.MATCHES_DB, JSON.stringify({ ...prev, [activeMatchId]: next })).catch(() => {});
+        return { ...prev, [activeMatchId]: next };
+      });
 
       broadcastMatchState({
         ...updatedMatch,
@@ -31452,7 +31482,7 @@ function CricketAddaMain() {
                   {firstInningsSummary ? firstInningsSummary.target : targetRuns} <Text style={{ fontSize: 14, color: '#e2e8f0', fontWeight: 'bold' }}>runs</Text>
                 </Text>
                 <Text style={{ color: '#c7d2fe', fontSize: 12.5, fontWeight: '600', textAlign: 'center' }}>
-                  Need {firstInningsSummary ? firstInningsSummary.target : targetRuns} runs in {maxOvers}.0 overs • Required Run Rate: {firstInningsSummary ? firstInningsSummary.rrr : (targetRuns / maxOvers).toFixed(2)}
+                  Need {firstInningsSummary ? firstInningsSummary.target : targetRuns} runs in {maxOvers}.0 overs • Required Run Rate: {firstInningsSummary?.rrr || (maxOvers > 0 ? (targetRuns / maxOvers).toFixed(2) : '0.00')}
                 </Text>
               </View>
 
@@ -31461,10 +31491,11 @@ function CricketAddaMain() {
               <View style={{ backgroundColor: '#0f172a', borderRadius: 8, padding: 8, marginBottom: 12, borderWidth: 1, borderColor: '#1e293b' }}>
                 {Object.keys(liveBatters || {}).map((name, i) => {
                   const b = liveBatters[name];
+                  if (!b) return null;
                   return (
                     <View key={`inn1_top_bat_${name}_${i}`} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4, borderBottomWidth: i === Object.keys(liveBatters || {}).length - 1 ? 0 : 1, borderBottomColor: '#1e293b' }}>
                       <Text style={{ color: '#f8fafc', fontSize: 12, fontWeight: 'bold' }}>{name}</Text>
-                      <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '900' }}>{b.runs}* ({b.balls}b • {b.fours}x4 {b.sixes}x6)</Text>
+                      <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '900' }}>{b.runs ?? 0}* ({b.balls ?? 0}b • {b.fours ?? 0}x4 {b.sixes ?? 0}x6)</Text>
                     </View>
                   );
                 })}
