@@ -26723,11 +26723,25 @@ function CricketAddaMain() {
             ? scoringHistory
             : (currentMatchData?.liveState?.scoringHistory || currentMatchData?.scoringHistory || []);
 
-          // Derive canonical team names & flags for Innings 1 and Innings 2
+          // Derive canonical team names, flags & logos for Innings 1 and Innings 2
           const team1Name = currentMatchData?.innings1?.team || currentMatchData?.teamA || currentMatchData?.team1Name || (currentInnings === 1 ? battingTeamName : bowlingTeamName);
           const team2Name = firstInningsSummary?.oppTeam || currentMatchData?.teamB || currentMatchData?.team2Name || (currentInnings === 2 ? battingTeamName : bowlingTeamName);
-          const team1Flag = currentMatchData?.innings1?.flag || currentMatchData?.flagA || (currentInnings === 1 ? battingTeamFlag : bowlingTeamFlag) || '🦁';
-          const team2Flag = firstInningsSummary?.oppFlag || currentMatchData?.flagB || (currentInnings === 2 ? battingTeamFlag : bowlingTeamFlag) || '⚡';
+
+          const regTeam1 = (registeredTeams || []).find(t => t && t.name && t.name.toLowerCase().trim() === (team1Name || '').toLowerCase().trim());
+          const regTeam2 = (registeredTeams || []).find(t => t && t.name && t.name.toLowerCase().trim() === (team2Name || '').toLowerCase().trim());
+
+          const team1RawLogo = regTeam1?.logo || regTeam1?.logoUri || currentMatchData?.innings1?.logoUri || currentMatchData?.innings1?.logo || currentMatchData?.logoA || currentMatchData?.team1Logo;
+          const team1LogoSource = team1RawLogo
+            ? (typeof team1RawLogo === 'string' ? { uri: team1RawLogo } : team1RawLogo)
+            : getDashTeamLogo(team1Name);
+
+          const team2RawLogo = regTeam2?.logo || regTeam2?.logoUri || firstInningsSummary?.oppLogo || currentMatchData?.innings2?.logoUri || currentMatchData?.innings2?.logo || currentMatchData?.logoB || currentMatchData?.team2Logo;
+          const team2LogoSource = team2RawLogo
+            ? (typeof team2RawLogo === 'string' ? { uri: team2RawLogo } : team2RawLogo)
+            : getDashTeamLogo(team2Name);
+
+          const team1Flag = regTeam1?.flag || currentMatchData?.innings1?.flag || currentMatchData?.flagA || (currentInnings === 1 ? battingTeamFlag : bowlingTeamFlag) || '🦁';
+          const team2Flag = regTeam2?.flag || firstInningsSummary?.oppFlag || currentMatchData?.flagB || (currentInnings === 2 ? battingTeamFlag : bowlingTeamFlag) || '⚡';
 
           // Active Innings for Wagon Wheel: if user selected 1 or 2, use that; otherwise auto-default to currentInnings
           const activeInningsForWheel = wheelSelectedInnings !== null ? wheelSelectedInnings : (currentInnings === 2 ? 2 : 1);
@@ -26859,7 +26873,23 @@ function CricketAddaMain() {
                       borderColor: activeInningsForWheel === 1 ? '#38bdf8' : (currentTheme.isLight ? '#cbd5e1' : '#1e3a5f'),
                     }}
                   >
-                    <Text style={{ fontSize: 14 }}>{team1Flag}</Text>
+                    {team1LogoSource ? (
+                      <View style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        backgroundColor: '#ffffff',
+                        borderWidth: 1,
+                        borderColor: activeInningsForWheel === 1 ? '#38bdf8' : '#334155',
+                        overflow: 'hidden',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Image source={team1LogoSource} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                      </View>
+                    ) : (
+                      <Text style={{ fontSize: 13 }}>{team1Flag}</Text>
+                    )}
                     <View style={{ alignItems: 'flex-start' }}>
                       <Text
                         style={{
@@ -26899,7 +26929,23 @@ function CricketAddaMain() {
                       borderColor: activeInningsForWheel === 2 ? '#38bdf8' : (currentTheme.isLight ? '#cbd5e1' : '#1e3a5f'),
                     }}
                   >
-                    <Text style={{ fontSize: 14 }}>{team2Flag}</Text>
+                    {team2LogoSource ? (
+                      <View style={{
+                        width: 20,
+                        height: 20,
+                        borderRadius: 10,
+                        backgroundColor: '#ffffff',
+                        borderWidth: 1,
+                        borderColor: activeInningsForWheel === 2 ? '#38bdf8' : '#334155',
+                        overflow: 'hidden',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                      }}>
+                        <Image source={team2LogoSource} style={{ width: '100%', height: '100%' }} resizeMode="cover" />
+                      </View>
+                    ) : (
+                      <Text style={{ fontSize: 13 }}>{team2Flag}</Text>
+                    )}
                     <View style={{ alignItems: 'flex-start' }}>
                       <Text
                         style={{
