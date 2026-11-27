@@ -25843,9 +25843,9 @@ function CricketAddaMain() {
                   borderColor: isLight ? '#86efac' : 'rgba(16, 185, 129, 0.4)',
                   borderWidth: 1.2,
                   borderRadius: 9,
-                  paddingVertical: 5.5,
+                  paddingVertical: 4,
                   paddingHorizontal: 12,
-                  marginBottom: 5,
+                  marginBottom: 4,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -26221,15 +26221,15 @@ function CricketAddaMain() {
                   borderRadius: 12,
                   borderWidth: 1,
                   borderColor: scCardBorder,
-                  paddingVertical: 6.5,
+                  paddingVertical: 4.5,
                   paddingHorizontal: 7,
-                  marginBottom: 4,
+                  marginBottom: 3,
                 }}>
                   <View style={{ flexDirection: 'row', gap: 6, alignItems: 'stretch' }}>
                   {/* ===================== LEFT CONSOLE: 3x3 GRID + BOTTOM BUTTONS ===================== */}
-                  <View style={{ flex: 1.38, gap: 5 }}>
+                  <View style={{ flex: 1.38, gap: 4 }}>
                     {/* Row 1: [ 0 ] [ 1 ] [ 2 ] */}
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
                       {[0, 1, 2].map(r => (
                         <TouchableOpacity
                           key={`run_${r}`}
@@ -26237,7 +26237,7 @@ function CricketAddaMain() {
                           activeOpacity={0.75}
                           style={{
                             flex: 1,
-                            height: 48,
+                            height: 46,
                             backgroundColor: scInnerBg,
                             borderRadius: 8,
                             borderWidth: 1.2,
@@ -26247,13 +26247,13 @@ function CricketAddaMain() {
                             elevation: 2,
                           }}
                         >
-                          <Text style={{ color: scTxtPrimary, fontSize: 21, fontWeight: '900' }}>{r}</Text>
+                          <Text style={{ color: scTxtPrimary, fontSize: 20, fontWeight: '900' }}>{r}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
 
                     {/* Row 2: [ 3 ] [ 4 ] [ 6 ] (5 replaced with 6 as requested) */}
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
                       {[3, 4, 6].map(r => (
                         <TouchableOpacity
                           key={`run_${r}`}
@@ -26261,7 +26261,7 @@ function CricketAddaMain() {
                           activeOpacity={0.75}
                           style={{
                             flex: 1,
-                            height: 48,
+                            height: 46,
                             backgroundColor: scInnerBg,
                             borderRadius: 8,
                             borderWidth: 1.2,
@@ -26271,13 +26271,13 @@ function CricketAddaMain() {
                             elevation: 2,
                           }}
                         >
-                          <Text style={{ color: scTxtPrimary, fontSize: 21, fontWeight: '900' }}>{r}</Text>
+                          <Text style={{ color: scTxtPrimary, fontSize: 20, fontWeight: '900' }}>{r}</Text>
                         </TouchableOpacity>
                       ))}
                     </View>
 
                     {/* Row 3: [ OUT ] [ UNDO ] [ DROP ] */}
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
                       {/* OUT (Light Red Highlight) */}
                       <TouchableOpacity
                         onPress={() => {
@@ -26299,7 +26299,7 @@ function CricketAddaMain() {
                         activeOpacity={0.75}
                         style={{
                           flex: 1,
-                          height: 48,
+                          height: 46,
                           backgroundColor: '#b91c1c',
                           borderRadius: 8,
                           borderWidth: 1.2,
@@ -26309,7 +26309,7 @@ function CricketAddaMain() {
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>OUT</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>OUT</Text>
                       </TouchableOpacity>
 
                       {/* UNDO */}
@@ -26318,7 +26318,7 @@ function CricketAddaMain() {
                         activeOpacity={0.75}
                         style={{
                           flex: 1,
-                          height: 48,
+                          height: 46,
                           backgroundColor: scInnerBg,
                           borderRadius: 8,
                           borderWidth: 1.2,
@@ -26328,7 +26328,7 @@ function CricketAddaMain() {
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: scTxtPrimary, fontSize: 13, fontWeight: '900' }}>UNDO</Text>
+                        <Text style={{ color: scTxtPrimary, fontSize: 12.5, fontWeight: '900' }}>UNDO</Text>
                       </TouchableOpacity>
 
                       {/* DROP */}
@@ -26346,7 +26346,7 @@ function CricketAddaMain() {
                         activeOpacity={0.75}
                         style={{
                           flex: 1,
-                          height: 48,
+                          height: 46,
                           backgroundColor: scInnerBg,
                           borderRadius: 8,
                           borderWidth: 1.2,
@@ -26356,19 +26356,19 @@ function CricketAddaMain() {
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: scTxtPrimary, fontSize: 13, fontWeight: '900' }}>DROP</Text>
+                        <Text style={{ color: scTxtPrimary, fontSize: 12.5, fontWeight: '900' }}>DROP</Text>
                       </TouchableOpacity>
                     </View>
 
                     {/* Row 4 (Bottom Bar under Left): [ Scorecard ] [ Commentary ] (Clean Text, No Icons) */}
-                    <View style={{ flexDirection: 'row', gap: 5, marginTop: 1 }}>
+                    <View style={{ flexDirection: 'row', gap: 4, marginTop: 1 }}>
                       {/* Scorecard */}
                       <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={() => openMatchScorecard(activeMatchId)}
                         style={{
                           flex: 1,
-                          height: 42,
+                          height: 40,
                           backgroundColor: scInnerBg,
                           borderRadius: 8,
                           borderWidth: 1,
@@ -26377,7 +26377,7 @@ function CricketAddaMain() {
                           justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ color: scTxtPrimary, fontSize: 12, fontWeight: '800' }}>Scorecard</Text>
+                        <Text style={{ color: scTxtPrimary, fontSize: 11.5, fontWeight: '800' }}>Scorecard</Text>
                       </TouchableOpacity>
 
                       {/* Commentary */}
@@ -26386,7 +26386,7 @@ function CricketAddaMain() {
                         onPress={() => setLiveCommentaryModalVisible(true)}
                         style={{
                           flex: 1,
-                          height: 42,
+                          height: 40,
                           backgroundColor: scInnerBg,
                           borderRadius: 8,
                           borderWidth: 1,
@@ -26395,7 +26395,7 @@ function CricketAddaMain() {
                           justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ color: scTxtPrimary, fontSize: 12, fontWeight: '800' }}>Commentary</Text>
+                        <Text style={{ color: scTxtPrimary, fontSize: 11.5, fontWeight: '800' }}>Commentary</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -26404,9 +26404,9 @@ function CricketAddaMain() {
                   <View style={{ width: 1, backgroundColor: isLight ? '#cbd5e1' : '#1e3a5f', marginVertical: 2 }} />
 
                   {/* ===================== RIGHT CONSOLE: EXTRAS + WAGON WHEEL ===================== */}
-                  <View style={{ flex: 1, gap: 5 }}>
+                  <View style={{ flex: 1, gap: 4 }}>
                     {/* Row 1: [ WD ] [ NB ] */}
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
                       {/* WD (Wide) */}
                       <TouchableOpacity
                         activeOpacity={0.75}
@@ -26424,7 +26424,7 @@ function CricketAddaMain() {
                         }}
                         style={{
                           flex: 1,
-                          height: 48,
+                          height: 46,
                           backgroundColor: '#78350f',
                           borderRadius: 8,
                           borderWidth: 1,
@@ -26434,8 +26434,8 @@ function CricketAddaMain() {
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>WD</Text>
-                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9.5, fontWeight: '700', marginTop: 1 }}>Wide</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>WD</Text>
+                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9, fontWeight: '700', marginTop: 0.5 }}>Wide</Text>
                       </TouchableOpacity>
 
                       {/* NB (No Ball) */}
@@ -26455,7 +26455,7 @@ function CricketAddaMain() {
                         }}
                         style={{
                           flex: 1,
-                          height: 48,
+                          height: 46,
                           backgroundColor: '#831843',
                           borderRadius: 8,
                           borderWidth: 1,
@@ -26465,13 +26465,13 @@ function CricketAddaMain() {
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>NB</Text>
-                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9.5, fontWeight: '700', marginTop: 1 }}>No Ball</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>NB</Text>
+                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9, fontWeight: '700', marginTop: 0.5 }}>No Ball</Text>
                       </TouchableOpacity>
                     </View>
 
                     {/* Row 2: [ BY ] [ LB ] */}
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
                       {/* BY (Bye) */}
                       <TouchableOpacity
                         activeOpacity={0.75}
@@ -26489,7 +26489,7 @@ function CricketAddaMain() {
                         }}
                         style={{
                           flex: 1,
-                          height: 48,
+                          height: 46,
                           backgroundColor: '#0e7490',
                           borderRadius: 8,
                           borderWidth: 1,
@@ -26499,8 +26499,8 @@ function CricketAddaMain() {
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>BY</Text>
-                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9.5, fontWeight: '700', marginTop: 1 }}>Bye</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>BY</Text>
+                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9, fontWeight: '700', marginTop: 0.5 }}>Bye</Text>
                       </TouchableOpacity>
 
                       {/* LB (Leg Bye) */}
@@ -26520,7 +26520,7 @@ function CricketAddaMain() {
                         }}
                         style={{
                           flex: 1,
-                          height: 48,
+                          height: 46,
                           backgroundColor: '#581c87',
                           borderRadius: 8,
                           borderWidth: 1,
@@ -26530,13 +26530,13 @@ function CricketAddaMain() {
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>LB</Text>
-                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9.5, fontWeight: '700', marginTop: 1 }}>Leg Bye</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>LB</Text>
+                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9, fontWeight: '700', marginTop: 0.5 }}>Leg Bye</Text>
                       </TouchableOpacity>
                     </View>
 
                     {/* Row 3: [ OT ] [ PL ] */}
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                    <View style={{ flexDirection: 'row', gap: 4 }}>
                       {/* OT (Overthrow) */}
                       <TouchableOpacity
                         activeOpacity={0.75}
@@ -26556,7 +26556,7 @@ function CricketAddaMain() {
                         }}
                         style={{
                           flex: 1,
-                          height: 48,
+                          height: 46,
                           backgroundColor: scInnerBg,
                           borderRadius: 8,
                           borderWidth: 1,
@@ -26566,8 +26566,8 @@ function CricketAddaMain() {
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: scTxtPrimary, fontSize: 13.5, fontWeight: '900' }}>OT</Text>
-                        <Text style={{ color: scTxtMuted, fontSize: 9.5, fontWeight: '700', marginTop: 1 }}>Overthrow</Text>
+                        <Text style={{ color: scTxtPrimary, fontSize: 13, fontWeight: '900' }}>OT</Text>
+                        <Text style={{ color: scTxtMuted, fontSize: 9, fontWeight: '700', marginTop: 0.5 }}>Overthrow</Text>
                       </TouchableOpacity>
 
                       {/* PL (Penalty) */}
@@ -26587,7 +26587,7 @@ function CricketAddaMain() {
                         }}
                         style={{
                           flex: 1,
-                          height: 48,
+                          height: 46,
                           backgroundColor: '#1d4ed8',
                           borderRadius: 8,
                           borderWidth: 1,
@@ -26597,8 +26597,8 @@ function CricketAddaMain() {
                           elevation: 2,
                         }}
                       >
-                        <Text style={{ color: '#ffffff', fontSize: 13.5, fontWeight: '900' }}>PL</Text>
-                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9.5, fontWeight: '700', marginTop: 1 }}>Penalty</Text>
+                        <Text style={{ color: '#ffffff', fontSize: 13, fontWeight: '900' }}>PL</Text>
+                        <Text style={{ color: 'rgba(255, 255, 255, 0.85)', fontSize: 9, fontWeight: '700', marginTop: 0.5 }}>Penalty</Text>
                       </TouchableOpacity>
                     </View>
 
@@ -26607,7 +26607,7 @@ function CricketAddaMain() {
                       activeOpacity={0.8}
                       onPress={() => openMatchWagonWheel(activeMatchId)}
                       style={{
-                        height: 42,
+                        height: 40,
                         backgroundColor: scInnerBg,
                         borderRadius: 8,
                         borderWidth: 1,
