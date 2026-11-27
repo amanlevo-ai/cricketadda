@@ -27735,16 +27735,43 @@ function CricketAddaMain() {
             return (
               <View style={{ marginTop: 4 }}>
                 {/* Top Link: "How is MVP calculated? 💡" + Helper hint */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 8, paddingHorizontal: 4 }}>
-                  <Text style={{ fontSize: 11, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontStyle: 'italic' }}>
-                    💡 Tap any player for points breakdown
-                  </Text>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    paddingVertical: 7,
+                    paddingHorizontal: 10,
+                    marginBottom: 8,
+                    backgroundColor: currentTheme.isLight ? '#f8fafc' : 'rgba(12, 25, 44, 0.75)',
+                    borderRadius: 10,
+                    borderWidth: 1,
+                    borderColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.6)',
+                  }}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                    <Text style={{ fontSize: 13 }}>💡</Text>
+                    <Text style={{ fontSize: 11.5, color: currentTheme.isLight ? '#475569' : '#94a3b8', fontWeight: '600' }}>
+                      Tap any player for points breakdown
+                    </Text>
+                  </View>
                   <TouchableOpacity
-                    style={{ flexDirection: 'row', alignItems: 'center', gap: 4, paddingVertical: 4, paddingHorizontal: 8, backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(2, 132, 199, 0.12)', borderRadius: 6, borderWidth: 1, borderColor: currentTheme.isLight ? '#bae6fd' : '#0284c7' }}
+                    activeOpacity={0.8}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4,
+                      paddingVertical: 4.5,
+                      paddingHorizontal: 9,
+                      backgroundColor: currentTheme.isLight ? '#f0f9ff' : 'rgba(2, 132, 199, 0.15)',
+                      borderRadius: 7,
+                      borderWidth: 1,
+                      borderColor: currentTheme.isLight ? '#bae6fd' : '#0284c7',
+                    }}
                     onPress={() => setMvpInfoModalVisible(true)}
                   >
-                    <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 12, fontWeight: '700' }}>
-                      Rules 💡
+                    <Text style={{ color: currentTheme.isLight ? '#0284c7' : '#38bdf8', fontSize: 11.5, fontWeight: '800' }}>
+                      Rules 📋
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -27760,92 +27787,324 @@ function CricketAddaMain() {
                     </Text>
                   </View>
                 ) : (
-                  <View style={[styles.mvpListCard, currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0' }]}>
+                  <View
+                    style={{
+                      backgroundColor: currentTheme.isLight ? '#ffffff' : '#081726',
+                      borderRadius: 16,
+                      borderWidth: 1.5,
+                      borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e3a5f',
+                      overflow: 'hidden',
+                      marginBottom: 20,
+                      shadowColor: '#000000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: 0.35,
+                      shadowRadius: 8,
+                      elevation: 5,
+                    }}
+                  >
+                    {/* Subtle Table Header */}
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        paddingVertical: 7,
+                        paddingHorizontal: 12,
+                        backgroundColor: currentTheme.isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.9)',
+                        borderBottomWidth: 1,
+                        borderBottomColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.6)',
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                        <Text style={{ fontSize: 10, fontWeight: '800', color: currentTheme.isLight ? '#64748b' : '#64748b', letterSpacing: 0.5, width: 28, textAlign: 'center' }}>
+                          #
+                        </Text>
+                        <Text style={{ fontSize: 10, fontWeight: '800', color: currentTheme.isLight ? '#64748b' : '#64748b', letterSpacing: 0.5 }}>
+                          PLAYER & MATCH STATS
+                        </Text>
+                      </View>
+                      <Text style={{ fontSize: 10, fontWeight: '800', color: currentTheme.isLight ? '#64748b' : '#64748b', letterSpacing: 0.5, paddingRight: 6 }}>
+                        MVP SCORE
+                      </Text>
+                    </View>
+
                     {leaderboard.map((player, idx) => {
                       const rank = idx + 1;
-                      const rankColor = rank === 1 ? '#f59e0b' : rank === 2 ? '#94a3b8' : rank === 3 ? '#b45309' : (currentTheme.isLight ? '#64748b' : '#94a3b8');
+                      const isTop1 = rank === 1;
+                      const isTop2 = rank === 2;
+                      const isTop3 = rank === 3;
+                      const isUser = player.name && userProfile?.name && player.name.trim().toLowerCase() === userProfile.name.trim().toLowerCase();
 
-                      // Match performance stats breakdown
-                      const statParts = [];
-                      if (player.runs > 0 || player.balls > 0) {
-                        statParts.push(`🏏 ${player.runs}r (${player.balls}b)`);
+                      // Alternating Odd/Even Row Background
+                      let rowBg;
+                      if (currentTheme.isLight) {
+                        rowBg = isTop1 ? '#fffdf0' : (idx % 2 === 0 ? '#ffffff' : '#f8fafc');
+                      } else {
+                        rowBg = isTop1 ? '#0d1f3b' : (idx % 2 === 0 ? '#0b172a' : '#060f1c');
                       }
-                      if (player.wickets > 0 || player.oversNum > 0) {
-                        statParts.push(`🎯 ${player.wickets}/${player.runsConceded}`);
-                      }
-                      if (player.catches > 0) {
-                        statParts.push(`🧤 ${player.catches}ct`);
-                      }
-                      if (player.stumpings > 0) {
-                        statParts.push(`⚡ ${player.stumpings}st`);
-                      }
-                      if (player.runOuts > 0) {
-                        statParts.push(`🎯 ${player.runOuts}ro`);
-                      }
-                      const statSummary = statParts.join(' • ');
+
+                      // Left accent indicator for Top 3
+                      const leftBorderColor = isTop1 ? '#f59e0b' : isTop2 ? '#94a3b8' : isTop3 ? '#d97706' : 'transparent';
+                      const avatarBorderColor = isTop1 ? '#f59e0b' : isTop2 ? '#94a3b8' : isTop3 ? '#d97706' : (currentTheme.isLight ? '#cbd5e1' : '#1e3a5f');
 
                       return (
                         <TouchableOpacity
                           key={`mvp_rank_${player.name}_${rank}`}
-                          activeOpacity={0.7}
+                          activeOpacity={0.75}
                           onPress={() => setSelectedMvpPlayer({ ...player, rank })}
-                          style={[
-                            styles.mvpRowContainer,
-                            currentTheme.isLight ? { borderBottomColor: '#f1f5f9' } : { borderBottomColor: '#1e293b' },
-                            idx === (leaderboard || []).length - 1 && { borderBottomWidth: 0 },
-                          ]}
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            paddingVertical: 12,
+                            paddingHorizontal: 10,
+                            backgroundColor: rowBg,
+                            borderLeftWidth: 3.5,
+                            borderLeftColor: leftBorderColor,
+                            borderBottomWidth: idx === (leaderboard || []).length - 1 ? 0 : 1,
+                            borderBottomColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.45)',
+                          }}
                         >
-                          {/* 1. Left: Rank Number */}
-                          <View style={styles.mvpRankCol}>
-                            <Text style={[styles.mvpRankNum, { color: rankColor }]}>
-                              {rank}
-                            </Text>
+                          {/* 1. Left: Rank Number with Distinct Medal Badge */}
+                          <View style={{ width: 30, alignItems: 'center', justifyContent: 'center' }}>
+                            {isTop1 ? (
+                              <View
+                                style={{
+                                  width: 26,
+                                  height: 26,
+                                  borderRadius: 13,
+                                  backgroundColor: '#f59e0b',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  shadowColor: '#f59e0b',
+                                  shadowOffset: { width: 0, height: 2 },
+                                  shadowOpacity: 0.5,
+                                  shadowRadius: 3,
+                                  elevation: 3,
+                                }}
+                              >
+                                <Text style={{ fontSize: 13, fontWeight: '900', color: '#000000' }}>1</Text>
+                              </View>
+                            ) : isTop2 ? (
+                              <View
+                                style={{
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: 12,
+                                  backgroundColor: '#94a3b8',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#ffffff' }}>2</Text>
+                              </View>
+                            ) : isTop3 ? (
+                              <View
+                                style={{
+                                  width: 24,
+                                  height: 24,
+                                  borderRadius: 12,
+                                  backgroundColor: '#d97706',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ fontSize: 12, fontWeight: '900', color: '#ffffff' }}>3</Text>
+                              </View>
+                            ) : (
+                              <View
+                                style={{
+                                  width: 22,
+                                  height: 22,
+                                  borderRadius: 11,
+                                  backgroundColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 41, 59, 0.6)',
+                                  borderWidth: 1,
+                                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ fontSize: 11, fontWeight: '800', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>
+                                  {rank}
+                                </Text>
+                              </View>
+                            )}
                           </View>
 
-                          {/* 2. Avatar with PRO Badge */}
-                          <View style={styles.mvpAvatarCol}>
+                          {/* 2. Avatar with MVP / YOU Badge */}
+                          <View style={{ marginHorizontal: 8, position: 'relative' }}>
                             <PlayerAvatar
                               name={player.name}
                               size={44}
                               customUri={getPlayerAvatarUri(player.name)}
-                              borderColor={rank === 1 ? '#f59e0b' : (currentTheme.isLight ? '#cbd5e1' : '#334155')}
+                              borderColor={avatarBorderColor}
                             />
-                            <View style={styles.mvpProBadge}>
-                              <Text style={styles.mvpProBadgeText}>PRO</Text>
-                            </View>
-                          </View>
-
-                          {/* 3. Player Name & Team & Match Stats */}
-                          <View style={styles.mvpInfoCol}>
-                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                              <Text style={[styles.mvpPlayerName, currentTheme.isLight && { color: '#0f172a' }]} numberOfLines={1}>
-                                {player.name}
-                              </Text>
-                              {rank === 1 && <Text style={{ fontSize: 13 }}>👑</Text>}
-                            </View>
-                            <Text style={[styles.mvpTeamName, currentTheme.isLight && { color: '#94a3b8' }]} numberOfLines={1}>
-                              {player.team ? player.team.toUpperCase() : 'TEAM'}
-                            </Text>
-                            {statSummary ? (
-                              <Text style={[styles.mvpStatsBreakdown, currentTheme.isLight && { color: '#64748b' }]} numberOfLines={1}>
-                                {statSummary}
-                              </Text>
+                            {isTop1 ? (
+                              <View
+                                style={{
+                                  position: 'absolute',
+                                  top: -4,
+                                  right: -6,
+                                  backgroundColor: '#f59e0b',
+                                  paddingHorizontal: 4.5,
+                                  paddingVertical: 1,
+                                  borderRadius: 6,
+                                  borderWidth: 1,
+                                  borderColor: '#000000',
+                                }}
+                              >
+                                <Text style={{ color: '#000000', fontSize: 8, fontWeight: '900', letterSpacing: 0.3 }}>
+                                  MVP
+                                </Text>
+                              </View>
+                            ) : isUser ? (
+                              <View
+                                style={{
+                                  position: 'absolute',
+                                  top: -4,
+                                  right: -6,
+                                  backgroundColor: '#0284c7',
+                                  paddingHorizontal: 4.5,
+                                  paddingVertical: 1,
+                                  borderRadius: 6,
+                                  borderWidth: 1,
+                                  borderColor: '#ffffff',
+                                }}
+                              >
+                                <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900', letterSpacing: 0.3 }}>
+                                  YOU
+                                </Text>
+                              </View>
                             ) : null}
                           </View>
 
-                          {/* 4. Right: Large Bold MVP Points + Breakdown Badge */}
-                          <View style={[styles.mvpScoreCol, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
-                            <View style={{ alignItems: 'flex-end' }}>
-                              <Text style={[styles.mvpScoreText, currentTheme.isLight && { color: '#0f172a' }]}>
-                                {Number(player.totalMvpPts || 0).toFixed(player.totalMvpPts % 1 === 0 ? 1 : 2)}
+                          {/* 3. Player Name & Team & Formatted Match Stats */}
+                          <View style={{ flex: 1, justifyContent: 'center' }}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                              <Text
+                                style={{
+                                  fontSize: isTop1 ? 15 : 14.5,
+                                  fontWeight: '800',
+                                  color: currentTheme.isLight ? '#0f172a' : '#ffffff',
+                                }}
+                                numberOfLines={1}
+                              >
+                                {player.name}
                               </Text>
-                              <Text style={{ fontSize: 9.5, color: '#f59e0b', fontWeight: '800', marginTop: 1 }}>
-                                PTS 🔍
+                              {isTop1 && <Text style={{ fontSize: 13 }}>👑</Text>}
+                            </View>
+
+                            {/* Team Tag */}
+                            <View
+                              style={{
+                                backgroundColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(56, 189, 248, 0.1)',
+                                paddingHorizontal: 5,
+                                paddingVertical: 1,
+                                borderRadius: 4,
+                                borderWidth: 0.5,
+                                borderColor: currentTheme.isLight ? '#bae6fd' : 'rgba(56, 189, 248, 0.25)',
+                                alignSelf: 'flex-start',
+                                marginTop: 2,
+                              }}
+                            >
+                              <Text
+                                style={{
+                                  fontSize: 9.5,
+                                  fontWeight: '800',
+                                  color: currentTheme.isLight ? '#0284c7' : '#38bdf8',
+                                  letterSpacing: 0.3,
+                                }}
+                                numberOfLines={1}
+                              >
+                                {player.team ? player.team.toUpperCase() : 'TEAM'}
                               </Text>
                             </View>
-                            <Text style={{ fontSize: 16, color: currentTheme.isLight ? '#94a3b8' : '#475569', fontWeight: 'bold' }}>
-                              ›
+
+                            {/* Formatted Match Stats Breakdown */}
+                            <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
+                              {(player.runs > 0 || player.balls > 0) && (
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }}>
+                                  🏏 {player.runs}r <Text style={{ fontSize: 10, fontWeight: '500', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({player.balls}b)</Text>
+                                </Text>
+                              )}
+                              {(player.runs > 0 || player.balls > 0) && (player.wickets > 0 || player.oversNum > 0 || player.catches > 0) && (
+                                <Text style={{ fontSize: 9, color: currentTheme.isLight ? '#cbd5e1' : '#334155' }}>•</Text>
+                              )}
+                              {(player.wickets > 0 || player.oversNum > 0) && (
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#059669' : '#34d399' }}>
+                                  🎯 {player.wickets}/{player.runsConceded}
+                                </Text>
+                              )}
+                              {((player.runs > 0 || player.balls > 0 || player.wickets > 0 || player.oversNum > 0) && (player.catches > 0 || player.stumpings > 0 || player.runOuts > 0)) && (
+                                <Text style={{ fontSize: 9, color: currentTheme.isLight ? '#cbd5e1' : '#334155' }}>•</Text>
+                              )}
+                              {player.catches > 0 && (
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
+                                  🧤 {player.catches}ct
+                                </Text>
+                              )}
+                              {player.stumpings > 0 && (
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
+                                  ⚡ {player.stumpings}st
+                                </Text>
+                              )}
+                              {player.runOuts > 0 && (
+                                <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
+                                  🎯 {player.runOuts}ro
+                                </Text>
+                              )}
+                            </View>
+                          </View>
+
+                          {/* 4. Right: Modern Interactive MVP Points Pill */}
+                          <View
+                            style={{
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              backgroundColor: isTop1
+                                ? (currentTheme.isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.16)')
+                                : (currentTheme.isLight ? '#f1f5f9' : 'rgba(15, 23, 42, 0.7)'),
+                              borderWidth: 1,
+                              borderColor: isTop1
+                                ? '#f59e0b'
+                                : (currentTheme.isLight ? '#cbd5e1' : 'rgba(56, 189, 248, 0.25)'),
+                              borderRadius: 10,
+                              paddingVertical: 5,
+                              paddingHorizontal: 9,
+                              minWidth: 66,
+                              marginLeft: 6,
+                            }}
+                          >
+                            <Text
+                              style={{
+                                fontSize: 16.5,
+                                fontWeight: '900',
+                                color: isTop1 ? '#f59e0b' : (currentTheme.isLight ? '#0f172a' : '#ffffff'),
+                                letterSpacing: -0.3,
+                              }}
+                            >
+                              {Number(player.totalMvpPts || 0).toFixed(player.totalMvpPts % 1 === 0 ? 1 : 2)}
                             </Text>
+                            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2, marginTop: 1 }}>
+                              <Text
+                                style={{
+                                  fontSize: 8.5,
+                                  fontWeight: '800',
+                                  color: isTop1 ? '#d97706' : (currentTheme.isLight ? '#64748b' : '#38bdf8'),
+                                  letterSpacing: 0.5,
+                                }}
+                              >
+                                PTS
+                              </Text>
+                              <Text
+                                style={{
+                                  fontSize: 10,
+                                  color: isTop1 ? '#d97706' : (currentTheme.isLight ? '#94a3b8' : '#38bdf8'),
+                                  fontWeight: '900',
+                                }}
+                              >
+                                ›
+                              </Text>
+                            </View>
                           </View>
                         </TouchableOpacity>
                       );
