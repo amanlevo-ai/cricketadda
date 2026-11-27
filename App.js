@@ -15417,105 +15417,167 @@ function CricketAddaMain() {
   const deriveCommentaryFromDeliveries = (deliveries, matchObj) => {
     if (!Array.isArray(deliveries) || deliveries.length === 0) return [];
 
-    let legalBallsCount = 0;
-    let runningRuns = 0;
-    let runningWkts = 0;
-    let currentOverRuns = 0;
-    const forwardList = [];
+    // 1. Partition deliveries strictly by innings to prevent bleed across innings
+    const inn1Deliveries = deliveries.filter(d => (d.innings === 1 || !d.innings));
+    const inn2Deliveries = deliveries.filter(d => d.innings === 2);
 
-    deliveries.forEach((d, i) => {
-      const runs = Number(d.runs ?? d.addedRuns ?? 0);
-      const isWkt = Boolean(d.isWicket || d.isWkt || d.wicket);
-      const extra = d.extraType;
-      const isLegal = d.isLegalDelivery !== false && extra !== 'wide' && extra !== 'noBall' && extra !== 'penalty';
+    const isSecondInningsStarted = inn2Deliveries.length > 0 || matchObj?.currentInnings === 2;
 
-      runningRuns += runs;
-      currentOverRuns += runs;
-      if (isWkt) runningWkts += 1;
+    const processInningsDeliveries = (dList, inningsNum) => {
+      let legalBallsCount = 0;
+      let runningRuns = 0;
+      let runningWkts = 0;
+      let currentOverRuns = 0;
+      const list = [];
 
-      const completedOvers = Math.floor(legalBallsCount / 6);
-      const ballInOver = (legalBallsCount % 6) + 1;
-      const calculatedOverStr = `${completedOvers}.${ballInOver}`;
+      dList.forEach((d, i) => {
+        const runs = Number(d.runs ?? d.addedRuns ?? 0);
+        const isWkt = Boolean(d.isWicket || d.isWkt || d.wicket);
+        const extra = d.extraType;
+        const isLegal = d.isLegalDelivery !== false && extra !== 'wide' && extra !== 'noBall' && extra !== 'penalty';
 
-      if (isLegal) {
-        legalBallsCount++;
-      }
+        runningRuns += runs;
+        currentOverRuns += runs;
+        if (isWkt) runningWkts += 1;
 
-      let badgeType = 'dot';
-      let badge = '0';
-      if (isWkt) {
-        badgeType = 'wkt';
-        badge = 'W';
-      } else if (runs >= 6) {
-        badgeType = 'six';
-        badge = '6';
-      } else if (runs === 4) {
-        badgeType = 'four';
-        badge = '4';
-      } else if (extra === 'wide') {
-        badgeType = 'wide';
-        badge = runs > 0 ? `${runs + 1}Wd` : 'Wd';
-      } else if (extra === 'noBall') {
-        badgeType = 'noBall';
-        badge = runs > 0 ? `Nb+${runs}` : 'Nb';
-      } else if (extra === 'bye' || extra === 'legBye') {
-        badgeType = extra;
-        badge = `${runs} ${extra === 'bye' ? 'B' : 'Lb'}`;
-      } else if (runs > 0) {
-        badgeType = 'run';
-        badge = String(runs);
-      }
+        // Deterministic sequential ball numbering within this over and innings
+        const completedOvers = Math.floor(legalBallsCount / 6);
+        const ballInOver = (legalBallsCount % 6) + 1;
+        const calculatedOverStr = `${completedOvers}.${ballInOver}`;
 
-      const singleLineText = formatSingleLineCommentary({
-        runs,
-        totalRuns: runs,
-        physicalRuns: d.runsOffBat !== undefined ? Number(d.runsOffBat) : Math.max(0, runs - Number(d.overthrowRuns || 0)),
-        extraType: extra,
-        isWkt,
-        striker: d.striker || d.batter,
-        bowler: d.bowler,
-        shotSector: d.shotSector,
-        dismissalType: d.dismissalType || d.actualDismissal || d.dismissal,
-        dismissedPlayer: d.dismissedPlayerName || d.dismissedPlayer,
-        wicketFielder: d.wicketFielderName || d.wicketFielder,
-        overthrowRuns: d.overthrowRuns,
-      });
+        if (isLegal) {
+          legalBallsCount++;
+        }
 
-      const overStr = (d.overs && !d.overs.endsWith('.0'))
-        ? d.overs
-        : (d.over !== undefined && d.ball_no ? `${d.over}.${d.ball_no}` : calculatedOverStr);
+        let badgeType = 'dot';
+        let badge = '0';
+        if (isWkt) {
+          badgeType = 'wkt';
+          badge = 'W';
+        } else if (runs >= 6) {
+          badgeType = 'six';
+          badge = '6';
+        } else if (runs === 4) {
+          badgeType = 'four';
+          badge = '4';
+        } else if (extra === 'wide') {
+          badgeType = 'wide';
+          badge = runs > 0 ? `${runs + 1}Wd` : 'Wd';
+        } else if (extra === 'noBall') {
+          badgeType = 'noBall';
+          badge = runs > 0 ? `Nb+${runs}` : 'Nb';
+        } else if (extra === 'bye' || extra === 'legBye') {
+          badgeType = extra;
+          badge = `${runs} ${extra === 'bye' ? 'B' : 'Lb'}`;
+        } else if (extra === 'penalty') {
+          badgeType = 'penalty';
+          badge = `${runs || 5}Pen`;
+        } else if (runs > 0) {
+          badgeType = 'run';
+          badge = String(runs);
+        }
 
-      forwardList.push({
-        id: d.id || `ball_${i}`,
-        overStr,
-        overs: overStr,
-        runs,
-        badgeType,
-        ballSymbol: d.ballSymbol || badge,
-        text: singleLineText,
-        isWkt,
-        extraType: extra,
-        bowler: d.bowler,
-        batter: d.striker || d.batter,
-      });
-
-      // Insert clean over-end milestone after 6 legal deliveries
-      if (isLegal && legalBallsCount % 6 === 0) {
-        const overNum = legalBallsCount / 6;
-        const runsLabel = `${currentOverRuns} ${currentOverRuns === 1 ? 'run' : 'runs'}`;
-        forwardList.push({
-          id: `over_end_${overNum}_${i}`,
-          isOverEnd: true,
-          overNum,
-          overRuns: currentOverRuns,
-          overSummary: `End of Over ${overNum} (${runsLabel}) • ${runningRuns}/${runningWkts}`,
+        const singleLineText = formatSingleLineCommentary({
+          runs,
+          totalRuns: runs,
+          physicalRuns: d.runsOffBat !== undefined ? Number(d.runsOffBat) : Math.max(0, runs - Number(d.overthrowRuns || 0)),
+          extraType: extra,
+          isWkt,
+          striker: d.striker || d.batter,
+          bowler: d.bowler,
+          shotSector: d.shotSector,
+          dismissalType: d.dismissalType || d.actualDismissal || d.dismissal,
+          dismissedPlayer: d.dismissedPlayerName || d.dismissedPlayer,
+          wicketFielder: d.wicketFielderName || d.wicketFielder,
+          overthrowRuns: d.overthrowRuns,
         });
-        currentOverRuns = 0;
-      }
+
+        list.push({
+          id: d.id || `ball_inn${inningsNum}_${i}`,
+          innings: inningsNum,
+          overStr: calculatedOverStr,
+          overs: calculatedOverStr,
+          runs,
+          badgeType,
+          ballSymbol: d.ballSymbol || badge,
+          text: singleLineText,
+          isWkt,
+          extraType: extra,
+          bowler: d.bowler,
+          batter: d.striker || d.batter,
+        });
+
+        // Insert clean over-end milestone after 6 legal deliveries
+        if (isLegal && legalBallsCount % 6 === 0) {
+          const overNum = legalBallsCount / 6;
+          const runsLabel = `${currentOverRuns} ${currentOverRuns === 1 ? 'run' : 'runs'}`;
+          list.push({
+            id: `over_end_inn${inningsNum}_${overNum}_${i}`,
+            isOverEnd: true,
+            overNum,
+            overRuns: currentOverRuns,
+            overSummary: `End of Over ${overNum} (${runsLabel}) • ${runningRuns}/${runningWkts}`,
+          });
+          currentOverRuns = 0;
+        }
+      });
+
+      return {
+        list,
+        totalRuns: runningRuns,
+        totalWkts: runningWkts,
+        totalLegalBalls: legalBallsCount,
+      };
+    };
+
+    const inn1Result = processInningsDeliveries(inn1Deliveries, 1);
+    const inn2Result = processInningsDeliveries(inn2Deliveries, 2);
+
+    const fullCommentary = [];
+
+    // Innings 1 Start milestone
+    const team1Name = matchObj?.innings1?.team || matchObj?.teamA || matchObj?.team1Name || '1st Innings';
+    fullCommentary.push({
+      id: 'inn1_commence_milestone',
+      isOverEnd: true,
+      isMatchStart: true,
+      overNum: 0,
+      overSummary: `🚀 1ST INNINGS COMMENCES • ${team1Name} to bat`,
     });
 
+    fullCommentary.push(...inn1Result.list);
+
+    // If 2nd innings has started or 1st innings is completed
+    if (isSecondInningsStarted || inn2Deliveries.length > 0) {
+      const inn1Overs = `${Math.floor(inn1Result.totalLegalBalls / 6)}.${inn1Result.totalLegalBalls % 6}`;
+      const fSummary = matchObj?.firstInningsSummary;
+      const inn1ScoreStr = fSummary
+        ? `${fSummary.runs}/${fSummary.wickets} (${fSummary.overs} ov)`
+        : `${inn1Result.totalRuns}/${inn1Result.totalWkts} (${inn1Overs} ov)`;
+      const team2Name = fSummary?.oppTeam || matchObj?.teamB || matchObj?.team2Name || '2nd Innings';
+      const targetRuns = fSummary?.target || (matchObj?.target ? Number(matchObj.target) : inn1Result.totalRuns + 1);
+
+      fullCommentary.push({
+        id: 'inn1_completed_milestone',
+        isOverEnd: true,
+        isInningsBreak: true,
+        overNum: 0,
+        overSummary: `🏁 1ST INNINGS COMPLETED • ${team1Name} ${inn1ScoreStr} • Target: ${targetRuns}`,
+      });
+
+      fullCommentary.push({
+        id: 'inn2_commence_milestone',
+        isOverEnd: true,
+        isMatchStart: true,
+        overNum: 0,
+        overSummary: `🏏 2ND INNINGS COMMENCES • ${team2Name} need ${targetRuns} runs to win`,
+      });
+
+      fullCommentary.push(...inn2Result.list);
+    }
+
     // Reverse list so latest ball is at the very top (newest first)!
-    return forwardList.reverse();
+    return fullCommentary.reverse();
   };
 
   const renderFormattedCommentary = rawText => {
@@ -25574,14 +25636,16 @@ function CricketAddaMain() {
 
                           return commentaryItems.map((item, idx) => {
                             if (item.isOverEnd) {
+                              const isStart = item.overNum === 0 || item.isMatchStart;
+                              const isBreak = item.isInningsBreak;
                               return (
                                 <View
                                   key={`v_comm_ov_${item.id || idx}`}
                                   style={{
-                                    backgroundColor: '#0a2540',
+                                    backgroundColor: isBreak ? '#3b0764' : isStart ? '#1e1b4b' : '#0a2540',
                                     borderRadius: 8,
                                     borderWidth: 1,
-                                    borderColor: '#0284c7',
+                                    borderColor: isBreak ? '#a855f7' : isStart ? '#6366f1' : '#0284c7',
                                     paddingVertical: 6,
                                     paddingHorizontal: 10,
                                     marginVertical: 3,
@@ -25590,8 +25654,8 @@ function CricketAddaMain() {
                                     gap: 6,
                                   }}
                                 >
-                                  <Text style={{ fontSize: 12 }}>🏁</Text>
-                                  <Text style={{ color: '#38bdf8', fontSize: 12, fontWeight: '800' }}>
+                                  <Text style={{ fontSize: 12 }}>{isBreak ? '🏁' : isStart ? (item.overSummary?.includes('2ND') ? '🏏' : '🚀') : '🏁'}</Text>
+                                  <Text style={{ color: isBreak ? '#e9d5ff' : isStart ? '#c7d2fe' : '#38bdf8', fontSize: 12, fontWeight: '800' }}>
                                     {item.overSummary || `End of Over ${item.overNum}${typeof item.overRuns === 'number' ? ` (${item.overRuns} ${item.overRuns === 1 ? 'run' : 'runs'})` : ''}`}
                                   </Text>
                                 </View>
@@ -30932,16 +30996,19 @@ function CricketAddaMain() {
                     >
                       <View style={styles.squadPlayerCardsWrap}>
                     {(() => {
-                      let capIdx = newTeamSquad.findIndex(x => Boolean(x.isCaptain));
-                      if (capIdx === -1) {
-                        capIdx = newTeamSquad.findIndex(x => Boolean(x.name && x.name.toLowerCase().includes('(c)')));
-                      }
-                      if (capIdx === -1 && (newTeamName || '').toLowerCase().includes('tarlochan')) {
+                      let capIdx = -1;
+                      const isTarlochanTeam = (newTeamName || '').toLowerCase().includes('tarlochan');
+                      if (isTarlochanTeam) {
                         capIdx = newTeamSquad.findIndex(x => Boolean(x.name && x.name.toLowerCase().includes('wpardeep')));
-                      }
-                      if (capIdx === -1 && activeEditingTeam?.captain) {
+                      } else if (activeEditingTeam?.captain) {
                         const normCap = activeEditingTeam.captain.toLowerCase().replace(/\s+/g, '');
                         capIdx = newTeamSquad.findIndex(x => Boolean(x.name && x.name.toLowerCase().replace(/\s+/g, '') === normCap));
+                      }
+                      if (capIdx === -1 && !isEditingOpponentTeam) {
+                        capIdx = newTeamSquad.findIndex(x => Boolean(x.isCaptain));
+                      }
+                      if (capIdx === -1 && !isEditingOpponentTeam) {
+                        capIdx = newTeamSquad.findIndex(x => Boolean(x.name && x.name.toLowerCase().includes('(c)')));
                       }
                       if (capIdx === -1 && !isEditingOpponentTeam && (newTeamSquad || []).length > 0) {
                         capIdx = 0;
@@ -31957,19 +32024,20 @@ function CricketAddaMain() {
                 return commList.map((item, idx) => {
                   if (item.isOverEnd) {
                     const isStart = item.overNum === 0 || item.isMatchStart;
+                    const isBreak = item.isInningsBreak;
                     return (
                       <View key={`comm_modal_over_${idx}`} style={{
-                        backgroundColor: isStart ? '#1e1b4b' : '#0a2540',
+                        backgroundColor: isBreak ? '#3b0764' : isStart ? '#1e1b4b' : '#0a2540',
                         borderRadius: 8,
                         borderWidth: 1,
-                        borderColor: isStart ? '#6366f1' : '#0284c7',
+                        borderColor: isBreak ? '#a855f7' : isStart ? '#6366f1' : '#0284c7',
                         paddingVertical: 7,
                         paddingHorizontal: 12,
                         marginBottom: 4,
                       }}>
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                          <Text style={{ fontSize: 12 }}>{isStart ? '🚀' : '🏁'}</Text>
-                          <Text style={{ color: isStart ? '#c7d2fe' : '#38bdf8', fontSize: 12, fontWeight: '900' }}>
+                          <Text style={{ fontSize: 12 }}>{isBreak ? '🏁' : isStart ? (item.overSummary?.includes('2ND') ? '🏏' : '🚀') : '🏁'}</Text>
+                          <Text style={{ color: isBreak ? '#e9d5ff' : isStart ? '#c7d2fe' : '#38bdf8', fontSize: 12, fontWeight: '900' }}>
                             {item.overSummary || item.headerTitle || `OVER ${item.overNum} COMPLETED${typeof item.overRuns === 'number' ? ` (${item.overRuns} ${item.overRuns === 1 ? 'run' : 'runs'})` : ''}`}
                           </Text>
                         </View>
