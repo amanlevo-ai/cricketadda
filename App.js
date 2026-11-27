@@ -6519,6 +6519,7 @@ function CricketAddaMain() {
 
   // Selected ground sector for Wagon Wheel Tab
   const [selectedZone, setSelectedZone] = useState(BROADCAST_SECTORS[5]); // Cover default
+  const [wheelSelectedInnings, setWheelSelectedInnings] = useState(null); // 1 | 2 | null (null auto-defaults to active innings)
 
   // Selected Batter Details Modal
   const [batterModalVisible, setBatterModalVisible] = useState(false);
@@ -15411,6 +15412,7 @@ function CricketAddaMain() {
   };
 
   const openMatchWagonWheel = matchId => {
+    setWheelSelectedInnings(null);
     navigateTo('wheel', matchId || activeMatchId);
   };
 
@@ -26721,6 +26723,36 @@ function CricketAddaMain() {
             ? scoringHistory
             : (currentMatchData?.liveState?.scoringHistory || currentMatchData?.scoringHistory || []);
 
+          // Derive canonical team names & flags for Innings 1 and Innings 2
+          const team1Name = currentMatchData?.innings1?.team || currentMatchData?.teamA || currentMatchData?.team1Name || (currentInnings === 1 ? battingTeamName : bowlingTeamName);
+          const team2Name = firstInningsSummary?.oppTeam || currentMatchData?.teamB || currentMatchData?.team2Name || (currentInnings === 2 ? battingTeamName : bowlingTeamName);
+          const team1Flag = currentMatchData?.innings1?.flag || currentMatchData?.flagA || (currentInnings === 1 ? battingTeamFlag : bowlingTeamFlag) || '🦁';
+          const team2Flag = firstInningsSummary?.oppFlag || currentMatchData?.flagB || (currentInnings === 2 ? battingTeamFlag : bowlingTeamFlag) || '⚡';
+
+          // Active Innings for Wagon Wheel: if user selected 1 or 2, use that; otherwise auto-default to currentInnings
+          const activeInningsForWheel = wheelSelectedInnings !== null ? wheelSelectedInnings : (currentInnings === 2 ? 2 : 1);
+
+          // Team 1 & Team 2 Scores & Overs
+          const team1Runs = Number(firstInningsSummary?.runs ?? (currentInnings === 1 ? liveRuns : (currentMatchData?.innings1?.runs ?? 0)));
+          const team1Wkts = Number(firstInningsSummary?.wickets ?? (currentInnings === 1 ? liveWickets : (currentMatchData?.innings1?.wickets ?? 0)));
+          const team1OvStr = firstInningsSummary?.overs || (currentInnings === 1 ? oversStr : (currentMatchData?.innings1?.overs || '0.0'));
+          const team1ScoreLabel = `${team1Runs}/${team1Wkts}`;
+
+          const isSecondInningsStarted = currentInnings === 2 || Boolean(currentMatchData?.innings2) || (historyStack || []).some(d => d.innings === 2);
+          const team2Runs = Number(currentInnings === 2 ? liveRuns : (currentMatchData?.innings2?.runs ?? 0));
+          const team2Wkts = Number(currentInnings === 2 ? liveWickets : (currentMatchData?.innings2?.wickets ?? 0));
+          const team2OvStr = currentInnings === 2 ? oversStr : (currentMatchData?.innings2?.overs || '0.0');
+          const team2ScoreLabel = isSecondInningsStarted ? `${team2Runs}/${team2Wkts}` : 'Yet to bat';
+
+          // Filter history stack strictly by selected innings / team
+          const filteredHistory = (historyStack || []).filter(d => {
+            if (activeInningsForWheel === 2) {
+              return d.innings === 2 || (d.team && d.team.toLowerCase().trim() === team2Name.toLowerCase().trim());
+            } else {
+              return (d.innings === 1 || !d.innings || (d.team && d.team.toLowerCase().trim() === team1Name.toLowerCase().trim()));
+            }
+          });
+
           const sectorStats = {};
           BROADCAST_SECTORS.forEach(sec => {
             sectorStats[sec.id] = { runs: 0, fours: 0, sixes: 0, singlesDoubles: 0, deliveries: 0 };
@@ -26731,7 +26763,7 @@ function CricketAddaMain() {
           let skippedAreaRuns = 0;
           let skippedAreaBalls = 0;
 
-          (historyStack || []).forEach(d => {
+          (filteredHistory || []).forEach(d => {
             const secId = d.shotSector?.id || (typeof d.shotSector === 'string' ? d.shotSector : null) || d.shotZone?.id || (typeof d.shotZone === 'string' ? d.shotZone : null) || d.sector || d.shotArea;
             const addedR = Number(d.addedRuns) || Number(d.runs) || 0;
             if (secId && sectorStats[secId]) {
@@ -26750,7 +26782,7 @@ function CricketAddaMain() {
             }
           });
 
-          const totalMatchRuns = liveRuns || currentMatchData?.liveState?.liveRuns || currentMatchData?.innings1?.runs || 0;
+          const totalMatchRuns = activeInningsForWheel === 1 ? team1Runs : team2Runs;
           const dynamicSectors = BROADCAST_SECTORS.map((sec, idx) => {
             const st = sectorStats[sec.id];
             let r = st.runs;
@@ -26786,13 +26818,13 @@ function CricketAddaMain() {
 
           return (
             <View style={[styles.mainContentNoPad, { alignItems: 'center', justifyContent: 'flex-start', flex: 1, paddingBottom: miniBarExtraOffset ? 62 : 6 }]}>
-              {/* Header: Back Button on Top (4px lower to prevent top bar overlay) & Team Name Below */}
-              <View style={{ width: '100%', paddingHorizontal: 10, paddingTop: 10, paddingBottom: 2 }}>
+              {/* Header: Back Button & 2-Team Segment Tabs */}
+              <View style={{ width: '100%', paddingHorizontal: 10, paddingTop: 8, paddingBottom: 2 }}>
                 <TouchableOpacity
                   style={[
                     styles.backToMatchesBtn,
                     currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#cbd5e1' },
-                    { alignSelf: 'flex-start', marginBottom: 2, paddingVertical: 6, paddingHorizontal: 12 }
+                    { alignSelf: 'flex-start', marginBottom: 4, paddingVertical: 5, paddingHorizontal: 12 }
                   ]}
                   hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                   onPress={goBack}
@@ -26800,16 +26832,95 @@ function CricketAddaMain() {
                   <Text style={[styles.backToMatchesText, currentTheme.isLight && { color: '#0f172a' }]}>← Back</Text>
                 </TouchableOpacity>
 
-                <Text
-                  style={[
-                    styles.wheelHeading,
-                    { textAlign: 'center', fontSize: 17, fontWeight: '900', marginTop: 2, marginBottom: 4 },
-                    currentTheme.isLight && { color: '#0f172a' }
-                  ]}
-                  numberOfLines={1}
-                >
-                  {battingTeamName} vs {bowlingTeamName}
-                </Text>
+                {/* Team Toggle Pills (2 Tabs: Team 1 & Team 2) */}
+                <View style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  marginTop: 1,
+                  marginBottom: 4,
+                }}>
+                  {/* Tab 1: Team 1 */}
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setWheelSelectedInnings(1)}
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      paddingVertical: 6,
+                      paddingHorizontal: 8,
+                      borderRadius: 10,
+                      backgroundColor: activeInningsForWheel === 1 ? '#0284c7' : (currentTheme.isLight ? '#f1f5f9' : '#0a192f'),
+                      borderWidth: 1.5,
+                      borderColor: activeInningsForWheel === 1 ? '#38bdf8' : (currentTheme.isLight ? '#cbd5e1' : '#1e3a5f'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 14 }}>{team1Flag}</Text>
+                    <View style={{ alignItems: 'flex-start' }}>
+                      <Text
+                        style={{
+                          color: activeInningsForWheel === 1 ? '#ffffff' : (currentTheme.isLight ? '#0f172a' : '#94a3b8'),
+                          fontSize: 12,
+                          fontWeight: activeInningsForWheel === 1 ? '900' : '700',
+                        }}
+                        numberOfLines={1}
+                      >
+                        {team1Name} • {team1ScoreLabel}
+                      </Text>
+                      <Text style={{
+                        color: activeInningsForWheel === 1 ? '#e0f2fe' : '#64748b',
+                        fontSize: 9,
+                        fontWeight: '700',
+                      }}>
+                        1ST INNINGS ({team1OvStr} ov)
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+
+                  {/* Tab 2: Team 2 */}
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    onPress={() => setWheelSelectedInnings(2)}
+                    style={{
+                      flex: 1,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 6,
+                      paddingVertical: 6,
+                      paddingHorizontal: 8,
+                      borderRadius: 10,
+                      backgroundColor: activeInningsForWheel === 2 ? '#0284c7' : (currentTheme.isLight ? '#f1f5f9' : '#0a192f'),
+                      borderWidth: 1.5,
+                      borderColor: activeInningsForWheel === 2 ? '#38bdf8' : (currentTheme.isLight ? '#cbd5e1' : '#1e3a5f'),
+                    }}
+                  >
+                    <Text style={{ fontSize: 14 }}>{team2Flag}</Text>
+                    <View style={{ alignItems: 'flex-start' }}>
+                      <Text
+                        style={{
+                          color: activeInningsForWheel === 2 ? '#ffffff' : (currentTheme.isLight ? '#0f172a' : '#94a3b8'),
+                          fontSize: 12,
+                          fontWeight: activeInningsForWheel === 2 ? '900' : '700',
+                        }}
+                        numberOfLines={1}
+                      >
+                        {team2Name} • {team2ScoreLabel}
+                      </Text>
+                      <Text style={{
+                        color: activeInningsForWheel === 2 ? '#e0f2fe' : '#64748b',
+                        fontSize: 9,
+                        fontWeight: '700',
+                      }}>
+                        2ND INNINGS {isSecondInningsStarted ? `(${team2OvStr} ov)` : ''}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                </View>
               </View>
 
               {/* LARGE WAGON WHEEL STAGE CONTAINER (FULL SQUARE BORDER MATCHING SCREEN WIDTH) */}
