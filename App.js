@@ -9811,9 +9811,17 @@ function CricketAddaMain() {
   const userCaptainTeamLogo = userCaptainSlot === 'batting' ? battingTeamLogo : bowlingTeamLogo;
 
   const targetRuns = currentInnings === 2
-    ? (currentMatchData?.dlsTarget || match?.dlsTarget || (firstInningsSummary
-      ? firstInningsSummary.target
-      : (currentMatchData?.innings2?.target || (currentMatchData?.innings1?.runs ? currentMatchData.innings1.runs + 1 : 0))))
+    ? Number(
+        currentMatchData?.dlsTarget ||
+        match?.dlsTarget ||
+        currentMatchData?.target ||
+        match?.target ||
+        (firstInningsSummary ? firstInningsSummary.target : null) ||
+        currentMatchData?.innings2?.target ||
+        match?.innings2?.target ||
+        (currentMatchData?.innings1?.runs != null ? Number(currentMatchData.innings1.runs) + 1 : null) ||
+        (match?.innings1?.runs != null ? Number(match.innings1.runs) + 1 : 0)
+      ) || 0
     : 0;
 
 
@@ -25828,6 +25836,46 @@ function CricketAddaMain() {
                 );
               })()}
 
+              {/* 2ND INNINGS REQUIRED RUNS EQUATION STRIP ("BALL PAR KITNE RUNS REQUIRED HAIN") */}
+              {currentInnings === 2 && targetRuns > 0 && (
+                <View style={{
+                  backgroundColor: isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
+                  borderColor: isLight ? '#86efac' : 'rgba(16, 185, 129, 0.4)',
+                  borderWidth: 1.2,
+                  borderRadius: 9,
+                  paddingVertical: 5.5,
+                  paddingHorizontal: 12,
+                  marginBottom: 5,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 7,
+                }}>
+                  <Text style={{ fontSize: 13 }}>🎯</Text>
+                  <Text style={{
+                    color: isLight ? '#166534' : '#34d399',
+                    fontSize: 12.5,
+                    fontWeight: '900',
+                    textAlign: 'center',
+                    letterSpacing: 0.2,
+                  }}>
+                    {(() => {
+                      const rNeeded = Math.max(0, (Number(targetRuns) || 0) - (Number(liveRuns) || 0));
+                      const bRem = Math.max(0, ((Number(maxOvers) || 20) * 6) - (Number(liveBalls) || 0));
+                      const rrrVal = bRem > 0 ? ((rNeeded / bRem) * 6).toFixed(2) : '0.00';
+                      if (liveRuns >= targetRuns) {
+                        return `🎉 ${battingTeamName} won by ${Math.max(1, (maxWickets || 10) - liveWickets)} wickets!`;
+                      }
+                      if (bRem === 0 || liveWickets >= (maxWickets || 10)) {
+                        if (liveRuns === targetRuns - 1) return `🤝 Match Tied!`;
+                        return `🏆 ${bowlingTeamName} won by ${rNeeded} runs`;
+                      }
+                      return `${battingTeamName} need ${rNeeded} run${rNeeded === 1 ? '' : 's'} in ${bRem} ball${bRem === 1 ? '' : 's'} (RRR: ${rrrVal})`;
+                    })()}
+                  </Text>
+                </View>
+              )}
+
               {/* 3. THIS OVER STRIP (FIXED 42px HEIGHT & HORIZONTAL SCROLL FOR EXTRAS) */}
               <View style={{
                 height: 42,
@@ -27102,6 +27150,46 @@ function CricketAddaMain() {
               </Text>
             </View>
           </View>
+
+          {/* 2ND INNINGS REQUIRED RUNS EQUATION STRIP (SPECTATOR / MATCH SCREEN) */}
+          {currentInnings === 2 && targetRuns > 0 && (
+            <View style={{
+              backgroundColor: currentTheme.isLight ? '#f0fdf4' : 'rgba(16, 185, 129, 0.12)',
+              borderColor: currentTheme.isLight ? '#86efac' : 'rgba(16, 185, 129, 0.4)',
+              borderWidth: 1.2,
+              borderRadius: 10,
+              paddingVertical: 6,
+              paddingHorizontal: 12,
+              marginBottom: 8,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 7,
+            }}>
+              <Text style={{ fontSize: 13 }}>🎯</Text>
+              <Text style={{
+                color: currentTheme.isLight ? '#166534' : '#34d399',
+                fontSize: 13,
+                fontWeight: '900',
+                textAlign: 'center',
+                letterSpacing: 0.2,
+              }}>
+                {(() => {
+                  const rNeeded = Math.max(0, (Number(targetRuns) || 0) - (Number(liveRuns) || 0));
+                  const bRem = Math.max(0, ((Number(maxOvers) || 20) * 6) - (Number(liveBalls) || 0));
+                  const rrrVal = bRem > 0 ? ((rNeeded / bRem) * 6).toFixed(2) : '0.00';
+                  if (liveRuns >= targetRuns) {
+                    return `🎉 ${battingTeamName} won by ${Math.max(1, (maxWickets || 10) - liveWickets)} wickets!`;
+                  }
+                  if (bRem === 0 || liveWickets >= (maxWickets || 10)) {
+                    if (liveRuns === targetRuns - 1) return `🤝 Match Tied!`;
+                    return `🏆 ${bowlingTeamName} won by ${rNeeded} runs`;
+                  }
+                  return `${battingTeamName} need ${rNeeded} run${rNeeded === 1 ? '' : 's'} in ${bRem} ball${bRem === 1 ? '' : 's'} (RRR: ${rrrVal})`;
+                })()}
+              </Text>
+            </View>
+          )}
 
           {/* ========================================================= */}
           {/* 🔘 MATCH SUB-TABS: SCORECARD vs MVP RANKINGS */}
