@@ -39675,13 +39675,23 @@ function CricketAddaMain() {
         statusBarTranslucent={true}
         onRequestClose={() => setMvpInfoModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 16 }]}>
           <View
-            style={[
-              styles.modalContentCard,
-              currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
-              { maxWidth: 440, width: '92%', maxHeight: safeModalCardMaxHeight, padding: 18 },
-            ]}
+            style={{
+              width: '94%',
+              maxWidth: 420,
+              maxHeight: safeModalCardMaxHeight,
+              backgroundColor: currentTheme.isLight ? '#ffffff' : '#081726',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e3a5f',
+              padding: 18,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.6,
+              shadowRadius: 20,
+              elevation: 20,
+            }}
           >
             {/* Modal Header */}
             <View
@@ -39690,7 +39700,7 @@ function CricketAddaMain() {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 borderBottomWidth: 1,
-                borderBottomColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                borderBottomColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.6)',
                 paddingBottom: 12,
                 marginBottom: 12,
               }}
@@ -39707,16 +39717,25 @@ function CricketAddaMain() {
                 </View>
               </View>
               <TouchableOpacity
-                style={{ padding: 6 }}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.8)',
+                  borderWidth: 1,
+                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
                 onPress={() => setMvpInfoModalVisible(false)}
               >
-                <Text style={{ fontSize: 18, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: 'bold' }}>✕</Text>
+                <Text style={{ fontSize: 14, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: 'bold' }}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ flexGrow: 1 }}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flexGrow: 1 }} contentContainerStyle={{ gap: 10 }}>
               {/* Batting Points */}
-              <View style={[styles.mvpModalSection, currentTheme.isLight && { backgroundColor: '#f0f9ff', borderColor: '#bae6fd' }]}>
+              <View style={{ backgroundColor: currentTheme.isLight ? '#f0f9ff' : '#0a1d33', borderRadius: 12, borderWidth: 1, borderColor: currentTheme.isLight ? '#bae6fd' : '#1e3a5f', padding: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <Text style={{ fontSize: 14 }}>🏏</Text>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: '#0284c7' }}>Batting Points</Text>
@@ -39728,7 +39747,7 @@ function CricketAddaMain() {
               </View>
 
               {/* Bowling Points */}
-              <View style={[styles.mvpModalSection, currentTheme.isLight && { backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }, { marginTop: 10 }]}>
+              <View style={{ backgroundColor: currentTheme.isLight ? '#ecfdf5' : '#07241c', borderRadius: 12, borderWidth: 1, borderColor: currentTheme.isLight ? '#a7f3d0' : '#065f46', padding: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <Text style={{ fontSize: 14 }}>🎯</Text>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: '#059669' }}>Bowling Points</Text>
@@ -39740,7 +39759,7 @@ function CricketAddaMain() {
               </View>
 
               {/* Fielding Points */}
-              <View style={[styles.mvpModalSection, currentTheme.isLight && { backgroundColor: '#fffbeb', borderColor: '#fde68a' }, { marginTop: 10 }]}>
+              <View style={{ backgroundColor: currentTheme.isLight ? '#fffbeb' : '#231805', borderRadius: 12, borderWidth: 1, borderColor: currentTheme.isLight ? '#fde68a' : '#78350f', padding: 12 }}>
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 6 }}>
                   <Text style={{ fontSize: 14 }}>🧤</Text>
                   <Text style={{ fontSize: 13, fontWeight: '900', color: '#d97706' }}>Fielding Points</Text>
@@ -39753,10 +39772,23 @@ function CricketAddaMain() {
 
             {/* Dismiss Button */}
             <TouchableOpacity
-              style={[styles.modalActionBtn, { backgroundColor: currentTheme.primary, marginTop: 14 }]}
+              activeOpacity={0.85}
+              style={{
+                height: 46,
+                borderRadius: 12,
+                backgroundColor: currentTheme.primary || '#00e676',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 14,
+                shadowColor: currentTheme.primary || '#00e676',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.35,
+                shadowRadius: 5,
+                elevation: 5,
+              }}
               onPress={() => setMvpInfoModalVisible(false)}
             >
-              <Text style={{ color: currentTheme.primaryText, fontWeight: '900', fontSize: 14 }}>Got it ✓</Text>
+              <Text style={{ color: currentTheme.primaryText || '#000000', fontWeight: '900', fontSize: 14.5, letterSpacing: 0.5 }}>Got it ✓</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -39772,22 +39804,32 @@ function CricketAddaMain() {
         statusBarTranslucent={true}
         onRequestClose={() => setSelectedMvpPlayer(null)}
       >
-        <View style={styles.modalOverlay}>
+        <View style={[styles.modalOverlay, { justifyContent: 'center', alignItems: 'center', padding: 16 }]}>
           <View
-            style={[
-              styles.modalContentCard,
-              currentTheme.isLight && { backgroundColor: '#ffffff', borderColor: '#e2e8f0' },
-              { maxWidth: 440, width: '92%', maxHeight: safeModalCardMaxHeight, padding: 18 },
-            ]}
+            style={{
+              width: '94%',
+              maxWidth: 420,
+              maxHeight: safeModalCardMaxHeight,
+              backgroundColor: currentTheme.isLight ? '#ffffff' : '#081726',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e3a5f',
+              padding: 18,
+              shadowColor: '#000000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.6,
+              shadowRadius: 20,
+              elevation: 20,
+            }}
           >
-            {/* Header: Player Info & Total Points */}
+            {/* Header: Player Info & Close Cross */}
             <View
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 borderBottomWidth: 1,
-                borderBottomColor: currentTheme.isLight ? '#e2e8f0' : '#1e293b',
+                borderBottomColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.6)',
                 paddingBottom: 12,
                 marginBottom: 12,
               }}
@@ -39816,20 +39858,29 @@ function CricketAddaMain() {
               </View>
 
               <TouchableOpacity
-                style={{ padding: 6 }}
+                style={{
+                  width: 32,
+                  height: 32,
+                  borderRadius: 16,
+                  backgroundColor: currentTheme.isLight ? '#f1f5f9' : 'rgba(30, 41, 59, 0.8)',
+                  borderWidth: 1,
+                  borderColor: currentTheme.isLight ? '#cbd5e1' : '#334155',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
                 onPress={() => setSelectedMvpPlayer(null)}
               >
-                <Text style={{ fontSize: 18, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: 'bold' }}>✕</Text>
+                <Text style={{ fontSize: 14, color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontWeight: 'bold' }}>✕</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Total Points Big Highlight Card */}
+            {/* Total Points Highlight Box */}
             <View
               style={{
-                backgroundColor: currentTheme.isLight ? '#fef3c7' : 'rgba(245, 158, 11, 0.12)',
+                backgroundColor: currentTheme.isLight ? '#fef3c7' : '#14223d',
                 borderWidth: 1.5,
                 borderColor: '#f59e0b',
-                borderRadius: 12,
+                borderRadius: 14,
                 paddingVertical: 10,
                 paddingHorizontal: 14,
                 marginBottom: 12,
@@ -39839,41 +39890,51 @@ function CricketAddaMain() {
               }}
             >
               <View>
-                <Text style={{ fontSize: 11, fontWeight: '800', color: currentTheme.isLight ? '#b45309' : '#fde68a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Text style={{ fontSize: 10.5, fontWeight: '800', color: currentTheme.isLight ? '#b45309' : '#fde68a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   Total MVP Points
                 </Text>
-                <Text style={{ fontSize: 24, fontWeight: '900', color: currentTheme.isLight ? '#b45309' : '#fbbf24' }}>
+                <Text style={{ fontSize: 24, fontWeight: '900', color: currentTheme.isLight ? '#b45309' : '#fbbf24', marginTop: 2 }}>
                   ⭐ {Number(selectedMvpPlayer?.totalMvpPts || 0).toFixed(selectedMvpPlayer?.totalMvpPts % 1 === 0 ? 1 : 2)}
                 </Text>
               </View>
 
               <View style={{ flexDirection: 'row', gap: 6 }}>
-                <View style={{ alignItems: 'center', backgroundColor: currentTheme.isLight ? 'rgba(2, 132, 199, 0.1)' : 'rgba(2, 132, 199, 0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                  <Text style={{ fontSize: 10, color: '#0284c7', fontWeight: '700' }}>🏏 Bat</Text>
-                  <Text style={{ fontSize: 12, color: '#0284c7', fontWeight: '900' }}>{selectedMvpPlayer?.battingPts || 0}</Text>
+                <View style={{ alignItems: 'center', backgroundColor: currentTheme.isLight ? 'rgba(2, 132, 199, 0.12)' : 'rgba(2, 132, 199, 0.22)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.4)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10, color: '#38bdf8', fontWeight: '800' }}>🏏 Bat</Text>
+                  <Text style={{ fontSize: 12.5, color: '#38bdf8', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.battingPts || 0}</Text>
                 </View>
-                <View style={{ alignItems: 'center', backgroundColor: currentTheme.isLight ? 'rgba(5, 150, 105, 0.1)' : 'rgba(5, 150, 105, 0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                  <Text style={{ fontSize: 10, color: '#059669', fontWeight: '700' }}>🎯 Bowl</Text>
-                  <Text style={{ fontSize: 12, color: '#059669', fontWeight: '900' }}>{selectedMvpPlayer?.bowlingPts || 0}</Text>
+                <View style={{ alignItems: 'center', backgroundColor: currentTheme.isLight ? 'rgba(5, 150, 105, 0.12)' : 'rgba(5, 150, 105, 0.22)', borderWidth: 1, borderColor: 'rgba(52, 211, 153, 0.4)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10, color: '#34d399', fontWeight: '800' }}>🎯 Bowl</Text>
+                  <Text style={{ fontSize: 12.5, color: '#34d399', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.bowlingPts || 0}</Text>
                 </View>
-                <View style={{ alignItems: 'center', backgroundColor: currentTheme.isLight ? 'rgba(217, 119, 6, 0.1)' : 'rgba(217, 119, 6, 0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 }}>
-                  <Text style={{ fontSize: 10, color: '#d97706', fontWeight: '700' }}>🧤 Field</Text>
-                  <Text style={{ fontSize: 12, color: '#d97706', fontWeight: '900' }}>{selectedMvpPlayer?.fieldingPts || 0}</Text>
+                <View style={{ alignItems: 'center', backgroundColor: currentTheme.isLight ? 'rgba(217, 119, 6, 0.12)' : 'rgba(217, 119, 6, 0.22)', borderWidth: 1, borderColor: 'rgba(251, 191, 36, 0.4)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10, color: '#fbbf24', fontWeight: '800' }}>🧤 Field</Text>
+                  <Text style={{ fontSize: 12.5, color: '#fbbf24', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.fieldingPts || 0}</Text>
                 </View>
               </View>
             </View>
 
             <ScrollView showsVerticalScrollIndicator={false} style={{ flexGrow: 1 }} contentContainerStyle={{ gap: 10 }}>
-              {/* Section 1: Batting Points Breakdown */}
-              <View style={[styles.mvpModalSection, currentTheme.isLight && { backgroundColor: '#f0f9ff', borderColor: '#bae6fd' }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              {/* Section 1: Batting Points Breakdown Card */}
+              <View
+                style={{
+                  backgroundColor: currentTheme.isLight ? '#f0f9ff' : '#0a1d33',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: currentTheme.isLight ? '#bae6fd' : '#1e3a5f',
+                  padding: 12,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(30, 58, 95, 0.5)', paddingBottom: 6 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={{ fontSize: 14 }}>🏏</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '900', color: '#0284c7' }}>Batting Breakdown</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '900', color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }}>Batting Breakdown</Text>
                   </View>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#0284c7' }}>
-                    {selectedMvpPlayer?.battingPts || 0} pts
-                  </Text>
+                  <View style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', borderWidth: 1, borderColor: '#38bdf8', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '900', color: '#38bdf8' }}>
+                      {selectedMvpPlayer?.battingPts || 0} pts
+                    </Text>
+                  </View>
                 </View>
 
                 {(!selectedMvpPlayer?.pointsBreakdown?.batting || selectedMvpPlayer.pointsBreakdown.batting.length === 0) ? (
@@ -39882,7 +39943,17 @@ function CricketAddaMain() {
                   </Text>
                 ) : (
                   selectedMvpPlayer.pointsBreakdown.batting.map((item, bIdx) => (
-                    <View key={`b_pt_${bIdx}`} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 3 }}>
+                    <View
+                      key={`b_pt_${bIdx}`}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingVertical: 5,
+                        borderBottomWidth: bIdx === selectedMvpPlayer.pointsBreakdown.batting.length - 1 ? 0 : 1,
+                        borderBottomColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(30, 58, 95, 0.3)',
+                      }}
+                    >
                       <View style={{ flex: 1, paddingRight: 8 }}>
                         <Text style={{ fontSize: 12, fontWeight: '700', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }}>
                           {item.label}
@@ -39891,24 +39962,36 @@ function CricketAddaMain() {
                           {item.detail}
                         </Text>
                       </View>
-                      <Text style={{ fontSize: 12, fontWeight: '900', color: item.pts >= 0 ? '#0284c7' : '#ef4444' }}>
-                        {item.pts >= 0 ? `+${item.pts}` : item.pts} pts
-                      </Text>
+                      <View style={{ backgroundColor: item.pts >= 0 ? 'rgba(56, 189, 248, 0.12)' : 'rgba(239, 68, 68, 0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 }}>
+                        <Text style={{ fontSize: 11.5, fontWeight: '900', color: item.pts >= 0 ? '#38bdf8' : '#ef4444' }}>
+                          {item.pts >= 0 ? `+${item.pts}` : item.pts} pts
+                        </Text>
+                      </View>
                     </View>
                   ))
                 )}
               </View>
 
-              {/* Section 2: Bowling Points Breakdown */}
-              <View style={[styles.mvpModalSection, currentTheme.isLight && { backgroundColor: '#ecfdf5', borderColor: '#a7f3d0' }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              {/* Section 2: Bowling Points Breakdown Card */}
+              <View
+                style={{
+                  backgroundColor: currentTheme.isLight ? '#ecfdf5' : '#07241c',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: currentTheme.isLight ? '#a7f3d0' : '#065f46',
+                  padding: 12,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.isLight ? '#d1fae5' : 'rgba(6, 95, 70, 0.5)', paddingBottom: 6 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={{ fontSize: 14 }}>🎯</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '900', color: '#059669' }}>Bowling Breakdown</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '900', color: currentTheme.isLight ? '#059669' : '#34d399' }}>Bowling Breakdown</Text>
                   </View>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#059669' }}>
-                    {selectedMvpPlayer?.bowlingPts || 0} pts
-                  </Text>
+                  <View style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)', borderWidth: 1, borderColor: '#34d399', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '900', color: '#34d399' }}>
+                      {selectedMvpPlayer?.bowlingPts || 0} pts
+                    </Text>
+                  </View>
                 </View>
 
                 {(!selectedMvpPlayer?.pointsBreakdown?.bowling || selectedMvpPlayer.pointsBreakdown.bowling.length === 0) ? (
@@ -39917,7 +40000,17 @@ function CricketAddaMain() {
                   </Text>
                 ) : (
                   selectedMvpPlayer.pointsBreakdown.bowling.map((item, bwIdx) => (
-                    <View key={`bw_pt_${bwIdx}`} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 3 }}>
+                    <View
+                      key={`bw_pt_${bwIdx}`}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingVertical: 5,
+                        borderBottomWidth: bwIdx === selectedMvpPlayer.pointsBreakdown.bowling.length - 1 ? 0 : 1,
+                        borderBottomColor: currentTheme.isLight ? '#d1fae5' : 'rgba(6, 95, 70, 0.3)',
+                      }}
+                    >
                       <View style={{ flex: 1, paddingRight: 8 }}>
                         <Text style={{ fontSize: 12, fontWeight: '700', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }}>
                           {item.label}
@@ -39926,24 +40019,36 @@ function CricketAddaMain() {
                           {item.detail}
                         </Text>
                       </View>
-                      <Text style={{ fontSize: 12, fontWeight: '900', color: item.pts >= 0 ? '#059669' : '#ef4444' }}>
-                        {item.pts >= 0 ? `+${item.pts}` : item.pts} pts
-                      </Text>
+                      <View style={{ backgroundColor: item.pts >= 0 ? 'rgba(52, 211, 153, 0.12)' : 'rgba(239, 68, 68, 0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 }}>
+                        <Text style={{ fontSize: 11.5, fontWeight: '900', color: item.pts >= 0 ? '#34d399' : '#ef4444' }}>
+                          {item.pts >= 0 ? `+${item.pts}` : item.pts} pts
+                        </Text>
+                      </View>
                     </View>
                   ))
                 )}
               </View>
 
-              {/* Section 3: Fielding Points Breakdown */}
-              <View style={[styles.mvpModalSection, currentTheme.isLight && { backgroundColor: '#fffbeb', borderColor: '#fde68a' }]}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+              {/* Section 3: Fielding Points Breakdown Card */}
+              <View
+                style={{
+                  backgroundColor: currentTheme.isLight ? '#fffbeb' : '#231805',
+                  borderRadius: 12,
+                  borderWidth: 1,
+                  borderColor: currentTheme.isLight ? '#fde68a' : '#78350f',
+                  padding: 12,
+                }}
+              >
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.isLight ? '#fef3c7' : 'rgba(120, 53, 15, 0.5)', paddingBottom: 6 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
                     <Text style={{ fontSize: 14 }}>🧤</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '900', color: '#d97706' }}>Fielding Breakdown</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '900', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>Fielding Breakdown</Text>
                   </View>
-                  <Text style={{ fontSize: 12, fontWeight: '900', color: '#d97706' }}>
-                    {selectedMvpPlayer?.fieldingPts || 0} pts
-                  </Text>
+                  <View style={{ backgroundColor: 'rgba(251, 191, 36, 0.15)', borderWidth: 1, borderColor: '#fbbf24', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
+                    <Text style={{ fontSize: 11, fontWeight: '900', color: '#fbbf24' }}>
+                      {selectedMvpPlayer?.fieldingPts || 0} pts
+                    </Text>
+                  </View>
                 </View>
 
                 {(!selectedMvpPlayer?.pointsBreakdown?.fielding || selectedMvpPlayer.pointsBreakdown.fielding.length === 0) ? (
@@ -39952,7 +40057,17 @@ function CricketAddaMain() {
                   </Text>
                 ) : (
                   selectedMvpPlayer.pointsBreakdown.fielding.map((item, fIdx) => (
-                    <View key={`f_pt_${fIdx}`} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 3 }}>
+                    <View
+                      key={`f_pt_${fIdx}`}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        paddingVertical: 5,
+                        borderBottomWidth: fIdx === selectedMvpPlayer.pointsBreakdown.fielding.length - 1 ? 0 : 1,
+                        borderBottomColor: currentTheme.isLight ? '#fef3c7' : 'rgba(120, 53, 15, 0.3)',
+                      }}
+                    >
                       <View style={{ flex: 1, paddingRight: 8 }}>
                         <Text style={{ fontSize: 12, fontWeight: '700', color: currentTheme.isLight ? '#0f172a' : '#ffffff' }}>
                           {item.label}
@@ -39961,9 +40076,11 @@ function CricketAddaMain() {
                           {item.detail}
                         </Text>
                       </View>
-                      <Text style={{ fontSize: 12, fontWeight: '900', color: '#d97706' }}>
-                        +{item.pts} pts
-                      </Text>
+                      <View style={{ backgroundColor: 'rgba(251, 191, 36, 0.12)', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 5 }}>
+                        <Text style={{ fontSize: 11.5, fontWeight: '900', color: '#fbbf24' }}>
+                          +{item.pts} pts
+                        </Text>
+                      </View>
                     </View>
                   ))
                 )}
@@ -39972,10 +40089,25 @@ function CricketAddaMain() {
 
             {/* Dismiss Button */}
             <TouchableOpacity
-              style={[styles.modalActionBtn, { backgroundColor: currentTheme.primary, marginTop: 14 }]}
+              activeOpacity={0.85}
+              style={{
+                height: 46,
+                borderRadius: 12,
+                backgroundColor: currentTheme.primary || '#00e676',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginTop: 14,
+                shadowColor: currentTheme.primary || '#00e676',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.35,
+                shadowRadius: 5,
+                elevation: 5,
+              }}
               onPress={() => setSelectedMvpPlayer(null)}
             >
-              <Text style={{ color: currentTheme.primaryText, fontWeight: '900', fontSize: 14 }}>Close</Text>
+              <Text style={{ color: currentTheme.primaryText || '#000000', fontWeight: '900', fontSize: 14.5, letterSpacing: 0.5 }}>
+                Close ✓
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
