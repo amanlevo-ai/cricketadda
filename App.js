@@ -28019,11 +28019,11 @@ function CricketAddaMain() {
                               </Text>
                             </View>
 
-                            {/* Formatted Match Stats Breakdown */}
+                            {/* Formatted Match Stats Breakdown (Clean text, no unwanted icons) */}
                             <View style={{ flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 5, marginTop: 4 }}>
                               {(player.runs > 0 || player.balls > 0) && (
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }}>
-                                  🏏 {player.runs}r <Text style={{ fontSize: 10, fontWeight: '500', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({player.balls}b)</Text>
+                                  {player.runs}r <Text style={{ fontSize: 10, fontWeight: '500', color: currentTheme.isLight ? '#64748b' : '#94a3b8' }}>({player.balls}b)</Text>
                                 </Text>
                               )}
                               {(player.runs > 0 || player.balls > 0) && (player.wickets > 0 || player.oversNum > 0 || player.catches > 0) && (
@@ -28031,7 +28031,7 @@ function CricketAddaMain() {
                               )}
                               {(player.wickets > 0 || player.oversNum > 0) && (
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#059669' : '#34d399' }}>
-                                  🎯 {player.wickets}/{player.runsConceded}
+                                  {player.wickets}/{player.runsConceded}
                                 </Text>
                               )}
                               {((player.runs > 0 || player.balls > 0 || player.wickets > 0 || player.oversNum > 0) && (player.catches > 0 || player.stumpings > 0 || player.runOuts > 0)) && (
@@ -28039,17 +28039,17 @@ function CricketAddaMain() {
                               )}
                               {player.catches > 0 && (
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
-                                  🧤 {player.catches}ct
+                                  {player.catches} ct
                                 </Text>
                               )}
                               {player.stumpings > 0 && (
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
-                                  ⚡ {player.stumpings}st
+                                  {player.stumpings} st
                                 </Text>
                               )}
                               {player.runOuts > 0 && (
                                 <Text style={{ fontSize: 11, fontWeight: '700', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>
-                                  🎯 {player.runOuts}ro
+                                  {player.runOuts} ro
                                 </Text>
                               )}
                             </View>
@@ -40156,16 +40156,16 @@ function CricketAddaMain() {
               {/* 3 Equal Flex Pills */}
               <View style={{ flexDirection: 'row', gap: 6 }}>
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: currentTheme.isLight ? 'rgba(2, 132, 199, 0.12)' : 'rgba(2, 132, 199, 0.22)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.4)', paddingVertical: 5, borderRadius: 8 }}>
-                  <Text style={{ fontSize: 10.5, color: '#38bdf8', fontWeight: '800' }}>🏏 Bat</Text>
-                  <Text style={{ fontSize: 12.5, color: '#38bdf8', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.battingPts || 0}</Text>
+                  <Text style={{ fontSize: 10.5, color: '#38bdf8', fontWeight: '800', letterSpacing: 0.5 }}>BAT</Text>
+                  <Text style={{ fontSize: 13, color: '#38bdf8', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.battingPts || 0}</Text>
                 </View>
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: currentTheme.isLight ? 'rgba(5, 150, 105, 0.12)' : 'rgba(5, 150, 105, 0.22)', borderWidth: 1, borderColor: 'rgba(52, 211, 153, 0.4)', paddingVertical: 5, borderRadius: 8 }}>
-                  <Text style={{ fontSize: 10.5, color: '#34d399', fontWeight: '800' }}>🎯 Bowl</Text>
-                  <Text style={{ fontSize: 12.5, color: '#34d399', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.bowlingPts || 0}</Text>
+                  <Text style={{ fontSize: 10.5, color: '#34d399', fontWeight: '800', letterSpacing: 0.5 }}>BOWL</Text>
+                  <Text style={{ fontSize: 13, color: '#34d399', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.bowlingPts || 0}</Text>
                 </View>
                 <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: currentTheme.isLight ? 'rgba(217, 119, 6, 0.12)' : 'rgba(217, 119, 6, 0.22)', borderWidth: 1, borderColor: 'rgba(251, 191, 36, 0.4)', paddingVertical: 5, borderRadius: 8 }}>
-                  <Text style={{ fontSize: 10.5, color: '#fbbf24', fontWeight: '800' }}>🧤 Field</Text>
-                  <Text style={{ fontSize: 12.5, color: '#fbbf24', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.fieldingPts || 0}</Text>
+                  <Text style={{ fontSize: 10.5, color: '#fbbf24', fontWeight: '800', letterSpacing: 0.5 }}>FIELD</Text>
+                  <Text style={{ fontSize: 13, color: '#fbbf24', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.fieldingPts || 0}</Text>
                 </View>
               </View>
             </View>
@@ -40182,10 +40182,7 @@ function CricketAddaMain() {
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.isLight ? '#e0f2fe' : 'rgba(30, 58, 95, 0.5)', paddingBottom: 6 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ fontSize: 14 }}>🏏</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '900', color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }}>Batting Breakdown</Text>
-                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: currentTheme.isLight ? '#0284c7' : '#38bdf8' }}>Batting Breakdown</Text>
                   <View style={{ backgroundColor: 'rgba(56, 189, 248, 0.15)', borderWidth: 1, borderColor: '#38bdf8', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
                     <Text style={{ fontSize: 11, fontWeight: '900', color: '#38bdf8' }}>
                       {selectedMvpPlayer?.battingPts || 0} pts
@@ -40239,10 +40236,7 @@ function CricketAddaMain() {
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.isLight ? '#d1fae5' : 'rgba(6, 95, 70, 0.5)', paddingBottom: 6 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ fontSize: 14 }}>🎯</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '900', color: currentTheme.isLight ? '#059669' : '#34d399' }}>Bowling Breakdown</Text>
-                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: currentTheme.isLight ? '#059669' : '#34d399' }}>Bowling Breakdown</Text>
                   <View style={{ backgroundColor: 'rgba(52, 211, 153, 0.15)', borderWidth: 1, borderColor: '#34d399', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
                     <Text style={{ fontSize: 11, fontWeight: '900', color: '#34d399' }}>
                       {selectedMvpPlayer?.bowlingPts || 0} pts
@@ -40296,10 +40290,7 @@ function CricketAddaMain() {
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8, borderBottomWidth: 1, borderBottomColor: currentTheme.isLight ? '#fef3c7' : 'rgba(120, 53, 15, 0.5)', paddingBottom: 6 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                    <Text style={{ fontSize: 14 }}>🧤</Text>
-                    <Text style={{ fontSize: 13, fontWeight: '900', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>Fielding Breakdown</Text>
-                  </View>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: currentTheme.isLight ? '#d97706' : '#fbbf24' }}>Fielding Breakdown</Text>
                   <View style={{ backgroundColor: 'rgba(251, 191, 36, 0.15)', borderWidth: 1, borderColor: '#fbbf24', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 }}>
                     <Text style={{ fontSize: 11, fontWeight: '900', color: '#fbbf24' }}>
                       {selectedMvpPlayer?.fieldingPts || 0} pts
