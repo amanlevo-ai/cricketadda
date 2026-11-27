@@ -27497,7 +27497,7 @@ function CricketAddaMain() {
           {/* ========================================================= */}
           {/* 🔘 MATCH SUB-TABS: SCORECARD vs MVP RANKINGS */}
           {/* ========================================================= */}
-          <View style={[styles.scorecardSubTabsBar, currentTheme.isLight && { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }]}>
+          <View style={[styles.scorecardSubTabsBar, currentTheme.isLight && { backgroundColor: '#e2e8f0', borderColor: '#cbd5e1' }, scorecardTab === 'mvp' && { marginBottom: 3 }]}>
             <TouchableOpacity
               style={[
                 styles.scorecardSubTabBtn,
@@ -27733,9 +27733,9 @@ function CricketAddaMain() {
             const leaderboard = awards?.mvpLeaderboard || [];
 
             return (
-              <View style={{ marginTop: 4 }}>
+              <View style={{ marginTop: 0 }}>
                 {/* Top Action: MVP Rules */}
-                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 6, paddingHorizontal: 2 }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 5, paddingHorizontal: 2 }}>
                   <TouchableOpacity
                     activeOpacity={0.8}
                     style={{
