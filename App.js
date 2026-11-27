@@ -7412,9 +7412,12 @@ function CricketAddaMain() {
                 });
                 if (curSquad.length !== prevLen) tModified = true;
                 let cap = t.captain || '';
-                if (!cap || cap.toLowerCase().includes('amandeep') || cap.toLowerCase().includes('aman')) {
-                  const wp = curSquad.find(p => (typeof p === 'string' ? p : (p?.name || '')).toLowerCase().includes('wpardeep'));
-                  cap = wp ? (typeof wp === 'string' ? wp.replace(/\s*\([^)]*\)/g, '').trim() : wp.name) : (curSquad[0] ? (typeof curSquad[0] === 'string' ? curSquad[0] : curSquad[0].name) : 'Wpardeepkaur');
+                if (!cap || cap.toLowerCase().includes('amandeep') || cap.toLowerCase().includes('aman') || cap.toLowerCase().includes('wpardeep')) {
+                  const capPlayer = curSquad.find(p => {
+                    const pName = typeof p === 'string' ? p : (p?.name || '');
+                    return p?.isCaptain || pName.includes('(c)');
+                  }) || curSquad[0];
+                  cap = capPlayer ? (typeof capPlayer === 'string' ? capPlayer.replace(/\s*\(c\)/gi, '').trim() : (capPlayer.name || '').replace(/\s*\(c\)/gi, '').trim()) : 'Captain';
                   tModified = true;
                 }
                 if (tModified) {
@@ -13950,36 +13953,29 @@ function CricketAddaMain() {
       t => t && t.name && t.name.toLowerCase().trim() === targetName.toLowerCase().trim()
     );
 
-    // Collect all players currently part of this team's match squad
-    const rawSquadNames = isBowling
-      ? (
-          (currentMatchData?.fieldingSquad && currentMatchData?.fieldingSquad.length > 0)
-            ? currentMatchData?.fieldingSquad
-            : (currentMatchData?.fieldingSquad && currentMatchData.fieldingSquad.length > 0)
-            ? currentMatchData.fieldingSquad
-            : (currentMatchData?.oppPlayingXI && currentMatchData.oppPlayingXI.length > 0)
-            ? currentMatchData.oppPlayingXI.map(p => typeof p === 'string' ? p : p.name)
-            : (foundTeam && Array.isArray(foundTeam.squad) && foundTeam.squad.length > 0)
-            ? foundTeam.squad.map(p => typeof p === 'string' ? p : p.name)
-            : activeOppBowlers
-        )
-      : (
-          (currentMatchData?.myPlayingXI && currentMatchData.myPlayingXI.length > 0)
-            ? currentMatchData.myPlayingXI.map(p => typeof p === 'string' ? p : p.name)
-            : (foundTeam && Array.isArray(foundTeam.squad) && foundTeam.squad.length > 0)
-            ? foundTeam.squad.map(p => typeof p === 'string' ? p : p.name)
-            : activeBattingSquad
-        );
+    // Canonical check: Is targetName Team 1 (Aman 11) or Team 2 (Tarlochan 11)?
+    const team1CanonicalName = String(currentMatchData?.teamA || currentMatchData?.team1Name || currentMatchData?.innings1?.team || '').toLowerCase().trim();
+    const isTeam1 = targetName.toLowerCase().trim() === team1CanonicalName ||
+      (currentInnings === 1 ? !isBowling : isBowling);
+
+    const teamMatchSquad = isTeam1
+      ? (currentMatchData?.team1Squad || currentMatchData?.myPlayingXI || (foundTeam && foundTeam.squad) || activeBattingSquad)
+      : (currentMatchData?.team2Squad || currentMatchData?.opponentPlayingXI || currentMatchData?.oppPlayingXI || currentMatchData?.fieldingSquad || (foundTeam && foundTeam.squad) || activeOppBowlers);
+
+    const rawSquadNames = (foundTeam && Array.isArray(foundTeam.squad) && foundTeam.squad.length > 0)
+      ? foundTeam.squad
+      : (Array.isArray(teamMatchSquad) ? teamMatchSquad : []);
 
     const cleanSquad = (rawSquadNames || []).map((p, idx) => {
       if (typeof p === 'string') {
-        const cleanName = typeof p === 'string' ? p.replace(/\s*\([^)]*\)/g, '').trim() : '';
+        const cleanName = p.replace(/\s*\([^)]*\)/g, '').trim();
+        const isCap = p.includes('(c)') || (foundTeam?.captain && cleanName.toLowerCase() === foundTeam.captain.toLowerCase()) || idx === 0;
         return {
           id: `p_squad_${idx}_${Date.now()}_${Math.random().toString(36).substr(2, 4)}`,
           name: cleanName,
           phone: '',
-          role: p.includes('(c)') ? 'BAT' : p.includes('(wk)') ? 'WK' : (idx % 3 === 0 ? 'BOWL' : idx % 2 === 0 ? 'ALL' : 'BAT'),
-          isCaptain: p.includes('(c)') || idx === 0,
+          role: isCap ? 'BAT' : p.includes('(wk)') ? 'WK' : (idx % 3 === 0 ? 'BOWL' : idx % 2 === 0 ? 'ALL' : 'BAT'),
+          isCaptain: isCap,
           isViceCaptain: idx === 1,
           isWk: p.includes('(wk)'),
           avatarUri: PLAYER_AVATARS[cleanName] || null,
@@ -13989,28 +13985,20 @@ function CricketAddaMain() {
     });
 
     if (foundTeam) {
-      // Merge match players into existing squad if any missing
-      const existingNames = new Set((foundTeam.squad || []).map(p => (typeof p === 'string' ? p : p.name).toLowerCase().trim()));
-      const mergedSquad = [...(foundTeam.squad || [])];
-      cleanSquad.forEach(p => {
-        if (!existingNames.has(p.name.toLowerCase().trim())) {
-          mergedSquad.push(p);
-        }
-      });
       const teamToEdit = {
         ...foundTeam,
         flag: targetFlag || foundTeam.flag,
         logo: targetLogo || foundTeam.logo,
         logoUri: targetLogo || foundTeam.logoUri,
-        squad: mergedSquad,
+        squad: cleanSquad.length > 0 ? cleanSquad : foundTeam.squad,
       };
-      openNewTeamModal(isBowling ? 'teamB' : 'teamA', '', teamToEdit);
+      openNewTeamModal(isTeam1 ? 'teamA' : 'teamB', '', teamToEdit);
     } else {
       const newCustomTeam = {
         id: `custom_team_${targetName.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}_${Date.now()}`,
         name: targetName,
         shortName: targetShort || targetName.slice(0, 3).toUpperCase(),
-        flag: targetFlag || (isBowling ? '⚡' : '🦁'),
+        flag: targetFlag || (isTeam1 ? '🦁' : '⚡'),
         logo: targetLogo,
         logoUri: targetLogo,
         city: 'Match Team',
@@ -14020,7 +14008,7 @@ function CricketAddaMain() {
         isPendingSync: true,
       };
       setRegisteredTeams(prev => [newCustomTeam, ...prev]);
-      openNewTeamModal(isBowling ? 'teamB' : 'teamA', '', newCustomTeam);
+      openNewTeamModal(isTeam1 ? 'teamA' : 'teamB', '', newCustomTeam);
     }
   };
 
@@ -18340,51 +18328,34 @@ function CricketAddaMain() {
           const cur = prev[activeMatchId] || {};
           const updated = { ...cur };
 
-          if (isMatchBowlingTeam) {
-            if (currentInnings === 1) {
-              updated.teamB = cleanName;
-              updated.flagB = newTeamFlag || cur.flagB;
-              updated.logoB = finalTeamLogo || cur.logoB;
-              if (updated.innings2) {
-                updated.innings2.team = cleanName;
-                updated.innings2.flag = newTeamFlag || cur.innings2?.flag;
-                updated.innings2.logo = finalTeamLogo || cur.innings2?.logo;
-              }
-            } else {
-              updated.teamA = cleanName;
-              updated.flagA = newTeamFlag || cur.flagA;
-              updated.logoA = finalTeamLogo || cur.logoA;
-              if (updated.innings1) {
-                updated.innings1.team = cleanName;
-                updated.innings1.flag = newTeamFlag || cur.innings1?.flag;
-                updated.innings1.logo = finalTeamLogo || cur.innings1?.logo;
-              }
-            }
-            updated.fieldingSquad = squadPlayerNames;
-            updated.oppPlayingXI = squadPlayerNames;
-          }
+          // Canonical check: Is cleanName Team 1 (Aman 11) or Team 2 (Tarlochan 11)?
+          const isTargetTeamA = (cur.teamA && cur.teamA.toLowerCase().trim() === cleanName.toLowerCase().trim()) ||
+            (cur.innings1?.team && cur.innings1.team.toLowerCase().trim() === cleanName.toLowerCase().trim()) ||
+            (matchTeamEditSlot === 'batting' ? currentInnings === 1 : currentInnings === 2);
 
-          if (isMatchBattingTeam) {
-            if (currentInnings === 1) {
-              updated.teamA = cleanName;
-              updated.flagA = newTeamFlag || cur.flagA;
-              updated.logoA = finalTeamLogo || cur.logoA;
-              if (updated.innings1) {
-                updated.innings1.team = cleanName;
-                updated.innings1.flag = newTeamFlag || cur.innings1?.flag;
-                updated.innings1.logo = finalTeamLogo || cur.innings1?.logo;
-              }
-            } else {
-              updated.teamB = cleanName;
-              updated.flagB = newTeamFlag || cur.flagB;
-              updated.logoB = finalTeamLogo || cur.logoB;
-              if (updated.innings2) {
-                updated.innings2.team = cleanName;
-                updated.innings2.flag = newTeamFlag || cur.innings2?.flag;
-                updated.innings2.logo = finalTeamLogo || cur.innings2?.logo;
-              }
-            }
+          if (isTargetTeamA) {
+            updated.teamA = cleanName;
+            updated.flagA = newTeamFlag || cur.flagA;
+            updated.logoA = finalTeamLogo || cur.logoA;
+            updated.team1Squad = squadPlayerNames;
             updated.myPlayingXI = squadPlayerNames;
+            if (updated.innings1) {
+              updated.innings1.team = cleanName;
+              updated.innings1.flag = newTeamFlag || cur.innings1?.flag;
+              updated.innings1.logo = finalTeamLogo || cur.innings1?.logo;
+            }
+          } else {
+            updated.teamB = cleanName;
+            updated.flagB = newTeamFlag || cur.flagB;
+            updated.logoB = finalTeamLogo || cur.logoB;
+            updated.team2Squad = squadPlayerNames;
+            updated.oppPlayingXI = squadPlayerNames;
+            updated.fieldingSquad = squadPlayerNames;
+            if (updated.innings2) {
+              updated.innings2.team = cleanName;
+              updated.innings2.flag = newTeamFlag || cur.innings2?.flag;
+              updated.innings2.logo = finalTeamLogo || cur.innings2?.logo;
+            }
           }
 
           const updatedDb = { ...prev, [activeMatchId]: updated };
@@ -30075,7 +30046,16 @@ function CricketAddaMain() {
                               </View>
                             </View>
                             <Text style={{ color: currentTheme.isLight ? '#64748b' : '#94a3b8', fontSize: 11, marginTop: 2 }}>
-                              📍 {newTeamCity || 'Opponent Ground'} • Captain: {activeEditingTeam?.captain || (isEditingOpponentTeam ? (newTeamSquad.find(p => p.name && (p.name.includes('(c)') || p.isCaptain) && !p.name.toLowerCase().includes('amandeep'))?.name?.replace(' (c)', '') || activeEditingTeam?.captain || 'Opponent Captain') : (newTeamSquad.find(p => p.isCaptain || (p.name && p.name.includes('(c)')))?.name?.replace(' (c)', '') || 'Captain'))}
+                              📍 {newTeamCity || 'Opponent Ground'} • Captain: {(() => {
+                                const capInSquad = newTeamSquad.find(p => p && (p.isCaptain || (p.name && p.name.includes('(c)'))));
+                                if (capInSquad && capInSquad.name) {
+                                  return capInSquad.name.replace(/\s*\(c\)/gi, '').trim();
+                                }
+                                if (activeEditingTeam?.captain && !activeEditingTeam.captain.toLowerCase().includes('wpardeep')) {
+                                  return activeEditingTeam.captain;
+                                }
+                                return newTeamSquad[0]?.name ? newTeamSquad[0].name.replace(/\s*\(c\)/gi, '').trim() : 'Captain';
+                              })()}
                             </Text>
                           </View>
                         </View>
