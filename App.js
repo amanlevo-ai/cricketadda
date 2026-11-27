@@ -27931,10 +27931,10 @@ function CricketAddaMain() {
                           </View>
 
                           {/* 2. Avatar with MVP / YOU Badge */}
-                          <View style={{ marginHorizontal: 8, position: 'relative' }}>
+                          <View style={{ marginHorizontal: 7, position: 'relative' }}>
                             <PlayerAvatar
                               name={player.name}
-                              size={44}
+                              size={34}
                               customUri={getPlayerAvatarUri(player.name)}
                               borderColor={avatarBorderColor}
                             />
@@ -27942,17 +27942,17 @@ function CricketAddaMain() {
                               <View
                                 style={{
                                   position: 'absolute',
-                                  top: -4,
-                                  right: -6,
+                                  top: -3,
+                                  right: -5,
                                   backgroundColor: '#f59e0b',
-                                  paddingHorizontal: 4.5,
-                                  paddingVertical: 1,
-                                  borderRadius: 6,
+                                  paddingHorizontal: 3.5,
+                                  paddingVertical: 0.5,
+                                  borderRadius: 5,
                                   borderWidth: 1,
                                   borderColor: '#000000',
                                 }}
                               >
-                                <Text style={{ color: '#000000', fontSize: 8, fontWeight: '900', letterSpacing: 0.3 }}>
+                                <Text style={{ color: '#000000', fontSize: 7, fontWeight: '900', letterSpacing: 0.3 }}>
                                   MVP
                                 </Text>
                               </View>
@@ -27960,17 +27960,17 @@ function CricketAddaMain() {
                               <View
                                 style={{
                                   position: 'absolute',
-                                  top: -4,
-                                  right: -6,
+                                  top: -3,
+                                  right: -5,
                                   backgroundColor: '#0284c7',
-                                  paddingHorizontal: 4.5,
-                                  paddingVertical: 1,
-                                  borderRadius: 6,
+                                  paddingHorizontal: 3.5,
+                                  paddingVertical: 0.5,
+                                  borderRadius: 5,
                                   borderWidth: 1,
                                   borderColor: '#ffffff',
                                 }}
                               >
-                                <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900', letterSpacing: 0.3 }}>
+                                <Text style={{ color: '#ffffff', fontSize: 7, fontWeight: '900', letterSpacing: 0.3 }}>
                                   YOU
                                 </Text>
                               </View>
@@ -40096,7 +40096,7 @@ function CricketAddaMain() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                 <PlayerAvatar
                   name={selectedMvpPlayer?.name || 'Player'}
-                  size={44}
+                  size={36}
                   customUri={getPlayerAvatarUri(selectedMvpPlayer?.name)}
                   borderColor="#f59e0b"
                 />
