@@ -14495,8 +14495,6 @@ function CricketAddaMain() {
         return updatedDb;
       });
 
-      showAppToast('↩️ Delivery Undone', '↩️', 'info');
-
       // Concurrency-safe atomic undo on Cloud RTDB
       if (activeMatchId && isFirebaseConfigured()) {
         undoLastBallDeliveryAtomic(activeMatchId, clientIdRef?.current || '').then(res => {
