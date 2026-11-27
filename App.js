@@ -39814,7 +39814,7 @@ function CricketAddaMain() {
               borderRadius: 20,
               borderWidth: 1.5,
               borderColor: currentTheme.isLight ? '#cbd5e1' : '#1e3a5f',
-              padding: 18,
+              padding: 14,
               shadowColor: '#000000',
               shadowOffset: { width: 0, height: 10 },
               shadowOpacity: 0.6,
@@ -39830,14 +39830,14 @@ function CricketAddaMain() {
                 justifyContent: 'space-between',
                 borderBottomWidth: 1,
                 borderBottomColor: currentTheme.isLight ? '#e2e8f0' : 'rgba(30, 58, 95, 0.6)',
-                paddingBottom: 12,
-                marginBottom: 12,
+                paddingBottom: 10,
+                marginBottom: 10,
               }}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
                 <PlayerAvatar
                   name={selectedMvpPlayer?.name || 'Player'}
-                  size={46}
+                  size={44}
                   customUri={getPlayerAvatarUri(selectedMvpPlayer?.name)}
                   borderColor="#f59e0b"
                 />
@@ -39881,40 +39881,37 @@ function CricketAddaMain() {
                 borderWidth: 1.5,
                 borderColor: '#f59e0b',
                 borderRadius: 14,
-                paddingVertical: 10,
-                paddingHorizontal: 14,
-                marginBottom: 12,
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
+                padding: 12,
+                marginBottom: 10,
               }}
             >
-              <View>
-                <Text style={{ fontSize: 10.5, fontWeight: '800', color: currentTheme.isLight ? '#b45309' : '#fde68a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: currentTheme.isLight ? '#b45309' : '#fde68a', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   Total MVP Points
                 </Text>
-                <Text style={{ fontSize: 24, fontWeight: '900', color: currentTheme.isLight ? '#b45309' : '#fbbf24', marginTop: 2 }}>
+                <Text style={{ fontSize: 22, fontWeight: '900', color: currentTheme.isLight ? '#b45309' : '#fbbf24' }}>
                   ⭐ {Number(selectedMvpPlayer?.totalMvpPts || 0).toFixed(selectedMvpPlayer?.totalMvpPts % 1 === 0 ? 1 : 2)}
                 </Text>
               </View>
 
+              {/* 3 Equal Flex Pills */}
               <View style={{ flexDirection: 'row', gap: 6 }}>
-                <View style={{ alignItems: 'center', backgroundColor: currentTheme.isLight ? 'rgba(2, 132, 199, 0.12)' : 'rgba(2, 132, 199, 0.22)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.4)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8 }}>
-                  <Text style={{ fontSize: 10, color: '#38bdf8', fontWeight: '800' }}>🏏 Bat</Text>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: currentTheme.isLight ? 'rgba(2, 132, 199, 0.12)' : 'rgba(2, 132, 199, 0.22)', borderWidth: 1, borderColor: 'rgba(56, 189, 248, 0.4)', paddingVertical: 5, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10.5, color: '#38bdf8', fontWeight: '800' }}>🏏 Bat</Text>
                   <Text style={{ fontSize: 12.5, color: '#38bdf8', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.battingPts || 0}</Text>
                 </View>
-                <View style={{ alignItems: 'center', backgroundColor: currentTheme.isLight ? 'rgba(5, 150, 105, 0.12)' : 'rgba(5, 150, 105, 0.22)', borderWidth: 1, borderColor: 'rgba(52, 211, 153, 0.4)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8 }}>
-                  <Text style={{ fontSize: 10, color: '#34d399', fontWeight: '800' }}>🎯 Bowl</Text>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: currentTheme.isLight ? 'rgba(5, 150, 105, 0.12)' : 'rgba(5, 150, 105, 0.22)', borderWidth: 1, borderColor: 'rgba(52, 211, 153, 0.4)', paddingVertical: 5, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10.5, color: '#34d399', fontWeight: '800' }}>🎯 Bowl</Text>
                   <Text style={{ fontSize: 12.5, color: '#34d399', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.bowlingPts || 0}</Text>
                 </View>
-                <View style={{ alignItems: 'center', backgroundColor: currentTheme.isLight ? 'rgba(217, 119, 6, 0.12)' : 'rgba(217, 119, 6, 0.22)', borderWidth: 1, borderColor: 'rgba(251, 191, 36, 0.4)', paddingHorizontal: 8, paddingVertical: 5, borderRadius: 8 }}>
-                  <Text style={{ fontSize: 10, color: '#fbbf24', fontWeight: '800' }}>🧤 Field</Text>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: currentTheme.isLight ? 'rgba(217, 119, 6, 0.12)' : 'rgba(217, 119, 6, 0.22)', borderWidth: 1, borderColor: 'rgba(251, 191, 36, 0.4)', paddingVertical: 5, borderRadius: 8 }}>
+                  <Text style={{ fontSize: 10.5, color: '#fbbf24', fontWeight: '800' }}>🧤 Field</Text>
                   <Text style={{ fontSize: 12.5, color: '#fbbf24', fontWeight: '900', marginTop: 1 }}>{selectedMvpPlayer?.fieldingPts || 0}</Text>
                 </View>
               </View>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ flexGrow: 1 }} contentContainerStyle={{ gap: 10 }}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ flexShrink: 1 }} contentContainerStyle={{ paddingBottom: 6, gap: 10 }}>
               {/* Section 1: Batting Points Breakdown Card */}
               <View
                 style={{
