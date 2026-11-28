@@ -327,7 +327,9 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     const addedRuns = Number(d.addedRuns !== undefined ? d.addedRuns : (d.runs !== undefined ? d.runs : 0)) || 0;
     const overthrowRuns = Number(d.overthrowRuns || 0);
     const extraType = d.extraType || 'none';
-    const isLegal = d.isLegalDelivery !== false && extraType !== 'wide' && extraType !== 'noBall' && (extraType !== 'penalty' || d.isLegalDelivery === true);
+    const penaltyDelType = d.penaltyDeliveryType || d.penaltyRunType || 'none';
+    const isPenaltyWide = extraType === 'penalty' && penaltyDelType === 'wide';
+    const isLegal = d.isLegalDelivery !== false && extraType !== 'wide' && extraType !== 'noBall' && !isPenaltyWide && (extraType !== 'penalty' || d.isLegalDelivery === true);
     const isWkt = Boolean(d.isWkt);
 
     d._overIdx = curReplayOverIdx;
@@ -366,9 +368,29 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
       extrasBreakdown.legByes += addedRuns;
       extrasBreakdown.total += addedRuns;
     } else if (extraType === 'penalty') {
-      const pen = Number(d.extraPenalty !== undefined ? d.extraPenalty : (addedRuns - Number(d.runsOffBat || 0)));
+      const pen = Number(d.extraPenalty !== undefined ? d.extraPenalty : (d.penaltyRuns !== undefined ? d.penaltyRuns : 5));
       extrasBreakdown.penalty += pen;
       extrasBreakdown.total += pen;
+
+      if (penaltyDelType === 'wide') {
+        const wideRuns = Number(d.wideRuns !== undefined ? d.wideRuns : (addedRuns - pen));
+        if (wideRuns > 0) {
+          extrasBreakdown.wides += wideRuns;
+          extrasBreakdown.total += wideRuns;
+        }
+      } else if (penaltyDelType === 'bye') {
+        const byeRuns = Number(d.byeRuns !== undefined ? d.byeRuns : (addedRuns - pen));
+        if (byeRuns > 0) {
+          extrasBreakdown.byes += byeRuns;
+          extrasBreakdown.total += byeRuns;
+        }
+      } else if (penaltyDelType === 'legBye') {
+        const legByeRuns = Number(d.legByeRuns !== undefined ? d.legByeRuns : (addedRuns - pen));
+        if (legByeRuns > 0) {
+          extrasBreakdown.legByes += legByeRuns;
+          extrasBreakdown.total += legByeRuns;
+        }
+      }
     }
 
     // --- Batter Accounting ---
@@ -381,7 +403,7 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     }
 
     // Batter ball faced: counts on all deliveries EXCEPT wides and dead-ball penalty
-    if (extraType !== 'wide' && (extraType !== 'penalty' || d.isLegalDelivery === true)) {
+    if (extraType !== 'wide' && !isPenaltyWide && (extraType !== 'penalty' || d.isLegalDelivery === true)) {
       strikerBatter.balls += 1;
     }
 
@@ -397,11 +419,15 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
         runsOffBat = Math.max(0, addedRuns - pen);
       }
     } else if (extraType === 'penalty') {
-      runsOffBat = Number(d.runsOffBat !== undefined ? d.runsOffBat : (d.batterRuns || 0));
+      if (penaltyDelType === 'bat') {
+        runsOffBat = Number(d.runsOffBat !== undefined ? d.runsOffBat : (d.batterRuns || 0));
+      } else {
+        runsOffBat = 0;
+      }
     }
 
     strikerBatter.runs += runsOffBat;
-    if (runsOffBat === 0 && extraType !== 'wide' && extraType !== 'penalty') strikerBatter.dots += 1;
+    if (runsOffBat === 0 && extraType !== 'wide' && !isPenaltyWide && (extraType !== 'penalty' || d.isLegalDelivery === true)) strikerBatter.dots += 1;
     else if (runsOffBat === 1) strikerBatter.singles += 1;
     else if (runsOffBat === 2) strikerBatter.doubles += 1;
     else if (runsOffBat === 3) strikerBatter.triples += 1;
@@ -449,7 +475,13 @@ export function deriveInningsStateFromDeliveries(deliveries = [], inningsNum = 1
     // Runs conceded by bowler: all added runs EXCEPT byes, leg-byes, and penalties (penalty runs off bat conceded by bowler)
     let runsConceded = 0;
     if (extraType === 'penalty') {
-      runsConceded = runsOffBat;
+      if (penaltyDelType === 'wide') {
+        runsConceded = Number(d.wideRuns !== undefined ? d.wideRuns : (addedRuns - Number(d.extraPenalty !== undefined ? d.extraPenalty : 5)));
+      } else if (penaltyDelType === 'bat') {
+        runsConceded = runsOffBat;
+      } else {
+        runsConceded = 0;
+      }
     } else if (extraType !== 'bye' && extraType !== 'legBye') {
       runsConceded = addedRuns;
     }
@@ -677,6 +709,8 @@ export function deriveMatchStateFromDeliveries(deliveries = [], matchMeta = {}) 
       isOverEnd: activeInn.isOverEnd,
       liveBatters: activeInn.battersMap,
       liveBowlerStats: activeInn.bowlersMap,
+      extras: activeInn.extras,
+      extrasBreakdown: activeInn.extrasBreakdown,
     },
     innings1: {
       ...inn1,

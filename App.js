@@ -1987,20 +1987,25 @@ const reconstructLiveStatsFromHistory = (history = [], curInnings = 1, existingB
       }
       const isLegal = d.isLegalDelivery !== false;
       const extra = d.extraType || 'none';
-      const isWide = extra === 'wide';
-      const isBye = extra === 'bye';
-      const isLegBye = extra === 'legBye';
+      const penaltyDelType = d.penaltyDeliveryType || d.penaltyRunType || 'none';
+      const isWide = extra === 'wide' || (extra === 'penalty' && penaltyDelType === 'wide');
+      const isBye = extra === 'bye' || (extra === 'penalty' && penaltyDelType === 'bye');
+      const isLegBye = extra === 'legBye' || (extra === 'penalty' && penaltyDelType === 'legBye');
       const isPenalty = extra === 'penalty';
 
-      if (!isWide && !isPenalty) {
+      if (!isWide && (extra !== 'penalty' || d.isLegalDelivery === true)) {
         computedBatters[st].balls += 1;
       }
 
       let runsOffBat = 0;
-      if (!isWide && !isBye && !isLegBye && !isPenalty) {
+      if (!isWide && !isBye && !isLegBye) {
         if (extra === 'noBall') {
           if (d.nbRunType === 'bat' || !d.nbRunType) {
             runsOffBat = Number(d.addedRuns || 0) > 0 ? (Number(d.addedRuns) - 1) : 0;
+          }
+        } else if (extra === 'penalty') {
+          if (penaltyDelType === 'bat') {
+            runsOffBat = Number(d.runsOffBat !== undefined ? d.runsOffBat : (d.penaltyCompletedRuns || d.batterRuns || 0));
           }
         } else {
           runsOffBat = Number(d.addedRuns || 0);
@@ -2013,7 +2018,7 @@ const reconstructLiveStatsFromHistory = (history = [], curInnings = 1, existingB
       else if (runsOffBat === 1) computedBatters[st].singles += 1;
       else if (runsOffBat === 2) computedBatters[st].doubles += 1;
       else if (runsOffBat === 3) computedBatters[st].triples += 1;
-      else if (runsOffBat === 0 && !isWide && !isPenalty) computedBatters[st].dots += 1;
+      else if (runsOffBat === 0 && !isWide && (extra !== 'penalty' || d.isLegalDelivery === true)) computedBatters[st].dots += 1;
 
       const bCount = computedBatters[st].balls;
       computedBatters[st].strikeRate = bCount > 0 ? ((computedBatters[st].runs / bCount) * 100).toFixed(1) : '0.0';
@@ -2060,13 +2065,20 @@ const reconstructLiveStatsFromHistory = (history = [], curInnings = 1, existingB
           econ: '0.0',
         };
       }
-      if (d.isLegalDelivery !== false) {
+      if (d.isLegalDelivery !== false && !isWide) {
         computedBowlers[bw].balls += 1;
       }
-      const extra = d.extraType || 'none';
-      if (extra !== 'bye' && extra !== 'legBye' && extra !== 'penalty') {
-        computedBowlers[bw].runs += Number(d.addedRuns || 0);
+      let bRunsConceded = 0;
+      if (extra === 'penalty') {
+        if (penaltyDelType === 'wide') {
+          bRunsConceded = Number(d.wideRuns !== undefined ? d.wideRuns : (Number(d.addedRuns || 0) - Number(d.extraPenalty || 5)));
+        } else if (penaltyDelType === 'bat') {
+          bRunsConceded = runsOffBat;
+        }
+      } else if (extra !== 'bye' && extra !== 'legBye') {
+        bRunsConceded = Number(d.addedRuns || 0);
       }
+      computedBowlers[bw].runs += bRunsConceded;
       if (d.isWkt && d.dismissalType !== 'run_out' && d.dismissalType !== 'retired') {
         computedBowlers[bw].wickets += 1;
       }
@@ -7297,6 +7309,8 @@ function CricketAddaMain() {
   // Penalty Runs modal state
   const [penaltyAwardTeam, setPenaltyAwardTeam] = useState('batting'); // 'batting' | 'bowling'
   const [penaltyReason, setPenaltyReason] = useState('Ball Hit Helmet / Ground Equipment (5 Runs)');
+  const [penaltyDeliveryType, setPenaltyDeliveryType] = useState('none'); // 'none' | 'bat' | 'wide' | 'bye' | 'legBye'
+  const [penaltyCompletedRuns, setPenaltyCompletedRuns] = useState(0); // 0, 1, 2, 3, 4
   const [penaltyBatterRuns, setPenaltyBatterRuns] = useState(0); // 0, 1, 2, 3
   const [penaltyIsLegalBall, setPenaltyIsLegalBall] = useState(true);
   const [penaltyRunsValue, setPenaltyRunsValue] = useState(5);
@@ -12507,7 +12521,8 @@ function CricketAddaMain() {
     dismissalDescParam = null,
     runsOffBatParam = 0,
     awardTeamParam = 'batting',
-    isLegalDeliveryParam = null
+    isLegalDeliveryParam = null,
+    penaltyDeliveryTypeParam = 'none'
   ) => {
     try {
       // 0. Check if current innings or match is already completed
@@ -12630,18 +12645,57 @@ function CricketAddaMain() {
       batterDotsAdded = 1;
       bowlerRunsConceded = 0;
     } else if (extraType === 'penalty') {
-      const bCompleted = Number(runsOffBatParam) || 0;
-      addedRuns = runs + bCompleted;
-      isLegalDelivery = isLegalDeliveryParam !== null ? Boolean(isLegalDeliveryParam) : false;
-      ballSymbol = bCompleted > 0 ? `${bCompleted}+${runs}Pen` : `${runs}Pen`;
-      bowlerRunsConceded = bCompleted; // Runs off bat conceded by bowler, 5 penalty runs go to Extras
-      batterBallsAdded = isLegalDelivery ? 1 : 0;
-      batterRunsAdded = bCompleted;
-      if (bCompleted === 1) batterSinglesAdded = 1;
-      else if (bCompleted === 2) batterDoublesAdded = 1;
-      else if (bCompleted === 3) batterTriplesAdded = 1;
-      else if (bCompleted === 4) batterFoursAdded = 1;
-      else if (bCompleted === 6) batterSixesAdded = 1;
+      const penaltyRuns = Number(runs) || 5;
+      const pDelType = penaltyDeliveryTypeParam || 'none';
+      const completedRuns = Number(runsOffBatParam) || 0;
+
+      if (pDelType === 'wide') {
+        const wideTotal = 1 + completedRuns;
+        addedRuns = wideTotal + penaltyRuns;
+        isLegalDelivery = false; // Wide is illegal delivery, over ball doesn't count
+        ballSymbol = completedRuns > 0 ? `${wideTotal}Wd+${penaltyRuns}Pen` : `1Wd+${penaltyRuns}Pen`;
+        bowlerRunsConceded = wideTotal; // Bowler concedes wide, NOT the penalty runs
+        batterBallsAdded = 0; // Batter doesn't face legal ball on wide
+        batterRunsAdded = 0;
+      } else if (pDelType === 'bye') {
+        addedRuns = completedRuns + penaltyRuns;
+        isLegalDelivery = true; // Legal delivery
+        ballSymbol = completedRuns > 0 ? `${completedRuns}B+${penaltyRuns}Pen` : `${penaltyRuns}Pen`;
+        bowlerRunsConceded = 0; // Bowler concedes 0 on byes and penalty
+        batterBallsAdded = 1; // Legal delivery faced
+        batterDotsAdded = 1; // 0 runs off bat = dot for batter
+        batterRunsAdded = 0;
+      } else if (pDelType === 'legBye') {
+        addedRuns = completedRuns + penaltyRuns;
+        isLegalDelivery = true; // Legal delivery
+        ballSymbol = completedRuns > 0 ? `${completedRuns}Lb+${penaltyRuns}Pen` : `${penaltyRuns}Pen`;
+        bowlerRunsConceded = 0; // Bowler concedes 0 on leg byes and penalty
+        batterBallsAdded = 1; // Legal delivery faced
+        batterDotsAdded = 1; // 0 runs off bat = dot for batter
+        batterRunsAdded = 0;
+      } else if (pDelType === 'bat') {
+        addedRuns = completedRuns + penaltyRuns;
+        isLegalDelivery = true; // Legal delivery
+        ballSymbol = completedRuns > 0 ? `${completedRuns}+${penaltyRuns}Pen` : `${penaltyRuns}Pen`;
+        bowlerRunsConceded = completedRuns; // Bowler concedes runs off bat
+        batterBallsAdded = 1;
+        batterRunsAdded = completedRuns;
+        if (completedRuns === 1) batterSinglesAdded = 1;
+        else if (completedRuns === 2) batterDoublesAdded = 1;
+        else if (completedRuns === 3) batterTriplesAdded = 1;
+        else if (completedRuns === 4) batterFoursAdded = 1;
+        else if (completedRuns === 6) batterSixesAdded = 1;
+        else if (completedRuns === 0) batterDotsAdded = 1;
+      } else {
+        // Direct penalty
+        addedRuns = penaltyRuns;
+        isLegalDelivery = isLegalDeliveryParam !== null ? Boolean(isLegalDeliveryParam) : false;
+        ballSymbol = `${penaltyRuns}Pen`;
+        bowlerRunsConceded = 0;
+        batterBallsAdded = isLegalDelivery ? 1 : 0;
+        batterRunsAdded = 0;
+        if (isLegalDelivery) batterDotsAdded = 1;
+      }
     } else {
       batterRunsAdded = runs + otRuns;
       batterBallsAdded = 1;
@@ -12677,6 +12731,12 @@ function CricketAddaMain() {
       runsOffBat: batterRunsAdded,
       extraType: extraType || 'none',
       extraPenalty: extraPenalty || (extraType === 'wide' || extraType === 'noBall' ? 1 : (extraType === 'penalty' ? runs : 0)),
+      penaltyDeliveryType: (extraType === 'penalty') ? (penaltyDeliveryTypeParam || 'none') : null,
+      penaltyRunType: (extraType === 'penalty') ? (penaltyDeliveryTypeParam || 'none') : null,
+      penaltyCompletedRuns: (extraType === 'penalty') ? (Number(runsOffBatParam) || 0) : 0,
+      wideRuns: (extraType === 'penalty' && penaltyDeliveryTypeParam === 'wide') ? (1 + (Number(runsOffBatParam) || 0)) : 0,
+      byeRuns: (extraType === 'penalty' && penaltyDeliveryTypeParam === 'bye') ? (Number(runsOffBatParam) || 0) : 0,
+      legByeRuns: (extraType === 'penalty' && penaltyDeliveryTypeParam === 'legBye') ? (Number(runsOffBatParam) || 0) : 0,
       awardTeam: awardTeamParam || 'batting',
       penaltyReason: dismissalDescParam || null,
       nbRunType: (extraType === 'noBall' || extraType === 'nb' || extraType === 'no_ball') ? (nbRunType || 'bat') : null,
@@ -12734,7 +12794,8 @@ function CricketAddaMain() {
     setLiveBatters(derivedActive.liveBatters);
     setLiveBowlerStats(derivedActive.liveBowlerStats);
 
-    const isOddRuns = extraType === 'penalty' ? (batterRunsAdded % 2 === 1) : ((runs + otRuns) % 2 === 1);
+    const physicalRuns = extraType === 'penalty' ? (Number(runsOffBatParam) || 0) : (runs + otRuns);
+    const isOddRuns = (physicalRuns % 2 === 1);
     let nextStriker = striker;
     let nextNonStriker = nonStriker;
     const isOverEnd = Boolean(isLegalDelivery && derivedActive.balls > 0 && derivedActive.balls % 6 === 0);
@@ -29986,7 +30047,11 @@ function CricketAddaMain() {
             )}
 
             {extraModalType === 'penalty' ? (
-              <View>
+              <ScrollView
+                style={{ maxHeight: 470 }}
+                showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 4 }}
+              >
                 {/* 1. Award To Team */}
                 <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
                   AWARD PENALTY TO:
@@ -30021,7 +30086,7 @@ function CricketAddaMain() {
                   })}
                 </View>
 
-                {/* 2. Penalty Preset Reasons (Compact 2-Column Grid - Zero Scrolling) */}
+                {/* 2. Penalty Preset Reasons (Compact 2-Column Grid) */}
                 <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
                   PENALTY REASON:
                 </Text>
@@ -30092,117 +30157,326 @@ function CricketAddaMain() {
                   </View>
                 )}
 
-                {/* 3. Batsman Completed Runs Before Penalty (ICC Rule) */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800' }}>
-                    RUNS COMPLETED BY BATTER:
-                  </Text>
-                  <Text style={{ color: '#10b981', fontSize: 9.5, fontWeight: '700' }}>
-                    +{penaltyBatterRuns} to {striker || 'Batter'}
-                  </Text>
-                </View>
-                <View style={{ flexDirection: 'row', gap: 5, marginBottom: 6 }}>
-                  {[0, 1, 2, 3].map(cr => {
-                    const isSel = penaltyBatterRuns === cr;
+                {/* 3. Delivery / Run Type on Penalty */}
+                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
+                  BALL / DELIVERY TYPE ON THIS PENALTY:
+                </Text>
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+                  {[
+                    { key: 'none', label: 'Penalty Only' },
+                    { key: 'bat', label: 'Off Bat' },
+                    { key: 'wide', label: 'Wide Ball' },
+                    { key: 'bye', label: 'Bye' },
+                    { key: 'legBye', label: 'Leg Bye' },
+                  ].map(dt => {
+                    const isSel = penaltyDeliveryType === dt.key;
                     return (
                       <TouchableOpacity
-                        key={`bat_cr_${cr}`}
+                        key={`p_del_${dt.key}`}
                         activeOpacity={0.8}
-                        onPress={() => setPenaltyBatterRuns(cr)}
+                        onPress={() => {
+                          setPenaltyDeliveryType(dt.key);
+                          if (dt.key === 'none') {
+                            setPenaltyCompletedRuns(0);
+                          } else if (dt.key === 'wide' || dt.key === 'bat') {
+                            if (penaltyCompletedRuns < 0) setPenaltyCompletedRuns(0);
+                          } else if (dt.key === 'bye' || dt.key === 'legBye') {
+                            if (penaltyCompletedRuns <= 0) setPenaltyCompletedRuns(1);
+                          }
+                        }}
                         style={{
                           flex: 1,
-                          paddingVertical: 5,
+                          minWidth: '28%',
+                          paddingVertical: 6,
+                          paddingHorizontal: 4,
                           borderRadius: 7,
-                          backgroundColor: isSel ? '#10b981' : '#0a192f',
+                          backgroundColor: isSel ? 'rgba(56, 189, 248, 0.25)' : '#0a192f',
                           borderWidth: 1.2,
-                          borderColor: isSel ? '#34d399' : '#1e3a5f',
+                          borderColor: isSel ? '#38bdf8' : '#1e3a5f',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11.5, fontWeight: '900' }}>
-                          {cr} {cr === 1 ? 'Run' : 'Runs'}
+                        <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 10.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
+                          {dt.label}
                         </Text>
                       </TouchableOpacity>
                     );
                   })}
                 </View>
 
-                {/* 4. Delivery Count */}
-                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
-                  DELIVERY COUNT:
-                </Text>
-                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 10 }}>
-                  {[
-                    { key: true, label: 'Legal Ball Bowled' },
-                    { key: false, label: 'Dead Ball (No Ball Counted)' },
-                  ].map(b => {
-                    const isSel = penaltyIsLegalBall === b.key;
-                    return (
-                      <TouchableOpacity
-                        key={String(b.key)}
-                        activeOpacity={0.8}
-                        onPress={() => setPenaltyIsLegalBall(b.key)}
-                        style={{
-                          flex: 1,
-                          paddingVertical: 6,
-                          paddingHorizontal: 4,
-                          borderRadius: 7,
-                          backgroundColor: isSel ? 'rgba(56, 189, 248, 0.2)' : '#0a192f',
-                          borderWidth: 1.2,
-                          borderColor: isSel ? '#38bdf8' : '#1e3a5f',
-                          alignItems: 'center',
-                        }}
-                      >
-                        <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 10, fontWeight: '800' }}>
-                          {b.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                {/* 4. Dynamic Runs Completed / Extra Delivery Config */}
+                {penaltyDeliveryType === 'bat' && (
+                  <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                        RUNS SCORED OFF BAT:
+                      </Text>
+                      <Text style={{ color: '#10b981', fontSize: 9.5, fontWeight: '700' }}>
+                        +{penaltyCompletedRuns} to {striker || 'Batter'} (Bowler charged)
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
+                      {[0, 1, 2, 3, 4, 6].map(cr => {
+                        const isSel = penaltyCompletedRuns === cr;
+                        return (
+                          <TouchableOpacity
+                            key={`bat_cr_${cr}`}
+                            activeOpacity={0.8}
+                            onPress={() => setPenaltyCompletedRuns(cr)}
+                            style={{
+                              flex: 1,
+                              paddingVertical: 5,
+                              borderRadius: 6,
+                              backgroundColor: isSel ? '#10b981' : '#0a192f',
+                              borderWidth: 1.2,
+                              borderColor: isSel ? '#34d399' : '#1e3a5f',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '900' }}>
+                              {cr}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                      Counts as legal delivery in over. Batter gets runs faced, bowler conceded.
+                    </Text>
+                  </View>
+                )}
 
-                {/* 5. Confirm Button */}
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => {
-                    const penaltyRuns = Number(penaltyRunsValue) || 5;
-                    const batterRuns = Number(penaltyBatterRuns) || 0;
-                    setExtraModalType(null);
-                    setExtraCustomInput('');
-                    recordBall(
-                      penaltyRuns,
-                      'penalty',
-                      penaltyRuns,
-                      false,
-                      null,
-                      null,
-                      null,
-                      null,
-                      null,
-                      0,
-                      null,
-                      penaltyReason,
-                      batterRuns,
-                      penaltyAwardTeam,
-                      penaltyIsLegalBall
-                    );
-                    showAppToast(`Awarded ${penaltyRuns + batterRuns} runs (${penaltyReason})`, '✅', 'success');
-                  }}
-                  style={{
-                    backgroundColor: '#10b981',
-                    borderRadius: 8,
-                    paddingVertical: 10,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    marginBottom: 2,
-                  }}
-                >
-                  <Text style={{ color: '#020617', fontSize: 13, fontWeight: '900' }}>
-                    Confirm & Award ({Number(penaltyRunsValue || 5) + Number(penaltyBatterRuns || 0)} Runs)
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                {penaltyDeliveryType === 'wide' && (
+                  <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                        EXTRA RUNS ON WIDE:
+                      </Text>
+                      <Text style={{ color: '#f59e0b', fontSize: 9.5, fontWeight: '700' }}>
+                        1 Wd + {penaltyCompletedRuns} = {1 + penaltyCompletedRuns} Wide runs
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
+                      {[0, 1, 2, 3, 4].map(cr => {
+                        const isSel = penaltyCompletedRuns === cr;
+                        return (
+                          <TouchableOpacity
+                            key={`wd_cr_${cr}`}
+                            activeOpacity={0.8}
+                            onPress={() => setPenaltyCompletedRuns(cr)}
+                            style={{
+                              flex: 1,
+                              paddingVertical: 5,
+                              borderRadius: 6,
+                              backgroundColor: isSel ? '#f59e0b' : '#0a192f',
+                              borderWidth: 1.2,
+                              borderColor: isSel ? '#fbbf24' : '#1e3a5f',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '900' }}>
+                              {cr}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                      Illegal delivery (extra ball). Bowler charged {1 + penaltyCompletedRuns} wide runs, NOT the penalty runs.
+                    </Text>
+                  </View>
+                )}
+
+                {penaltyDeliveryType === 'bye' && (
+                  <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                        BYES COMPLETED:
+                      </Text>
+                      <Text style={{ color: '#38bdf8', fontSize: 9.5, fontWeight: '700' }}>
+                        +{penaltyCompletedRuns} Extras (Byes)
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
+                      {[1, 2, 3, 4].map(cr => {
+                        const isSel = penaltyCompletedRuns === cr;
+                        return (
+                          <TouchableOpacity
+                            key={`bye_cr_${cr}`}
+                            activeOpacity={0.8}
+                            onPress={() => setPenaltyCompletedRuns(cr)}
+                            style={{
+                              flex: 1,
+                              paddingVertical: 5,
+                              borderRadius: 6,
+                              backgroundColor: isSel ? '#38bdf8' : '#0a192f',
+                              borderWidth: 1.2,
+                              borderColor: isSel ? '#7dd3fc' : '#1e3a5f',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '900' }}>
+                              {cr} {cr === 1 ? 'Bye' : 'Byes'}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                      Counts as legal delivery in over. Bowler charged 0 runs. Batter faced +1 ball.
+                    </Text>
+                  </View>
+                )}
+
+                {penaltyDeliveryType === 'legBye' && (
+                  <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                        LEG BYES COMPLETED:
+                      </Text>
+                      <Text style={{ color: '#a855f7', fontSize: 9.5, fontWeight: '700' }}>
+                        +{penaltyCompletedRuns} Extras (Leg Byes)
+                      </Text>
+                    </View>
+                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
+                      {[1, 2, 3, 4].map(cr => {
+                        const isSel = penaltyCompletedRuns === cr;
+                        return (
+                          <TouchableOpacity
+                            key={`lb_cr_${cr}`}
+                            activeOpacity={0.8}
+                            onPress={() => setPenaltyCompletedRuns(cr)}
+                            style={{
+                              flex: 1,
+                              paddingVertical: 5,
+                              borderRadius: 6,
+                              backgroundColor: isSel ? '#a855f7' : '#0a192f',
+                              borderWidth: 1.2,
+                              borderColor: isSel ? '#c084fc' : '#1e3a5f',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                            }}
+                          >
+                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '900' }}>
+                              {cr} {cr === 1 ? 'Lb' : 'Lbs'}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                      Counts as legal delivery in over. Bowler charged 0 runs. Batter faced +1 ball.
+                    </Text>
+                  </View>
+                )}
+
+                {penaltyDeliveryType === 'none' && (
+                  <View style={{ marginBottom: 8 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
+                      DELIVERY COUNT:
+                    </Text>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                      {[
+                        { key: true, label: 'Legal Ball Bowled' },
+                        { key: false, label: 'Dead Ball (No Ball Counted)' },
+                      ].map(b => {
+                        const isSel = penaltyIsLegalBall === b.key;
+                        return (
+                          <TouchableOpacity
+                            key={String(b.key)}
+                            activeOpacity={0.8}
+                            onPress={() => setPenaltyIsLegalBall(b.key)}
+                            style={{
+                              flex: 1,
+                              paddingVertical: 6,
+                              paddingHorizontal: 4,
+                              borderRadius: 7,
+                              backgroundColor: isSel ? 'rgba(56, 189, 248, 0.2)' : '#0a192f',
+                              borderWidth: 1.2,
+                              borderColor: isSel ? '#38bdf8' : '#1e3a5f',
+                              alignItems: 'center',
+                            }}
+                          >
+                            <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                              {b.label}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+                )}
+
+                {/* 5. Dynamic Confirm Button */}
+                {(() => {
+                  const penaltyR = Number(penaltyRunsValue) || 5;
+                  const completedR = Number(penaltyCompletedRuns) || 0;
+                  let totalAwardedRuns = penaltyR;
+                  let btnLabel = `${penaltyR} Penalty Runs`;
+
+                  if (penaltyDeliveryType === 'wide') {
+                    const totalWideR = 1 + completedR;
+                    totalAwardedRuns = penaltyR + totalWideR;
+                    btnLabel = `${penaltyR} Pen + ${totalWideR} Wide = ${totalAwardedRuns} Runs`;
+                  } else if (penaltyDeliveryType === 'bye') {
+                    totalAwardedRuns = penaltyR + completedR;
+                    btnLabel = completedR > 0 ? `${penaltyR} Pen + ${completedR} Bye = ${totalAwardedRuns} Runs` : `${penaltyR} Penalty Runs`;
+                  } else if (penaltyDeliveryType === 'legBye') {
+                    totalAwardedRuns = penaltyR + completedR;
+                    btnLabel = completedR > 0 ? `${penaltyR} Pen + ${completedR} Leg Bye = ${totalAwardedRuns} Runs` : `${penaltyR} Penalty Runs`;
+                  } else if (penaltyDeliveryType === 'bat') {
+                    totalAwardedRuns = penaltyR + completedR;
+                    btnLabel = completedR > 0 ? `${penaltyR} Pen + ${completedR} Off Bat = ${totalAwardedRuns} Runs` : `${penaltyR} Penalty Runs`;
+                  }
+
+                  return (
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={() => {
+                        const isLegalParam = penaltyDeliveryType === 'none' ? penaltyIsLegalBall : (penaltyDeliveryType !== 'wide');
+                        setExtraModalType(null);
+                        setExtraCustomInput('');
+                        recordBall(
+                          penaltyR,
+                          'penalty',
+                          penaltyR,
+                          false,
+                          null,
+                          null,
+                          null,
+                          null,
+                          null,
+                          0,
+                          null,
+                          penaltyReason,
+                          completedR,
+                          penaltyAwardTeam,
+                          isLegalParam,
+                          penaltyDeliveryType
+                        );
+                        showAppToast(`Awarded ${totalAwardedRuns} runs (${penaltyReason})`, '✅', 'success');
+                      }}
+                      style={{
+                        backgroundColor: '#10b981',
+                        borderRadius: 8,
+                        paddingVertical: 11,
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginTop: 4,
+                        marginBottom: 2,
+                      }}
+                    >
+                      <Text style={{ color: '#020617', fontSize: 13, fontWeight: '900' }}>
+                        Confirm & Award ({btnLabel})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })()}
+              </ScrollView>
             ) : (
               <>
             {/* Question Text */}

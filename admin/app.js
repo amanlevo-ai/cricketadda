@@ -2550,11 +2550,18 @@ function recalculateActiveMatchStats() {
     }
 
     // Extras
+    const penaltyDelType = ball.penaltyDeliveryType || ball.penaltyRunType || 'none';
     if (ball.extraType === 'wide') extras.wides += (runs || 1);
     else if (ball.extraType === 'noBall') extras.noBalls += 1;
     else if (ball.extraType === 'bye') extras.byes += runs;
     else if (ball.extraType === 'legBye') extras.legByes += runs;
-    else if (ball.extraType === 'penalty') extras.penalty += runs;
+    else if (ball.extraType === 'penalty') {
+      const pen = Number(ball.extraPenalty !== undefined ? ball.extraPenalty : 5);
+      extras.penalty += pen;
+      if (penaltyDelType === 'wide') extras.wides += Number(ball.wideRuns !== undefined ? ball.wideRuns : Math.max(0, runs - pen));
+      else if (penaltyDelType === 'bye') extras.byes += Number(ball.byeRuns !== undefined ? ball.byeRuns : Math.max(0, runs - pen));
+      else if (penaltyDelType === 'legBye') extras.legByes += Number(ball.legByeRuns !== undefined ? ball.legByeRuns : Math.max(0, runs - pen));
+    }
 
     // Batter stats
     const striker = (ball.striker || 'Batter').trim();
@@ -2574,11 +2581,11 @@ function recalculateActiveMatchStats() {
         isNotOut: true
       };
     }
-    if (ball.extraType !== 'wide' && (ball.extraType !== 'penalty' || ball.isLegalDelivery === true)) {
+    if (ball.extraType !== 'wide' && (ball.extraType !== 'penalty' || (ball.isLegalDelivery === true && penaltyDelType !== 'wide'))) {
       battersMap[striker].balls += 1;
       const offBatRuns = (ball.extraType === 'none' || !ball.extraType)
         ? Math.max(0, runs - overthrow)
-        : (ball.extraType === 'penalty' ? Number(ball.runsOffBat || 0) : 0);
+        : (ball.extraType === 'penalty' && penaltyDelType === 'bat' ? Number(ball.runsOffBat || 0) : 0);
       battersMap[striker].runs += offBatRuns;
       if (offBatRuns === 0) battersMap[striker].dots += 1;
       else if (offBatRuns === 1) battersMap[striker].singles += 1;
@@ -2605,9 +2612,16 @@ function recalculateActiveMatchStats() {
       };
     }
 
-    const runsConceded = (ball.extraType === 'bye' || ball.extraType === 'legBye')
-      ? 0
-      : (ball.extraType === 'penalty' ? Number(ball.runsOffBat || 0) : runs);
+    let runsConceded = 0;
+    if (ball.extraType === 'penalty') {
+      if (penaltyDelType === 'wide') {
+        runsConceded = Number(ball.wideRuns !== undefined ? ball.wideRuns : Math.max(0, runs - Number(ball.extraPenalty || 5)));
+      } else if (penaltyDelType === 'bat') {
+        runsConceded = Number(ball.runsOffBat || 0);
+      }
+    } else if (ball.extraType !== 'bye' && ball.extraType !== 'legBye') {
+      runsConceded = runs;
+    }
     bowlersMap[bowler].runs += runsConceded;
 
     if (isLegal) {
