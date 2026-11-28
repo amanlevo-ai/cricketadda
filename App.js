@@ -30308,9 +30308,6 @@ function CricketAddaMain() {
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      5 Penalty runs extras mein + {penaltyCompletedRuns} runs striker ke bat par judenge.
-                    </Text>
                   </View>
                 )}
 
