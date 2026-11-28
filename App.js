@@ -30282,7 +30282,7 @@ function CricketAddaMain() {
                         +{penaltyCompletedRuns} to {striker || 'Batter'}
                       </Text>
                     </View>
-                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
                       {[0, 1, 2, 3, 4, 6].map(cr => {
                         const isSel = penaltyCompletedRuns === cr;
                         return (
@@ -30321,7 +30321,7 @@ function CricketAddaMain() {
                         1 Wd + {penaltyCompletedRuns} = {1 + penaltyCompletedRuns} Wide runs
                       </Text>
                     </View>
-                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
                       {[0, 1, 2, 3, 4].map(cr => {
                         const isSel = penaltyCompletedRuns === cr;
                         return (
@@ -30347,9 +30347,6 @@ function CricketAddaMain() {
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      Illegal delivery (does not count in over). Bowler conceded {1 + penaltyCompletedRuns} wide runs.
-                    </Text>
                   </View>
                 )}
 
@@ -30363,7 +30360,7 @@ function CricketAddaMain() {
                         +{penaltyCompletedRuns} Extras (Byes)
                       </Text>
                     </View>
-                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
                       {[1, 2, 3, 4].map(cr => {
                         const isSel = penaltyCompletedRuns === cr;
                         return (
@@ -30389,9 +30386,6 @@ function CricketAddaMain() {
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      5 Penalty runs + {penaltyCompletedRuns} Byes added to extras. Bowler conceded 0 runs.
-                    </Text>
                   </View>
                 )}
 
@@ -30405,7 +30399,7 @@ function CricketAddaMain() {
                         +{penaltyCompletedRuns} Extras (Leg Byes)
                       </Text>
                     </View>
-                    <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
                       {[1, 2, 3, 4].map(cr => {
                         const isSel = penaltyCompletedRuns === cr;
                         return (
@@ -30431,15 +30425,12 @@ function CricketAddaMain() {
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      5 Penalty runs + {penaltyCompletedRuns} Leg Byes added to extras. Bowler conceded 0 runs.
-                    </Text>
                   </View>
                 )}
 
                 {penaltyDeliveryType === 'none' && (
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
                         DIRECT PENALTY:
                       </Text>
@@ -30447,13 +30438,19 @@ function CricketAddaMain() {
                         5 Penalty Runs Only
                       </Text>
                     </View>
-                    <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800', marginBottom: 4, marginTop: 4 }}>
+                  </View>
+                )}
+
+                {/* DELIVERY COUNT: Visible for Off Bat, Bye, Leg Bye, Penalty Only */}
+                {penaltyDeliveryType !== 'wide' && (
+                  <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800', marginBottom: 5 }}>
                       DELIVERY COUNT:
                     </Text>
-                    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', gap: 6 }}>
                       {[
-                        { key: true, label: 'Legal Ball Bowled' },
-                        { key: false, label: 'Dead Ball (No Ball Counted)' },
+                        { key: true, label: 'Legal Ball' },
+                        { key: false, label: 'Dead Ball' },
                       ].map(b => {
                         const isSel = penaltyIsLegalBall === b.key;
                         return (
@@ -30473,16 +30470,13 @@ function CricketAddaMain() {
                               justifyContent: 'center',
                             }}
                           >
-                            <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 11, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
+                            <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
                               {b.label}
                             </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      {penaltyIsLegalBall ? 'Counts as a legal ball in over. Bowler conceded 0 runs.' : 'Ball is dead. Does NOT count in over.'}
-                    </Text>
                   </View>
                 )}
 
@@ -30512,7 +30506,7 @@ function CricketAddaMain() {
                     <TouchableOpacity
                       activeOpacity={0.8}
                       onPress={() => {
-                        const isLegalParam = penaltyDeliveryType === 'none' ? penaltyIsLegalBall : (penaltyDeliveryType !== 'wide');
+                        const isLegalParam = penaltyDeliveryType === 'wide' ? false : penaltyIsLegalBall;
                         setExtraModalType(null);
                         setExtraCustomInput('');
                         recordBall(
