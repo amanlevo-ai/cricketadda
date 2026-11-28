@@ -29966,14 +29966,14 @@ function CricketAddaMain() {
                   backgroundColor: extraModalType === 'wide' ? '#f59e0b' : extraModalType === 'noBall' ? '#ef4444' : extraModalType === 'bye' ? '#38bdf8' : extraModalType === 'legBye' ? '#8b5cf6' : '#0284c7',
                 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={{ color: '#ffffff', fontSize: 16, fontWeight: '900' }}>
+                  <Text style={{ color: '#ffffff', fontSize: 17, fontWeight: '900' }}>
                     {extraModalType === 'wide' && 'Wide Ball'}
                     {extraModalType === 'noBall' && 'No Ball'}
                     {extraModalType === 'bye' && 'Byes'}
                     {extraModalType === 'legBye' && 'Leg Byes'}
                     {extraModalType === 'penalty' && 'Penalty Runs'}
                   </Text>
-                  <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '700', marginTop: 1 }} numberOfLines={1}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12, fontWeight: '700', marginTop: 1 }} numberOfLines={1}>
                     {bowler || 'Bowler'} to {striker || 'Striker'}
                   </Text>
                 </View>
@@ -30053,7 +30053,7 @@ function CricketAddaMain() {
                 contentContainerStyle={{ paddingBottom: 6 }}
               >
                 {/* 1. Award To Team */}
-                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
+                <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800', marginBottom: 4 }}>
                   AWARD PENALTY TO:
                 </Text>
                 <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
@@ -30078,7 +30078,7 @@ function CricketAddaMain() {
                           alignItems: 'center',
                         }}
                       >
-                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 10.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
+                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
                           {t.label}
                         </Text>
                       </TouchableOpacity>
@@ -30087,7 +30087,7 @@ function CricketAddaMain() {
                 </View>
 
                 {/* 2. Penalty Preset Reasons (Symmetric Rows) */}
-                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
+                <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800', marginBottom: 4 }}>
                   PENALTY REASON:
                 </Text>
                 {[
@@ -30129,7 +30129,7 @@ function CricketAddaMain() {
                             justifyContent: 'center',
                           }}
                         >
-                          <Text style={{ color: isSel ? '#38bdf8' : '#cbd5e1', fontSize: 10.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
+                          <Text style={{ color: isSel ? '#38bdf8' : '#cbd5e1', fontSize: 11.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
                             {r.label}
                           </Text>
                         </TouchableOpacity>
@@ -30154,7 +30154,7 @@ function CricketAddaMain() {
                     marginBottom: 8,
                   }}
                 >
-                  <Text style={{ color: penaltyReason === 'Other / Custom Runs' ? '#38bdf8' : '#cbd5e1', fontSize: 10.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
+                  <Text style={{ color: penaltyReason === 'Other / Custom Runs' ? '#38bdf8' : '#cbd5e1', fontSize: 11.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
                     Other / Custom Runs
                   </Text>
                 </TouchableOpacity>
@@ -30162,7 +30162,7 @@ function CricketAddaMain() {
                 {/* Custom runs input if Other / Custom selected */}
                 {penaltyReason === 'Other / Custom Runs' && (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                    <Text style={{ color: '#f59e0b', fontSize: 10.5, fontWeight: '800' }}>
+                    <Text style={{ color: '#f59e0b', fontSize: 11.5, fontWeight: '800' }}>
                       Custom Runs:
                     </Text>
                     <TextInput
@@ -30178,7 +30178,7 @@ function CricketAddaMain() {
                         paddingHorizontal: 8,
                         paddingVertical: 4,
                         color: '#ffffff',
-                        fontSize: 12,
+                        fontSize: 13,
                         fontWeight: '700',
                       }}
                     />
@@ -30186,7 +30186,7 @@ function CricketAddaMain() {
                 )}
 
                 {/* 3. Delivery / Run Type on Penalty (Explicit 2 Rows - No Layout Overlap) */}
-                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 5 }}>
+                <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800', marginBottom: 5 }}>
                   BALL / DELIVERY TYPE ON THIS PENALTY:
                 </Text>
 
@@ -30224,7 +30224,7 @@ function CricketAddaMain() {
                           justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 10.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
+                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
                           {dt.label}
                         </Text>
                       </TouchableOpacity>
@@ -30259,7 +30259,7 @@ function CricketAddaMain() {
                           justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 10.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
+                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
                           {dt.label}
                         </Text>
                       </TouchableOpacity>
@@ -30271,10 +30271,10 @@ function CricketAddaMain() {
                 {penaltyDeliveryType === 'bat' && (
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
                         RUNS SCORED OFF BAT:
                       </Text>
-                      <Text style={{ color: '#10b981', fontSize: 9.5, fontWeight: '700' }}>
+                      <Text style={{ color: '#10b981', fontSize: 10.5, fontWeight: '700' }}>
                         +{penaltyCompletedRuns} to {striker || 'Batter'} (Bowler charged)
                       </Text>
                     </View>
@@ -30297,14 +30297,14 @@ function CricketAddaMain() {
                               justifyContent: 'center',
                             }}
                           >
-                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '900' }}>
+                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 12, fontWeight: '900' }}>
                               {cr}
                             </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
                       Counts as legal delivery in over. Batter gets runs faced, bowler conceded.
                     </Text>
                   </View>
@@ -30313,10 +30313,10 @@ function CricketAddaMain() {
                 {penaltyDeliveryType === 'wide' && (
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
                         EXTRA RUNS ON WIDE:
                       </Text>
-                      <Text style={{ color: '#f59e0b', fontSize: 9.5, fontWeight: '700' }}>
+                      <Text style={{ color: '#f59e0b', fontSize: 10.5, fontWeight: '700' }}>
                         1 Wd + {penaltyCompletedRuns} = {1 + penaltyCompletedRuns} Wide runs
                       </Text>
                     </View>
@@ -30339,14 +30339,14 @@ function CricketAddaMain() {
                               justifyContent: 'center',
                             }}
                           >
-                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '900' }}>
+                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 12, fontWeight: '900' }}>
                               {cr}
                             </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
                       Illegal delivery (extra ball). Bowler charged {1 + penaltyCompletedRuns} wide runs, NOT the penalty runs.
                     </Text>
                   </View>
@@ -30355,10 +30355,10 @@ function CricketAddaMain() {
                 {penaltyDeliveryType === 'bye' && (
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
                         BYES COMPLETED:
                       </Text>
-                      <Text style={{ color: '#38bdf8', fontSize: 9.5, fontWeight: '700' }}>
+                      <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '700' }}>
                         +{penaltyCompletedRuns} Extras (Byes)
                       </Text>
                     </View>
@@ -30381,14 +30381,14 @@ function CricketAddaMain() {
                               justifyContent: 'center',
                             }}
                           >
-                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '900' }}>
+                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 12, fontWeight: '900' }}>
                               {cr} {cr === 1 ? 'Bye' : 'Byes'}
                             </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
                       Counts as legal delivery in over. Bowler charged 0 runs. Batter faced +1 ball.
                     </Text>
                   </View>
@@ -30397,10 +30397,10 @@ function CricketAddaMain() {
                 {penaltyDeliveryType === 'legBye' && (
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                      <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
                         LEG BYES COMPLETED:
                       </Text>
-                      <Text style={{ color: '#a855f7', fontSize: 9.5, fontWeight: '700' }}>
+                      <Text style={{ color: '#a855f7', fontSize: 10.5, fontWeight: '700' }}>
                         +{penaltyCompletedRuns} Extras (Leg Byes)
                       </Text>
                     </View>
@@ -30423,14 +30423,14 @@ function CricketAddaMain() {
                               justifyContent: 'center',
                             }}
                           >
-                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 11, fontWeight: '900' }}>
+                            <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 12, fontWeight: '900' }}>
                               {cr} {cr === 1 ? 'Lb' : 'Lbs'}
                             </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
                       Counts as legal delivery in over. Bowler charged 0 runs. Batter faced +1 ball.
                     </Text>
                   </View>
@@ -30438,7 +30438,7 @@ function CricketAddaMain() {
 
                 {penaltyDeliveryType === 'none' && (
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800', marginBottom: 4 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800', marginBottom: 4 }}>
                       DELIVERY COUNT:
                     </Text>
                     <View style={{ flexDirection: 'row', gap: 6, marginBottom: 4 }}>
@@ -30464,14 +30464,14 @@ function CricketAddaMain() {
                               justifyContent: 'center',
                             }}
                           >
-                            <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 10, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
+                            <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 11, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
                               {b.label}
                             </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
-                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                    <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
                       {penaltyIsLegalBall ? 'Counts as a legal ball in over. Bowler conceded 0 runs.' : 'Ball is dead. Does NOT count in over.'}
                     </Text>
                   </View>
@@ -30536,8 +30536,8 @@ function CricketAddaMain() {
                         marginBottom: 2,
                       }}
                     >
-                      <Text style={{ color: '#020617', fontSize: 13, fontWeight: '900' }}>
-                        Confirm & Award ({btnLabel})
+                      <Text style={{ color: '#020617', fontSize: 14, fontWeight: '900' }}>
+                        Confirm ({btnLabel})
                       </Text>
                     </TouchableOpacity>
                   );
