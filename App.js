@@ -30236,7 +30236,7 @@ function CricketAddaMain() {
                 <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
                   {[
                     { key: 'wide', label: 'Wide Ball' },
-                    { key: 'none', label: 'Penalty Only (No Runs)' },
+                    { key: 'none', label: 'Penalty Only' },
                   ].map(dt => {
                     const isSel = penaltyDeliveryType === dt.key;
                     return (
@@ -30276,7 +30276,7 @@ function CricketAddaMain() {
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
-                        RUNS COMPLETED BY BATTER (BHAG KAR LIYE RUN):
+                        RUNS COMPLETED BY BATTER:
                       </Text>
                       <Text style={{ color: '#10b981', fontSize: 10.5, fontWeight: '700' }}>
                         +{penaltyCompletedRuns} to {striker || 'Batter'}
@@ -30309,7 +30309,7 @@ function CricketAddaMain() {
                       })}
                     </View>
                     <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      5 Penalty runs extras mein + {penaltyCompletedRuns} bhag kar liye gaye run striker ke bat par judenge.
+                      5 Penalty runs extras mein + {penaltyCompletedRuns} runs striker ke bat par judenge.
                     </Text>
                   </View>
                 )}
@@ -30318,7 +30318,7 @@ function CricketAddaMain() {
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
-                        RUNS COMPLETED ON WIDE (BHAG KAR LIYE RUN):
+                        RUNS COMPLETED ON WIDE:
                       </Text>
                       <Text style={{ color: '#f59e0b', fontSize: 10.5, fontWeight: '700' }}>
                         1 Wd + {penaltyCompletedRuns} = {1 + penaltyCompletedRuns} Wide runs
@@ -30360,7 +30360,7 @@ function CricketAddaMain() {
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
-                        BYES COMPLETED (BHAG KAR LIYE RUN):
+                        BYES COMPLETED:
                       </Text>
                       <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '700' }}>
                         +{penaltyCompletedRuns} Extras (Byes)
@@ -30402,7 +30402,7 @@ function CricketAddaMain() {
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
-                        LEG BYES COMPLETED (BHAG KAR LIYE RUN):
+                        LEG BYES COMPLETED:
                       </Text>
                       <Text style={{ color: '#a855f7', fontSize: 10.5, fontWeight: '700' }}>
                         +{penaltyCompletedRuns} Extras (Leg Byes)
@@ -30444,7 +30444,7 @@ function CricketAddaMain() {
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
-                        DIRECT PENALTY (BINA KISI RUN KE):
+                        DIRECT PENALTY:
                       </Text>
                       <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '700' }}>
                         Sirf 5 Penalty Runs
