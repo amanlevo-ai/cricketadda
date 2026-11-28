@@ -29946,12 +29946,13 @@ function CricketAddaMain() {
 
           <View style={{
             width: '100%',
-            maxWidth: 380,
+            maxWidth: 395,
+            maxHeight: '92%',
             backgroundColor: '#071526',
             borderRadius: 18,
             borderWidth: 1.5,
             borderColor: '#1e3a5f',
-            padding: 16,
+            padding: 14,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 6 },
             shadowOpacity: 0.6,
@@ -29959,7 +29960,7 @@ function CricketAddaMain() {
             elevation: 12,
           }}>
             {/* Top Header: Dot + Title + Subtitle + Close Button */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1 }}>
                 <View style={{
                   width: 10,
@@ -30050,9 +30051,9 @@ function CricketAddaMain() {
 
             {extraModalType === 'penalty' ? (
               <ScrollView
-                style={{ maxHeight: 480 }}
+                style={{ maxHeight: Math.min(620, height * 0.82) }}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 6 }}
+                contentContainerStyle={{ paddingBottom: 4 }}
               >
                 {/* 1. Award To Team */}
                 <Text style={{ color: '#94a3b8', fontSize: 11.5, fontWeight: '800', marginBottom: 4 }}>
