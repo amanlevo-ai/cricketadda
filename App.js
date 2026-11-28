@@ -5252,7 +5252,7 @@ function CricketAddaMain() {
       return;
     }
     if (!Updates.isEnabled) {
-      showAppToast('OTA update new APK install karne ke baad activate hoga', 'ℹ️', 'info');
+      showAppToast('OTA updates will activate after installing the latest app build', 'ℹ️', 'info');
       return;
     }
     setIsCheckingUpdate(true);
@@ -5261,15 +5261,15 @@ function CricketAddaMain() {
       if (update.isAvailable) {
         await Updates.fetchUpdateAsync();
         Alert.alert(
-          '🚀 Naya Update Download Ho Gaya!',
-          'App ka latest version download ho gaya hai. Abhi restart karke apply karein?',
+          '🚀 New Update Downloaded!',
+          'The latest version of CricketAdda has been downloaded. Restart now to apply?',
           [
-            { text: 'Baad Mein', style: 'cancel' },
-            { text: 'Abhi Restart Karein', onPress: () => Updates.reloadAsync() },
+            { text: 'Later', style: 'cancel' },
+            { text: 'Restart Now', onPress: () => Updates.reloadAsync() },
           ]
         );
       } else {
-        showAppToast('Aapka app already latest version par hai!', '✅', 'success');
+        showAppToast('Your app is already on the latest version!', '✅', 'success');
       }
     } catch (err) {
       const errMsg = String(err?.message || err || 'Network error');
@@ -5287,11 +5287,11 @@ function CricketAddaMain() {
         if (update.isAvailable) {
           await Updates.fetchUpdateAsync();
           Alert.alert(
-            '🚀 Naya Update Available!',
-            'CricketAdda ka naya version download ho gaya hai. Naye features dekhne ke liye restart karein?',
+            '🚀 New Update Available!',
+            'A new version of CricketAdda has been downloaded. Restart to apply new features?',
             [
-              { text: 'Baad Mein', style: 'cancel' },
-              { text: 'Abhi Restart Karein', onPress: () => Updates.reloadAsync() },
+              { text: 'Later', style: 'cancel' },
+              { text: 'Restart Now', onPress: () => Updates.reloadAsync() },
             ]
           );
         }
@@ -30348,7 +30348,7 @@ function CricketAddaMain() {
                       })}
                     </View>
                     <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      Illegal delivery (ball over mein count nahi hogi). Bowler par {1 + penaltyCompletedRuns} wide runs charge honge.
+                      Illegal delivery (does not count in over). Bowler conceded {1 + penaltyCompletedRuns} wide runs.
                     </Text>
                   </View>
                 )}
@@ -30390,7 +30390,7 @@ function CricketAddaMain() {
                       })}
                     </View>
                     <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      5 Penalty runs + {penaltyCompletedRuns} Byes extras mein judenge. Bowler par 0 run charge hoga.
+                      5 Penalty runs + {penaltyCompletedRuns} Byes added to extras. Bowler conceded 0 runs.
                     </Text>
                   </View>
                 )}
@@ -30432,7 +30432,7 @@ function CricketAddaMain() {
                       })}
                     </View>
                     <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      5 Penalty runs + {penaltyCompletedRuns} Leg Byes extras mein judenge. Bowler par 0 run charge hoga.
+                      5 Penalty runs + {penaltyCompletedRuns} Leg Byes added to extras. Bowler conceded 0 runs.
                     </Text>
                   </View>
                 )}
@@ -30444,7 +30444,7 @@ function CricketAddaMain() {
                         DIRECT PENALTY:
                       </Text>
                       <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '700' }}>
-                        Sirf 5 Penalty Runs
+                        5 Penalty Runs Only
                       </Text>
                     </View>
                     <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800', marginBottom: 4, marginTop: 4 }}>
