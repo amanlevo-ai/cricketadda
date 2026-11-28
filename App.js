@@ -7309,7 +7309,7 @@ function CricketAddaMain() {
   // Penalty Runs modal state
   const [penaltyAwardTeam, setPenaltyAwardTeam] = useState('batting'); // 'batting' | 'bowling'
   const [penaltyReason, setPenaltyReason] = useState('Ball Hit Helmet / Ground Equipment (5 Runs)');
-  const [penaltyDeliveryType, setPenaltyDeliveryType] = useState('none'); // 'none' | 'bat' | 'wide' | 'bye' | 'legBye'
+  const [penaltyDeliveryType, setPenaltyDeliveryType] = useState('bat'); // 'bat' | 'wide' | 'bye' | 'legBye' | 'none'
   const [penaltyCompletedRuns, setPenaltyCompletedRuns] = useState(0); // 0, 1, 2, 3, 4
   const [penaltyBatterRuns, setPenaltyBatterRuns] = useState(0); // 0, 1, 2, 3
   const [penaltyIsLegalBall, setPenaltyIsLegalBall] = useState(true);
@@ -26789,6 +26789,8 @@ function CricketAddaMain() {
                             return;
                           }
                           setExtraModalType('penalty');
+                          setPenaltyDeliveryType('bat');
+                          setPenaltyCompletedRuns(0);
                           setExtraNbSource('bat');
                           setExtraCustomInput('');
                         }}
@@ -30190,12 +30192,12 @@ function CricketAddaMain() {
                   BALL / DELIVERY TYPE ON THIS PENALTY:
                 </Text>
 
-                {/* Row 1: Penalty Only | Off Bat | Wide Ball */}
+                {/* Row 1: Off Bat | Bye | Leg Bye */}
                 <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
                   {[
-                    { key: 'none', label: 'Penalty Only' },
                     { key: 'bat', label: 'Off Bat' },
-                    { key: 'wide', label: 'Wide Ball' },
+                    { key: 'bye', label: 'Bye' },
+                    { key: 'legBye', label: 'Leg Bye' },
                   ].map(dt => {
                     const isSel = penaltyDeliveryType === dt.key;
                     return (
@@ -30204,9 +30206,7 @@ function CricketAddaMain() {
                         activeOpacity={0.8}
                         onPress={() => {
                           setPenaltyDeliveryType(dt.key);
-                          if (dt.key === 'none') {
-                            setPenaltyCompletedRuns(0);
-                          } else if (dt.key === 'wide' || dt.key === 'bat') {
+                          if (dt.key === 'bat') {
                             if (penaltyCompletedRuns < 0) setPenaltyCompletedRuns(0);
                           } else if (dt.key === 'bye' || dt.key === 'legBye') {
                             if (penaltyCompletedRuns <= 0) setPenaltyCompletedRuns(1);
@@ -30232,11 +30232,11 @@ function CricketAddaMain() {
                   })}
                 </View>
 
-                {/* Row 2: Bye | Leg Bye */}
+                {/* Row 2: Wide Ball | Penalty Only */}
                 <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
                   {[
-                    { key: 'bye', label: 'Bye' },
-                    { key: 'legBye', label: 'Leg Bye' },
+                    { key: 'wide', label: 'Wide Ball' },
+                    { key: 'none', label: 'Penalty Only (No Runs)' },
                   ].map(dt => {
                     const isSel = penaltyDeliveryType === dt.key;
                     return (
@@ -30245,7 +30245,11 @@ function CricketAddaMain() {
                         activeOpacity={0.8}
                         onPress={() => {
                           setPenaltyDeliveryType(dt.key);
-                          if (penaltyCompletedRuns <= 0) setPenaltyCompletedRuns(1);
+                          if (dt.key === 'none') {
+                            setPenaltyCompletedRuns(0);
+                          } else if (dt.key === 'wide') {
+                            if (penaltyCompletedRuns < 0) setPenaltyCompletedRuns(0);
+                          }
                         }}
                         style={{
                           flex: 1,
@@ -30272,10 +30276,10 @@ function CricketAddaMain() {
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
-                        RUNS SCORED OFF BAT:
+                        RUNS COMPLETED BY BATTER (BHAG KAR LIYE RUN):
                       </Text>
                       <Text style={{ color: '#10b981', fontSize: 10.5, fontWeight: '700' }}>
-                        +{penaltyCompletedRuns} to {striker || 'Batter'} (Bowler charged)
+                        +{penaltyCompletedRuns} to {striker || 'Batter'}
                       </Text>
                     </View>
                     <View style={{ flexDirection: 'row', gap: 5, marginBottom: 4 }}>
@@ -30305,7 +30309,7 @@ function CricketAddaMain() {
                       })}
                     </View>
                     <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      Counts as legal delivery in over. Batter gets runs faced, bowler conceded.
+                      5 Penalty runs extras mein + {penaltyCompletedRuns} bhag kar liye gaye run striker ke bat par judenge.
                     </Text>
                   </View>
                 )}
@@ -30314,7 +30318,7 @@ function CricketAddaMain() {
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
-                        EXTRA RUNS ON WIDE:
+                        RUNS COMPLETED ON WIDE (BHAG KAR LIYE RUN):
                       </Text>
                       <Text style={{ color: '#f59e0b', fontSize: 10.5, fontWeight: '700' }}>
                         1 Wd + {penaltyCompletedRuns} = {1 + penaltyCompletedRuns} Wide runs
@@ -30347,7 +30351,7 @@ function CricketAddaMain() {
                       })}
                     </View>
                     <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      Illegal delivery (extra ball). Bowler charged {1 + penaltyCompletedRuns} wide runs, NOT the penalty runs.
+                      Illegal delivery (ball over mein count nahi hogi). Bowler par {1 + penaltyCompletedRuns} wide runs charge honge.
                     </Text>
                   </View>
                 )}
@@ -30356,7 +30360,7 @@ function CricketAddaMain() {
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
-                        BYES COMPLETED:
+                        BYES COMPLETED (BHAG KAR LIYE RUN):
                       </Text>
                       <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '700' }}>
                         +{penaltyCompletedRuns} Extras (Byes)
@@ -30389,7 +30393,7 @@ function CricketAddaMain() {
                       })}
                     </View>
                     <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      Counts as legal delivery in over. Bowler charged 0 runs. Batter faced +1 ball.
+                      5 Penalty runs + {penaltyCompletedRuns} Byes extras mein judenge. Bowler par 0 run charge hoga.
                     </Text>
                   </View>
                 )}
@@ -30398,7 +30402,7 @@ function CricketAddaMain() {
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                       <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
-                        LEG BYES COMPLETED:
+                        LEG BYES COMPLETED (BHAG KAR LIYE RUN):
                       </Text>
                       <Text style={{ color: '#a855f7', fontSize: 10.5, fontWeight: '700' }}>
                         +{penaltyCompletedRuns} Extras (Leg Byes)
@@ -30431,14 +30435,22 @@ function CricketAddaMain() {
                       })}
                     </View>
                     <Text style={{ color: '#64748b', fontSize: 10.5, fontStyle: 'italic' }}>
-                      Counts as legal delivery in over. Bowler charged 0 runs. Batter faced +1 ball.
+                      5 Penalty runs + {penaltyCompletedRuns} Leg Byes extras mein judenge. Bowler par 0 run charge hoga.
                     </Text>
                   </View>
                 )}
 
                 {penaltyDeliveryType === 'none' && (
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800', marginBottom: 4 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800' }}>
+                        DIRECT PENALTY (BINA KISI RUN KE):
+                      </Text>
+                      <Text style={{ color: '#38bdf8', fontSize: 10.5, fontWeight: '700' }}>
+                        Sirf 5 Penalty Runs
+                      </Text>
+                    </View>
+                    <Text style={{ color: '#94a3b8', fontSize: 11, fontWeight: '800', marginBottom: 4, marginTop: 4 }}>
                       DELIVERY COUNT:
                     </Text>
                     <View style={{ flexDirection: 'row', gap: 6, marginBottom: 4 }}>
