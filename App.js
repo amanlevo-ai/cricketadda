@@ -30048,9 +30048,9 @@ function CricketAddaMain() {
 
             {extraModalType === 'penalty' ? (
               <ScrollView
-                style={{ maxHeight: 470 }}
+                style={{ maxHeight: 480 }}
                 showsVerticalScrollIndicator={false}
-                contentContainerStyle={{ paddingBottom: 4 }}
+                contentContainerStyle={{ paddingBottom: 6 }}
               >
                 {/* 1. Award To Team */}
                 <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
@@ -30086,50 +30086,78 @@ function CricketAddaMain() {
                   })}
                 </View>
 
-                {/* 2. Penalty Preset Reasons (Compact 2-Column Grid) */}
+                {/* 2. Penalty Preset Reasons (Symmetric Rows) */}
                 <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
                   PENALTY REASON:
                 </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
-                  {[
+                {[
+                  [
                     { key: 'Ball Hit Helmet / Ground Equipment (5 Runs)', label: 'Helmet / Ground (5)' },
                     { key: 'Fake Fielding / Distraction (5 Runs)', label: 'Fake Fielding (5)' },
+                  ],
+                  [
                     { key: 'Illegal Fielding / Cap or Clothing (5 Runs)', label: 'Illegal Fielding (5)' },
                     { key: 'Stop-Clock / Slow Over Rate (5 Runs)', label: 'Slow Over Rate (5)' },
+                  ],
+                  [
                     { key: 'Ball Tampering (5 Runs)', label: 'Ball Tampering (5)' },
                     { key: 'Unauthorised Player Entry (5 Runs)', label: 'Unauthorised Entry (5)' },
-                    { key: 'Other / Custom Runs', label: 'Other / Custom' },
-                  ].map(r => {
-                    const isSel = penaltyReason === r.key;
-                    return (
-                      <TouchableOpacity
-                        key={r.key}
-                        activeOpacity={0.8}
-                        onPress={() => {
-                          setPenaltyReason(r.key);
-                          if (r.key.includes('5 Runs')) {
-                            setPenaltyRunsValue(5);
-                          }
-                        }}
-                        style={{
-                          width: '48.5%',
-                          paddingVertical: 5,
-                          paddingHorizontal: 8,
-                          borderRadius: 7,
-                          backgroundColor: isSel ? 'rgba(56, 189, 248, 0.2)' : '#0a192f',
-                          borderWidth: 1.2,
-                          borderColor: isSel ? '#38bdf8' : '#1e3a5f',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                      >
-                        <Text style={{ color: isSel ? '#38bdf8' : '#cbd5e1', fontSize: 10.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
-                          {r.label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
-                </View>
+                  ],
+                ].map((pair, pIdx) => (
+                  <View key={`reason_pair_${pIdx}`} style={{ flexDirection: 'row', gap: 6, marginBottom: 5 }}>
+                    {pair.map(r => {
+                      const isSel = penaltyReason === r.key;
+                      return (
+                        <TouchableOpacity
+                          key={r.key}
+                          activeOpacity={0.8}
+                          onPress={() => {
+                            setPenaltyReason(r.key);
+                            if (r.key.includes('5 Runs')) {
+                              setPenaltyRunsValue(5);
+                            }
+                          }}
+                          style={{
+                            flex: 1,
+                            paddingVertical: 5.5,
+                            paddingHorizontal: 6,
+                            borderRadius: 7,
+                            backgroundColor: isSel ? 'rgba(56, 189, 248, 0.2)' : '#0a192f',
+                            borderWidth: 1.2,
+                            borderColor: isSel ? '#38bdf8' : '#1e3a5f',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                        >
+                          <Text style={{ color: isSel ? '#38bdf8' : '#cbd5e1', fontSize: 10.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
+                            {r.label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
+
+                {/* Other / Custom Runs */}
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => setPenaltyReason('Other / Custom Runs')}
+                  style={{
+                    paddingVertical: 5.5,
+                    paddingHorizontal: 8,
+                    borderRadius: 7,
+                    backgroundColor: penaltyReason === 'Other / Custom Runs' ? 'rgba(56, 189, 248, 0.2)' : '#0a192f',
+                    borderWidth: 1.2,
+                    borderColor: penaltyReason === 'Other / Custom Runs' ? '#38bdf8' : '#1e3a5f',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: 8,
+                  }}
+                >
+                  <Text style={{ color: penaltyReason === 'Other / Custom Runs' ? '#38bdf8' : '#cbd5e1', fontSize: 10.5, fontWeight: '700', textAlign: 'center' }} numberOfLines={1}>
+                    Other / Custom Runs
+                  </Text>
+                </TouchableOpacity>
 
                 {/* Custom runs input if Other / Custom selected */}
                 {penaltyReason === 'Other / Custom Runs' && (
@@ -30157,17 +30185,17 @@ function CricketAddaMain() {
                   </View>
                 )}
 
-                {/* 3. Delivery / Run Type on Penalty */}
-                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
+                {/* 3. Delivery / Run Type on Penalty (Explicit 2 Rows - No Layout Overlap) */}
+                <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 5 }}>
                   BALL / DELIVERY TYPE ON THIS PENALTY:
                 </Text>
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 5, marginBottom: 8 }}>
+
+                {/* Row 1: Penalty Only | Off Bat | Wide Ball */}
+                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 6 }}>
                   {[
                     { key: 'none', label: 'Penalty Only' },
                     { key: 'bat', label: 'Off Bat' },
                     { key: 'wide', label: 'Wide Ball' },
-                    { key: 'bye', label: 'Bye' },
-                    { key: 'legBye', label: 'Leg Bye' },
                   ].map(dt => {
                     const isSel = penaltyDeliveryType === dt.key;
                     return (
@@ -30186,18 +30214,17 @@ function CricketAddaMain() {
                         }}
                         style={{
                           flex: 1,
-                          minWidth: '28%',
-                          paddingVertical: 6,
+                          paddingVertical: 6.5,
                           paddingHorizontal: 4,
                           borderRadius: 7,
-                          backgroundColor: isSel ? 'rgba(56, 189, 248, 0.25)' : '#0a192f',
+                          backgroundColor: isSel ? '#0284c7' : '#0a192f',
                           borderWidth: 1.2,
                           borderColor: isSel ? '#38bdf8' : '#1e3a5f',
                           alignItems: 'center',
                           justifyContent: 'center',
                         }}
                       >
-                        <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 10.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
+                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 10.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
                           {dt.label}
                         </Text>
                       </TouchableOpacity>
@@ -30205,7 +30232,42 @@ function CricketAddaMain() {
                   })}
                 </View>
 
-                {/* 4. Dynamic Runs Completed / Extra Delivery Config */}
+                {/* Row 2: Bye | Leg Bye */}
+                <View style={{ flexDirection: 'row', gap: 6, marginBottom: 8 }}>
+                  {[
+                    { key: 'bye', label: 'Bye' },
+                    { key: 'legBye', label: 'Leg Bye' },
+                  ].map(dt => {
+                    const isSel = penaltyDeliveryType === dt.key;
+                    return (
+                      <TouchableOpacity
+                        key={`p_del_${dt.key}`}
+                        activeOpacity={0.8}
+                        onPress={() => {
+                          setPenaltyDeliveryType(dt.key);
+                          if (penaltyCompletedRuns <= 0) setPenaltyCompletedRuns(1);
+                        }}
+                        style={{
+                          flex: 1,
+                          paddingVertical: 6.5,
+                          paddingHorizontal: 4,
+                          borderRadius: 7,
+                          backgroundColor: isSel ? '#0284c7' : '#0a192f',
+                          borderWidth: 1.2,
+                          borderColor: isSel ? '#38bdf8' : '#1e3a5f',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        <Text style={{ color: isSel ? '#ffffff' : '#94a3b8', fontSize: 10.5, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
+                          {dt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+
+                {/* 4. Dynamic Runs Completed / Extra Delivery Config Card */}
                 {penaltyDeliveryType === 'bat' && (
                   <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
@@ -30375,11 +30437,11 @@ function CricketAddaMain() {
                 )}
 
                 {penaltyDeliveryType === 'none' && (
-                  <View style={{ marginBottom: 8 }}>
-                    <Text style={{ color: '#94a3b8', fontSize: 10.5, fontWeight: '800', marginBottom: 4 }}>
+                  <View style={{ marginBottom: 8, padding: 8, backgroundColor: '#050c18', borderRadius: 8, borderWidth: 1, borderColor: '#1e3a5f' }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 10, fontWeight: '800', marginBottom: 4 }}>
                       DELIVERY COUNT:
                     </Text>
-                    <View style={{ flexDirection: 'row', gap: 6 }}>
+                    <View style={{ flexDirection: 'row', gap: 6, marginBottom: 4 }}>
                       {[
                         { key: true, label: 'Legal Ball Bowled' },
                         { key: false, label: 'Dead Ball (No Ball Counted)' },
@@ -30394,20 +30456,24 @@ function CricketAddaMain() {
                               flex: 1,
                               paddingVertical: 6,
                               paddingHorizontal: 4,
-                              borderRadius: 7,
-                              backgroundColor: isSel ? 'rgba(56, 189, 248, 0.2)' : '#0a192f',
+                              borderRadius: 6,
+                              backgroundColor: isSel ? 'rgba(56, 189, 248, 0.25)' : '#0a192f',
                               borderWidth: 1.2,
                               borderColor: isSel ? '#38bdf8' : '#1e3a5f',
                               alignItems: 'center',
+                              justifyContent: 'center',
                             }}
                           >
-                            <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 10, fontWeight: '800' }}>
+                            <Text style={{ color: isSel ? '#38bdf8' : '#94a3b8', fontSize: 10, fontWeight: '800', textAlign: 'center' }} numberOfLines={1}>
                               {b.label}
                             </Text>
                           </TouchableOpacity>
                         );
                       })}
                     </View>
+                    <Text style={{ color: '#64748b', fontSize: 9.5, fontStyle: 'italic' }}>
+                      {penaltyIsLegalBall ? 'Counts as a legal ball in over. Bowler conceded 0 runs.' : 'Ball is dead. Does NOT count in over.'}
+                    </Text>
                   </View>
                 )}
 
